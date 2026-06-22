@@ -2,73 +2,98 @@ import os
 import json
 import anthropic
 from dotenv import load_dotenv
+from sqlalchemy.orm import Session
+from database import SessionLocal
+from models import Topic, TopicPrerequisite
 
 load_dotenv()
-
-KNOWLEDGE_GRAPH = {
-    "dynamic_programming": ["recursion", "memoization", "arrays"],
-    "dijkstra": ["graphs", "priority_queue", "greedy_algorithms"],
-    "segment_trees": ["binary_trees", "prefix_sums", "arrays"],
-    "distributed_systems": ["networking", "consistency_models", "databases"],
-    "transformer_architecture": ["attention_mechanism", "embeddings", "neural_networks"],
-    "system_design": ["databases", "caching", "load_balancing", "microservices"],
-    "kubernetes": ["docker", "containers", "networking"],
-    "binary_search": ["arrays", "sorting"],
-    "graph_traversal": ["graphs", "recursion", "queues"],
-    "concurrency": ["threads", "locks", "operating_systems"],
-    "machine_learning": ["statistics", "linear_algebra", "python"],
-    "databases": ["sql", "indexing", "normalization"],
-    "caching": ["hash_maps", "distributed_systems"],
-    "microservices": ["apis", "docker", "networking"],
-    "neural_networks": ["linear_algebra", "calculus", "statistics"]
-}
 
 class KnowledgeGapGraph:
     def __init__(self):
         self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-        self.graph = KNOWLEDGE_GRAPH
-    
+
     def extract_gaps(self, question: str, answer: str, technical_score: float) -> list:
         if technical_score >= 7.0:
             return []
-        
+
         response = self.client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=200,
-            system="Return only a JSON list of topic strings. No explanation. No markdown.",
+            system="Return only a JSON list of topic strings using snake_case, matching common CS topic naming. No explanation. No markdown.",
             messages=[{"role": "user", "content":
                 f"What CS topics did this answer fail to address properly?\n"
                 f"Question: {question}\nAnswer: {answer}\n"
-                f"Return maximum 3 topics as a JSON list like: [\"topic1\", \"topic2\"]"}]
+                f"Return maximum 3 topics as a JSON list like: [\"topic_name\", \"topic_name\"]"}]
         )
-        
+
         raw = response.content[0].text.strip()
         if raw.startswith("```"):
             raw = raw.split("```")[1]
             if raw.startswith("json"):
                 raw = raw[4:]
-        
+
         failed_topics = json.loads(raw.strip())
-        
+
+        db = SessionLocal()
         study_plan = []
-        for topic in failed_topics:
-            topic_key = topic.lower().replace(" ", "_")
-            prerequisites = self.graph.get(topic_key, [])
-            study_plan.append({
-                "gap": topic,
-                "prerequisites_to_study_first": prerequisites,
-                "urgency": "high" if technical_score < 4 else "medium"
-            })
-        
+        try:
+            for topic_name in failed_topics:
+                topic_key = topic_name.lower().replace(" ", "_")
+                topic = db.query(Topic).filter(Topic.name == topic_key).first()
+
+                if topic:
+                    prereqs = self._get_prerequisites(db, topic.id)
+                    study_plan.append({
+                        "gap": topic_name,
+                        "prerequisites_to_study_first": prereqs,
+                        "urgency": "high" if technical_score < 4 else "medium",
+                        "category": topic.category,
+                        "topic_difficulty": topic.difficulty_level
+                    })
+                else:
+                    # Topic not in our graph yet — still surface the gap without prerequisites
+                    study_plan.append({
+                        "gap": topic_name,
+                        "prerequisites_to_study_first": [],
+                        "urgency": "high" if technical_score < 4 else "medium",
+                        "category": None,
+                        "topic_difficulty": None
+                    })
+        finally:
+            db.close()
+
         return study_plan
-    
-    def get_full_study_path(self, topic: str) -> list:
-        topic_key = topic.lower().replace(" ", "_")
-        prerequisites = self.graph.get(topic_key, [])
-        
+
+    def _get_prerequisites(self, db: Session, topic_id: int) -> list:
+        links = db.query(TopicPrerequisite).filter(TopicPrerequisite.topic_id == topic_id).all()
+        prereq_names = []
+        for link in links:
+            prereq_topic = db.query(Topic).filter(Topic.id == link.prerequisite_id).first()
+            if prereq_topic:
+                prereq_names.append(prereq_topic.name)
+        return prereq_names
+
+    def get_full_study_path(self, topic_name: str) -> list:
+        """Recursively walks the prerequisite chain to build a full study order."""
+        db = SessionLocal()
+        visited = set()
         path = []
-        for prereq in prerequisites:
-            path.append(prereq)
-        path.append(topic)
-        
+
+        def visit(name):
+            if name in visited:
+                return
+            visited.add(name)
+            topic = db.query(Topic).filter(Topic.name == name).first()
+            if not topic:
+                return
+            prereqs = self._get_prerequisites(db, topic.id)
+            for p in prereqs:
+                visit(p)
+            path.append(name)
+
+        try:
+            visit(topic_name.lower().replace(" ", "_"))
+        finally:
+            db.close()
+
         return path

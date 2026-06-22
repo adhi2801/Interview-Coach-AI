@@ -1,9 +1,13 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from database import get_db, create_tables
+from database import get_db, create_tables, SessionLocal
+from models import InterviewSession, Answer
 from dotenv import load_dotenv
 from pydantic import BaseModel
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from engines.adaptive_difficulty import AdaptiveDifficultyEngine
 from engines.scoring import MultiDimensionalScorer
 from engines.company_dna import CompanyDNAEngine
@@ -12,10 +16,30 @@ from engines.confidence_coach import ConfidenceCoach
 from engines.peer_comparison import PeerComparisonEngine
 from engines.replay_system import ReplaySystem
 import os
+import structlog
+import logging
 
 load_dotenv()
 
+# Structured logging: every log line is now a parseable JSON object
+# with consistent fields, instead of plain print() strings.
+structlog.configure(
+    processors=[
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.add_log_level,
+        structlog.processors.JSONRenderer()
+    ]
+)
+logger = structlog.get_logger()
+logging.basicConfig(level=logging.INFO)
+
 app = FastAPI(title="InterviewCoach AI", version="1.0.0")
+
+# Rate limiter: protects the Anthropic API budget by capping how many
+# requests a single IP can make per time window.
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -70,30 +94,35 @@ def list_companies():
     return {"companies": company_engine.list_companies()}
 
 @app.post("/session/start")
-def start_session(request: StartSessionRequest):
+@limiter.limit("10/minute")
+def start_session(payload: StartSessionRequest, request: Request):
+    logger.info("session_start_requested", company=payload.company, role=payload.role)
     replay_system.start_recording(
         session_id=1,
-        user_name=request.user_name,
-        company=request.company,
-        role=request.role
+        user_name=payload.user_name,
+        company=payload.company,
+        role=payload.role
     )
     question = difficulty_engine.select_question(
-        elo=request.elo,
-        company=request.company,
-        role=request.role
+        elo=payload.elo,
+        company=payload.company,
+        role=payload.role
     )
-    difficulty = min(10, max(1, int((request.elo - 800) / 100)))
+    difficulty = min(10, max(1, int((payload.elo - 800) / 100)))
     replay_system.log_event(1, "question_asked", {"text": question})
     return {
         "session_id": 1,
         "question": question,
         "difficulty": difficulty,
-        "company_profile": company_engine.get_profile(request.company)
+        "company_profile": company_engine.get_profile(payload.company)
     }
 
 @app.post("/answer/submit")
-def submit_answer(request: SubmitAnswerRequest):
-    scores = scorer.score(question=request.question, answer=request.answer)
+@limiter.limit("20/minute")
+def submit_answer(payload: SubmitAnswerRequest, request: Request):
+    logger.info("answer_submitted", session_id=payload.session_id, difficulty=payload.difficulty)
+
+    scores = scorer.score(question=payload.question, answer=payload.answer)
     technical_score = scores["score_technical"]
     overall = round((
         scores["score_technical"] +
@@ -102,29 +131,68 @@ def submit_answer(request: SubmitAnswerRequest):
         scores["score_cultural_fit"] +
         scores["score_confidence"]
     ) / 5, 1)
+
     gaps = gap_engine.extract_gaps(
-        question=request.question,
-        answer=request.answer,
+        question=payload.question,
+        answer=payload.answer,
         technical_score=technical_score
     )
+
     peer = peer_engine.get_percentile(
         your_score=overall,
-        difficulty=request.difficulty
+        difficulty=payload.difficulty
     )
+
     new_elo = difficulty_engine.update_elo(
-        current_elo=request.elo,
-        question_difficulty=request.difficulty,
+        current_elo=payload.elo,
+        question_difficulty=payload.difficulty,
         score=overall
     )
-    replay_system.log_event(request.session_id, "answer_submitted", {"text": request.answer})
-    replay_system.log_event(request.session_id, "scores_calculated", scores)
-    replay_system.log_event(request.session_id, "gaps_identified", gaps)
+
+    replay_system.log_event(payload.session_id, "answer_submitted", {"text": payload.answer})
+    replay_system.log_event(payload.session_id, "scores_calculated", scores)
+    replay_system.log_event(payload.session_id, "gaps_identified", gaps)
+
+    db = SessionLocal()
+    try:
+        session_record = db.query(InterviewSession).filter(InterviewSession.id == payload.session_id).first()
+        if not session_record:
+            session_record = InterviewSession(
+                id=payload.session_id,
+                difficulty_level=payload.difficulty,
+                company_target="unknown",
+                role="unknown"
+            )
+            db.add(session_record)
+            db.commit()
+
+        answer_record = Answer(
+            session_id=payload.session_id,
+            question_text=payload.question,
+            answer_text=payload.answer,
+            score_technical=scores["score_technical"],
+            score_communication=scores["score_communication"],
+            score_problem_solving=scores["score_problem_solving"],
+            score_cultural_fit=scores["score_cultural_fit"],
+            score_confidence=scores["score_confidence"],
+            gaps_identified=gaps
+        )
+        db.add(answer_record)
+        db.commit()
+        logger.info("answer_persisted", session_id=payload.session_id, overall_score=overall)
+    except Exception as e:
+        logger.error("answer_persist_failed", error=str(e))
+        db.rollback()
+    finally:
+        db.close()
+
     next_question = difficulty_engine.select_question(
         elo=new_elo,
         company="Google",
         role="Software Engineer"
     )
-    replay_system.log_event(request.session_id, "question_asked", {"text": next_question})
+    replay_system.log_event(payload.session_id, "question_asked", {"text": next_question})
+
     return {
         "scores": scores,
         "overall_score": overall,
