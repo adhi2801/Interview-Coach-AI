@@ -1,0 +1,257 @@
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+from database import get_db, create_tables
+from dotenv import load_dotenv
+from pydantic import BaseModel
+from engines.adaptive_difficulty import AdaptiveDifficultyEngine
+from engines.scoring import MultiDimensionalScorer
+from engines.company_dna import CompanyDNAEngine
+from engines.knowledge_graph import KnowledgeGapGraph
+from engines.confidence_coach import ConfidenceCoach
+from engines.peer_comparison import PeerComparisonEngine
+from engines.replay_system import ReplaySystem
+import os
+
+load_dotenv()
+
+app = FastAPI(title="InterviewCoach AI", version="1.0.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "https://*.up.railway.app"],
+    allow_origin_regex=r"https://.*\.up\.railway\.app",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Request models
+class StartSessionRequest(BaseModel):
+    user_name: str
+    company: str
+    role: str
+    elo: float = 1200.0
+
+class SubmitAnswerRequest(BaseModel):
+    session_id: int
+    question: str
+    answer: str
+    difficulty: int
+    elo: float
+
+class CoachTextRequest(BaseModel):
+    text: str
+    session_id: int
+
+# Engine instances
+difficulty_engine = AdaptiveDifficultyEngine()
+scorer = MultiDimensionalScorer()
+company_engine = CompanyDNAEngine()
+gap_engine = KnowledgeGapGraph()
+peer_engine = PeerComparisonEngine()
+replay_system = ReplaySystem()
+
+@app.on_event("startup")
+def startup():
+    create_tables()
+    print("Database tables created successfully")
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "message": "InterviewCoach AI is running"}
+
+@app.get("/")
+def root():
+    return {"message": "Welcome to InterviewCoach AI"}
+
+@app.get("/companies")
+def list_companies():
+    return {"companies": company_engine.list_companies()}
+
+@app.post("/session/start")
+def start_session(request: StartSessionRequest):
+    replay_system.start_recording(
+        session_id=1,
+        user_name=request.user_name,
+        company=request.company,
+        role=request.role
+    )
+    question = difficulty_engine.select_question(
+        elo=request.elo,
+        company=request.company,
+        role=request.role
+    )
+    difficulty = min(10, max(1, int((request.elo - 800) / 100)))
+    replay_system.log_event(1, "question_asked", {"text": question})
+    return {
+        "session_id": 1,
+        "question": question,
+        "difficulty": difficulty,
+        "company_profile": company_engine.get_profile(request.company)
+    }
+
+@app.post("/answer/submit")
+def submit_answer(request: SubmitAnswerRequest):
+    scores = scorer.score(question=request.question, answer=request.answer)
+    technical_score = scores["score_technical"]
+    overall = round((
+        scores["score_technical"] +
+        scores["score_communication"] +
+        scores["score_problem_solving"] +
+        scores["score_cultural_fit"] +
+        scores["score_confidence"]
+    ) / 5, 1)
+    gaps = gap_engine.extract_gaps(
+        question=request.question,
+        answer=request.answer,
+        technical_score=technical_score
+    )
+    peer = peer_engine.get_percentile(
+        your_score=overall,
+        difficulty=request.difficulty
+    )
+    new_elo = difficulty_engine.update_elo(
+        current_elo=request.elo,
+        question_difficulty=request.difficulty,
+        score=overall
+    )
+    replay_system.log_event(request.session_id, "answer_submitted", {"text": request.answer})
+    replay_system.log_event(request.session_id, "scores_calculated", scores)
+    replay_system.log_event(request.session_id, "gaps_identified", gaps)
+    next_question = difficulty_engine.select_question(
+        elo=new_elo,
+        company="Google",
+        role="Software Engineer"
+    )
+    replay_system.log_event(request.session_id, "question_asked", {"text": next_question})
+    return {
+        "scores": scores,
+        "overall_score": overall,
+        "gaps": gaps,
+        "peer_comparison": peer,
+        "new_elo": new_elo,
+        "next_question": next_question
+    }
+
+@app.post("/coach/analyze")
+def analyze_text(request: CoachTextRequest):
+    coach = ConfidenceCoach()
+    feedback = coach.analyze_text(request.text)
+    replay_system.log_event(request.session_id, "coaching_feedback", {
+        "suggestion": feedback.suggestion,
+        "wpm": feedback.words_per_minute,
+        "confidence": feedback.confidence_score,
+        "fillers": feedback.fillers_found
+    })
+    return {
+        "confidence_score": feedback.confidence_score,
+        "words_per_minute": feedback.words_per_minute,
+        "fillers_found": feedback.fillers_found,
+        "suggestion": feedback.suggestion
+    }
+
+@app.get("/replay/{session_id}")
+def get_replay(session_id: int):
+    return replay_system.get_replay(session_id)
+
+@app.get("/replay/{session_id}/list")
+def list_replays():
+    return {"replays": replay_system.list_replays()}
+# --- WebSocket: Real-Time Confidence Coaching ---
+# This replaces the manual "Analyze Confidence" button.
+# The browser sends each typed/spoken chunk as it happens,
+# and we push back live WPM, filler word count, and suggestions
+# WITHOUT a new HTTP request each time.
+
+import json
+
+import whisper
+import tempfile
+import os as os_module
+
+# Load Whisper once at startup, not per-connection — loading takes ~15s
+# and we don't want every new WebSocket connection to pay that cost.
+print("Loading Whisper model for live transcription...")
+whisper_model = whisper.load_model("small")
+print("Whisper model ready")
+
+@app.websocket("/ws/coaching/{session_id}")
+async def coaching_websocket(websocket: WebSocket, session_id: int):
+    await websocket.accept()
+    coach = ConfidenceCoach()
+    print(f"WebSocket connected for session {session_id}")
+
+    try:
+        while True:
+            message = await websocket.receive()
+            print(f"DEBUG: Received message keys: {list(message.keys())}, type: {message.get('type')}")
+
+            # Audio path: browser sends raw audio bytes (webm/wav chunk)
+            if "bytes" in message and message["bytes"]:
+                audio_bytes = message["bytes"]
+
+                debug_path = os_module.path.join(os_module.getcwd(), "debug_last_chunk.webm")
+                with open(debug_path, "wb") as f:
+                    f.write(audio_bytes)
+                print(f"DEBUG: Saved audio chunk, size = {len(audio_bytes)} bytes, to {debug_path}")
+
+                with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as f:
+                    f.write(audio_bytes)
+                    temp_path = f.name
+
+                try:
+                    result = whisper_model.transcribe(temp_path, fp16=False)
+                    transcribed_text = result["text"].strip()
+                    print(f"DEBUG: Whisper transcribed: '{transcribed_text}'")
+                finally:
+                    os_module.remove(temp_path)
+
+                if transcribed_text:
+                    feedback = coach.analyze_text(transcribed_text)
+                    await websocket.send_json({
+                        "type": "transcription",
+                        "text": transcribed_text,
+                        "confidence_score": feedback.confidence_score,
+                        "words_per_minute": feedback.words_per_minute,
+                        "fillers_found": feedback.fillers_found,
+                        "suggestion": feedback.suggestion
+                    })
+
+            # Text path: typed answer
+            elif "text" in message and message["text"]:
+                data = json.loads(message["text"])
+                msg_type = data.get("type")
+
+                if msg_type == "text_chunk":
+                    text = data.get("text", "")
+                    if text.strip():
+                        feedback = coach.analyze_text(text)
+                        intervention = None
+                        if data.get("pause_detected") and feedback.confidence_score < 5:
+                            intervention = "Take a breath. Start with: 'The approach I'd take is...'"
+
+                        await websocket.send_json({
+                            "type": "coaching_update",
+                            "confidence_score": feedback.confidence_score,
+                            "words_per_minute": feedback.words_per_minute,
+                            "fillers_found": feedback.fillers_found,
+                            "suggestion": feedback.suggestion,
+                            "intervention": intervention
+                        })
+
+                elif msg_type == "reset":
+                    coach = ConfidenceCoach()
+                    await websocket.send_json({"type": "reset_ack"})
+
+                elif msg_type == "ping":
+                    await websocket.send_json({"type": "pong"})
+
+    except WebSocketDisconnect:
+        print(f"WebSocket disconnected for session {session_id}")
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+        try:
+            await websocket.send_json({"type": "error", "message": str(e)})
+        except:
+            pass

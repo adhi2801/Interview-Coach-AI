@@ -1,0 +1,11 @@
+﻿backend/venv/
+backend/__pycache__/
+backend/engines/__pycache__/
+backend/rag/__pycache__/
+backend/*.db
+backend/replays/
+backend/chroma_db/
+backend/debug_last_chunk.webm
+frontend/node_modules/
+frontend/build/
+.env
