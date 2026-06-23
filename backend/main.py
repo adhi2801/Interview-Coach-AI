@@ -15,6 +15,8 @@ from engines.knowledge_graph import KnowledgeGapGraph
 from engines.confidence_coach import ConfidenceCoach
 from engines.peer_comparison import PeerComparisonEngine
 from engines.replay_system import ReplaySystem
+from auth import hash_password, verify_password, create_access_token, decode_access_token
+from models import User
 import os
 import structlog
 import logging
@@ -68,6 +70,15 @@ class CoachTextRequest(BaseModel):
     text: str
     session_id: int
 
+class SignupRequest(BaseModel):
+    email: str
+    password: str
+    name: str
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
 # Engine instances
 difficulty_engine = AdaptiveDifficultyEngine()
 scorer = MultiDimensionalScorer()
@@ -92,6 +103,53 @@ def root():
 @app.get("/companies")
 def list_companies():
     return {"companies": company_engine.list_companies()}
+
+@app.post("/auth/signup")
+def signup(payload: SignupRequest):
+    db = SessionLocal()
+    try:
+        existing = db.query(User).filter(User.email == payload.email).first()
+        if existing:
+            return {"error": "An account with this email already exists"}
+
+        user = User(
+            email=payload.email,
+            name=payload.name,
+            hashed_password=hash_password(payload.password),
+            elo_rating=1200.0
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+        token = create_access_token({"user_id": user.id, "email": user.email})
+        logger.info("user_signed_up", user_id=user.id, email=user.email)
+
+        return {
+            "access_token": token,
+            "user": {"id": user.id, "email": user.email, "name": user.name, "elo_rating": user.elo_rating}
+        }
+    finally:
+        db.close()
+
+
+@app.post("/auth/login")
+def login(payload: LoginRequest):
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.email == payload.email).first()
+        if not user or not verify_password(payload.password, user.hashed_password):
+            return {"error": "Invalid email or password"}
+
+        token = create_access_token({"user_id": user.id, "email": user.email})
+        logger.info("user_logged_in", user_id=user.id)
+
+        return {
+            "access_token": token,
+            "user": {"id": user.id, "email": user.email, "name": user.name, "elo_rating": user.elo_rating}
+        }
+    finally:
+        db.close()
 
 @app.post("/session/start")
 @limiter.limit("10/minute")

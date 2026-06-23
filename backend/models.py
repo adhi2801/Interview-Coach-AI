@@ -11,6 +11,7 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     email = Column(String, unique=True, nullable=False)
     name = Column(String)
+    hashed_password = Column(String, nullable=False)
     elo_rating = Column(Float, default=1200.0)
     created_at = Column(DateTime, default=datetime.utcnow)
 
