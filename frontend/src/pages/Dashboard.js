@@ -108,8 +108,7 @@ const INSIGHTS = {
   startup: "Startups value ownership and adaptability. Demonstrate you can wear multiple hats, move fast, and make decisions with incomplete information.",
 };
 
-export default function Dashboard({ onStart }) {
-  const [name, setName] = useState("");
+export default function Dashboard({ onStart, user, onLogout }) {
   const [company, setCompany] = useState("google");
   const [role, setRole] = useState("Software Engineer — L3/IC3");
   const [loading, setLoading] = useState(false);
@@ -121,19 +120,20 @@ export default function Dashboard({ onStart }) {
   }, []);
 
   async function handleStart() {
-    if (!name.trim()) {
-      setError("Please enter your name to continue");
-      return;
-    }
     setLoading(true);
     setError("");
     try {
-      const response = await axios.post(`${API_URL}/session/start`, {
-        user_name: name,
-        company,
-        role,
-        elo: 1200.0,
-      });
+      const token = localStorage.getItem("access_token");
+      const response = await axios.post(
+        `${API_URL}/session/start`,
+        {
+          user_name: user?.name || "Candidate",
+          company,
+          role,
+          elo: user?.elo_rating || 1200.0,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       onStart(response.data);
     } catch (err) {
       setError("Cannot connect to server. Make sure the backend is running.");
@@ -158,7 +158,11 @@ export default function Dashboard({ onStart }) {
             <span style={s.logoSub}>by Claude</span>
           </div>
           <div style={s.headerRight}>
+            {user && (
+              <span style={s.userPill}>{user.name}</span>
+            )}
             <span style={s.betaBadge}>Beta</span>
+            <button style={s.logoutBtn} onClick={onLogout}>Log out</button>
           </div>
         </div>
       </header>
@@ -222,16 +226,6 @@ export default function Dashboard({ onStart }) {
             <h2 style={s.formTitle}>Start your session</h2>
             <p style={s.formSubtitle}>Configure your mock interview below</p>
 
-            <div style={s.field}>
-              <label style={s.label}>Your name</label>
-              <input
-                style={s.input}
-                placeholder="e.g. Adhiswauran"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleStart()}
-              />
-            </div>
 
             <div style={s.field}>
               <label style={s.label}>Target company</label>
@@ -365,6 +359,16 @@ const s = {
     padding: "4px 12px", borderRadius: "20px", fontSize: "11px", fontWeight: "700",
     textTransform: "uppercase", letterSpacing: "0.5px",
   },
+
+  userPill: {
+    color: "#94a3b8", fontSize: "13px", fontWeight: "600",
+  },
+  logoutBtn: {
+    backgroundColor: "transparent", color: "#64748b",
+    border: "1px solid #1e293b", padding: "6px 14px",
+    borderRadius: "20px", fontSize: "12px", fontWeight: "600", cursor: "pointer"
+  },
+
   main: {
     maxWidth: "1200px", margin: "0 auto",
     padding: "60px 40px",

@@ -17,6 +17,22 @@ from engines.peer_comparison import PeerComparisonEngine
 from engines.replay_system import ReplaySystem
 from auth import hash_password, verify_password, create_access_token, decode_access_token
 from models import User
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+security = HTTPBearer(auto_error=False)
+
+def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> int | None:
+    """
+    Extracts the user_id from a JWT token if present.
+    Returns None if no token is provided — endpoints can still work
+    for anonymous/guest use, but will personalize when a token exists.
+    """
+    if not credentials:
+        return None
+    payload = decode_access_token(credentials.credentials)
+    if not payload:
+        return None
+    return payload.get("user_id")
 import os
 import structlog
 import logging
@@ -153,10 +169,26 @@ def login(payload: LoginRequest):
 
 @app.post("/session/start")
 @limiter.limit("10/minute")
-def start_session(payload: StartSessionRequest, request: Request):
-    logger.info("session_start_requested", company=payload.company, role=payload.role)
+def start_session(payload: StartSessionRequest, request: Request, user_id: int = Depends(get_current_user_id)):
+    logger.info("session_start_requested", company=payload.company, role=payload.role, user_id=user_id)
+
+    db = SessionLocal()
+    try:
+        session_record = InterviewSession(
+            user_id=user_id,
+            company_target=payload.company,
+            role=payload.role,
+            difficulty_level=min(10, max(1, int((payload.elo - 800) / 100)))
+        )
+        db.add(session_record)
+        db.commit()
+        db.refresh(session_record)
+        new_session_id = session_record.id
+    finally:
+        db.close()
+
     replay_system.start_recording(
-        session_id=1,
+        session_id=new_session_id,
         user_name=payload.user_name,
         company=payload.company,
         role=payload.role
@@ -167,9 +199,10 @@ def start_session(payload: StartSessionRequest, request: Request):
         role=payload.role
     )
     difficulty = min(10, max(1, int((payload.elo - 800) / 100)))
-    replay_system.log_event(1, "question_asked", {"text": question})
+    replay_system.log_event(new_session_id, "question_asked", {"text": question})
+
     return {
-        "session_id": 1,
+        "session_id": new_session_id,
         "question": question,
         "difficulty": difficulty,
         "company_profile": company_engine.get_profile(payload.company)
