@@ -5,6 +5,7 @@ from datetime import datetime
 
 Base = declarative_base()
 
+
 class User(Base):
     __tablename__ = "users"
 
@@ -69,3 +70,12 @@ class TopicPrerequisite(Base):
     id = Column(Integer, primary_key=True)
     topic_id = Column(Integer, ForeignKey("topics.id"))
     prerequisite_id = Column(Integer, ForeignKey("topics.id"))
+
+
+class CompanyTopicWeight(Base):
+    __tablename__ = "company_topic_weights"
+
+    id = Column(Integer, primary_key=True)
+    company = Column(String, nullable=False)
+    topic_id = Column(Integer, ForeignKey("topics.id"))
+    weight = Column(Float, default=1.0)

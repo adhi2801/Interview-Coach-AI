@@ -105,8 +105,7 @@ replay_system = ReplaySystem()
 
 @app.on_event("startup")
 def startup():
-    create_tables()
-    print("Database tables created successfully")
+    print("Application started — schema managed by Alembic migrations")
 
 @app.get("/health")
 def health_check():
@@ -210,8 +209,8 @@ def start_session(payload: StartSessionRequest, request: Request, user_id: int =
 
 @app.post("/answer/submit")
 @limiter.limit("20/minute")
-def submit_answer(payload: SubmitAnswerRequest, request: Request):
-    logger.info("answer_submitted", session_id=payload.session_id, difficulty=payload.difficulty)
+def submit_answer(payload: SubmitAnswerRequest, request: Request, user_id: int = Depends(get_current_user_id)):
+    logger.info("answer_submitted", session_id=payload.session_id, difficulty=payload.difficulty, user_id=user_id)
 
     scores = scorer.score(question=payload.question, answer=payload.answer)
     technical_score = scores["score_technical"]

@@ -179,13 +179,18 @@ export default function InterviewRoom({ sessionData, onFinish }) {
     setLoading(true);
     clearInterval(timerRef.current);
     try {
-      const res = await axios.post(`${API_URL}/answer/submit`, {
-        session_id: sessionData.session_id,
-        question,
-        answer,
-        difficulty,
-        elo: currentElo,
-      });
+      const token = localStorage.getItem("access_token");
+      const res = await axios.post(
+        `${API_URL}/answer/submit`,
+        {
+          session_id: sessionData.session_id,
+          question,
+          answer,
+          difficulty,
+          elo: currentElo,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       setScores(res.data.scores);
       setGaps(res.data.gaps || []);
       setPeer(res.data.peer_comparison);
