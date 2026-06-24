@@ -81,6 +81,7 @@ class SubmitAnswerRequest(BaseModel):
     answer: str
     difficulty: int
     elo: float
+    company: str = None
 
 class CoachTextRequest(BaseModel):
     text: str
@@ -225,7 +226,8 @@ def submit_answer(payload: SubmitAnswerRequest, request: Request, user_id: int =
     gaps = gap_engine.extract_gaps(
         question=payload.question,
         answer=payload.answer,
-        technical_score=technical_score
+        technical_score=technical_score,
+        company=payload.company
     )
 
     peer = peer_engine.get_percentile(

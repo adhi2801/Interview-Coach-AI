@@ -4,7 +4,7 @@ import anthropic
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 from database import SessionLocal
-from models import Topic, TopicPrerequisite
+from models import Topic, TopicPrerequisite, CompanyTopicWeight, CompanyTopicWeight, CompanyTopicWeight, CompanyTopicWeight, CompanyTopicWeight
 
 load_dotenv()
 
@@ -12,7 +12,7 @@ class KnowledgeGapGraph:
     def __init__(self):
         self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
-    def extract_gaps(self, question: str, answer: str, technical_score: float) -> list:
+    def extract_gaps(self, question: str, answer: str, technical_score: float, company: str = None) -> list:
         if technical_score >= 7.0:
             return []
 
@@ -43,12 +43,14 @@ class KnowledgeGapGraph:
 
                 if topic:
                     prereqs = self._get_prerequisites(db, topic.id)
+                    company_weight = self._get_company_weight(db, topic.id, company)
                     study_plan.append({
                         "gap": topic_name,
                         "prerequisites_to_study_first": prereqs,
-                        "urgency": "high" if technical_score < 4 else "medium",
+                        "urgency": self._compute_urgency(technical_score, company_weight),
                         "category": topic.category,
-                        "topic_difficulty": topic.difficulty_level
+                        "topic_difficulty": topic.difficulty_level,
+                        "company_relevance": company_weight
                     })
                 else:
                     # Topic not in our graph yet — still surface the gap without prerequisites
@@ -64,6 +66,38 @@ class KnowledgeGapGraph:
 
         return study_plan
 
+    def _get_company_weight(self, db: Session, topic_id: int, company: str = None) -> float:
+        """
+        Returns how important this topic is for the target company.
+        Default weight is 1.0 (neutral) if no company specified or no entry exists.
+        """
+        if not company:
+            return 1.0
+
+        entry = db.query(CompanyTopicWeight).filter(
+            CompanyTopicWeight.topic_id == topic_id,
+            CompanyTopicWeight.company == company.lower()
+        ).first()
+
+        return entry.weight if entry else 1.0
+
+    def _compute_urgency(self, technical_score: float, company_weight: float) -> str:
+        """
+        Combines how badly the candidate scored with how much the company
+        actually cares about this topic. A weak score on a critical topic
+        (high weight) is "critical" — the same weak score on an irrelevant
+        topic (low weight) is just "low" priority.
+        """
+        severity = (10 - technical_score) * company_weight
+
+        if severity >= 14:
+            return "critical"
+        elif severity >= 9:
+            return "high"
+        elif severity >= 5:
+            return "medium"
+        return "low"
+    
     def _get_prerequisites(self, db: Session, topic_id: int) -> list:
         links = db.query(TopicPrerequisite).filter(TopicPrerequisite.topic_id == topic_id).all()
         prereq_names = []

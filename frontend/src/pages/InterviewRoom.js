@@ -188,6 +188,7 @@ export default function InterviewRoom({ sessionData, onFinish }) {
           answer,
           difficulty,
           elo: currentElo,
+          company: sessionData?.company_profile?.name?.toLowerCase(),
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
