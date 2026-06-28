@@ -218,6 +218,12 @@ def submit_answer(payload: SubmitAnswerRequest, request: Request, user_id: int =
     clean_answer = sanitize_for_storage(payload.answer) if has_profanity else payload.answer
 
     scores = scorer.score(question=payload.question, answer=clean_answer)
+
+    if has_profanity:
+        scores["overall_summary"] = (
+            "Your answer contained inappropriate language and could not be evaluated. "
+            "Please provide a professional response to receive accurate feedback. " + scores.get("overall_summary", "")
+        )
     technical_score = scores["score_technical"]
     overall = round((
         scores["score_technical"] +
