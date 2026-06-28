@@ -16,6 +16,7 @@ from engines.confidence_coach import ConfidenceCoach
 from engines.peer_comparison import PeerComparisonEngine
 from engines.replay_system import ReplaySystem
 from auth import hash_password, verify_password, create_access_token, decode_access_token
+from content_filter import contains_profanity, sanitize_for_storage
 from models import User
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
@@ -213,7 +214,10 @@ def start_session(payload: StartSessionRequest, request: Request, user_id: int =
 def submit_answer(payload: SubmitAnswerRequest, request: Request, user_id: int = Depends(get_current_user_id)):
     logger.info("answer_submitted", session_id=payload.session_id, difficulty=payload.difficulty, user_id=user_id)
 
-    scores = scorer.score(question=payload.question, answer=payload.answer)
+    has_profanity = contains_profanity(payload.answer)
+    clean_answer = sanitize_for_storage(payload.answer) if has_profanity else payload.answer
+
+    scores = scorer.score(question=payload.question, answer=clean_answer)
     technical_score = scores["score_technical"]
     overall = round((
         scores["score_technical"] +
@@ -261,7 +265,7 @@ def submit_answer(payload: SubmitAnswerRequest, request: Request, user_id: int =
         answer_record = Answer(
             session_id=payload.session_id,
             question_text=payload.question,
-            answer_text=payload.answer,
+            answer_text=clean_answer,
             score_technical=scores["score_technical"],
             score_communication=scores["score_communication"],
             score_problem_solving=scores["score_problem_solving"],
