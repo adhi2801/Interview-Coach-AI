@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
+import PreflightCheck from "./pages/PreflightCheck";
 import InterviewRoom from "./pages/InterviewRoom";
 import ReplayViewer from "./pages/ReplayViewer";
 import "./App.css";
@@ -56,8 +57,14 @@ function App() {
           onLogout={handleLogout}
           onStart={(data) => {
             setSessionData(data);
-            setPage("interview");
+            setPage("preflight");
           }}
+        />
+      )}
+      {page === "preflight" && (
+        <PreflightCheck
+          onReady={() => setPage("interview")}
+          onSkip={() => setPage("interview")}
         />
       )}
       {page === "interview" && (

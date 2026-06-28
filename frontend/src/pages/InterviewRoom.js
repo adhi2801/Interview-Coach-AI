@@ -1,6 +1,7 @@
 import { API_URL, WS_URL } from "../config";
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import StudyPlan from "./StudyPlan";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 
 export default function InterviewRoom({ sessionData, onFinish }) {
@@ -22,6 +23,9 @@ export default function InterviewRoom({ sessionData, onFinish }) {
   const [showHint, setShowHint] = useState(false);
   const [hintText, setHintText] = useState("");
   const [scoreHistory, setScoreHistory] = useState([]);
+  const [feedbackRating, setFeedbackRating] = useState(null);
+  const [currentAnswerId, setCurrentAnswerId] = useState(null);
+  const [studyPlanTopic, setStudyPlanTopic] = useState(null);
   const [wsConnected, setWsConnected] = useState(false);
   const [liveCoaching, setLiveCoaching] = useState(null);
   const [intervention, setIntervention] = useState(null);
@@ -197,6 +201,8 @@ export default function InterviewRoom({ sessionData, onFinish }) {
       setPeer(res.data.peer_comparison);
       setNewElo(res.data.new_elo);
       setNextQuestion(res.data.next_question || "");
+      setCurrentAnswerId(res.data.answer_id);
+      setFeedbackRating(null);
       setPhase("results");
 
       const overallScore = (
@@ -216,6 +222,20 @@ export default function InterviewRoom({ sessionData, onFinish }) {
     setLoading(false);
   }
 
+  async function rateFeedback(helpful) {
+    setFeedbackRating(helpful);
+    try {
+      const token = localStorage.getItem("access_token");
+      await axios.post(
+        `${API_URL}/feedback/rate`,
+        { answer_id: currentAnswerId, helpful },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } catch (err) {
+      console.error(err);
+    }
+  }
+  
   function goNextQuestion() {
     if (newElo) setCurrentElo(newElo);
     if (nextQuestion) setQuestion(nextQuestion);
@@ -322,6 +342,9 @@ export default function InterviewRoom({ sessionData, onFinish }) {
                 placeholder="Structure your answer clearly. For technical questions: explain your approach first, then implementation, then complexity. For behavioral: use STAR format."
                 value={answer}
                 onChange={(e) => handleAnswerChange(e.target.value)}
+                onPaste={(e) => e.preventDefault()}
+                onCopy={(e) => e.preventDefault()}
+                onCut={(e) => e.preventDefault()}
                 rows={10}
               />
               {showHint && (
@@ -448,7 +471,18 @@ export default function InterviewRoom({ sessionData, onFinish }) {
 
               {scores.overall_summary && (
                 <div style={s.summaryBox}>
-                  <p style={s.summaryLabel}>AI Feedback</p>
+                  <div style={s.summaryHeader}>
+                    <p style={s.summaryLabel}>AI Feedback</p>
+                    {feedbackRating === null ? (
+                      <div style={s.ratingRow}>
+                        <span style={s.ratingPrompt}>Helpful?</span>
+                        <button style={s.ratingBtn} onClick={() => rateFeedback(true)}>Yes</button>
+                        <button style={s.ratingBtn} onClick={() => rateFeedback(false)}>No</button>
+                      </div>
+                    ) : (
+                      <span style={s.ratingThanks}>Thanks for the feedback</span>
+                    )}
+                  </div>
                   <p style={s.summaryText}>{scores.overall_summary}</p>
                 </div>
               )}
@@ -536,10 +570,17 @@ export default function InterviewRoom({ sessionData, onFinish }) {
             <div style={s.panel}>
               <p style={s.panelTitle}>Knowledge Gaps</p>
               {gaps.map((gap, i) => (
-                <div key={i} style={s.gapItem}>
+                <div
+                  key={i}
+                  style={{ ...s.gapItem, cursor: "pointer" }}
+                  onClick={() => setStudyPlanTopic(gap.gap)}
+                >
                   <div style={s.gapTop}>
-                    <span style={s.gapName}>{gap.gap}</span>
-                    <span style={gap.urgency === "high" ? s.urgHigh : s.urgMed}>
+                    <span style={s.gapName}>{gap.gap.replace(/_/g, " ")}</span>
+                    <span style={
+                      gap.urgency === "critical" ? s.urgCritical :
+                      gap.urgency === "high" ? s.urgHigh : s.urgMed
+                    }>
                       {gap.urgency}
                     </span>
                   </div>
@@ -552,9 +593,18 @@ export default function InterviewRoom({ sessionData, onFinish }) {
                       ))}
                     </div>
                   )}
+                  <span style={s.viewPlanLink}>View full study path →</span>
                 </div>
               ))}
             </div>
+          )}
+
+          {studyPlanTopic && (
+            <StudyPlan
+              topicName={studyPlanTopic}
+              company={company?.name?.toLowerCase()}
+              onClose={() => setStudyPlanTopic(null)}
+            />
           )}
 
           <div style={s.panel}>
@@ -788,7 +838,16 @@ const s = {
   },
   sectionTitle: { color: "#475569", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "14px" },
   summaryBox: { backgroundColor: "#0a0f1e", border: "1px solid #1e293b", borderRadius: "10px", padding: "14px", marginBottom: "20px" },
-  summaryLabel: { color: "#475569", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", marginBottom: "8px" },
+  summaryHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" },
+  summaryLabel: { color: "#475569", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", margin: 0 },
+  ratingRow: { display: "flex", alignItems: "center", gap: "8px" },
+  ratingPrompt: { color: "#475569", fontSize: "11px" },
+  ratingBtn: {
+    backgroundColor: "transparent", color: "#818cf8",
+    border: "1px solid rgba(99,102,241,0.3)", padding: "2px 10px",
+    borderRadius: "6px", fontSize: "11px", fontWeight: "600", cursor: "pointer"
+  },
+  ratingThanks: { color: "#4ade80", fontSize: "11px", fontWeight: "600" },
   summaryText: { color: "#94a3b8", fontSize: "13px", lineHeight: "1.6" },
   eloUpdate: {
     display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -843,6 +902,14 @@ const s = {
   urgHigh: {
     backgroundColor: "rgba(248,113,113,0.1)", color: "#fca5a5",
     padding: "2px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: "600"
+  },
+  urgCritical: {
+    backgroundColor: "rgba(239,68,68,0.15)", color: "#fca5a5",
+    padding: "2px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: "700"
+  },
+  viewPlanLink: {
+    color: "#818cf8", fontSize: "11px", fontWeight: "600",
+    display: "block", marginTop: "6px"
   },
   urgMed: {
     backgroundColor: "rgba(250,204,21,0.1)", color: "#fde047",

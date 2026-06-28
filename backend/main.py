@@ -2,7 +2,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from database import get_db, create_tables, SessionLocal
-from models import InterviewSession, Answer
+from models import InterviewSession, Answer, Topic
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -271,7 +271,9 @@ def submit_answer(payload: SubmitAnswerRequest, request: Request, user_id: int =
         )
         db.add(answer_record)
         db.commit()
-        logger.info("answer_persisted", session_id=payload.session_id, overall_score=overall)
+        db.refresh(answer_record)
+        answer_id = answer_record.id
+        logger.info("answer_persisted", session_id=payload.session_id, overall_score=overall, answer_id=answer_id)
     except Exception as e:
         logger.error("answer_persist_failed", error=str(e))
         db.rollback()
@@ -291,7 +293,8 @@ def submit_answer(payload: SubmitAnswerRequest, request: Request, user_id: int =
         "gaps": gaps,
         "peer_comparison": peer,
         "new_elo": new_elo,
-        "next_question": next_question
+        "next_question": next_question,
+        "answer_id": answer_id
     }
 
 @app.post("/coach/analyze")
@@ -318,6 +321,49 @@ def get_replay(session_id: int):
 @app.get("/replay/{session_id}/list")
 def list_replays():
     return {"replays": replay_system.list_replays()}
+class FeedbackRatingRequest(BaseModel):
+    answer_id: int
+    helpful: bool
+
+@app.post("/feedback/rate")
+def rate_feedback(payload: FeedbackRatingRequest):
+    db = SessionLocal()
+    try:
+        answer = db.query(Answer).filter(Answer.id == payload.answer_id).first()
+        if answer:
+            answer.feedback_helpful = 1 if payload.helpful else 0
+            db.commit()
+            logger.info("feedback_rated", answer_id=payload.answer_id, helpful=payload.helpful)
+        return {"status": "ok"}
+    finally:
+        db.close()
+
+@app.get("/study-plan/{topic_name}")
+def get_study_plan(topic_name: str, company: str = None):
+    """
+    Returns the full prerequisite chain for a topic, with company
+    relevance weighting if a company is specified.
+    """
+    path = gap_engine.get_full_study_path(topic_name)
+
+    db = SessionLocal()
+    try:
+        steps = []
+        for step_name in path:
+            topic = db.query(Topic).filter(Topic.name == step_name).first()
+            if not topic:
+                continue
+            weight = gap_engine._get_company_weight(db, topic.id, company)
+            steps.append({
+                "name": step_name,
+                "category": topic.category,
+                "difficulty": topic.difficulty_level,
+                "description": topic.description,
+                "company_relevance": weight
+            })
+        return {"topic": topic_name, "company": company, "steps": steps}
+    finally:
+        db.close()
 # --- WebSocket: Real-Time Confidence Coaching ---
 # This replaces the manual "Analyze Confidence" button.
 # The browser sends each typed/spoken chunk as it happens,

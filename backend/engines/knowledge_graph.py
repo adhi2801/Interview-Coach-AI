@@ -4,9 +4,10 @@ import anthropic
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 from database import SessionLocal
-from models import Topic, TopicPrerequisite, CompanyTopicWeight, CompanyTopicWeight, CompanyTopicWeight, CompanyTopicWeight, CompanyTopicWeight
+from models import Topic, TopicPrerequisite, CompanyTopicWeight
 
 load_dotenv()
+
 
 class KnowledgeGapGraph:
     def __init__(self):
@@ -16,12 +17,18 @@ class KnowledgeGapGraph:
         if technical_score >= 7.0:
             return []
 
+        db_topics = self._get_all_topic_names()
+        topic_list_str = ", ".join(db_topics)
+
         response = self.client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=200,
-            system="Return only a JSON list of topic strings using snake_case, matching common CS topic naming. No explanation. No markdown.",
+            system=f"""Return only a JSON list of topic strings. No explanation. No markdown.
+            You MUST choose only from this exact list of valid topics — do not invent new ones:
+            {topic_list_str}
+            If none of these topics genuinely apply, return an empty list [].""",
             messages=[{"role": "user", "content":
-                f"What CS topics did this answer fail to address properly?\n"
+                f"What CS topics from the list did this answer fail to address properly?\n"
                 f"Question: {question}\nAnswer: {answer}\n"
                 f"Return maximum 3 topics as a JSON list like: [\"topic_name\", \"topic_name\"]"}]
         )
@@ -32,7 +39,10 @@ class KnowledgeGapGraph:
             if raw.startswith("json"):
                 raw = raw[4:]
 
-        failed_topics = json.loads(raw.strip())
+        try:
+            failed_topics = json.loads(raw.strip())
+        except json.JSONDecodeError:
+            failed_topics = []
 
         db = SessionLocal()
         study_plan = []
@@ -52,25 +62,20 @@ class KnowledgeGapGraph:
                         "topic_difficulty": topic.difficulty_level,
                         "company_relevance": company_weight
                     })
-                else:
-                    # Topic not in our graph yet — still surface the gap without prerequisites
-                    study_plan.append({
-                        "gap": topic_name,
-                        "prerequisites_to_study_first": [],
-                        "urgency": "high" if technical_score < 4 else "medium",
-                        "category": None,
-                        "topic_difficulty": None
-                    })
         finally:
             db.close()
 
         return study_plan
 
+    def _get_all_topic_names(self) -> list:
+        db = SessionLocal()
+        try:
+            topics = db.query(Topic).all()
+            return [t.name for t in topics]
+        finally:
+            db.close()
+
     def _get_company_weight(self, db: Session, topic_id: int, company: str = None) -> float:
-        """
-        Returns how important this topic is for the target company.
-        Default weight is 1.0 (neutral) if no company specified or no entry exists.
-        """
         if not company:
             return 1.0
 
@@ -82,12 +87,6 @@ class KnowledgeGapGraph:
         return entry.weight if entry else 1.0
 
     def _compute_urgency(self, technical_score: float, company_weight: float) -> str:
-        """
-        Combines how badly the candidate scored with how much the company
-        actually cares about this topic. A weak score on a critical topic
-        (high weight) is "critical" — the same weak score on an irrelevant
-        topic (low weight) is just "low" priority.
-        """
         severity = (10 - technical_score) * company_weight
 
         if severity >= 14:
@@ -97,7 +96,7 @@ class KnowledgeGapGraph:
         elif severity >= 5:
             return "medium"
         return "low"
-    
+
     def _get_prerequisites(self, db: Session, topic_id: int) -> list:
         links = db.query(TopicPrerequisite).filter(TopicPrerequisite.topic_id == topic_id).all()
         prereq_names = []
@@ -108,7 +107,6 @@ class KnowledgeGapGraph:
         return prereq_names
 
     def get_full_study_path(self, topic_name: str) -> list:
-        """Recursively walks the prerequisite chain to build a full study order."""
         db = SessionLocal()
         visited = set()
         path = []

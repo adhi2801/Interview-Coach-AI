@@ -59,6 +59,14 @@ class ConfidenceCoach:
             confidence -= 1.5
         if elapsed_minutes > 3:
             confidence -= 1.0
+
+        # Content sanity check: pace and filler metrics alone can't tell
+        # the difference between a real answer and low-effort/gibberish text.
+        # This catches the obvious cases without trying to judge correctness —
+        # that job belongs to the 5D scoring engine, not this one.
+        content_penalty = self._content_quality_penalty(text)
+        confidence -= content_penalty
+
         confidence = max(0.0, min(10.0, confidence))
 
         return CoachingFeedback(
@@ -69,6 +77,22 @@ class ConfidenceCoach:
             suggestion=suggestion,
             word_count=word_count
         )
+
+    def _content_quality_penalty(self, text: str) -> float:
+        cleaned = text.strip()
+        word_count = len(cleaned.split())
+
+        if word_count < 5:
+            return 8.0
+        if word_count < 15:
+            return 4.0
+
+        alpha_chars = sum(c.isalpha() or c.isspace() for c in cleaned)
+        alpha_ratio = alpha_chars / max(len(cleaned), 1)
+        if alpha_ratio < 0.7:
+            return 6.0
+
+        return 0.0
 
     def _generate_suggestion(self, wpm: float, fillers: list, elapsed: float) -> str:
         if wpm > 170:
