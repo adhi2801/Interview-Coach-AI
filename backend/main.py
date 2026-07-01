@@ -1,8 +1,8 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, Request
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from database import get_db, create_tables, SessionLocal
-from models import InterviewSession, Answer, Topic
+from models import InterviewSession, Answer, Topic, ScoringJob
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -209,103 +209,120 @@ def start_session(payload: StartSessionRequest, request: Request, user_id: int =
         "company_profile": company_engine.get_profile(payload.company)
     }
 
-@app.post("/answer/submit")
-@limiter.limit("20/minute")
-def submit_answer(payload: SubmitAnswerRequest, request: Request, user_id: int = Depends(get_current_user_id)):
-    logger.info("answer_submitted", session_id=payload.session_id, difficulty=payload.difficulty, user_id=user_id)
-
-    has_profanity = contains_profanity(payload.answer)
-    clean_answer = sanitize_for_storage(payload.answer) if has_profanity else payload.answer
-
-    scores = scorer.score(question=payload.question, answer=clean_answer)
-
-    if has_profanity:
-        scores["overall_summary"] = (
-            "Your answer contained inappropriate language and could not be evaluated. "
-            "Please provide a professional response to receive accurate feedback. " + scores.get("overall_summary", "")
-        )
-    technical_score = scores["score_technical"]
-    overall = round((
-        scores["score_technical"] +
-        scores["score_communication"] +
-        scores["score_problem_solving"] +
-        scores["score_cultural_fit"] +
-        scores["score_confidence"]
-    ) / 5, 1)
-
-    gaps = gap_engine.extract_gaps(
-        question=payload.question,
-        answer=payload.answer,
-        technical_score=technical_score,
-        company=payload.company
-    )
-
-    peer = peer_engine.get_percentile(
-        your_score=overall,
-        difficulty=payload.difficulty
-    )
-
-    new_elo = difficulty_engine.update_elo(
-        current_elo=payload.elo,
-        question_difficulty=payload.difficulty,
-        score=overall
-    )
-
-    replay_system.log_event(payload.session_id, "answer_submitted", {"text": payload.answer})
-    replay_system.log_event(payload.session_id, "scores_calculated", scores)
-    replay_system.log_event(payload.session_id, "gaps_identified", gaps)
-
+def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
+    """
+    Runs in the background. Does all the heavy work — Claude scoring,
+    gap detection, peer comparison, ELO update — without blocking
+    the original HTTP request.
+    """
     db = SessionLocal()
     try:
+        has_profanity = contains_profanity(payload.answer)
+        clean_answer = sanitize_for_storage(payload.answer) if has_profanity else payload.answer
+
+        scores = scorer.score(question=payload.question, answer=clean_answer)
+        if has_profanity:
+            scores["overall_summary"] = (
+                "Your answer contained inappropriate language and could not be evaluated. "
+                "Please provide a professional response to receive accurate feedback. " + scores.get("overall_summary", "")
+            )
+
+        technical_score = scores["score_technical"]
+        overall = round((
+            scores["score_technical"] + scores["score_communication"] +
+            scores["score_problem_solving"] + scores["score_cultural_fit"] +
+            scores["score_confidence"]
+        ) / 5, 1)
+
+        gaps = gap_engine.extract_gaps(
+            question=payload.question, answer=clean_answer,
+            technical_score=technical_score, company=payload.company
+        )
+        peer = peer_engine.get_percentile(your_score=overall, difficulty=payload.difficulty)
+        new_elo = difficulty_engine.update_elo(
+            current_elo=payload.elo, question_difficulty=payload.difficulty, score=overall
+        )
+
+        replay_system.log_event(payload.session_id, "answer_submitted", {"text": clean_answer})
+        replay_system.log_event(payload.session_id, "scores_calculated", scores)
+        replay_system.log_event(payload.session_id, "gaps_identified", gaps)
+
         session_record = db.query(InterviewSession).filter(InterviewSession.id == payload.session_id).first()
         if not session_record:
             session_record = InterviewSession(
-                id=payload.session_id,
-                difficulty_level=payload.difficulty,
-                company_target="unknown",
-                role="unknown"
+                id=payload.session_id, difficulty_level=payload.difficulty,
+                company_target=payload.company or "unknown", role="unknown"
             )
             db.add(session_record)
             db.commit()
 
         answer_record = Answer(
-            session_id=payload.session_id,
-            question_text=payload.question,
-            answer_text=clean_answer,
-            score_technical=scores["score_technical"],
-            score_communication=scores["score_communication"],
-            score_problem_solving=scores["score_problem_solving"],
-            score_cultural_fit=scores["score_cultural_fit"],
-            score_confidence=scores["score_confidence"],
-            gaps_identified=gaps
+            session_id=payload.session_id, question_text=payload.question, answer_text=clean_answer,
+            score_technical=scores["score_technical"], score_communication=scores["score_communication"],
+            score_problem_solving=scores["score_problem_solving"], score_cultural_fit=scores["score_cultural_fit"],
+            score_confidence=scores["score_confidence"], gaps_identified=gaps
         )
         db.add(answer_record)
         db.commit()
         db.refresh(answer_record)
-        answer_id = answer_record.id
-        logger.info("answer_persisted", session_id=payload.session_id, overall_score=overall, answer_id=answer_id)
+
+        next_question = difficulty_engine.select_question(elo=new_elo, company="Google", role="Software Engineer")
+        replay_system.log_event(payload.session_id, "question_asked", {"text": next_question})
+
+        result = {
+            "scores": scores, "overall_score": overall, "gaps": gaps,
+            "peer_comparison": peer, "new_elo": new_elo,
+            "next_question": next_question, "answer_id": answer_record.id
+        }
+
+        job = db.query(ScoringJob).filter(ScoringJob.id == job_id).first()
+        job.status = "done"
+        job.result = result
+        db.commit()
+        logger.info("scoring_job_completed", job_id=job_id, session_id=payload.session_id)
+
     except Exception as e:
-        logger.error("answer_persist_failed", error=str(e))
-        db.rollback()
+        logger.error("scoring_job_failed", job_id=job_id, error=str(e))
+        job = db.query(ScoringJob).filter(ScoringJob.id == job_id).first()
+        if job:
+            job.status = "failed"
+            db.commit()
     finally:
         db.close()
 
-    next_question = difficulty_engine.select_question(
-        elo=new_elo,
-        company="Google",
-        role="Software Engineer"
-    )
-    replay_system.log_event(payload.session_id, "question_asked", {"text": next_question})
 
-    return {
-        "scores": scores,
-        "overall_score": overall,
-        "gaps": gaps,
-        "peer_comparison": peer,
-        "new_elo": new_elo,
-        "next_question": next_question,
-        "answer_id": answer_id
-    }
+@app.post("/answer/submit")
+@limiter.limit("20/minute")
+def submit_answer(payload: SubmitAnswerRequest, background_tasks: BackgroundTasks, request: Request, user_id: int = Depends(get_current_user_id)):
+    logger.info("answer_submitted", session_id=payload.session_id, difficulty=payload.difficulty, user_id=user_id)
+
+    db = SessionLocal()
+    try:
+        job = ScoringJob(session_id=payload.session_id, status="processing")
+        db.add(job)
+        db.commit()
+        db.refresh(job)
+        job_id = job.id
+    finally:
+        db.close()
+
+    background_tasks.add_task(process_answer_scoring, job_id, payload)
+
+    return {"job_id": job_id, "status": "processing"}
+
+
+@app.get("/answer/status/{job_id}")
+def get_scoring_status(job_id: int):
+    db = SessionLocal()
+    try:
+        job = db.query(ScoringJob).filter(ScoringJob.id == job_id).first()
+        if not job:
+            return {"status": "not_found"}
+        if job.status == "done":
+            return {"status": "done", **job.result}
+        return {"status": job.status}
+    finally:
+        db.close()
 
 @app.post("/coach/analyze")
 def analyze_text(request: CoachTextRequest):

@@ -184,7 +184,7 @@ export default function InterviewRoom({ sessionData, onFinish }) {
     clearInterval(timerRef.current);
     try {
       const token = localStorage.getItem("access_token");
-      const res = await axios.post(
+      const startRes = await axios.post(
         `${API_URL}/answer/submit`,
         {
           session_id: sessionData.session_id,
@@ -196,30 +196,68 @@ export default function InterviewRoom({ sessionData, onFinish }) {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setScores(res.data.scores);
-      setGaps(res.data.gaps || []);
-      setPeer(res.data.peer_comparison);
-      setNewElo(res.data.new_elo);
-      setNextQuestion(res.data.next_question || "");
-      setCurrentAnswerId(res.data.answer_id);
-      setFeedbackRating(null);
-      setPhase("results");
 
-      const overallScore = (
-        res.data.scores.score_technical + res.data.scores.score_communication +
-        res.data.scores.score_problem_solving + res.data.scores.score_cultural_fit +
-        res.data.scores.score_confidence
-      ) / 5;
-      setScoreHistory((prev) => [...prev, {
-        question: `Q${prev.length + 1}`,
-        overall: Number(overallScore.toFixed(1)),
-        technical: res.data.scores.score_technical,
-        confidence: res.data.scores.score_confidence,
-      }]);
+      const jobId = startRes.data.job_id;
+      await pollForResult(jobId);
     } catch (err) {
       console.error(err);
+      setLoading(false);
     }
-    setLoading(false);
+  }
+
+  async function pollForResult(jobId) {
+    const maxAttempts = 30;
+    let attempts = 0;
+
+    const poll = async () => {
+      attempts++;
+      try {
+        const res = await axios.get(`${API_URL}/answer/status/${jobId}`);
+
+        if (res.data.status === "done") {
+          setScores(res.data.scores);
+          setGaps(res.data.gaps || []);
+          setPeer(res.data.peer_comparison);
+          setNewElo(res.data.new_elo);
+          setNextQuestion(res.data.next_question || "");
+          setCurrentAnswerId(res.data.answer_id);
+          setFeedbackRating(null);
+          setPhase("results");
+
+          const overallScore = (
+            res.data.scores.score_technical + res.data.scores.score_communication +
+            res.data.scores.score_problem_solving + res.data.scores.score_cultural_fit +
+            res.data.scores.score_confidence
+          ) / 5;
+          setScoreHistory((prev) => [...prev, {
+            question: `Q${prev.length + 1}`,
+            overall: Number(overallScore.toFixed(1)),
+            technical: res.data.scores.score_technical,
+            confidence: res.data.scores.score_confidence,
+          }]);
+          setLoading(false);
+          return;
+        }
+
+        if (res.data.status === "failed") {
+          console.error("Scoring job failed");
+          setLoading(false);
+          return;
+        }
+
+        if (attempts < maxAttempts) {
+          setTimeout(poll, 1000);
+        } else {
+          console.error("Scoring timed out");
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error(err);
+        setLoading(false);
+      }
+    };
+
+    poll();
   }
 
   async function rateFeedback(helpful) {

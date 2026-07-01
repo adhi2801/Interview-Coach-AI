@@ -80,3 +80,13 @@ class CompanyTopicWeight(Base):
     company = Column(String, nullable=False)
     topic_id = Column(Integer, ForeignKey("topics.id"))
     weight = Column(Float, default=1.0)
+
+class ScoringJob(Base):
+    __tablename__ = "scoring_jobs"
+
+    id = Column(Integer, primary_key=True)
+    session_id = Column(Integer, ForeignKey("sessions.id"))
+    status = Column(String, default="processing")  # processing | done | failed
+    result = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+        
