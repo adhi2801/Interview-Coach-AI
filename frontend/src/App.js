@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
+import UserDashboard from "./pages/UserDashboard";
 import PreflightCheck from "./pages/PreflightCheck";
 import InterviewRoom from "./pages/InterviewRoom";
 import ReplayViewer from "./pages/ReplayViewer";
@@ -52,6 +53,13 @@ function App() {
   return (
     <div className="app">
       {page === "dashboard" && (
+        <UserDashboard
+          user={user}
+          onLogout={handleLogout}
+          onStartNew={() => setPage("setup")}
+        />
+      )}
+      {page === "setup" && (
         <Dashboard
           user={user}
           onLogout={handleLogout}

@@ -391,6 +391,31 @@ def get_study_plan(topic_name: str, company: str = None):
         return {"topic": topic_name, "company": company, "steps": steps}
     finally:
         db.close()
+
+@app.get("/user/sessions")
+def get_user_sessions(user_id: int = Depends(get_current_user_id)):
+    if not user_id:
+        return {"sessions": []}
+    db = SessionLocal()
+    try:
+        sessions = db.query(InterviewSession).filter(
+            InterviewSession.user_id == user_id
+        ).order_by(InterviewSession.started_at.desc()).limit(20).all()
+
+        result = []
+        for session in sessions:
+            answer_count = db.query(Answer).filter(Answer.session_id == session.id).count()
+            result.append({
+                "id": session.id,
+                "company_target": session.company_target,
+                "role": session.role,
+                "started_at": session.started_at.isoformat() if session.started_at else None,
+                "question_count": answer_count,
+            })
+        return {"sessions": result}
+    finally:
+        db.close()
+
 # --- WebSocket: Real-Time Confidence Coaching ---
 # This replaces the manual "Analyze Confidence" button.
 # The browser sends each typed/spoken chunk as it happens,
