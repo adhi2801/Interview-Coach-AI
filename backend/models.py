@@ -49,6 +49,7 @@ class Answer(Base):
     score_confidence = Column(Float)
     topics_covered = Column(JSON)
     gaps_identified = Column(JSON)
+    question_category = Column(String, nullable=True)
     feedback_helpful = Column(Integer, nullable=True)  # 1 = thumbs up, 0 = thumbs down, null = not rated
     timestamp = Column(DateTime, default=datetime.utcnow)
 

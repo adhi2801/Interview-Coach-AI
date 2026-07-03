@@ -83,6 +83,8 @@ class SubmitAnswerRequest(BaseModel):
     difficulty: int
     elo: float
     company: str = None
+    failed_topic: str = None
+    category: str = None
 
 class CoachTextRequest(BaseModel):
     text: str
@@ -194,17 +196,19 @@ def start_session(payload: StartSessionRequest, request: Request, user_id: int =
         company=payload.company,
         role=payload.role
     )
-    question = difficulty_engine.select_question(
+    question_data = difficulty_engine.select_question(
         elo=payload.elo,
         company=payload.company,
         role=payload.role
     )
     difficulty = min(10, max(1, int((payload.elo - 800) / 100)))
-    replay_system.log_event(new_session_id, "question_asked", {"text": question})
+    replay_system.log_event(new_session_id, "question_asked", question_data)
 
     return {
         "session_id": new_session_id,
-        "question": question,
+        "question": question_data["question"],
+        "category": question_data["category"],
+        "sub_category": question_data.get("sub_category", ""),
         "difficulty": difficulty,
         "company_profile": company_engine.get_profile(payload.company)
     }
@@ -266,13 +270,35 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
         db.commit()
         db.refresh(answer_record)
 
-        next_question = difficulty_engine.select_question(elo=new_elo, company="Google", role="Software Engineer")
-        replay_system.log_event(payload.session_id, "question_asked", {"text": next_question})
+        failed_topic = None
+        if overall < 5 and gaps:
+            failed_topic = gaps[0].get("gap")
+
+        if overall >= 7 and payload.question:
+            next_question_data = difficulty_engine.select_followup_question(
+                previous_question=payload.question,
+                previous_answer=clean_answer,
+                elo=new_elo,
+                company=payload.company or "google",
+                role="Software Engineer",
+                previous_category=payload.category if hasattr(payload, "category") else None
+            )
+        else:
+            next_question_data = difficulty_engine.select_question(
+                elo=new_elo,
+                company=payload.company or "google",
+                role="Software Engineer",
+                failed_topic=failed_topic
+            )
+        replay_system.log_event(payload.session_id, "question_asked", next_question_data)
 
         result = {
             "scores": scores, "overall_score": overall, "gaps": gaps,
             "peer_comparison": peer, "new_elo": new_elo,
-            "next_question": next_question, "answer_id": answer_record.id
+            "next_question": next_question_data["question"],
+            "next_category": next_question_data["category"],
+            "next_sub_category": next_question_data.get("sub_category", ""),
+            "answer_id": answer_record.id
         }
 
         job = db.query(ScoringJob).filter(ScoringJob.id == job_id).first()
