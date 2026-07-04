@@ -62,7 +62,7 @@ export default function Login({ onAuth, onSwitchToSignup }) {
 
         {error && <div style={s.error}>{error}</div>}
 
-        <button style={loading ? s.btnDisabled : s.btn} onClick={handleLogin} disabled={loading}>
+        <button style={loading ? s.btnDisabled : s.btn} className="bouncy" onClick={handleLogin} disabled={loading}>
           {loading ? "Logging in..." : "Log In"}
         </button>
 
@@ -77,34 +77,35 @@ export default function Login({ onAuth, onSwitchToSignup }) {
 
 const s = {
   page: {
-    minHeight: "100vh", backgroundColor: "#0a0f1e",
+    minHeight: "100vh", backgroundColor: "var(--bg-primary)",
     display: "flex", alignItems: "center", justifyContent: "center",
-    fontFamily: "'Inter', sans-serif"
+    fontFamily: "var(--font)"
   },
   card: {
-    width: "400px", padding: "40px",
+    width: "400px", padding: "var(--space-7)",
     backgroundColor: "rgba(13,20,36,0.65)", backdropFilter: "blur(24px)",
-    border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px",
-    boxShadow: "0 8px 32px rgba(0,0,0,0.4)"
+    border: "1px solid rgba(255,255,255,0.08)", borderRadius: "var(--radius-lg)",
+    boxShadow: "var(--shadow-lg)"
   },
-  title: { color: "#f8fafc", fontSize: "24px", fontWeight: "700", marginBottom: "6px" },
-  subtitle: { color: "#94a3b8", fontSize: "14px", marginBottom: "28px" },
-  field: { marginBottom: "18px" },
-  label: { display: "block", color: "#94a3b8", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", marginBottom: "8px" },
+  title: { color: "var(--text-primary)", fontSize: "var(--text-xl)", fontWeight: "var(--weight-bold)", marginBottom: "6px", letterSpacing: "-0.5px" },
+  subtitle: { color: "var(--text-secondary)", fontSize: "var(--text-sm)", marginBottom: "var(--space-6)" },
+  field: { marginBottom: "var(--space-4)" },
+  label: { display: "block", color: "var(--text-secondary)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "var(--space-2)" },
   input: {
     width: "100%", padding: "12px 14px", backgroundColor: "#070c18",
-    border: "1px solid #1e293b", borderRadius: "10px", color: "#f1f5f9",
-    fontSize: "14px", outline: "none", boxSizing: "border-box"
+    border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", color: "var(--text-primary)",
+    fontSize: "var(--text-base)", outline: "none", boxSizing: "border-box", transition: "border-color 0.2s ease"
   },
-  error: { color: "#fca5a5", backgroundColor: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.12)", borderRadius: "8px", padding: "10px 14px", fontSize: "13px", marginBottom: "16px" },
+  error: { color: "#fca5a5", backgroundColor: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.12)", borderRadius: "var(--radius-sm)", padding: "10px 14px", fontSize: "var(--text-sm)", marginBottom: "var(--space-4)" },
   btn: {
-    width: "100%", padding: "13px", background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-    color: "#fff", border: "none", borderRadius: "10px", fontSize: "15px", fontWeight: "700", cursor: "pointer"
+    width: "100%", padding: "13px", background: "linear-gradient(135deg, var(--accent), #8b5cf6)",
+    color: "#fff", border: "none", borderRadius: "var(--radius-sm)", fontSize: "var(--text-base)", fontWeight: "var(--weight-bold)", cursor: "pointer",
+    boxShadow: "var(--shadow-glow)"
   },
   btnDisabled: {
-    width: "100%", padding: "13px", backgroundColor: "#1e293b",
-    color: "#475569", border: "none", borderRadius: "10px", fontSize: "15px", fontWeight: "700", cursor: "not-allowed"
+    width: "100%", padding: "13px", backgroundColor: "var(--border)",
+    color: "var(--text-muted)", border: "none", borderRadius: "var(--radius-sm)", fontSize: "var(--text-base)", fontWeight: "var(--weight-bold)", cursor: "not-allowed"
   },
-  switchText: { color: "#64748b", fontSize: "13px", textAlign: "center", marginTop: "20px" },
-  switchLink: { color: "#818cf8", cursor: "pointer", fontWeight: "600" }
+  switchText: { color: "var(--text-muted)", fontSize: "var(--text-sm)", textAlign: "center", marginTop: "var(--space-5)" },
+  switchLink: { color: "var(--accent-light)", cursor: "pointer", fontWeight: "var(--weight-semibold)" }
 };

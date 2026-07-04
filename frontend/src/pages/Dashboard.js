@@ -77,6 +77,13 @@ const COMPANIES = [
   },
 ];
 
+const PERSONAS = [
+  { id: "standard", label: "Standard", desc: "Balanced, professional interviewer" },
+  { id: "hostile", label: "Hostile", desc: "Challenges assumptions, adds hard constraints" },
+  { id: "socratic", label: "Socratic", desc: "Guides with questions, never gives answers" },
+  { id: "exhausted", label: "Exhausted", desc: "Bored and terse — you must earn engagement" },
+];
+
 const ROLES = [
   "Software Engineer — L3/IC3",
   "Senior Software Engineer — L4/IC4",
@@ -111,6 +118,7 @@ const INSIGHTS = {
 export default function Dashboard({ onStart, user, onLogout }) {
   const [company, setCompany] = useState("google");
   const [role, setRole] = useState("Software Engineer — L3/IC3");
+  const [persona, setPersona] = useState("standard");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [mounted, setMounted] = useState(false);
@@ -131,6 +139,7 @@ export default function Dashboard({ onStart, user, onLogout }) {
           company,
           role,
           elo: user?.elo_rating || 1200.0,
+          persona,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -265,6 +274,26 @@ export default function Dashboard({ onStart, user, onLogout }) {
                   <option key={r} value={r}>{r}</option>
                 ))}
               </select>
+            </div>
+
+            <div style={s.field}>
+              <label style={s.label}>Interviewer style</label>
+              <div style={s.personaGrid}>
+                {PERSONAS.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    style={{
+                      ...s.personaBtn,
+                      ...(persona === p.id ? s.personaBtnActive : {})
+                    }}
+                    onClick={() => setPersona(p.id)}
+                  >
+                    <span style={s.personaLabel}>{p.label}</span>
+                    <span style={s.personaDesc}>{p.desc}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div style={{
@@ -466,6 +495,27 @@ const s = {
     backgroundColor: "#070c18", border: "1px solid #1e293b",
     borderRadius: "10px", color: "#f1f5f9", fontSize: "14px",
     outline: "none", cursor: "pointer", boxSizing: "border-box",
+  },
+  personaGrid: {
+    display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px",
+  },
+  personaBtn: {
+    display: "flex", flexDirection: "column", alignItems: "flex-start",
+    gap: "2px", padding: "10px 12px",
+    backgroundColor: "#070c18", border: "1px solid #1e293b",
+    borderRadius: "10px", cursor: "pointer", transition: "all 0.2s ease",
+    textAlign: "left"
+  },
+  personaBtnActive: {
+    borderColor: "rgba(99,102,241,0.6)",
+    backgroundColor: "rgba(99,102,241,0.08)",
+    boxShadow: "0 0 12px rgba(99,102,241,0.15)"
+  },
+  personaLabel: {
+    color: "#e2e8f0", fontSize: "13px", fontWeight: "700"
+  },
+  personaDesc: {
+    color: "#475569", fontSize: "11px", lineHeight: "1.4"
   },
   insight: {
     borderLeft: "2px solid #6366f1",

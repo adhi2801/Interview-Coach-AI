@@ -15,9 +15,13 @@ from engines.knowledge_graph import KnowledgeGapGraph
 from engines.confidence_coach import ConfidenceCoach
 from engines.peer_comparison import PeerComparisonEngine
 from engines.replay_system import ReplaySystem
+from engines.replay_system import ReplaySystem
+from coding_engine import CodingEngine
 from auth import hash_password, verify_password, create_access_token, decode_access_token
 from content_filter import contains_profanity, sanitize_for_storage
 from models import User
+from datetime import datetime
+import redis
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 security = HTTPBearer(auto_error=False)
@@ -34,11 +38,20 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
     if not payload:
         return None
     return payload.get("user_id")
+
 import os
 import structlog
 import logging
+import sentry_sdk
 
 load_dotenv()
+
+if os.getenv("SENTRY_DSN"):
+    sentry_sdk.init(dsn=os.getenv("SENTRY_DSN"), traces_sample_rate=0.1)
+# top of main.py, after load_dotenv()
+import sentry_sdk
+if os.getenv("SENTRY_DSN"):
+    sentry_sdk.init(dsn=os.getenv("SENTRY_DSN"), traces_sample_rate=0.1)
 
 # Structured logging: every log line is now a parseable JSON object
 # with consistent fields, instead of plain print() strings.
@@ -53,12 +66,45 @@ logger = structlog.get_logger()
 logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(title="InterviewCoach AI", version="1.0.0")
+coding_engine = CodingEngine()
 
 # Rate limiter: protects the Anthropic API budget by capping how many
 # requests a single IP can make per time window.
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+try:
+    redis_client = redis.from_url(os.getenv("REDIS_URL"), decode_responses=True, socket_connect_timeout=2)
+    redis_client.ping()
+except Exception:
+    redis_client = None  # same fail-open pattern as company_dna.py — don't crash the app if Redis is down
+
+DAILY_TOKEN_BUDGET = 500  # tune this — rough starting point for a free-tier user
+
+def estimate_tokens(text: str) -> int:
+    # Rough approximation: ~4 characters per token for English text.
+    # Not exact, but doesn't need to be — this is a budget GUARD, not billing.
+    return len(text) // 4
+
+def check_and_charge_token_budget(user_id: int, estimated_tokens: int) -> bool:
+    """Returns True if the user is under budget and the charge was applied,
+    False if they're over budget and should be rejected."""
+    if not redis_client or not user_id:
+        return True  # fail open — same philosophy as the caching layer
+
+    key = f"token_budget:{user_id}:{datetime.utcnow().strftime('%Y-%m-%d')}"
+    current = redis_client.get(key)
+    current = int(current) if current else 0
+
+    if current + estimated_tokens > DAILY_TOKEN_BUDGET:
+        return False
+
+    pipe = redis_client.pipeline()
+    pipe.incrby(key, estimated_tokens)
+    pipe.expire(key, 60 * 60 * 26)  # slightly over 24h so it always outlives "today" in any timezone
+    pipe.execute()
+    return True
 
 app.add_middleware(
     CORSMiddleware,
@@ -75,6 +121,7 @@ class StartSessionRequest(BaseModel):
     company: str
     role: str
     elo: float = 1200.0
+    persona: str = "standard"
 
 class SubmitAnswerRequest(BaseModel):
     session_id: int
@@ -199,7 +246,8 @@ def start_session(payload: StartSessionRequest, request: Request, user_id: int =
     question_data = difficulty_engine.select_question(
         elo=payload.elo,
         company=payload.company,
-        role=payload.role
+        role=payload.role,
+        persona=payload.persona
     )
     difficulty = min(10, max(1, int((payload.elo - 800) / 100)))
     replay_system.log_event(new_session_id, "question_asked", question_data)
@@ -243,6 +291,8 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
             technical_score=technical_score, company=payload.company
         )
         peer = peer_engine.get_percentile(your_score=overall, difficulty=payload.difficulty)
+        
+        # 1. Compute new ELO
         new_elo = difficulty_engine.update_elo(
             current_elo=payload.elo, question_difficulty=payload.difficulty, score=overall
         )
@@ -251,6 +301,7 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
         replay_system.log_event(payload.session_id, "scores_calculated", scores)
         replay_system.log_event(payload.session_id, "gaps_identified", gaps)
 
+        # 2. Fetch/Create session record
         session_record = db.query(InterviewSession).filter(InterviewSession.id == payload.session_id).first()
         if not session_record:
             session_record = InterviewSession(
@@ -260,6 +311,22 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
             db.add(session_record)
             db.commit()
 
+        # 3. Persist the updated ELO to the user record
+        # Without this, every session starts back at 1200 regardless of prior performance.
+        if session_record and session_record.user_id:
+            user = db.query(User).filter(User.id == session_record.user_id).first()
+            if user:
+                user.elo_rating = new_elo
+                db.commit()
+
+        # Snapshot ELO on the session itself too — this is what makes the
+        # Rating History chart show REAL per-session values instead of
+        # always plotting whatever the user's current live ELO happens to be.
+        if session_record:
+            session_record.elo_after = new_elo
+            db.commit()
+
+        # 4. Save the Answer row
         answer_record = Answer(
             session_id=payload.session_id, question_text=payload.question, answer_text=clean_answer,
             score_technical=scores["score_technical"], score_communication=scores["score_communication"],
@@ -319,6 +386,19 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
 
 @app.post("/answer/submit")
 @limiter.limit("20/minute")
+
+@app.post("/answer/submit")
+@limiter.limit("20/minute")
+def submit_answer(payload: SubmitAnswerRequest, background_tasks: BackgroundTasks, request: Request, user_id: int = Depends(get_current_user_id)):
+    # Token budget check — separate from the request-count limiter above.
+    # This catches the case where someone stays under 20 requests/minute
+    # but pastes something huge into every single one.
+    estimated = estimate_tokens(payload.answer) + estimate_tokens(payload.question)
+    if user_id and not check_and_charge_token_budget(user_id, estimated):
+        return {"error": "Daily usage limit reached. Please try again tomorrow."}
+
+    # ... rest of your existing function body continues unchanged below this point
+
 def submit_answer(payload: SubmitAnswerRequest, background_tasks: BackgroundTasks, request: Request, user_id: int = Depends(get_current_user_id)):
     logger.info("answer_submitted", session_id=payload.session_id, difficulty=payload.difficulty, user_id=user_id)
 
@@ -338,12 +418,19 @@ def submit_answer(payload: SubmitAnswerRequest, background_tasks: BackgroundTask
 
 
 @app.get("/answer/status/{job_id}")
-def get_scoring_status(job_id: int):
+def get_scoring_status(job_id: int, user_id: int = Depends(get_current_user_id)):
     db = SessionLocal()
     try:
         job = db.query(ScoringJob).filter(ScoringJob.id == job_id).first()
         if not job:
             return {"status": "not_found"}
+
+        session_record = db.query(InterviewSession).filter(
+            InterviewSession.id == job.session_id
+        ).first()
+        if not user_id or not session_record or session_record.user_id != user_id:
+            return {"status": "not_found"}  # don't reveal it exists either
+
         if job.status == "done":
             return {"status": "done", **job.result}
         return {"status": job.status}
@@ -367,26 +454,72 @@ def analyze_text(request: CoachTextRequest):
         "suggestion": feedback.suggestion
     }
 
+class HintRequest(BaseModel):
+    problem: str
+    current_code: str
+    language: str = "python"
+
+@app.post("/coding/hint")
+@limiter.limit("15/minute")
+def get_coding_hint(payload: HintRequest, request: Request, user_id: int = Depends(get_current_user_id)):
+    return coding_engine.get_hint(payload.problem, payload.current_code, payload.language)
+
 @app.get("/replay/{session_id}")
-def get_replay(session_id: int):
+def get_replay(session_id: int, user_id: int = Depends(get_current_user_id)):
+    if not user_id:
+        return {"error": "Authentication required"}
+
+    db = SessionLocal()
+    try:
+        session_record = db.query(InterviewSession).filter(
+            InterviewSession.id == session_id,
+            InterviewSession.user_id == user_id
+        ).first()
+        if not session_record:
+            return {"error": "Replay not found"}
+    finally:
+        db.close()
+
     return replay_system.get_replay(session_id)
 
 @app.get("/replay/{session_id}/list")
-def list_replays():
-    return {"replays": replay_system.list_replays()}
+def list_replays(user_id: int = Depends(get_current_user_id)):
+    if not user_id:
+        return {"replays": []}
+
+    db = SessionLocal()
+    try:
+        own_session_ids = {
+            s.id for s in db.query(InterviewSession).filter(
+                InterviewSession.user_id == user_id
+            ).all()
+        }
+    finally:
+        db.close()
+
+    all_replays = replay_system.list_replays()
+    return {"replays": [r for r in all_replays if r["session_id"] in own_session_ids]}
 class FeedbackRatingRequest(BaseModel):
     answer_id: int
     helpful: bool
 
 @app.post("/feedback/rate")
-def rate_feedback(payload: FeedbackRatingRequest):
+def rate_feedback(payload: FeedbackRatingRequest, user_id: int = Depends(get_current_user_id)):
     db = SessionLocal()
     try:
         answer = db.query(Answer).filter(Answer.id == payload.answer_id).first()
-        if answer:
-            answer.feedback_helpful = 1 if payload.helpful else 0
-            db.commit()
-            logger.info("feedback_rated", answer_id=payload.answer_id, helpful=payload.helpful)
+        if not answer:
+            return {"status": "ok"}  # silent no-op, don't reveal existence
+
+        session_record = db.query(InterviewSession).filter(
+            InterviewSession.id == answer.session_id
+        ).first()
+        if not user_id or not session_record or session_record.user_id != user_id:
+            return {"status": "ok"}  # silent no-op — not your answer to rate
+
+        answer.feedback_helpful = 1 if payload.helpful else 0
+        db.commit()
+        logger.info("feedback_rated", answer_id=payload.answer_id, helpful=payload.helpful)
         return {"status": "ok"}
     finally:
         db.close()
@@ -437,6 +570,7 @@ def get_user_sessions(user_id: int = Depends(get_current_user_id)):
                 "role": session.role,
                 "started_at": session.started_at.isoformat() if session.started_at else None,
                 "question_count": answer_count,
+                "elo_after": session.elo_after,
             })
         return {"sessions": result}
     finally:
@@ -461,7 +595,32 @@ whisper_model = whisper.load_model("small")
 print("Whisper model ready")
 
 @app.websocket("/ws/coaching/{session_id}")
-async def coaching_websocket(websocket: WebSocket, session_id: int):
+async def coaching_websocket(websocket: WebSocket, session_id: int, token: str = None):
+    # Native WebSocket clients can't send custom Authorization headers, so the
+    # frontend passes the JWT as a query param instead: ws://.../ws/coaching/28?token=xxx
+    user_id = None
+    if token:
+        payload = decode_access_token(token)
+        if payload:
+            user_id = payload.get("user_id")
+
+    if not user_id:
+        await websocket.close(code=1008)  # 1008 = policy violation
+        return
+
+    db = SessionLocal()
+    try:
+        session_record = db.query(InterviewSession).filter(
+            InterviewSession.id == session_id,
+            InterviewSession.user_id == user_id
+        ).first()
+    finally:
+        db.close()
+
+    if not session_record:
+        await websocket.close(code=1008)
+        return
+
     await websocket.accept()
     coach = ConfidenceCoach()
     print(f"WebSocket connected for session {session_id}")

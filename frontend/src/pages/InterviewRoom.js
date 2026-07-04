@@ -4,8 +4,9 @@ import axios from "axios";
 import StudyPlan from "./StudyPlan";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 
-export default function InterviewRoom({ sessionData, onFinish }) {
+export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   const [question, setQuestion] = useState(sessionData?.question || "");
+  const [category, setCategory] = useState(sessionData?.category || "");
   const [answer, setAnswer] = useState("");
   const [scores, setScores] = useState(null);
   const [gaps, setGaps] = useState([]);
@@ -19,6 +20,7 @@ export default function InterviewRoom({ sessionData, onFinish }) {
   const TIME_LIMIT = 120;
   const [timeLeft, setTimeLeft] = useState(TIME_LIMIT);
   const [nextQuestion, setNextQuestion] = useState("");
+  const [nextCategory, setNextCategory] = useState("");
   const [mounted, setMounted] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [hintText, setHintText] = useState("");
@@ -32,6 +34,7 @@ export default function InterviewRoom({ sessionData, onFinish }) {
   const wsRef = useRef(null);
   const debounceRef = useRef(null);
   const timerRef = useRef(null);
+  const autoSubmittedRef = useRef(false);
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef(null);
   const audioStreamRef = useRef(null);
@@ -41,7 +44,8 @@ export default function InterviewRoom({ sessionData, onFinish }) {
   }, []);
 
   useEffect(() => {
-    const ws = new WebSocket(`${WS_URL}/ws/coaching/${sessionData?.session_id || 1}`);
+    const token = localStorage.getItem("access_token");
+    const ws = new WebSocket(`${WS_URL}/ws/coaching/${sessionData?.session_id || 1}?token=${token}`);
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -93,6 +97,17 @@ export default function InterviewRoom({ sessionData, onFinish }) {
     }, 1000);
     return () => clearInterval(timerRef.current);
   }, [question]);
+
+  useEffect(() => {
+    autoSubmittedRef.current = false;
+  }, [question]);
+
+  useEffect(() => {
+    if (timeLeft === 0 && !autoSubmittedRef.current && !loading) {
+      autoSubmittedRef.current = true;
+      submitAnswer();
+    }
+  }, [timeLeft]);
 
   function formatTime(s) {
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -193,6 +208,7 @@ export default function InterviewRoom({ sessionData, onFinish }) {
           difficulty,
           elo: currentElo,
           company: sessionData?.company_profile?.name?.toLowerCase(),
+          category,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -212,7 +228,10 @@ export default function InterviewRoom({ sessionData, onFinish }) {
     const poll = async () => {
       attempts++;
       try {
-        const res = await axios.get(`${API_URL}/answer/status/${jobId}`);
+        const pollToken = localStorage.getItem("access_token");
+        const res = await axios.get(`${API_URL}/answer/status/${jobId}`, {
+          headers: { Authorization: `Bearer ${pollToken}` }
+        });
 
         if (res.data.status === "done") {
           setScores(res.data.scores);
@@ -220,9 +239,13 @@ export default function InterviewRoom({ sessionData, onFinish }) {
           setPeer(res.data.peer_comparison);
           setNewElo(res.data.new_elo);
           setNextQuestion(res.data.next_question || "");
+          setNextCategory(res.data.next_category || "");
           setCurrentAnswerId(res.data.answer_id);
           setFeedbackRating(null);
           setPhase("results");
+          if (res.data.new_elo) {
+            onEloUpdate?.(res.data.new_elo);
+          }
 
           const overallScore = (
             res.data.scores.score_technical + res.data.scores.score_communication +
@@ -277,6 +300,7 @@ export default function InterviewRoom({ sessionData, onFinish }) {
   function goNextQuestion() {
     if (newElo) setCurrentElo(newElo);
     if (nextQuestion) setQuestion(nextQuestion);
+    if (nextCategory) setCategory(nextCategory);
     setAnswer("");
     setScores(null);
     setGaps([]);
@@ -354,7 +378,7 @@ export default function InterviewRoom({ sessionData, onFinish }) {
             <div style={s.questionHeader}>
               <span style={s.questionNum}>Question {questionNum}</span>
               <span style={s.questionTopic}>
-                {company?.focus_areas?.split(" ")[0] || "Technical"}
+                {category ? category.replace(/_/g, " ").toUpperCase() : "TECHNICAL"}
               </span>
             </div>
             <p style={s.questionText}>{question}</p>
@@ -376,7 +400,10 @@ export default function InterviewRoom({ sessionData, onFinish }) {
                 </div>
               </div>
               <textarea
-                style={s.textarea}
+                style={{
+                  ...s.textarea,
+                  ...(timeLeft === 0 ? s.textareaTimeUp : {})
+                }}
                 placeholder="Structure your answer clearly. For technical questions: explain your approach first, then implementation, then complexity. For behavioral: use STAR format."
                 value={answer}
                 onChange={(e) => handleAnswerChange(e.target.value)}
@@ -384,6 +411,7 @@ export default function InterviewRoom({ sessionData, onFinish }) {
                 onCopy={(e) => e.preventDefault()}
                 onCut={(e) => e.preventDefault()}
                 rows={10}
+                disabled={timeLeft === 0}
               />
               {showHint && (
                 <div style={s.hintBanner}>
@@ -393,11 +421,12 @@ export default function InterviewRoom({ sessionData, onFinish }) {
                 </div>
               )}
               <div style={s.answerFooter}>
-                <button style={s.hintBtn} onClick={getHint}>
+                <button style={s.hintBtn} className="bouncy" onClick={getHint}>
                   Get a hint
                 </button>
                 <button
                   style={loading ? s.submitBtnDisabled : s.submitBtn}
+                  className={loading ? "" : "bouncy"}
                   onClick={submitAnswer}
                   disabled={loading}
                 >
@@ -705,7 +734,7 @@ function ScoreRow({ label, value, feedback }) {
 }
 
 const s = {
-  page: { minHeight: "100vh", backgroundColor: "#0a0f1e", fontFamily: "'Inter', sans-serif", color: "#f8fafc" },
+  page: { minHeight: "100vh", backgroundColor: "#0a0f1e", fontFamily: "var(--font)", color: "#f8fafc" },
   header: {
     display: "flex", justifyContent: "space-between", alignItems: "center",
     padding: "14px 28px", backgroundColor: "#0f172a",
@@ -806,6 +835,11 @@ const s = {
     borderRadius: "10px", color: "#f8fafc", fontSize: "15px",
     padding: "16px", resize: "vertical", boxSizing: "border-box",
     lineHeight: "1.65", outline: "none", transition: "border-color 0.2s"
+  },
+  textareaTimeUp: {
+    borderColor: "#f87171",
+    boxShadow: "0 0 0 1px #f87171",
+    opacity: 0.6,
   },
   answerFooter: { display: "flex", gap: "10px", marginTop: "14px", alignItems: "center" },
   hintBtn: {

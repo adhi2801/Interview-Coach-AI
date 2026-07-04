@@ -59,15 +59,15 @@ export default function UserDashboard({ user, onStartNew, onLogout }) {
           <p style={s.subgreeting}>Ready to practice? Your current rating is {Math.round(user.elo_rating)}.</p>
 
           <div style={s.statsRow}>
-            <div style={s.statCard}>
+            <div style={s.statCard} className="hover-lift">
               <span style={s.statValue}>{Math.round(user.elo_rating)}</span>
               <span style={s.statLabel}>Current Rating</span>
             </div>
-            <div style={s.statCard}>
+            <div style={s.statCard} className="hover-lift">
               <span style={s.statValue}>{sessions.length}</span>
               <span style={s.statLabel}>Sessions</span>
             </div>
-            <div style={s.statCard}>
+            <div style={s.statCard} className="hover-lift">
               <span style={s.statValue}>
                 {sessions.length > 0
                   ? sessions.reduce((sum, s) => sum + (s.question_count || 0), 0)
@@ -77,7 +77,7 @@ export default function UserDashboard({ user, onStartNew, onLogout }) {
             </div>
           </div>
 
-          <button style={s.startBtn} onClick={onStartNew}>
+          <button style={s.startBtn} className="bouncy" onClick={onStartNew}>
             Start New Interview →
           </button>
         </div>
@@ -138,36 +138,38 @@ export default function UserDashboard({ user, onStartNew, onLogout }) {
 }
 
 const s = {
-  page: { minHeight: "100vh", backgroundColor: "#0a0f1e", fontFamily: "'Inter', sans-serif", color: "#f8fafc", position: "relative", overflow: "hidden" },
+  page: { minHeight: "100vh", backgroundColor: "var(--bg-primary)", fontFamily: "var(--font)", color: "var(--text-primary)", position: "relative", overflow: "hidden" },
   bgOrb1: { position: "fixed", width: "600px", height: "600px", borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)", top: "-200px", left: "-200px", pointerEvents: "none" },
   bgOrb2: { position: "fixed", width: "400px", height: "400px", borderRadius: "50%", background: "radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%)", bottom: "-100px", right: "-100px", pointerEvents: "none" },
-  header: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 40px", borderBottom: "1px solid rgba(255,255,255,0.04)", position: "relative", zIndex: 10 },
-  headerLeft: { display: "flex", alignItems: "center", gap: "10px" },
-  logoIcon: { width: "32px", height: "32px", borderRadius: "8px", background: "linear-gradient(135deg, #6366f1, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: "800", color: "#fff" },
-  logoText: { color: "#f1f5f9", fontSize: "16px", fontWeight: "700" },
-  headerRight: { display: "flex", alignItems: "center", gap: "16px" },
-  userName: { color: "#94a3b8", fontSize: "13px" },
-  logoutBtn: { backgroundColor: "transparent", color: "#64748b", border: "1px solid #1e293b", padding: "6px 14px", borderRadius: "8px", fontSize: "12px", fontWeight: "600", cursor: "pointer" },
-  main: { maxWidth: "1000px", margin: "0 auto", padding: "48px 40px", position: "relative", zIndex: 10 },
-  hero: { marginBottom: "48px" },
-  greeting: { fontSize: "36px", fontWeight: "800", letterSpacing: "-1px", color: "#f8fafc", marginBottom: "8px" },
-  subgreeting: { color: "#94a3b8", fontSize: "16px", marginBottom: "32px" },
-  statsRow: { display: "flex", gap: "16px", marginBottom: "32px" },
-  statCard: { backgroundColor: "rgba(15,23,42,0.8)", border: "1px solid #1e293b", borderRadius: "12px", padding: "20px 24px", display: "flex", flexDirection: "column", gap: "4px", minWidth: "140px" },
-  statValue: { fontSize: "28px", fontWeight: "800", color: "#6366f1", letterSpacing: "-0.5px" },
-  statLabel: { fontSize: "12px", color: "#475569", fontWeight: "500", textTransform: "uppercase", letterSpacing: "0.3px" },
-  startBtn: { padding: "14px 32px", background: "linear-gradient(135deg, #6366f1, #8b5cf6)", color: "#fff", border: "none", borderRadius: "10px", fontSize: "15px", fontWeight: "700", cursor: "pointer", boxShadow: "0 4px 24px rgba(99,102,241,0.3)" },
-  content: { display: "flex", flexDirection: "column", gap: "20px" },
-  card: { backgroundColor: "rgba(15,23,42,0.8)", border: "1px solid #1e293b", borderRadius: "16px", padding: "24px" },
-  cardTitle: { color: "#f8fafc", fontSize: "16px", fontWeight: "700", marginBottom: "20px", letterSpacing: "-0.3px" },
-  emptyState: { padding: "24px 0" },
-  emptyText: { color: "#475569", fontSize: "14px" },
+  header: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "var(--space-4) var(--space-6)", borderBottom: "1px solid rgba(255,255,255,0.04)", position: "relative", zIndex: 10 },
+  headerLeft: { display: "flex", alignItems: "center", gap: "var(--space-2)" },
+  logoIcon: { width: "32px", height: "32px", borderRadius: "var(--radius-sm)", background: "linear-gradient(135deg, var(--accent), #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: "#fff" },
+  logoText: { color: "var(--text-primary)", fontSize: "var(--text-base)", fontWeight: "var(--weight-bold)" },
+  headerRight: { display: "flex", alignItems: "center", gap: "var(--space-4)" },
+  userName: { color: "var(--text-secondary)", fontSize: "var(--text-sm)" },
+  logoutBtn: { backgroundColor: "transparent", color: "var(--text-muted)", border: "1px solid var(--border)", padding: "6px 14px", borderRadius: "var(--radius-sm)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-semibold)", cursor: "pointer" },
+  main: { maxWidth: "1000px", margin: "0 auto", padding: "var(--space-7) var(--space-6)", position: "relative", zIndex: 10 },
+  hero: { marginBottom: "var(--space-7)" },
+  // Bigger jump from body text to headline — this is the single change that
+  // does the most for "does this look designed" per line of code changed.
+  greeting: { fontSize: "var(--text-3xl)", fontWeight: "var(--weight-bold)", letterSpacing: "-1.5px", color: "var(--text-primary)", marginBottom: "var(--space-2)", lineHeight: 1.1 },
+  subgreeting: { color: "var(--text-secondary)", fontSize: "var(--text-lg)", marginBottom: "var(--space-6)", fontWeight: "var(--weight-normal)" },
+  statsRow: { display: "flex", gap: "var(--space-4)", marginBottom: "var(--space-6)" },
+  statCard: { backgroundColor: "rgba(15,23,42,0.8)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-1)", minWidth: "140px", boxShadow: "var(--shadow-sm)" },
+  statValue: { fontSize: "var(--text-2xl)", fontWeight: "var(--weight-bold)", color: "var(--accent)", letterSpacing: "-0.5px" },
+  statLabel: { fontSize: "var(--text-xs)", color: "var(--text-muted)", fontWeight: "var(--weight-semibold)", textTransform: "uppercase", letterSpacing: "0.5px" },
+  startBtn: { padding: "var(--space-4) var(--space-6)", background: "linear-gradient(135deg, var(--accent), #8b5cf6)", color: "#fff", border: "none", borderRadius: "var(--radius-sm)", fontSize: "var(--text-base)", fontWeight: "var(--weight-bold)", cursor: "pointer", boxShadow: "var(--shadow-glow)" },
+  content: { display: "flex", flexDirection: "column", gap: "var(--space-5)" },
+  card: { backgroundColor: "rgba(15,23,42,0.8)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "var(--space-5)", boxShadow: "var(--shadow-sm)" },
+  cardTitle: { color: "var(--text-primary)", fontSize: "var(--text-base)", fontWeight: "var(--weight-bold)", marginBottom: "var(--space-5)", letterSpacing: "-0.3px" },
+  emptyState: { padding: "var(--space-5) 0" },
+  emptyText: { color: "var(--text-muted)", fontSize: "var(--text-base)" },
   sessionList: { display: "flex", flexDirection: "column", gap: "1px" },
-  sessionRow: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0", borderBottom: "1px solid #1e293b" },
+  sessionRow: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "var(--space-3) 0", borderBottom: "1px solid var(--border)" },
   sessionLeft: { display: "flex", flexDirection: "column", gap: "2px" },
-  sessionCompany: { color: "#e2e8f0", fontSize: "14px", fontWeight: "600", textTransform: "capitalize" },
-  sessionRole: { color: "#475569", fontSize: "12px" },
-  sessionRight: { display: "flex", alignItems: "center", gap: "16px" },
-  sessionQuestions: { color: "#64748b", fontSize: "12px" },
-  sessionDate: { color: "#475569", fontSize: "12px" },
+  sessionCompany: { color: "var(--text-secondary)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)", textTransform: "capitalize" },
+  sessionRole: { color: "var(--text-muted)", fontSize: "var(--text-xs)" },
+  sessionRight: { display: "flex", alignItems: "center", gap: "var(--space-4)" },
+  sessionQuestions: { color: "var(--text-muted)", fontSize: "var(--text-xs)" },
+  sessionDate: { color: "var(--text-muted)", fontSize: "var(--text-xs)" },
 };

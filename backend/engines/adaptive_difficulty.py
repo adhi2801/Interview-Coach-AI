@@ -33,7 +33,7 @@ class AdaptiveDifficultyEngine:
         self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
         self.vector_store = QuestionVectorStore()
 
-    def select_question(self, elo: float, company: str, role: str, failed_topic: str = None) -> dict:
+    def select_question(self, elo: float, company: str, role: str, failed_topic: str = None, persona: str = "standard") -> dict:
         """
         Returns: {"question": str, "category": str, "sub_category": str, "difficulty": int}
         """
@@ -59,7 +59,7 @@ class AdaptiveDifficultyEngine:
         # store surfaces it back.
         seeded_topics = base.get("topics") if base else None
 
-        return self._mutate_with_company_dna(base_question, company, role, difficulty, seeded_topics)
+        return self._mutate_with_company_dna(base_question, company, role, difficulty, seeded_topics, persona)
 
     def select_followup_question(self, previous_question: str, previous_answer: str, elo: float,
                                   company: str, role: str, previous_category: str = None) -> dict:
@@ -154,7 +154,7 @@ class AdaptiveDifficultyEngine:
         }
 
     def _mutate_with_company_dna(self, base_question: str, company: str, role: str,
-                                  difficulty: int, seeded_topics: list = None) -> dict:
+                                  difficulty: int, seeded_topics: list = None, persona: str = "standard") -> dict:
         COMPANY_MUTATIONS = {
             "google": "Frame this as an open-ended problem. The candidate must ask clarifying questions and think about edge cases at massive scale.",
             "amazon": "Add a constraint tied to Amazon Leadership Principles — specifically Frugality or Bias for Action. Include a deadline or budget pressure.",
@@ -165,6 +165,16 @@ class AdaptiveDifficultyEngine:
             "startup": "Add time and resource pressure — limited engineers, tight deadline, must decide what to cut and why.",
         }
         mutation = COMPANY_MUTATIONS.get(company.lower(), "Make this a real-world scenario with concrete constraints.")
+
+        PERSONA_MODIFIERS = {
+            "standard": "",
+            "hostile": "Be direct and skeptical. Add a challenging constraint that questions the candidate's assumptions.",
+            "socratic": "Do not state the problem directly. Ask a series of leading questions that guide the candidate to discover the problem themselves.",
+            "exhausted": "Frame this question in a bored, terse manner. The candidate must be engaging and concise to score well on communication.",
+        }
+        persona_mod = PERSONA_MODIFIERS.get(persona, "")
+        if persona_mod:
+            mutation = mutation + " " + persona_mod
 
         json_instruction = f"""Return ONLY valid JSON, no markdown, no preamble, exactly this shape:
         {{"question": "<the full question text>", "category": "<one of: {', '.join(VALID_CATEGORIES)}>", "sub_category": "<2-4 word specific topic, e.g. 'cross-team communication'>"}}"""

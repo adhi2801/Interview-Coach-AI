@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { API_URL } from "../config";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function StudyPlan({ topicName, company, onClose }) {
   const [plan, setPlan] = useState(null);
@@ -34,8 +35,20 @@ export default function StudyPlan({ topicName, company, onClose }) {
   if (!plan || !plan.steps?.length) return null;
 
   return (
-    <div style={s.overlay} onClick={onClose}>
-      <div style={s.modal} onClick={(e) => e.stopPropagation()}>
+    <motion.div
+      style={s.overlay}
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <motion.div
+        style={s.modal}
+        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      >
         <div style={s.header}>
           <div>
             <p style={s.headerLabel}>Study Path</p>
@@ -90,8 +103,8 @@ export default function StudyPlan({ topicName, company, onClose }) {
             );
           })}
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

@@ -6,6 +6,7 @@ import UserDashboard from "./pages/UserDashboard";
 import PreflightCheck from "./pages/PreflightCheck";
 import InterviewRoom from "./pages/InterviewRoom";
 import ReplayViewer from "./pages/ReplayViewer";
+import CodingRoom from "./pages/CodingRoom";
 import "./App.css";
 
 function App() {
@@ -27,6 +28,14 @@ function App() {
 
   function handleAuth(userData) {
     setUser(userData);
+  }
+
+  function handleEloUpdate(newElo) {
+    setUser((prevUser) => {
+      const updated = { ...prevUser, elo_rating: newElo };
+      localStorage.setItem("user", JSON.stringify(updated));
+      return updated;
+    });
   }
 
   function handleLogout() {
@@ -79,8 +88,16 @@ function App() {
         <InterviewRoom
           sessionData={sessionData}
           onFinish={() => setPage("replay")}
+          onEloUpdate={handleEloUpdate}
         />
       )}
+
+    {page === "coding" && (
+  <CodingRoom
+    problem={{ title: "Two Sum", text: "Given an array of integers and a target, return indices of the two numbers that add up to the target." }}
+    onFinish={() => setPage("dashboard")}
+  />
+)}
       {page === "replay" && (
         <ReplayViewer sessionId={sessionData?.session_id} />
       )}

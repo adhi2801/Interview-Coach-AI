@@ -64,8 +64,16 @@ class ReplaySystem:
             if event["type"] == "question_asked":
                 if current_q:
                     questions.append(current_q)
+                # Handles both the old event format ({"text": "..."})
+                # and the new structured format ({"question": "...", "category": "...", ...})
+                # from the updated adaptive_difficulty.py — old replay files
+                # recorded before that change still use "text".
+                q_data = event["data"]
+                question_text = q_data.get("question") or q_data.get("text") or ""
                 current_q = {
-                    "question": event["data"]["text"],
+                    "question": question_text,
+                    "category": q_data.get("category"),
+                    "sub_category": q_data.get("sub_category"),
                     "asked_at": event["timestamp"],
                     "scores": None,
                     "answer": None,

@@ -28,6 +28,7 @@ class InterviewSession(Base):
     role = Column(String)
     difficulty_level = Column(Integer, default=5)
     audio_file_path = Column(String)
+    elo_after = Column(Float, nullable=True)  # snapshot of user's ELO after the latest scored answer in this session — powers the Rating History chart with real data instead of always showing the current live ELO
     started_at = Column(DateTime, default=datetime.utcnow)
     ended_at = Column(DateTime)
 
@@ -49,7 +50,6 @@ class Answer(Base):
     score_confidence = Column(Float)
     topics_covered = Column(JSON)
     gaps_identified = Column(JSON)
-    question_category = Column(String, nullable=True)
     feedback_helpful = Column(Integer, nullable=True)  # 1 = thumbs up, 0 = thumbs down, null = not rated
     timestamp = Column(DateTime, default=datetime.utcnow)
 
@@ -90,4 +90,3 @@ class ScoringJob(Base):
     status = Column(String, default="processing")  # processing | done | failed
     result = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-        

@@ -10,7 +10,10 @@ export default function ReplayViewer({ sessionId }) {
   useEffect(() => {
     async function fetchReplay() {
       try {
-        const res = await axios.get(`${API_URL}/replay/${sessionId || 1}`);
+        const token = localStorage.getItem("access_token");
+        const res = await axios.get(`${API_URL}/replay/${sessionId || 1}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setReplay(res.data);
       } catch (err) {
         console.error(err);

@@ -1,9 +1,20 @@
 import os
 import json
+import redis
+import json as json_module 
 import anthropic
 from dotenv import load_dotenv
 
 load_dotenv()
+
+try:
+    redis_client = redis.from_url(os.getenv("REDIS_URL"), decode_responses=True, socket_connect_timeout=2)
+    redis_client.ping()
+except Exception:
+    # If Redis is down or REDIS_URL isn't set, fall back to no caching
+    # rather than crashing the whole app — a cache is an optimization,
+    # not a dependency the app should die without.
+    redis_client = None
 
 COMPANY_PROFILES = {
     "google": {
@@ -86,7 +97,24 @@ class CompanyDNAEngine:
         key = company_name.lower().strip()
         if key in COMPANY_PROFILES:
             return COMPANY_PROFILES[key]
-        return self._generate_dynamic_profile(company_name)
+
+        # Only unknown companies hit the cache — the 7 hardcoded ones above
+        # are already free, no need to cache what's already instant.
+        cache_key = f"company_dna:{key}"
+        if redis_client:
+            cached = redis_client.get(cache_key)
+            if cached:
+                return json_module.loads(cached)
+
+        profile = self._generate_dynamic_profile(company_name)
+
+        if redis_client:
+            # 7 day TTL — company interview styles don't change week to week,
+            # but this avoids caching something forever if Claude ever
+            # generates a bad/malformed profile for a given name.
+            redis_client.setex(cache_key, 60 * 60 * 24 * 7, json_module.dumps(profile))
+
+        return profile
     
     def _generate_dynamic_profile(self, company_name: str) -> dict:
         response = self.client.messages.create(
