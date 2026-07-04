@@ -8,4 +8,6 @@ backend/chroma_db/
 backend/debug_last_chunk.webm
 frontend/node_modules/
 frontend/build/
+__pycache__/
+*.pyc
 .env
