@@ -55,24 +55,25 @@ export default function PreflightCheck({ onReady, onSkip }) {
   }
 
   return (
-    <div style={s.page}>
-      <div style={s.card}>
-        <p style={s.label}>Before you begin</p>
-        <h1 style={s.title}>Let's check your setup</h1>
-        <p style={s.subtitle}>
+    <div className="min-h-screen bg-black flex items-center justify-center p-5 font-sans">
+      <div className="w-[460px] max-w-full p-10 bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.5)]">
+        <p className="text-blue-500 text-[11px] font-bold uppercase tracking-widest mb-2">Before you begin</p>
+        <h1 className="text-slate-100 text-2xl font-bold mb-1.5 tracking-tight">Let's check your setup</h1>
+        <p className="text-zinc-400 text-sm mb-7 leading-relaxed">
           A quick check ensures your interview session runs smoothly.
         </p>
 
-        <div style={s.checkRow}>
-          <div style={s.checkLeft}>
-            <span style={{
-              ...s.statusDot,
-              backgroundColor: micStatus === "granted" ? "#4ade80" :
-                micStatus === "denied" ? "#f87171" : "#facc15"
-            }} />
-            <span style={s.checkLabel}>Microphone</span>
+        <div className="flex justify-between items-center py-3.5 border-b border-white/[0.07]">
+          <div className="flex items-center gap-2.5">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                micStatus === "granted" ? "bg-emerald-400" :
+                micStatus === "denied" ? "bg-red-400" : "bg-yellow-400"
+              }`}
+            />
+            <span className="text-zinc-200 text-sm font-semibold">Microphone</span>
           </div>
-          <span style={s.checkStatus}>
+          <span className="text-zinc-500 text-[13px]">
             {micStatus === "checking" && "Requesting access..."}
             {micStatus === "granted" && "Connected"}
             {micStatus === "denied" && "Access denied"}
@@ -80,35 +81,43 @@ export default function PreflightCheck({ onReady, onSkip }) {
         </div>
 
         {micStatus === "granted" && (
-          <div style={s.levelMeter}>
-            <p style={s.levelLabel}>Speak normally to test your input level</p>
-            <div style={s.levelTrack}>
-              <div style={{
-                ...s.levelFill,
-                width: `${audioLevel}%`,
-                backgroundColor: audioLevel > 60 ? "#facc15" : "#2563eb"
-              }} />
+          <div className="mt-4 mb-2">
+            <p className="text-zinc-500 text-xs mb-2">Speak normally to test your input level</p>
+            <div className="h-1.5 bg-white/[0.08] rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-[width] duration-100 ${
+                  audioLevel > 60 ? "bg-yellow-400" : "bg-blue-600"
+                }`}
+                style={{ width: `${audioLevel}%` }}
+              />
             </div>
           </div>
         )}
 
         {micStatus === "denied" && (
-          <div style={s.warningBox}>
-            <p style={s.warningText}>
+          <div className="bg-red-400/[0.06] border border-red-400/[0.15] rounded-lg px-3.5 py-3 mt-4">
+            <p className="text-red-300 text-[13px] leading-relaxed">
               Microphone access was not granted. You can still type your answers,
               or enable microphone access in your browser settings and refresh.
             </p>
           </div>
         )}
 
-        <div style={s.actions}>
-          <button style={s.skipBtn} onClick={onSkip}>
+        <div className="flex gap-3 mt-7">
+          <button
+            onClick={onSkip}
+            className="flex-1 py-3 bg-transparent text-zinc-500 border border-white/10 rounded-xl text-[13px] font-semibold transition-transform active:scale-95"
+          >
             Skip and type answers
           </button>
           <button
-            style={micStatus === "granted" ? s.continueBtn : s.continueBtnDisabled}
             onClick={onReady}
             disabled={micStatus === "checking"}
+            className={`flex-[1.5] py-3 rounded-xl text-sm font-bold transition-transform active:scale-95 ${
+              micStatus === "granted"
+                ? "bg-blue-600 text-white cursor-pointer"
+                : "bg-white/[0.06] text-zinc-600 cursor-not-allowed"
+            }`}
           >
             Continue to interview →
           </button>
@@ -117,58 +126,3 @@ export default function PreflightCheck({ onReady, onSkip }) {
     </div>
   );
 }
-
-const s = {
-  page: {
-    minHeight: "100vh", backgroundColor: "#0A0A0A",
-    display: "flex", alignItems: "center", justifyContent: "center",
-    fontFamily: "'Inter', sans-serif", padding: "20px"
-  },
-  card: {
-    width: "460px", padding: "40px",
-    backgroundColor: "rgba(255,255,255,0.03)", backdropFilter: "blur(20px)",
-    border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px",
-    boxShadow: "0 30px 60px rgba(0,0,0,0.5)"
-  },
-  label: {
-    color: "#2563eb", fontSize: "11px", fontWeight: "700",
-    textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px 0"
-  },
-  title: { color: "#f5f5f5", fontSize: "24px", fontWeight: "700", margin: "0 0 6px 0", letterSpacing: "-0.02em" },
-  subtitle: { color: "#a1a1aa", fontSize: "14px", marginBottom: "28px", lineHeight: "1.5" },
-  checkRow: {
-    display: "flex", justifyContent: "space-between", alignItems: "center",
-    padding: "14px 0", borderBottom: "1px solid rgba(255,255,255,0.07)"
-  },
-  checkLeft: { display: "flex", alignItems: "center", gap: "10px" },
-  statusDot: { width: "8px", height: "8px", borderRadius: "50%" },
-  checkLabel: { color: "#e4e4e7", fontSize: "14px", fontWeight: "600" },
-  checkStatus: { color: "#71717a", fontSize: "13px" },
-  levelMeter: { marginTop: "16px", marginBottom: "8px" },
-  levelLabel: { color: "#71717a", fontSize: "12px", marginBottom: "8px" },
-  levelTrack: { height: "6px", backgroundColor: "rgba(255,255,255,0.08)", borderRadius: "3px", overflow: "hidden" },
-  levelFill: { height: "100%", borderRadius: "3px", transition: "width 0.1s ease" },
-  warningBox: {
-    backgroundColor: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.15)",
-    borderRadius: "8px", padding: "12px 14px", marginTop: "16px"
-  },
-  warningText: { color: "#fca5a5", fontSize: "13px", lineHeight: "1.5", margin: 0 },
-  actions: { display: "flex", gap: "12px", marginTop: "28px" },
-  skipBtn: {
-    flex: 1, padding: "12px", backgroundColor: "transparent",
-    color: "#71717a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px",
-    fontSize: "13px", fontWeight: "600", cursor: "pointer",
-    transition: "transform 0.12s cubic-bezier(0.34,1.56,0.64,1)"
-  },
-  continueBtn: {
-    flex: 1.5, padding: "12px", background: "#2563eb",
-    color: "#fff", border: "none", borderRadius: "10px",
-    fontSize: "14px", fontWeight: "700", cursor: "pointer",
-    transition: "transform 0.12s cubic-bezier(0.34,1.56,0.64,1)"
-  },
-  continueBtnDisabled: {
-    flex: 1.5, padding: "12px", backgroundColor: "rgba(255,255,255,0.06)",
-    color: "#52525b", border: "none", borderRadius: "10px",
-    fontSize: "14px", fontWeight: "700", cursor: "not-allowed"
-  }
-};
