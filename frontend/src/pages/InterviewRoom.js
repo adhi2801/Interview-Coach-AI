@@ -827,7 +827,7 @@ function ScoreRow({ label, value, feedback }) {
         <span className="text-zinc-400 text-[13px] font-medium">{label}</span>
         <span className={`text-[13px] font-bold tabular-nums ${color}`}>{value}/10</span>
       </div>
-      <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+      <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden">
         <div className={`h-full rounded-full transition-all duration-1000 ${barColor}`} style={{ width: `${value * 10}%` }} />
       </div>
       {feedback && <p className="text-zinc-600 text-xs mt-1.5 leading-relaxed">{feedback}</p>}
