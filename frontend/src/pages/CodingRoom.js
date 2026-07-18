@@ -19,6 +19,13 @@ export default function CodingRoom({ problemSlug = null, sessionId, onFinish }) 
   const [submitting, setSubmitting] = useState(false);
 
   const [error, setError] = useState("");
+
+  // Full problem bank, for the manual picker dropdown — separate from the
+  // adaptive single-problem fetch below.
+  const [allProblems, setAllProblems] = useState([]);
+
+  // Past submissions, most recent first — surfaces CodingSubmission rows
+  // that were already being saved but never displayed anywhere.
   const [submissionHistory, setSubmissionHistory] = useState([]);
 
   useEffect(() => {
@@ -27,17 +34,10 @@ export default function CodingRoom({ problemSlug = null, sessionId, onFinish }) 
   }, [problemSlug]);
 
   useEffect(() => {
+    fetchAllProblems();
     fetchSubmissionHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  async function fetchSubmissionHistory() {
-    try {
-      const res = await axios.get(`${API_URL}/coding/submissions`, authHeaders());
-      setSubmissionHistory(res.data.submissions || []);
-    } catch (err) {
-      console.error(err);
-    }
-  }
 
   function authHeaders() {
     const token = localStorage.getItem("access_token");
@@ -72,6 +72,48 @@ export default function CodingRoom({ problemSlug = null, sessionId, onFinish }) 
     } catch (err) {
       console.error(err);
       setError("Could not load problem — check your connection and try again.");
+    }
+    setLoadingProblem(false);
+  }
+
+  async function fetchAllProblems() {
+    try {
+      const res = await axios.get(`${API_URL}/coding/problems`);
+      setAllProblems(res.data.problems || []);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function fetchSubmissionHistory() {
+    try {
+      const res = await axios.get(`${API_URL}/coding/submissions`, authHeaders());
+      setSubmissionHistory(res.data.submissions || []);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  // Manual pick from the dropdown — loads a specific problem by slug,
+  // independent of the adaptive ELO-based selection nextProblem() uses.
+  async function loadProblemBySlug(slug) {
+    setSubmitResult(null);
+    setRunResults(null);
+    setHint(null);
+    setError("");
+    setProblem(null);
+    setLoadingProblem(true);
+    try {
+      const res = await axios.get(`${API_URL}/coding/problems/${slug}`);
+      if (res.data.error) {
+        setError(res.data.error);
+      } else {
+        setProblem(res.data);
+        setCode(res.data.starter_code?.[language] || "# Write your solution here\n");
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Could not load that problem.");
     }
     setLoadingProblem(false);
   }
@@ -155,6 +197,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, onFinish }) 
       } else {
         setSubmitResult(res.data);
         setRunResults(null); // submit result supersedes the last run's sample-case results
+        fetchSubmissionHistory(); // refresh the history list to include this new submission
       }
     } catch (err) {
       console.error(err);
@@ -202,6 +245,20 @@ export default function CodingRoom({ problemSlug = null, sessionId, onFinish }) 
           )}
         </div>
 
+        {allProblems.length > 0 && (
+          <select
+            value={problem.slug}
+            onChange={(e) => loadProblemBySlug(e.target.value)}
+            style={s.picker}
+          >
+            {allProblems.map((p) => (
+              <option key={p.slug} value={p.slug}>
+                {p.title} (L{p.difficulty})
+              </option>
+            ))}
+          </select>
+        )}
+
         <h3 style={s.problemTitle}>{problem.title}</h3>
         <p style={s.problemText}>{problem.description}</p>
 
@@ -224,17 +281,6 @@ export default function CodingRoom({ problemSlug = null, sessionId, onFinish }) 
           <div style={s.hintBox}>
             <p style={s.hintLabel}>Hint</p>
             <p style={s.hintText}>{hint}</p>
-          </div>
-        )}
-
-        {submissionHistory.length > 0 && (
-          <div style={s.resultsBox}>
-            <p style={s.resultsLabel}>Recent Submissions</p>
-            {submissionHistory.slice(0, 5).map((sub) => (
-              <div key={sub.id} style={s.caseLine}>
-                {sub.problem_title} — {sub.tests_passed}/{sub.tests_total} passed
-              </div>
-            ))}
           </div>
         )}
 
@@ -284,6 +330,19 @@ export default function CodingRoom({ problemSlug = null, sessionId, onFinish }) 
             </button>
           </div>
         )}
+
+        {/* Recent submission history — surfaces CodingSubmission rows that
+            were already being saved to the DB but never shown anywhere. */}
+        {submissionHistory.length > 0 && (
+          <div style={s.resultsBox}>
+            <p style={s.resultsLabel}>Recent Submissions</p>
+            {submissionHistory.slice(0, 5).map((sub) => (
+              <p key={sub.id} style={s.caseLine}>
+                {sub.problem_title} — {sub.tests_passed}/{sub.tests_total} passed
+              </p>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -326,6 +385,17 @@ const s = {
     padding: "4px 10px",
     borderRadius: "20px",
     letterSpacing: "0.5px",
+  },
+  picker: {
+    width: "100%",
+    padding: "8px 10px",
+    backgroundColor: "#0A0A0A",
+    color: "#f8fafc",
+    border: "1px solid #1e293b",
+    borderRadius: "8px",
+    fontSize: "12px",
+    fontFamily: "'Inter', sans-serif",
+    cursor: "pointer",
   },
   endBtn: {
     backgroundColor: "transparent",
