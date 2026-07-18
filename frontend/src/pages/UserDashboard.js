@@ -96,6 +96,27 @@ export default function UserDashboard({ user, onStartNew, onLogout, onNavigateHi
       </div>
 
       <div className="flex h-screen overflow-hidden text-slate-50 relative z-10">
+
+        {/* MOBILE TOP BAR: only shown when the sidebar (md:flex) is hidden.
+            Covers the three actions that would otherwise be unreachable —
+            History, Settings, Logout — without building a full mobile nav. */}
+        <div className="md:hidden fixed top-0 left-0 right-0 h-14 border-b border-white/[0.06] bg-black/80 backdrop-blur-md flex items-center justify-between px-4 z-30">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded bg-white flex items-center justify-center font-bold text-black text-[10px]">IC</div>
+            <span className="font-bold text-white text-sm">InterviewCoach</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button onClick={onNavigateHistory} className="p-2 text-slate-400 hover:text-white transition-colors" aria-label="History">
+              <History size={18} />
+            </button>
+            <button onClick={onNavigateSettings} className="p-2 text-slate-400 hover:text-white transition-colors" aria-label="Settings">
+              <Settings size={18} />
+            </button>
+            <button onClick={onLogout} className="p-2 text-slate-400 hover:text-red-400 transition-colors" aria-label="Log out">
+              <LogOut size={18} />
+            </button>
+          </div>
+        </div>
         
         {/* SIDEBAR: Frosted Glass */}
         <aside className="hidden md:flex w-64 border-r border-white/[0.06] bg-black/40 backdrop-blur-2xl flex-col justify-between flex-shrink-0 z-20">
@@ -149,7 +170,7 @@ export default function UserDashboard({ user, onStartNew, onLogout, onNavigateHi
         </aside>
 
         {/* MAIN VIEWPORT */}
-        <main className="flex-1 overflow-y-auto p-8 lg:p-12 relative z-10">
+        <main className="flex-1 overflow-y-auto p-8 lg:p-12 pt-20 md:pt-8 lg:pt-12 relative z-10">
           <div className="max-w-5xl mx-auto space-y-8 pb-20">
             
             {/* Header: Rule 3 Typography (text-3xl, font-extrabold, tracking-tighter) */}
