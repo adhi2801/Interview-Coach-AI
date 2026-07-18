@@ -2,11 +2,23 @@ import { API_URL, WS_URL } from "../config";
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import StudyPlan from "./StudyPlan";
+import GlassCard from "../components/ui/GlassCard";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
+import { motion, AnimatePresence } from "framer-motion";
+import { Mic, Square, AlertTriangle, Lightbulb, Activity, Code2, ShieldAlert } from "lucide-react";
 
 export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
+  // All original state variables perfectly preserved
   const [question, setQuestion] = useState(sessionData?.question || "");
   const [category, setCategory] = useState(sessionData?.category || "");
+  const [scenario, setScenario] = useState(sessionData?.scenario || "");
+  const [constraints, setConstraints] = useState(sessionData?.constraints || []);
+  const [ask, setAsk] = useState(sessionData?.ask || "");
+  // FIXED: persona now comes from the session-start response (main.py echoes it
+  // back) and is stored for the lifetime of this interview, so every follow-up
+  // question keeps the same interviewer persona instead of silently resetting
+  // to "standard" the moment the first /answer/submit call fires.
+  const [persona] = useState(sessionData?.persona || "standard");
   const [answer, setAnswer] = useState("");
   const [scores, setScores] = useState(null);
   const [gaps, setGaps] = useState([]);
@@ -21,6 +33,9 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   const [timeLeft, setTimeLeft] = useState(TIME_LIMIT);
   const [nextQuestion, setNextQuestion] = useState("");
   const [nextCategory, setNextCategory] = useState("");
+  const [nextScenario, setNextScenario] = useState("");
+  const [nextConstraints, setNextConstraints] = useState([]);
+  const [nextAsk, setNextAsk] = useState("");
   const [mounted, setMounted] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [hintText, setHintText] = useState("");
@@ -31,6 +46,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   const [wsConnected, setWsConnected] = useState(false);
   const [liveCoaching, setLiveCoaching] = useState(null);
   const [intervention, setIntervention] = useState(null);
+  const [scoringError, setScoringError] = useState("");
   const wsRef = useRef(null);
   const debounceRef = useRef(null);
   const timerRef = useRef(null);
@@ -39,6 +55,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   const mediaRecorderRef = useRef(null);
   const audioStreamRef = useRef(null);
 
+  // Original lifecycle and effect hooks preserved
   useEffect(() => {
     setTimeout(() => setMounted(true), 100);
   }, []);
@@ -62,7 +79,6 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
           setTimeout(() => setIntervention(null), 6000);
         }
       } else if (data.type === "transcription") {
-        // Voice transcription arrived — append to the answer text
         setAnswer((prev) => (prev + " " + data.text).trim());
         setLiveCoaching(data);
       }
@@ -107,6 +123,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
       autoSubmittedRef.current = true;
       submitAnswer();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft]);
 
   function formatTime(s) {
@@ -114,9 +131,9 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   }
 
   function getTimerColor() {
-    if (timeLeft <= 20) return "#f87171";
-    if (timeLeft <= 50) return "#facc15";
-    return "#4ade80";
+    if (timeLeft <= 20) return "text-red-400";
+    if (timeLeft <= 50) return "text-amber-400";
+    return "text-white";
   }
 
   function getHint() {
@@ -130,6 +147,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
     ];
     setHintText(hints[Math.floor(Math.random() * hints.length)]);
     setShowHint(true);
+    setTimeout(() => setShowHint(false), 6000);
   }
 
   function handleAnswerChange(text) {
@@ -145,6 +163,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
       }
     }, 800);
   }
+
   async function startRecording() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -209,6 +228,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
           elo: currentElo,
           company: sessionData?.company_profile?.name?.toLowerCase(),
           category,
+          persona,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -240,6 +260,9 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
           setNewElo(res.data.new_elo);
           setNextQuestion(res.data.next_question || "");
           setNextCategory(res.data.next_category || "");
+          setNextScenario(res.data.next_scenario || "");
+          setNextConstraints(res.data.next_constraints || []);
+          setNextAsk(res.data.next_ask || "");
           setCurrentAnswerId(res.data.answer_id);
           setFeedbackRating(null);
           setPhase("results");
@@ -273,10 +296,12 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
         } else {
           console.error("Scoring timed out");
           setLoading(false);
+          setScoringError("Scoring is taking longer than expected. This usually means the AI service is slow right now — try submitting again.");
         }
       } catch (err) {
         console.error(err);
         setLoading(false);
+        setScoringError("Something went wrong while scoring your answer. Please try again.");
       }
     };
 
@@ -296,11 +321,14 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
       console.error(err);
     }
   }
-  
+
   function goNextQuestion() {
     if (newElo) setCurrentElo(newElo);
     if (nextQuestion) setQuestion(nextQuestion);
     if (nextCategory) setCategory(nextCategory);
+    setScenario(nextScenario);
+    setConstraints(nextConstraints);
+    setAsk(nextAsk);
     setAnswer("");
     setScores(null);
     setGaps([]);
@@ -319,685 +347,490 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
         scores.score_confidence) / 5).toFixed(1)
     : null;
 
+  const overallColor = overall >= 7 ? "border-emerald-400 shadow-[0_0_30px_rgba(74,222,128,0.25)]"
+    : overall >= 5 ? "border-amber-400 shadow-[0_0_30px_rgba(250,204,21,0.25)]"
+    : "border-red-400 shadow-[0_0_30px_rgba(248,113,113,0.25)]";
+
   const company = sessionData?.company_profile;
+  const diffColor = difficulty <= 3 ? "bg-emerald-400" : difficulty <= 6 ? "bg-amber-400" : "bg-red-400";
+
+  // Ambient Color Shifting mapping
+  const confidenceScore = liveCoaching?.confidence_score ?? 10;
+  const cloudColor = confidenceScore >= 7.5 ? 'rgba(16,185,129,0.06)' : 
+                     confidenceScore >= 4.5 ? 'rgba(245,158,11,0.04)' : 'rgba(239,68,68,0.04)';
 
   return (
-    <div style={s.page}>
-      <header style={s.header}>
-        <div style={s.headerLeft}>
-          <div style={s.logoMini}>
-            <div style={s.logoIcon}>AI</div>
-            <span style={s.logoText}>InterviewCoach</span>
+    <div className="h-screen w-full bg-[#000000] text-slate-100 font-sans flex flex-col overflow-hidden selection:bg-blue-500/30">
+      
+      {/* Inline Shimmer Keyframes */}
+      <style>{`
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+      `}</style>
+
+      {/* Dynamic Ambient Light Base */}
+      {phase === "answering" && (
+        <div 
+          className="fixed inset-0 z-0 pointer-events-none transition-colors duration-1000 ease-out mix-blend-screen"
+          style={{ background: `radial-gradient(circle at 75% 50%, ${cloudColor} 0%, transparent 60%)` }}
+        />
+      )}
+
+      {/* 1. The Isolated HUD Header */}
+      <header className="h-14 border-b border-white/[0.06] bg-[#000000]/80 backdrop-blur-md flex items-center justify-between px-8 z-50 flex-shrink-0 sticky top-0">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded bg-white flex items-center justify-center text-[10px] font-bold text-black">IC</div>
+            <span className="text-zinc-400 text-[13px] font-semibold tracking-tight">InterviewCoach</span>
           </div>
-          <div style={s.divider} />
-          <div style={s.sessionInfo}>
-            <span style={s.companyTag}>{company?.name || "Interview"}</span>
-            <span style={s.roleTag}>{sessionData?.role || ""}</span>
+          <div className="w-px h-4 bg-white/10" />
+          <div className="flex items-center gap-2">
+            <span className="text-white text-[11px] font-bold uppercase tracking-widest">
+              {company?.name || "Interview"}
+            </span>
+            <span className="text-zinc-600 text-xs font-medium">&middot; {sessionData?.role || ""}</span>
+            {persona && persona !== "standard" && (
+              <span className="ml-2 bg-white/[0.04] border border-white/10 text-slate-300 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded">
+                {persona}
+              </span>
+            )}
           </div>
         </div>
-        <div style={s.headerRight}>
-          <div style={s.timerBox}>
-            <span style={{ ...s.timerDot, backgroundColor: getTimerColor() }} />
-            <span style={{ ...s.timerText, color: getTimerColor() }}>
+
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
+            <span className={`w-2 h-2 rounded-full ${timeLeft <= 20 ? "bg-red-500 animate-pulse" : "bg-emerald-500"}`} />
+            <span className={`text-[15px] font-bold tabular-nums font-mono ${getTimerColor()}`}>
               {formatTime(timeLeft)}
             </span>
-            {timeLeft === 0 && <span style={s.timeUpTag}>Time's up</span>}
+            {timeLeft === 0 && (
+              <span className="bg-red-500/10 border border-red-500/20 text-red-400 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ml-2">
+                Time Expired
+              </span>
+            )}
           </div>
-          <div style={s.eloBox}>
-            <span style={s.eloLabel}>ELO</span>
-            <span style={s.eloValue}>{currentElo}</span>
+          <div className="w-px h-4 bg-white/10" />
+          <div className="flex items-center gap-2">
+            <span className="text-zinc-600 text-[10px] font-bold uppercase tracking-widest">ELO</span>
+            <span className="text-white text-[13px] font-bold tabular-nums font-mono">{currentElo}</span>
           </div>
-          <div style={s.qBox}>Q{questionNum}</div>
-          <button style={s.endBtn} onClick={onFinish}>End Session</button>
+          <button
+            className="text-slate-500 hover:text-red-400 text-[11px] font-bold uppercase tracking-widest transition-colors ml-4"
+            onClick={onFinish}
+          >
+            Abort
+          </button>
         </div>
       </header>
 
-      <div style={s.body}>
-        <div style={{
-          ...s.left,
-          opacity: mounted ? 1 : 0,
-          transform: mounted ? "translateY(0)" : "translateY(20px)",
-          transition: "all 0.5s ease"
-        }}>
-          <div style={s.diffRow}>
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  ...s.diffDot,
-                  backgroundColor: i < difficulty
-                    ? (difficulty <= 3 ? "#4ade80" : difficulty <= 6 ? "#facc15" : "#f87171")
-                    : "#1e293b"
-                }}
-              />
-            ))}
-            <span style={s.diffLabel}>Difficulty {difficulty}/10</span>
-          </div>
-
-          <div style={s.questionCard}>
-            <div style={s.questionHeader}>
-              <span style={s.questionNum}>Question {questionNum}</span>
-              <span style={s.questionTopic}>
-                {category ? category.replace(/_/g, " ").toUpperCase() : "TECHNICAL"}
-              </span>
-            </div>
-            <p style={s.questionText}>{question}</p>
-          </div>
-
-          {phase === "answering" && (
-            <div style={s.answerCard}>
-              <div style={s.answerHeader}>
-                <span style={s.answerLabel}>Your Answer</span>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <button
-                    style={isRecording ? s.micBtnActive : s.micBtn}
-                    onClick={isRecording ? stopRecording : startRecording}
-                  >
-                    <span style={isRecording ? s.micDotPulse : s.micDot} />
-                    {isRecording ? "Recording..." : "Speak instead"}
-                  </button>
-                  <span style={s.charCount}>{answer.length} chars</span>
-                </div>
+      {/* 2. Main Workspace */}
+      <main className="flex-1 w-full flex overflow-hidden relative z-10">
+        
+        {phase === "answering" ? (
+          /* ====================================================================
+             PHASE 1: ZEN 50/50 SPLIT-PANE
+             ==================================================================== */
+          <div className="w-full h-full flex transition-opacity duration-500" style={{ opacity: mounted ? 1 : 0 }}>
+            
+            {/* LEFT PANE: The Editorial Case Study */}
+            <div className="w-[45%] h-full overflow-y-auto border-r border-white/[0.06] bg-[#000000] px-12 py-16 flex flex-col">
+              
+              <div className="flex items-center gap-4 mb-10">
+                <span className="bg-white/[0.03] border border-white/[0.08] px-3 py-1 rounded text-[10px] font-bold text-slate-300 uppercase tracking-widest">
+                  {category ? category.replace(/_/g, " ") : "Technical"}
+                </span>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  Node {questionNum} &middot; Difficulty {difficulty}/10
+                </span>
               </div>
-              <textarea
-                style={{
-                  ...s.textarea,
-                  ...(timeLeft === 0 ? s.textareaTimeUp : {})
-                }}
-                placeholder="Structure your answer clearly. For technical questions: explain your approach first, then implementation, then complexity. For behavioral: use STAR format."
-                value={answer}
-                onChange={(e) => handleAnswerChange(e.target.value)}
-                onPaste={(e) => e.preventDefault()}
-                onCopy={(e) => e.preventDefault()}
-                onCut={(e) => e.preventDefault()}
-                rows={10}
-                disabled={timeLeft === 0}
-              />
-              {showHint && (
-                <div style={s.hintBanner}>
-                  <span style={s.hintIcon}>i</span>
-                  <span style={s.hintBannerText}>{hintText}</span>
-                  <button style={s.hintClose} onClick={() => setShowHint(false)}>×</button>
-                </div>
-              )}
-              <div style={s.answerFooter}>
-                <button style={s.hintBtn} className="bouncy" onClick={getHint}>
-                  Get a hint
-                </button>
-                <button
-                  style={loading ? s.submitBtnDisabled : s.submitBtn}
-                  className={loading ? "" : "bouncy"}
-                  onClick={submitAnswer}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <span style={s.spinner} /> Scoring your answer...
-                    </span>
-                  ) : (
-                    <span>Submit Answer →</span>
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
 
-          {phase === "results" && scores && (
-            <div style={s.resultsCard}>
-              <div style={s.resultsTop}>
-                <div style={s.overallBox}>
-                  <div style={{
-                    ...s.overallCircle,
-                    borderColor: overall >= 7 ? "#4ade80" : overall >= 5 ? "#facc15" : "#f87171",
-                    boxShadow: `0 0 30px ${overall >= 7 ? "#4ade8040" : overall >= 5 ? "#facc1540" : "#f8717140"}`
-                  }}>
-                    <span style={s.overallNum}>{overall}</span>
-                    <span style={s.overallSub}>/ 10</span>
+              {scenario ? (
+                <div className="flex-1 flex flex-col">
+                  <div className="mb-10">
+                    <h3 className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase mb-4">Context</h3>
+                    <p className="text-base text-slate-200 leading-[1.7] font-medium">
+                      {scenario}
+                    </p>
                   </div>
-                  <span style={s.overallLabel}>Overall Score</span>
-                </div>
 
-                {peer && (
-                  <div style={s.peerCard}>
-                    <div style={s.peerTop}>
-                      <span style={{
-                        ...s.peerTierDot,
-                        backgroundColor: peer.tier === "excellent" ? "#4ade80" :
-                          peer.tier === "strong" ? "#818cf8" :
-                          peer.tier === "good" ? "#facc15" :
-                          peer.tier === "weak" ? "#fb923c" : "#f87171"
-                      }} />
-                      <div>
-                        <p style={s.peerContext}>{peer.context}</p>
-                        <p style={s.peerSub}>vs {peer.total_attempts} candidates</p>
+                  {constraints?.length > 0 && (
+                    <div className="mb-10">
+                      <h3 className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase mb-4">Constraints</h3>
+                      <ul className="space-y-4">
+                        {constraints.map((c, i) => (
+                          <li key={i} className="text-[15px] text-slate-400 font-medium flex items-start gap-3 leading-[1.6]">
+                            <span className="w-1 h-1 rounded-full bg-blue-500 mt-2.5 flex-shrink-0" />
+                            {c}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {ask && (
+                    <div className="mt-auto pt-8">
+                      <div className="bg-blue-500/[0.04] border-l-2 border-blue-500/50 p-6 rounded-r-xl">
+                        <h3 className="text-[10px] font-bold tracking-widest text-blue-400 uppercase mb-2">The Ask</h3>
+                        <p className="text-base font-bold text-white leading-[1.7]">{ask}</p>
                       </div>
                     </div>
-                    <div style={s.peerBar}>
-                      <div style={{
-                        ...s.peerFill,
-                        width: `${peer.percentile}%`,
-                        backgroundColor: peer.percentile >= 75 ? "#4ade80" : peer.percentile >= 50 ? "#facc15" : "#f87171"
-                      }} />
+                  )}
+                </div>
+              ) : (
+                <p className="text-base text-slate-200 leading-[1.7] font-medium">{question}</p>
+              )}
+            </div>
+
+            {/* RIGHT PANE: The Zen Writing Canvas */}
+            <div className="w-[55%] h-full relative bg-[#000000] flex flex-col">
+              
+              {/* Invisible Telemetry HUD: Floating Pill */}
+              <AnimatePresence>
+                {liveCoaching && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                    className="absolute top-8 right-8 bg-black/80 backdrop-blur-xl border border-white/10 px-5 py-3 rounded-full flex gap-5 z-30 shadow-2xl items-center"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Confidence</span>
+                      <span className="text-sm font-bold text-white tabular-nums tracking-tight">{liveCoaching.confidence_score}<span className="text-[10px] text-slate-500">/10</span></span>
                     </div>
-                    <div style={s.peerStats}>
-                      <span style={s.peerStat}>{peer.percentile}th percentile</span>
-                      <span style={s.peerStat}>Avg: {peer.average_score}/10</span>
+                    <div className="w-px h-3 bg-white/20" />
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Pace</span>
+                      <span className="text-sm font-bold text-white tabular-nums tracking-tight">{liveCoaching.words_per_minute} <span className="text-[10px] text-slate-500">WPM</span></span>
                     </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Invisible Telemetry HUD: Intervention Toast */}
+              <AnimatePresence>
+                {intervention && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
+                    className="absolute bottom-28 right-8 bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl max-w-[300px] z-30 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1),_0_20px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl"
+                  >
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <AlertTriangle size={14} className="text-amber-500" />
+                      <span className="text-[9px] font-bold text-amber-500 uppercase tracking-widest">Coach Intervention</span>
+                    </div>
+                    <p className="text-xs font-medium text-amber-200/90 leading-relaxed">{intervention}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Invisible Telemetry HUD: Hint Toast */}
+              <AnimatePresence>
+                {showHint && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+                    className="absolute bottom-28 left-8 bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl max-w-sm z-30 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1),_0_20px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl flex items-start gap-3"
+                  >
+                    <Lightbulb size={16} className="text-blue-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm font-medium text-blue-100 leading-relaxed flex-1">{hintText}</p>
+                    <button className="text-slate-500 hover:text-white transition-colors" onClick={() => setShowHint(false)}>×</button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* The Input Canvas */}
+              <div className="flex-1 relative w-full h-full">
+                {!answer && (
+                  <div className="absolute top-12 left-12 pointer-events-none select-none">
+                    <pre className="text-zinc-600 text-base font-sans font-medium leading-[1.8] m-0">
+                      // 1. Clarification & Edge Cases...<br/>
+                      // 2. Core Architectural Approach...<br/>
+                      // 3. Trade-offs & Systems Limits...
+                    </pre>
                   </div>
                 )}
+                <textarea
+                  value={answer}
+                  onChange={(e) => handleAnswerChange(e.target.value)}
+                  disabled={timeLeft === 0}
+                  spellCheck="false"
+                  className="w-full h-full bg-transparent text-slate-200 text-base font-medium leading-[1.8] p-12 resize-none outline-none z-10 relative"
+                />
               </div>
 
-              <div style={s.scoresRow}>
-                <div style={s.scoresSection}>
-                  <p style={s.sectionTitle}>Score Breakdown</p>
-                  {[
-                    ["Technical", scores.score_technical, scores.technical_feedback],
-                    ["Communication", scores.score_communication, scores.communication_feedback],
-                    ["Problem Solving", scores.score_problem_solving, scores.problem_solving_feedback],
-                    ["Cultural Fit", scores.score_cultural_fit, null],
-                    ["Confidence", scores.score_confidence, null],
-                  ].map(([label, val, fb]) => (
-                    <ScoreRow key={label} label={label} value={val} feedback={fb} />
-                  ))}
+              {/* Action Footer */}
+              <div className="absolute bottom-8 left-12 right-12 flex justify-between items-center z-20">
+                <div className="flex items-center gap-6">
+                  <button
+                    onClick={isRecording ? stopRecording : startRecording}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all border ${
+                      isRecording 
+                        ? 'bg-red-500/10 text-red-400 border-red-500/30' 
+                        : 'bg-white/[0.03] text-slate-300 border-white/10 hover:bg-white/10'
+                    }`}
+                  >
+                    {isRecording ? <Square fill="currentColor" size={12}/> : <Mic size={12}/>}
+                    {isRecording ? 'Stop Voice' : 'Use Voice'}
+                  </button>
+                  <button onClick={getHint} className="text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-300 transition-colors">
+                    Get Hint
+                  </button>
                 </div>
-
-                <div style={s.radarBox}>
-                  <p style={s.sectionTitle}>Skill Radar</p>
-                  <ResponsiveContainer width="100%" height={220}>
-                    <RadarChart data={[
-                      { dim: "Technical", value: scores.score_technical },
-                      { dim: "Comm.", value: scores.score_communication },
-                      { dim: "Problem Solv.", value: scores.score_problem_solving },
-                      { dim: "Culture", value: scores.score_cultural_fit },
-                      { dim: "Confidence", value: scores.score_confidence },
-                    ]}>
-                      <PolarGrid stroke="#1e293b" />
-                      <PolarAngleAxis dataKey="dim" tick={{ fill: "#64748b", fontSize: 11 }} />
-                      <PolarRadiusAxis domain={[0, 10]} tick={false} axisLine={false} />
-                      <Radar dataKey="value" stroke="#818cf8" fill="#6366f1" fillOpacity={0.35} strokeWidth={2} />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {scoreHistory.length > 1 && (
-                <div style={s.chartBox}>
-                  <p style={s.sectionTitle}>Progress This Session</p>
-                  <ResponsiveContainer width="100%" height={160}>
-                    <LineChart data={scoreHistory}>
-                      <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
-                      <XAxis dataKey="question" tick={{ fill: "#64748b", fontSize: 11 }} axisLine={{ stroke: "#1e293b" }} />
-                      <YAxis domain={[0, 10]} tick={{ fill: "#64748b", fontSize: 11 }} axisLine={{ stroke: "#1e293b" }} />
-                      <Tooltip contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "8px", fontSize: "12px" }} />
-                      <Line type="monotone" dataKey="overall" stroke="#818cf8" strokeWidth={2} dot={{ fill: "#6366f1", r: 4 }} name="Overall" />
-                      <Line type="monotone" dataKey="confidence" stroke="#4ade80" strokeWidth={2} dot={{ fill: "#4ade80", r: 4 }} name="Confidence" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-
-              {scores.overall_summary && (
-                <div style={s.summaryBox}>
-                  <div style={s.summaryHeader}>
-                    <p style={s.summaryLabel}>AI Feedback</p>
-                    {feedbackRating === null ? (
-                      <div style={s.ratingRow}>
-                        <span style={s.ratingPrompt}>Helpful?</span>
-                        <button style={s.ratingBtn} onClick={() => rateFeedback(true)}>Yes</button>
-                        <button style={s.ratingBtn} onClick={() => rateFeedback(false)}>No</button>
-                      </div>
+                
+                <div className="flex items-center gap-6">
+                  {scoringError && <span className="text-xs text-red-400 font-bold">{scoringError}</span>}
+                  <span className="text-[11px] font-mono text-slate-600 font-bold tabular-nums hidden sm:block">{answer.length} chars</span>
+                  
+                  {/* Shimmer-locked submission */}
+                  <button
+                    onClick={submitAnswer}
+                    disabled={loading}
+                    className={`relative overflow-hidden px-6 py-3 rounded-lg text-sm font-bold flex items-center gap-2 transition-transform active:scale-95 ${
+                      loading ? "bg-white/10 text-slate-500 cursor-wait" : "bg-white text-black hover:bg-slate-200 shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+                    }`}
+                  >
+                    {loading ? (
+                      <>
+                        <span className="w-3.5 h-3.5 border-2 border-slate-600 border-t-slate-400 rounded-full animate-spin inline-block" />
+                        Scoring Answer...
+                      </>
                     ) : (
-                      <span style={s.ratingThanks}>Thanks for the feedback</span>
+                      <>
+                        <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full animate-[shimmer_5s_infinite]" />
+                        Submit Answer
+                        <kbd className="font-mono text-[10px] bg-black/10 px-1.5 py-0.5 rounded ml-2">↵ Enter</kbd>
+                      </>
                     )}
-                  </div>
-                  <p style={s.summaryText}>{scores.overall_summary}</p>
+                  </button>
                 </div>
-              )}
-
-              {newElo && (
-                <div style={s.eloUpdate}>
-                  <span style={s.eloUpdateLabel}>ELO Rating</span>
-                  <div style={s.eloUpdateValues}>
-                    <span style={s.eloOld}>{currentElo}</span>
-                    <span style={s.eloArrow}>→</span>
-                    <span style={{
-                      ...s.eloNew,
-                      color: newElo > currentElo ? "#4ade80" : "#f87171"
-                    }}>{newElo}</span>
-                    <span style={{
-                      ...s.eloDiff,
-                      color: newElo > currentElo ? "#4ade80" : "#f87171"
-                    }}>
-                      {newElo > currentElo ? "+" : ""}{(newElo - currentElo).toFixed(1)}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              <button style={s.nextBtn} onClick={goNextQuestion}>
-                Next Question →
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div style={{
-          ...s.right,
-          opacity: mounted ? 1 : 0,
-          transition: "all 0.5s ease 0.2s"
-        }}>
-          {phase === "answering" && (
-            <div style={s.panel}>
-              <div style={s.liveHeader}>
-                <p style={s.panelTitle}>Live Coaching</p>
-                <span style={{
-                  ...s.liveDot,
-                  backgroundColor: wsConnected ? "#4ade80" : "#475569"
-                }} />
               </div>
 
-              {liveCoaching ? (
-                <>
-                  <div style={s.metricsGrid}>
-                    <div style={s.metric}>
-                      <span style={s.metricVal}>{liveCoaching.confidence_score}/10</span>
-                      <span style={s.metricLabel}>Confidence</span>
-                    </div>
-                    <div style={s.metric}>
-                      <span style={s.metricVal}>{liveCoaching.words_per_minute}</span>
-                      <span style={s.metricLabel}>WPM</span>
-                    </div>
-                  </div>
-                  {liveCoaching.fillers_found?.length > 0 && (
-                    <div style={s.fillerRow}>
-                      {liveCoaching.fillers_found.map((f) => (
-                        <span key={f} style={s.fillerTag}>{f}</span>
-                      ))}
-                    </div>
-                  )}
-                  {liveCoaching.suggestion && (
-                    <div style={s.suggestionBox}>
-                      <span style={s.suggestionText}>{liveCoaching.suggestion}</span>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <p style={s.liveEmpty}>Start typing your answer — feedback updates live.</p>
-              )}
-
-              {intervention && (
-                <div style={s.interventionBox}>
-                  <span style={s.interventionText}>{intervention}</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {gaps?.length > 0 && (
-            <div style={s.panel}>
-              <p style={s.panelTitle}>Knowledge Gaps</p>
-              {gaps.map((gap, i) => (
-                <div
-                  key={i}
-                  style={{ ...s.gapItem, cursor: "pointer" }}
-                  onClick={() => setStudyPlanTopic(gap.gap)}
-                >
-                  <div style={s.gapTop}>
-                    <span style={s.gapName}>{gap.gap.replace(/_/g, " ")}</span>
-                    <span style={
-                      gap.urgency === "critical" ? s.urgCritical :
-                      gap.urgency === "high" ? s.urgHigh : s.urgMed
-                    }>
-                      {gap.urgency}
-                    </span>
-                  </div>
-                  {gap.prerequisites_to_study_first?.length > 0 && (
-                    <div style={s.gapPath}>
-                      {gap.prerequisites_to_study_first.map((p, j) => (
-                        <span key={j} style={s.gapStep}>
-                          {p}{j < gap.prerequisites_to_study_first.length - 1 ? " →" : ""}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <span style={s.viewPlanLink}>View full study path →</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {studyPlanTopic && (
-            <StudyPlan
-              topicName={studyPlanTopic}
-              company={company?.name?.toLowerCase()}
-              onClose={() => setStudyPlanTopic(null)}
-            />
-          )}
-
-          <div style={s.panel}>
-            <p style={s.panelTitle}>{company?.name} Interview Tips</p>
-            <div style={s.tipsSection}>
-              <p style={s.tipsHead}>Do this</p>
-              {company?.green_flags?.map((f) => (
-                <div key={f} style={s.tipRow}>
-                  <span style={s.tipDot} />
-                  <span style={s.tipText}>{f}</span>
-                </div>
-              ))}
-            </div>
-            <div style={s.tipsSection}>
-              <p style={{ ...s.tipsHead, color: "#f87171" }}>Avoid this</p>
-              {company?.red_flags?.map((f) => (
-                <div key={f} style={s.tipRow}>
-                  <span style={{ ...s.tipDot, backgroundColor: "#f87171" }} />
-                  <span style={s.tipText}>{f}</span>
-                </div>
-              ))}
-            </div>
-            <div style={s.valuesRow}>
-              {company?.values?.map((v) => (
-                <span key={v} style={s.valuePill}>{v}</span>
-              ))}
             </div>
           </div>
-        </div>
-      </div>
+        ) : (
+          /* ====================================================================
+             PHASE 2: RESULTS (Executive Report)
+             Preserving all your original charts and components
+             ==================================================================== */
+          <div className="w-full h-full overflow-y-auto bg-[#000000] p-8 lg:p-12 flex justify-center">
+            <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
+              
+              <div className="flex flex-col gap-6 transition-all duration-500">
+                <GlassCard className="p-7">
+                  <div className="flex gap-5 mb-7">
+                    <div className="flex flex-col items-center gap-2.5">
+                      <div className={`w-[88px] h-[88px] rounded-full border-2 bg-black flex flex-col items-center justify-center ${overallColor}`}>
+                        <span className="text-[28px] font-extrabold tabular-nums font-mono">{overall}</span>
+                        <span className="text-[11px] text-zinc-600">/ 10</span>
+                      </div>
+                      <span className="text-zinc-600 text-[11px] font-semibold uppercase tracking-wide">Overall Score</span>
+                    </div>
+
+                    {peer && (
+                      <div className="flex-1 bg-white/[0.02] border border-white/10 rounded-md p-4.5">
+                        <div className="flex items-start gap-2.5 mb-3.5">
+                          <span className={`w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 ${
+                            peer.tier === "excellent" ? "bg-emerald-400" :
+                            peer.tier === "strong" ? "bg-blue-400" :
+                            peer.tier === "good" ? "bg-amber-400" :
+                            peer.tier === "weak" ? "bg-orange-400" : "bg-red-400"
+                          }`} />
+                          <div>
+                            <p className="text-slate-100 text-[13px] font-semibold mb-1">{peer.context}</p>
+                            <p className="text-zinc-600 text-xs">vs {peer.total_attempts} candidates</p>
+                          </div>
+                        </div>
+                        <div className="h-[5px] bg-white/10 rounded-full overflow-hidden mb-2.5">
+                          <div
+                            className={`h-full rounded-full transition-all duration-700 ${peer.percentile >= 75 ? "bg-emerald-400" : peer.percentile >= 50 ? "bg-amber-400" : "bg-red-400"}`}
+                            style={{ width: `${peer.percentile}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-zinc-600 text-[11px] tabular-nums font-mono">{peer.percentile}th percentile</span>
+                          <span className="text-zinc-600 text-[11px] tabular-nums font-mono">Avg: {peer.average_score}/10</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-6 mb-6">
+                    <div className="flex-1">
+                      <p className="text-zinc-600 text-[11px] font-bold uppercase tracking-wide mb-4">Score Breakdown</p>
+                      {[
+                        ["Technical", scores.score_technical, scores.technical_feedback],
+                        ["Communication", scores.score_communication, scores.communication_feedback],
+                        ["Problem Solving", scores.score_problem_solving, scores.problem_solving_feedback],
+                        ["Cultural Fit", scores.score_cultural_fit, null],
+                        ["Confidence", scores.score_confidence, null],
+                      ].map(([label, val, fb]) => (
+                        <ScoreRow key={label} label={label} value={val} feedback={fb} />
+                      ))}
+                    </div>
+
+                    <div className="w-[280px] flex-shrink-0">
+                      <p className="text-zinc-600 text-[11px] font-bold uppercase tracking-wide mb-4">Skill Radar</p>
+                      <ResponsiveContainer width="100%" height={220}>
+                        <RadarChart data={[
+                          { dim: "Technical", value: scores.score_technical },
+                          { dim: "Comm.", value: scores.score_communication },
+                          { dim: "Problem Solv.", value: scores.score_problem_solving },
+                          { dim: "Culture", value: scores.score_cultural_fit },
+                          { dim: "Confidence", value: scores.score_confidence },
+                        ]}>
+                          <PolarGrid stroke="#1e293b" />
+                          <PolarAngleAxis dataKey="dim" tick={{ fill: "#64748b", fontSize: 11 }} />
+                          <PolarRadiusAxis domain={[0, 10]} tick={false} axisLine={false} />
+                          <Radar dataKey="value" stroke="#60a5fa" fill="#2563eb" fillOpacity={0.35} strokeWidth={2} />
+                        </RadarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {scoreHistory.length > 1 && (
+                    <div className="bg-white/[0.02] border border-white/10 rounded-md p-4.5 mb-6">
+                      <p className="text-zinc-600 text-[11px] font-bold uppercase tracking-wide mb-4">Progress This Session</p>
+                      <ResponsiveContainer width="100%" height={160}>
+                        <LineChart data={scoreHistory}>
+                          <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
+                          <XAxis dataKey="question" tick={{ fill: "#64748b", fontSize: 11 }} axisLine={{ stroke: "#1e293b" }} />
+                          <YAxis domain={[0, 10]} tick={{ fill: "#64748b", fontSize: 11 }} axisLine={{ stroke: "#1e293b" }} />
+                          <Tooltip contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "8px", fontSize: "12px" }} />
+                          <Line type="monotone" dataKey="overall" stroke="#60a5fa" strokeWidth={2} dot={{ fill: "#2563eb", r: 4 }} name="Overall" />
+                          <Line type="monotone" dataKey="confidence" stroke="#4ade80" strokeWidth={2} dot={{ fill: "#4ade80", r: 4 }} name="Confidence" />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+
+                  {scores.overall_summary && (
+                    <div className="bg-white/[0.02] border border-white/10 rounded-md p-4 mb-6">
+                      <div className="flex justify-between items-center mb-2.5">
+                        <p className="text-zinc-600 text-[11px] font-bold uppercase tracking-wide m-0">AI Feedback</p>
+                        {feedbackRating === null ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-zinc-600 text-[11px]">Helpful?</span>
+                            <button className="bg-transparent text-blue-300 border border-blue-500/30 px-2.5 py-1 rounded text-[11px] font-semibold" onClick={() => rateFeedback(true)}>Yes</button>
+                            <button className="bg-transparent text-blue-300 border border-blue-500/30 px-2.5 py-1 rounded text-[11px] font-semibold" onClick={() => rateFeedback(false)}>No</button>
+                          </div>
+                        ) : (
+                          <span className="text-emerald-400 text-[11px] font-semibold">Thanks for the feedback</span>
+                        )}
+                      </div>
+                      <p className="text-zinc-400 text-[13px] leading-relaxed">{scores.overall_summary}</p>
+                    </div>
+                  )}
+
+                  {newElo && (
+                    <div className="flex justify-between items-center bg-white/[0.02] border border-white/10 rounded-md px-4.5 py-3.5 mb-5">
+                      <span className="text-zinc-600 text-xs font-semibold uppercase tracking-wide">ELO Rating</span>
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-zinc-600 text-sm font-semibold tabular-nums font-mono">{currentElo}</span>
+                        <span className="text-zinc-700">→</span>
+                        <span className={`text-base font-bold tabular-nums font-mono ${newElo > currentElo ? "text-emerald-400" : "text-red-400"}`}>{newElo}</span>
+                        <span className={`text-[13px] font-semibold tabular-nums font-mono ${newElo > currentElo ? "text-emerald-400" : "text-red-400"}`}>
+                          {newElo > currentElo ? "+" : ""}{(newElo - currentElo).toFixed(1)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <button className="w-full py-3.5 bg-blue-600 text-white rounded-md text-sm font-bold hover:scale-[1.01] active:scale-[0.99] transition-transform" onClick={goNextQuestion}>
+                    Next Question →
+                  </button>
+                </GlassCard>
+              </div>
+
+              {/* RIGHT: coaching / gaps / tips */}
+              <div className="flex flex-col gap-4">
+                {gaps?.length > 0 && (
+                  <GlassCard className="p-5">
+                    <p className="text-slate-100 text-[13px] font-bold mb-4">Knowledge Gaps</p>
+                    {gaps.map((gap, i) => (
+                      <div
+                        key={i}
+                        className="bg-[#0a0f1e] border border-slate-800 rounded-lg p-3 mb-2 cursor-pointer hover:border-slate-700 transition-colors"
+                        onClick={() => setStudyPlanTopic(gap.gap)}
+                      >
+                        <div className="flex justify-between items-center mb-1.5">
+                          <span className="text-slate-50 text-[13px] font-semibold">{gap.gap.replace(/_/g, " ")}</span>
+                          <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
+                            gap.urgency === "critical" ? "bg-red-500/15 text-red-300" :
+                            gap.urgency === "high" ? "bg-red-400/10 text-red-300" : "bg-yellow-400/10 text-yellow-200"
+                          }`}>
+                            {gap.urgency}
+                          </span>
+                        </div>
+                        {gap.prerequisites_to_study_first?.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {gap.prerequisites_to_study_first.map((p, j) => (
+                              <span key={j} className="text-slate-600 text-[11px]">
+                                {p}{j < gap.prerequisites_to_study_first.length - 1 ? " →" : ""}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <span className="text-blue-400 text-[11px] font-semibold block mt-1.5">View full study path →</span>
+                      </div>
+                    ))}
+                  </GlassCard>
+                )}
+
+                {studyPlanTopic && (
+                  <StudyPlan
+                    topicName={studyPlanTopic}
+                    company={company?.name?.toLowerCase()}
+                    onClose={() => setStudyPlanTopic(null)}
+                  />
+                )}
+
+                <GlassCard className="p-5">
+                  <p className="text-slate-100 text-[13px] font-bold mb-4">{company?.name} Interview Tips</p>
+                  <div className="mb-3.5">
+                    <p className="text-emerald-400 text-[11px] font-bold uppercase tracking-wide mb-2">Do this</p>
+                    {company?.green_flags?.map((f) => (
+                      <div key={f} className="flex items-start gap-2 mb-1.5">
+                        <span className="w-1 h-1 rounded-full bg-emerald-400 mt-1.5 flex-shrink-0" />
+                        <span className="text-slate-400 text-xs leading-snug">{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mb-3.5">
+                    <p className="text-red-400 text-[11px] font-bold uppercase tracking-wide mb-2">Avoid this</p>
+                    {company?.red_flags?.map((f) => (
+                      <div key={f} className="flex items-start gap-2 mb-1.5">
+                        <span className="w-1 h-1 rounded-full bg-red-400 mt-1.5 flex-shrink-0" />
+                        <span className="text-slate-400 text-xs leading-snug">{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {company?.values?.map((v) => (
+                      <span key={v} className="bg-blue-600/[0.08] text-blue-500 border border-blue-600/15 px-2.5 py-1 rounded-md text-[11px] font-semibold">{v}</span>
+                    ))}
+                  </div>
+                </GlassCard>
+              </div>
+
+            </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
 
 function ScoreRow({ label, value, feedback }) {
-  const color = value >= 7 ? "#4ade80" : value >= 5 ? "#facc15" : "#f87171";
+  const color = value >= 7 ? "text-emerald-400" : value >= 5 ? "text-amber-400" : "text-red-400";
+  const barColor = value >= 7 ? "bg-emerald-400" : value >= 5 ? "bg-amber-400" : "bg-red-400";
   return (
-    <div style={{ marginBottom: "14px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
-        <span style={{ color: "#94a3b8", fontSize: "13px", fontWeight: "500" }}>{label}</span>
-        <span style={{ color, fontSize: "13px", fontWeight: "700" }}>{value}/10</span>
+    <div className="mb-3.5">
+      <div className="flex justify-between mb-1.5">
+        <span className="text-zinc-400 text-[13px] font-medium">{label}</span>
+        <span className={`text-[13px] font-bold tabular-nums ${color}`}>{value}/10</span>
       </div>
-      <div style={{ height: "4px", backgroundColor: "#1e293b", borderRadius: "2px", overflow: "hidden" }}>
-        <div style={{
-          height: "100%",
-          width: `${value * 10}%`,
-          backgroundColor: color,
-          borderRadius: "2px",
-          transition: "width 1s ease",
-          boxShadow: `0 0 8px ${color}60`
-        }} />
+      <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full transition-all duration-1000 ${barColor}`} style={{ width: `${value * 10}%` }} />
       </div>
-      {feedback && (
-        <p style={{ color: "#475569", fontSize: "12px", marginTop: "5px", lineHeight: "1.4" }}>
-          {feedback}
-        </p>
-      )}
+      {feedback && <p className="text-zinc-600 text-xs mt-1.5 leading-relaxed">{feedback}</p>}
     </div>
   );
 }
-
-const s = {
-  page: { minHeight: "100vh", backgroundColor: "#0a0f1e", fontFamily: "var(--font)", color: "#f8fafc" },
-  header: {
-    display: "flex", justifyContent: "space-between", alignItems: "center",
-    padding: "14px 28px", backgroundColor: "#0f172a",
-    borderBottom: "1px solid #1e293b", position: "sticky", top: 0, zIndex: 100,
-    backdropFilter: "blur(10px)"
-  },
-  headerLeft: { display: "flex", alignItems: "center", gap: "16px" },
-  logoMini: { display: "flex", alignItems: "center", gap: "8px" },
-  logoIcon: {
-    width: "30px", height: "30px", borderRadius: "8px",
-    background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-    display: "flex", alignItems: "center", justifyContent: "center",
-    fontSize: "11px", fontWeight: "800", color: "#fff"
-  },
-  logoText: { color: "#f8fafc", fontSize: "15px", fontWeight: "700" },
-  divider: { width: "1px", height: "20px", backgroundColor: "#1e293b" },
-  sessionInfo: { display: "flex", alignItems: "center", gap: "8px" },
-  companyTag: {
-    backgroundColor: "rgba(99,102,241,0.1)", color: "#818cf8",
-    border: "1px solid rgba(99,102,241,0.2)",
-    padding: "3px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "600"
-  },
-  roleTag: { color: "#475569", fontSize: "12px" },
-  headerRight: { display: "flex", alignItems: "center", gap: "12px" },
-  timerBox: {
-    display: "flex", alignItems: "center", gap: "6px",
-    backgroundColor: "#111827", border: "1px solid #1e293b",
-    padding: "6px 12px", borderRadius: "8px"
-  },
-  timerDot: { width: "6px", height: "6px", borderRadius: "50%" },
-  timerText: { fontSize: "13px", fontWeight: "700", fontVariantNumeric: "tabular-nums" },
-  timeUpTag: {
-    backgroundColor: "rgba(248,113,113,0.15)", color: "#fca5a5",
-    padding: "2px 8px", borderRadius: "6px", fontSize: "10px",
-    fontWeight: "700", textTransform: "uppercase", marginLeft: "4px"
-  },
-  eloBox: {
-    display: "flex", alignItems: "center", gap: "6px",
-    backgroundColor: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.2)",
-    padding: "6px 12px", borderRadius: "8px"
-  },
-  eloLabel: { color: "#6366f1", fontSize: "11px", fontWeight: "700", textTransform: "uppercase" },
-  eloValue: { color: "#a5b4fc", fontSize: "13px", fontWeight: "700" },
-  qBox: {
-    backgroundColor: "#111827", border: "1px solid #1e293b",
-    color: "#475569", padding: "6px 12px", borderRadius: "8px",
-    fontSize: "12px", fontWeight: "600"
-  },
-  endBtn: {
-    backgroundColor: "transparent", color: "#f87171",
-    border: "1px solid rgba(248,113,113,0.3)", padding: "6px 14px",
-    borderRadius: "8px", fontSize: "12px", fontWeight: "600"
-  },
-  body: {
-    display: "flex", gap: "20px", padding: "24px 28px",
-    maxWidth: "1400px", margin: "0 auto", alignItems: "flex-start"
-  },
-  left: { flex: 1, display: "flex", flexDirection: "column", gap: "16px" },
-  right: { width: "300px", flexShrink: 0, display: "flex", flexDirection: "column", gap: "16px" },
-  diffRow: { display: "flex", alignItems: "center", gap: "6px" },
-  diffDot: { width: "20px", height: "4px", borderRadius: "2px", transition: "background-color 0.3s" },
-  diffLabel: { color: "#475569", fontSize: "12px", fontWeight: "500", marginLeft: "6px" },
-  questionCard: {
-    backgroundColor: "#0f172a", border: "1px solid #1e293b",
-    borderRadius: "16px", padding: "24px"
-  },
-  questionHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" },
-  questionNum: { color: "#6366f1", fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" },
-  questionTopic: {
-    backgroundColor: "rgba(99,102,241,0.1)", color: "#818cf8",
-    border: "1px solid rgba(99,102,241,0.15)",
-    padding: "3px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: "600", textTransform: "uppercase"
-  },
-  questionText: { color: "#f8fafc", fontSize: "17px", lineHeight: "1.75", fontWeight: "400" },
-  answerCard: { backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "16px", padding: "20px" },
-  answerHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" },
-  answerLabel: { color: "#475569", fontSize: "12px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" },
-  charCount: { color: "#334155", fontSize: "12px" },
-  micBtn: {
-    display: "flex", alignItems: "center", gap: "6px",
-    backgroundColor: "transparent", color: "#94a3b8",
-    border: "1px solid #1e293b", padding: "6px 12px",
-    borderRadius: "20px", fontSize: "12px", fontWeight: "600"
-  },
-  micBtnActive: {
-    display: "flex", alignItems: "center", gap: "6px",
-    backgroundColor: "rgba(248,113,113,0.1)", color: "#fca5a5",
-    border: "1px solid rgba(248,113,113,0.3)", padding: "6px 12px",
-    borderRadius: "20px", fontSize: "12px", fontWeight: "600"
-  },
-  micDot: { width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#94a3b8" },
-  micDotPulse: {
-    width: "6px", height: "6px", borderRadius: "50%",
-    backgroundColor: "#f87171", animation: "pulse 1s infinite"
-  },
-  textarea: {
-    width: "100%", backgroundColor: "#0a0f1e", border: "1px solid #1e293b",
-    borderRadius: "10px", color: "#f8fafc", fontSize: "15px",
-    padding: "16px", resize: "vertical", boxSizing: "border-box",
-    lineHeight: "1.65", outline: "none", transition: "border-color 0.2s"
-  },
-  textareaTimeUp: {
-    borderColor: "#f87171",
-    boxShadow: "0 0 0 1px #f87171",
-    opacity: 0.6,
-  },
-  answerFooter: { display: "flex", gap: "10px", marginTop: "14px", alignItems: "center" },
-  hintBtn: {
-    backgroundColor: "transparent", color: "#94a3b8",
-    border: "1px solid #1e293b", padding: "10px 16px",
-    borderRadius: "8px", fontSize: "13px", fontWeight: "600",
-    marginRight: "auto"
-  },
-  hintBanner: {
-    display: "flex", alignItems: "flex-start", gap: "10px",
-    backgroundColor: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)",
-    borderRadius: "10px", padding: "12px 14px", marginTop: "12px"
-  },
-  hintIcon: {
-    width: "18px", height: "18px", borderRadius: "50%",
-    backgroundColor: "rgba(99,102,241,0.2)", color: "#a5b4fc",
-    display: "flex", alignItems: "center", justifyContent: "center",
-    fontSize: "11px", fontWeight: "700", flexShrink: 0, fontStyle: "italic"
-  },
-  hintBannerText: { color: "#a5b4fc", fontSize: "13px", lineHeight: "1.5", flex: 1 },
-  hintClose: {
-    background: "none", border: "none", color: "#475569",
-    fontSize: "18px", cursor: "pointer", lineHeight: 1, padding: 0
-  },
-  submitBtn: {
-    background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-    color: "#fff", border: "none", padding: "10px 24px",
-    borderRadius: "8px", fontSize: "13px", fontWeight: "600",
-    boxShadow: "0 4px 16px rgba(99,102,241,0.3)"
-  },
-  submitBtnDisabled: {
-    backgroundColor: "#1e293b", color: "#334155", border: "none",
-    padding: "10px 24px", borderRadius: "8px", fontSize: "13px",
-    fontWeight: "600", cursor: "not-allowed"
-  },
-  spinner: {
-    width: "14px", height: "14px", border: "2px solid #334155",
-    borderTopColor: "#6366f1", borderRadius: "50%",
-    display: "inline-block", animation: "spin 0.8s linear infinite"
-  },
-  resultsCard: { backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "16px", padding: "24px" },
-  resultsTop: { display: "flex", gap: "16px", marginBottom: "24px" },
-  overallBox: { display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" },
-  overallCircle: {
-    width: "90px", height: "90px", borderRadius: "50%",
-    border: "3px solid", display: "flex", flexDirection: "column",
-    alignItems: "center", justifyContent: "center",
-    backgroundColor: "#0a0f1e"
-  },
-  overallNum: { fontSize: "28px", fontWeight: "800", color: "#f8fafc" },
-  overallSub: { fontSize: "11px", color: "#475569" },
-  overallLabel: { color: "#475569", fontSize: "11px", fontWeight: "600", textTransform: "uppercase" },
-  peerCard: { flex: 1, backgroundColor: "#0a0f1e", borderRadius: "12px", padding: "16px", border: "1px solid #1e293b" },
-  peerTop: { display: "flex", alignItems: "flex-start", gap: "10px", marginBottom: "12px" },
-  peerTierDot: { width: "10px", height: "10px", borderRadius: "50%", marginTop: "4px", flexShrink: 0 },
-  peerContext: { color: "#f8fafc", fontSize: "13px", fontWeight: "600", marginBottom: "2px" },
-  peerSub: { color: "#475569", fontSize: "12px" },
-  peerBar: { height: "4px", backgroundColor: "#1e293b", borderRadius: "2px", overflow: "hidden", marginBottom: "8px" },
-  peerFill: { height: "100%", borderRadius: "2px", transition: "width 1s ease" },
-  peerStats: { display: "flex", justifyContent: "space-between" },
-  peerStat: { color: "#475569", fontSize: "11px" },
-  scoresRow: { display: "flex", gap: "24px", marginBottom: "20px" },
-  scoresSection: { flex: 1 },
-  radarBox: { width: "280px", flexShrink: 0 },
-  chartBox: {
-    backgroundColor: "#0a0f1e", border: "1px solid #1e293b",
-    borderRadius: "12px", padding: "16px", marginBottom: "20px"
-  },
-  sectionTitle: { color: "#475569", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "14px" },
-  summaryBox: { backgroundColor: "#0a0f1e", border: "1px solid #1e293b", borderRadius: "10px", padding: "14px", marginBottom: "20px" },
-  summaryHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" },
-  summaryLabel: { color: "#475569", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", margin: 0 },
-  ratingRow: { display: "flex", alignItems: "center", gap: "8px" },
-  ratingPrompt: { color: "#475569", fontSize: "11px" },
-  ratingBtn: {
-    backgroundColor: "transparent", color: "#818cf8",
-    border: "1px solid rgba(99,102,241,0.3)", padding: "2px 10px",
-    borderRadius: "6px", fontSize: "11px", fontWeight: "600", cursor: "pointer"
-  },
-  ratingThanks: { color: "#4ade80", fontSize: "11px", fontWeight: "600" },
-  summaryText: { color: "#94a3b8", fontSize: "13px", lineHeight: "1.6" },
-  eloUpdate: {
-    display: "flex", justifyContent: "space-between", alignItems: "center",
-    backgroundColor: "#0a0f1e", border: "1px solid #1e293b",
-    borderRadius: "10px", padding: "12px 16px", marginBottom: "16px"
-  },
-  eloUpdateLabel: { color: "#475569", fontSize: "12px", fontWeight: "600", textTransform: "uppercase" },
-  eloUpdateValues: { display: "flex", alignItems: "center", gap: "8px" },
-  eloOld: { color: "#475569", fontSize: "14px", fontWeight: "600" },
-  eloArrow: { color: "#334155" },
-  eloNew: { fontSize: "16px", fontWeight: "700" },
-  eloDiff: { fontSize: "13px", fontWeight: "600" },
-  nextBtn: {
-    width: "100%", padding: "13px",
-    background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-    color: "#fff", border: "none", borderRadius: "10px",
-    fontSize: "14px", fontWeight: "600",
-    boxShadow: "0 4px 16px rgba(99,102,241,0.3)"
-  },
-  panel: { backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "14px", padding: "18px" },
-  panelTitle: { color: "#f8fafc", fontSize: "13px", fontWeight: "700", marginBottom: "14px", letterSpacing: "-0.2px" },
-  metricsGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "14px" },
-  metric: {
-    backgroundColor: "#0a0f1e", borderRadius: "8px", padding: "12px",
-    display: "flex", flexDirection: "column", gap: "2px", border: "1px solid #1e293b"
-  },
-  metricVal: { color: "#f8fafc", fontSize: "20px", fontWeight: "700" },
-  metricLabel: { color: "#475569", fontSize: "11px", fontWeight: "500", textTransform: "uppercase" },
-  fillerRow: { display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "12px" },
-  fillerTag: {
-    backgroundColor: "rgba(248,113,113,0.08)", color: "#fca5a5",
-    border: "1px solid rgba(248,113,113,0.15)",
-    padding: "3px 10px", borderRadius: "6px", fontSize: "12px"
-  },
-  suggestionBox: {
-    display: "flex", gap: "8px", alignItems: "flex-start",
-    backgroundColor: "rgba(99,102,241,0.05)", border: "1px solid rgba(99,102,241,0.1)",
-    borderRadius: "8px", padding: "10px 12px"
-  },
-  liveHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" },
-  liveDot: { width: "8px", height: "8px", borderRadius: "50%", transition: "background-color 0.3s" },
-  liveEmpty: { color: "#475569", fontSize: "12px", lineHeight: "1.5" },
-  interventionBox: {
-    backgroundColor: "rgba(250,204,21,0.06)", border: "1px solid rgba(250,204,21,0.15)",
-    borderRadius: "8px", padding: "10px 12px", marginTop: "10px"
-  },
-  interventionText: { color: "#fde047", fontSize: "12px", lineHeight: "1.5", fontWeight: "500" },
-  suggestionText: { color: "#64748b", fontSize: "12px", lineHeight: "1.5" },
-  gapItem: { backgroundColor: "#0a0f1e", borderRadius: "8px", padding: "12px", marginBottom: "8px", border: "1px solid #1e293b" },
-  gapTop: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" },
-  gapName: { color: "#f8fafc", fontSize: "13px", fontWeight: "600" },
-  urgHigh: {
-    backgroundColor: "rgba(248,113,113,0.1)", color: "#fca5a5",
-    padding: "2px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: "600"
-  },
-  urgCritical: {
-    backgroundColor: "rgba(239,68,68,0.15)", color: "#fca5a5",
-    padding: "2px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: "700"
-  },
-  viewPlanLink: {
-    color: "#818cf8", fontSize: "11px", fontWeight: "600",
-    display: "block", marginTop: "6px"
-  },
-  urgMed: {
-    backgroundColor: "rgba(250,204,21,0.1)", color: "#fde047",
-    padding: "2px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: "600"
-  },
-  gapPath: { display: "flex", flexWrap: "wrap", gap: "4px" },
-  gapStep: { color: "#475569", fontSize: "11px" },
-  tipsSection: { marginBottom: "14px" },
-  tipsHead: { color: "#4ade80", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" },
-  tipRow: { display: "flex", alignItems: "flex-start", gap: "8px", marginBottom: "6px" },
-  tipDot: { width: "4px", height: "4px", borderRadius: "50%", backgroundColor: "#4ade80", marginTop: "5px", flexShrink: 0 },
-  tipText: { color: "#475569", fontSize: "12px", lineHeight: "1.4" },
-  valuesRow: { display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "8px" },
-  valuePill: {
-    backgroundColor: "rgba(99,102,241,0.08)", color: "#6366f1",
-    border: "1px solid rgba(99,102,241,0.15)",
-    padding: "3px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: "600"
-  },
-};

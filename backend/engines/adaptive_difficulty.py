@@ -17,6 +17,29 @@ VALID_CATEGORIES = [
     "machine_learning", "concurrency", "security", "networking", "oop"
 ]
 
+# Persona instructions layer ON TOP of the company-DNA mutation, not instead
+# of it — a Hostile Google interview is still recognizably a Google interview,
+# just delivered with more edge. "standard" adds nothing extra, since the
+# company mutation alone already defines the baseline tone.
+PERSONA_INSTRUCTIONS = {
+    "standard": "",
+    "hostile": (
+        "Deliver this in a hostile, skeptical interviewer voice. Push back harder on "
+        "assumptions, introduce a tougher constraint sooner than you normally would, "
+        "and show little patience for vague or hand-wavy reasoning."
+    ),
+    "socratic": (
+        "Deliver this in a Socratic voice: frame the problem as a guiding question "
+        "that leads the candidate to discover the right approach themselves, rather "
+        "than stating requirements directively."
+    ),
+    "exhausted": (
+        "Deliver this in a terse, low-energy voice, as if this is the fifth interview "
+        "of the day. Keep the scenario and the ask short and blunt. Minimal enthusiasm, "
+        "no encouragement, just the facts of the problem."
+    ),
+}
+
 
 def _parse_json_response(raw: str) -> dict:
     """Claude sometimes wraps JSON in ```json fences despite instructions. Strip defensively."""
@@ -30,17 +53,18 @@ def _parse_json_response(raw: str) -> dict:
 
 class AdaptiveDifficultyEngine:
     def __init__(self):
-        self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), timeout=30.0)
         self.vector_store = QuestionVectorStore()
 
-    def select_question(self, elo: float, company: str, role: str, failed_topic: str = None, persona: str = "standard") -> dict:
+    def select_question(self, elo: float, company: str, role: str, failed_topic: str = None,
+                         persona: str = "standard") -> dict:
         """
         Returns: {"question": str, "category": str, "sub_category": str, "difficulty": int}
         """
         difficulty = min(10, max(1, int((elo - 800) / 100)))
 
         if failed_topic:
-            return self._generate_prerequisite_question(failed_topic, company, role)
+            return self._generate_prerequisite_question(failed_topic, company, role, persona)
 
         search_query = f"{role} real-world scenario {company} interview difficulty {difficulty}"
         candidates = self.vector_store.search(
@@ -62,7 +86,8 @@ class AdaptiveDifficultyEngine:
         return self._mutate_with_company_dna(base_question, company, role, difficulty, seeded_topics, persona)
 
     def select_followup_question(self, previous_question: str, previous_answer: str, elo: float,
-                                  company: str, role: str, previous_category: str = None) -> dict:
+                                  company: str, role: str, previous_category: str = None,
+                                  persona: str = "standard") -> dict:
         """
         Hostile follow-up on the SAME question track. Inherits the parent question's
         category rather than reclassifying, since it's testing the same underlying skill.
@@ -82,15 +107,18 @@ class AdaptiveDifficultyEngine:
             "scale": "Add a hostile constraint: the dataset is now 50TB distributed across three data centers with potential network partitions. How does their logic change?"
         }
 
+        persona_instruction = PERSONA_INSTRUCTIONS.get(persona, "")
+
         response = self.client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=400,
             system=f"""You are a senior {company} interviewer. The candidate just answered a question.
             Your job is to push back with a harder follow-up constraint.
             {CONSTRAINT_PROMPTS[constraint_type]}
+            {persona_instruction}
 
             Return ONLY valid JSON, no markdown, no preamble, exactly this shape:
-            {{"question": "<the follow-up question text>", "sub_category": "<2-4 word specific topic, e.g. 'latency budgets'>"}}""",
+            {{"scenario": "<1 sentence setting up the new pressure>", "constraints": ["<constraint>"], "ask": "<the follow-up question itself>", "sub_category": "<2-4 word specific topic>"}}""",
             messages=[{
                 "role": "user",
                 "content": f"Original question: {previous_question}\nCandidate's answer: {previous_answer}\nGenerate the hostile follow-up."
@@ -99,13 +127,17 @@ class AdaptiveDifficultyEngine:
         parsed = _parse_json_response(response.content[0].text)
 
         return {
-            "question": parsed["question"],
+            "scenario": parsed.get("scenario", ""),
+            "constraints": parsed.get("constraints", []),
+            "ask": parsed.get("ask", ""),
+            "question": f"{parsed.get('scenario','')} {parsed.get('ask','')}".strip(),
             "category": previous_category or "system_design",
             "sub_category": parsed.get("sub_category", constraint_type),
             "difficulty": difficulty
         }
 
-    def _generate_prerequisite_question(self, failed_topic: str, company: str, role: str) -> dict:
+    def _generate_prerequisite_question(self, failed_topic: str, company: str, role: str,
+                                         persona: str = "standard") -> dict:
         db = SessionLocal()
         try:
             topic_key = failed_topic.lower().replace(" ", "_")
@@ -126,6 +158,7 @@ class AdaptiveDifficultyEngine:
             db.close()
 
         target = prereq_name if prereq_name else failed_topic
+        persona_instruction = PERSONA_INSTRUCTIONS.get(persona, "")
 
         response = self.client.messages.create(
             model="claude-sonnet-4-6",
@@ -133,6 +166,7 @@ class AdaptiveDifficultyEngine:
             system=f"""You are a {company} interviewer. The candidate just failed a question on {failed_topic}.
             Generate a real-world scenario question that tests their foundational understanding of {target}.
             Use a concrete, realistic scenario — not a definition question.
+            {persona_instruction}
 
             Return ONLY valid JSON, no markdown, no preamble, exactly this shape:
             {{"question": "<question text>", "sub_category": "<2-4 word specific topic>"}}""",
@@ -154,7 +188,8 @@ class AdaptiveDifficultyEngine:
         }
 
     def _mutate_with_company_dna(self, base_question: str, company: str, role: str,
-                                  difficulty: int, seeded_topics: list = None, persona: str = "standard") -> dict:
+                                  difficulty: int, seeded_topics: list = None,
+                                  persona: str = "standard") -> dict:
         COMPANY_MUTATIONS = {
             "google": "Frame this as an open-ended problem. The candidate must ask clarifying questions and think about edge cases at massive scale.",
             "amazon": "Add a constraint tied to Amazon Leadership Principles — specifically Frugality or Bias for Action. Include a deadline or budget pressure.",
@@ -165,19 +200,10 @@ class AdaptiveDifficultyEngine:
             "startup": "Add time and resource pressure — limited engineers, tight deadline, must decide what to cut and why.",
         }
         mutation = COMPANY_MUTATIONS.get(company.lower(), "Make this a real-world scenario with concrete constraints.")
-
-        PERSONA_MODIFIERS = {
-            "standard": "",
-            "hostile": "Be direct and skeptical. Add a challenging constraint that questions the candidate's assumptions.",
-            "socratic": "Do not state the problem directly. Ask a series of leading questions that guide the candidate to discover the problem themselves.",
-            "exhausted": "Frame this question in a bored, terse manner. The candidate must be engaging and concise to score well on communication.",
-        }
-        persona_mod = PERSONA_MODIFIERS.get(persona, "")
-        if persona_mod:
-            mutation = mutation + " " + persona_mod
+        persona_instruction = PERSONA_INSTRUCTIONS.get(persona, "")
 
         json_instruction = f"""Return ONLY valid JSON, no markdown, no preamble, exactly this shape:
-        {{"question": "<the full question text>", "category": "<one of: {', '.join(VALID_CATEGORIES)}>", "sub_category": "<2-4 word specific topic, e.g. 'cross-team communication'>"}}"""
+        {{"scenario": "<2 sentences setting the scene>", "constraints": ["<constraint 1>", "<constraint 2>", "<constraint 3>"], "ask": "<one bolded-style sentence stating exactly what is expected>", "category": "<one of: {', '.join(VALID_CATEGORIES)}>", "sub_category": "<2-4 word specific topic>"}}"""
 
         if not base_question:
             prompt = f"Generate a difficulty {difficulty}/10 real-world scenario interview question for a {role} targeting {company}. {mutation}\n\n{json_instruction}"
@@ -189,7 +215,7 @@ class AdaptiveDifficultyEngine:
         response = self.client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=500,
-            system=f"You are a {company} interviewer. Generate or mutate interview questions into scenario-based, trade-off testing questions. No markdown, no asterisks.",
+            system=f"You are a {company} interviewer. Generate or mutate interview questions into scenario-based, trade-off testing questions. No markdown, no asterisks. {persona_instruction}",
             messages=messages
         )
         parsed = _parse_json_response(response.content[0].text)
@@ -203,7 +229,10 @@ class AdaptiveDifficultyEngine:
                 category = "system_design"
 
         return {
-            "question": parsed["question"],
+            "scenario": parsed.get("scenario", ""),
+            "constraints": parsed.get("constraints", []),
+            "ask": parsed.get("ask", ""),
+            "question": f"{parsed.get('scenario','')} {parsed.get('ask','')}".strip(),
             "category": category,
             "sub_category": parsed.get("sub_category", ", ".join(seeded_topics) if seeded_topics else ""),
             "difficulty": difficulty
