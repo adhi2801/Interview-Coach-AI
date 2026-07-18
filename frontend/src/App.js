@@ -8,6 +8,7 @@ import PreflightCheck from "./pages/PreflightCheck";
 import InterviewRoom from "./pages/InterviewRoom";
 import ReplayViewer from "./pages/ReplayViewer";
 import CodingRoom from "./pages/CodingRoom";
+import Settings from "./pages/Settings";
 import "./components/ui/Button.css";
 import "./components/ui/Card.css";
 import "./components/ui/Input.css";
@@ -86,6 +87,14 @@ function App() {
           onStartNew={() => setPage("setup")}
           onNavigateHistory={() => setPage("replay")}
           onStartCoding={() => setPage("coding")}
+          onNavigateSettings={() => setPage("settings")}
+        />
+      )}
+      {page === "settings" && (
+        <Settings
+          user={user}
+          onLogout={handleLogout}
+          onGoBack={() => setPage("dashboard")}
         />
       )}
       {page === "setup" && (

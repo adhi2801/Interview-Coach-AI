@@ -28,7 +28,7 @@ function SlotNumber({ value }) {
   return <span className="font-mono tabular-nums tracking-tight">{display}</span>;
 }
 
-export default function UserDashboard({ user, onStartNew, onLogout, onNavigateHistory, onStartCoding }) {
+export default function UserDashboard({ user, onStartNew, onLogout, onNavigateHistory, onStartCoding, onNavigateSettings }) {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hoverElo, setHoverElo] = useState(null);
@@ -98,7 +98,7 @@ export default function UserDashboard({ user, onStartNew, onLogout, onNavigateHi
       <div className="flex h-screen overflow-hidden text-slate-50 relative z-10">
         
         {/* SIDEBAR: Frosted Glass */}
-        <aside className="w-64 border-r border-white/[0.06] bg-black/40 backdrop-blur-2xl flex flex-col justify-between flex-shrink-0 z-20">
+        <aside className="hidden md:flex w-64 border-r border-white/[0.06] bg-black/40 backdrop-blur-2xl flex-col justify-between flex-shrink-0 z-20">
           <div>
             <div className="h-16 flex items-center px-6 border-b border-white/[0.06]">
               <div className="w-6 h-6 rounded bg-white flex items-center justify-center font-bold text-black text-[10px] mr-3 shadow-[0_0_10px_rgba(255,255,255,0.2)]">IC</div>
@@ -126,10 +126,12 @@ export default function UserDashboard({ user, onStartNew, onLogout, onNavigateHi
                 <Target size={16} /> Study Plan
                 <span className="ml-auto text-[9px] uppercase tracking-widest text-slate-700">Soon</span>
               </div>
-              <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 cursor-default">
+              <button
+                onClick={onNavigateSettings}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/[0.02] transition-colors text-left"
+              >
                 <Settings size={16} /> Settings
-                <span className="ml-auto text-[9px] uppercase tracking-widest text-slate-700">Soon</span>
-              </div>
+              </button>
             </nav>
           </div>
           
