@@ -172,11 +172,15 @@ export default function ReplayViewer({ sessionId }) {
                 }`}>
                   {i + 1}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className={`text-xs font-semibold truncate mb-1 ${selected === i ? "text-slate-200" : "text-slate-500"}`}>
+                <div className="flex-1 min-w-0 flex flex-col gap-1">
+                  <p className={`text-xs font-semibold line-clamp-2 leading-snug ${selected === i ? "text-slate-200" : "text-slate-500"}`}>
                     {qn.question}
                   </p>
-                  {ov && <span className={`text-[10px] font-mono font-bold ${qColor}`}>{ov}/10</span>}
+                  {ov && (
+                    <span className={`text-[10px] font-mono font-bold self-start ${qColor}`}>
+                      {ov}/10
+                    </span>
+                  )}
                 </div>
               </button>
             );
