@@ -795,6 +795,33 @@ def get_next_coding_problem(user_id: int = Depends(get_current_user_id)):
     finally:
         db.close()
 
+@app.get("/coding/submissions")
+def get_coding_submissions(user_id: int = Depends(get_current_user_id)):
+    """Returns the authenticated user's past coding submissions, most recent first."""
+    if not user_id:
+        return {"submissions": []}
+    db = SessionLocal()
+    try:
+        submissions = db.query(CodingSubmission).filter(
+            CodingSubmission.user_id == user_id
+        ).order_by(CodingSubmission.submitted_at.desc()).limit(20).all()
+
+        result = []
+        for s in submissions:
+            problem = db.query(CodingProblem).filter(CodingProblem.id == s.problem_id).first()
+            result.append({
+                "id": s.id,
+                "problem_title": problem.title if problem else "Unknown problem",
+                "problem_slug": problem.slug if problem else None,
+                "tests_passed": s.tests_passed,
+                "tests_total": s.tests_total,
+                "language": s.language,
+                "submitted_at": s.submitted_at.isoformat() if s.submitted_at else None,
+            })
+        return {"submissions": result}
+    finally:
+        db.close()        
+
 
 # --- WebSocket: Real-Time Confidence Coaching ---
 # This replaces the manual "Analyze Confidence" button.

@@ -19,11 +19,25 @@ export default function CodingRoom({ problemSlug = null, sessionId, onFinish }) 
   const [submitting, setSubmitting] = useState(false);
 
   const [error, setError] = useState("");
+  const [submissionHistory, setSubmissionHistory] = useState([]);
 
   useEffect(() => {
     fetchProblem();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [problemSlug]);
+
+  useEffect(() => {
+    fetchSubmissionHistory();
+  }, []);
+
+  async function fetchSubmissionHistory() {
+    try {
+      const res = await axios.get(`${API_URL}/coding/submissions`, authHeaders());
+      setSubmissionHistory(res.data.submissions || []);
+    } catch (err) {
+      console.error(err);
+    }
+  }
 
   function authHeaders() {
     const token = localStorage.getItem("access_token");
@@ -210,6 +224,17 @@ export default function CodingRoom({ problemSlug = null, sessionId, onFinish }) 
           <div style={s.hintBox}>
             <p style={s.hintLabel}>Hint</p>
             <p style={s.hintText}>{hint}</p>
+          </div>
+        )}
+
+        {submissionHistory.length > 0 && (
+          <div style={s.resultsBox}>
+            <p style={s.resultsLabel}>Recent Submissions</p>
+            {submissionHistory.slice(0, 5).map((sub) => (
+              <div key={sub.id} style={s.caseLine}>
+                {sub.problem_title} — {sub.tests_passed}/{sub.tests_total} passed
+              </div>
+            ))}
           </div>
         )}
 
