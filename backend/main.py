@@ -2,7 +2,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, Request, B
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from database import get_db, create_tables, SessionLocal
-from models import InterviewSession, Answer, Topic, ScoringJob
+from models import InterviewSession, Answer, Topic, ScoringJob, CodingProblem, CodingTestCase, CodingSubmission
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -17,6 +17,7 @@ from engines.peer_comparison import PeerComparisonEngine
 from engines.replay_system import ReplaySystem
 from engines.replay_system import ReplaySystem
 from coding_engine import CodingEngine
+from code_executor import CodeExecutor
 from auth import hash_password, verify_password, create_access_token, decode_access_token
 from content_filter import contains_profanity, sanitize_for_storage
 from models import User
@@ -49,9 +50,6 @@ load_dotenv()
 if os.getenv("SENTRY_DSN"):
     sentry_sdk.init(dsn=os.getenv("SENTRY_DSN"), traces_sample_rate=0.1)
 # top of main.py, after load_dotenv()
-import sentry_sdk
-if os.getenv("SENTRY_DSN"):
-    sentry_sdk.init(dsn=os.getenv("SENTRY_DSN"), traces_sample_rate=0.1)
 
 # Structured logging: every log line is now a parseable JSON object
 # with consistent fields, instead of plain print() strings.
@@ -67,6 +65,7 @@ logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(title="InterviewCoach AI", version="1.0.0")
 coding_engine = CodingEngine()
+code_executor = CodeExecutor()
 
 # Rate limiter: protects the Anthropic API budget by capping how many
 # requests a single IP can make per time window.
@@ -108,7 +107,7 @@ def check_and_charge_token_budget(user_id: int, estimated_tokens: int) -> bool:
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://*.up.railway.app"],
+    allow_origins=["http://localhost:3000"],
     allow_origin_regex=r"https://.*\.up\.railway\.app",
     allow_credentials=True,
     allow_methods=["*"],
@@ -145,6 +144,17 @@ class SignupRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
+
+class RunCodeRequest(BaseModel):
+    problem_id: int
+    code: str
+    language: str = "python"
+
+class SubmitCodeRequest(BaseModel):
+    problem_id: int
+    code: str
+    language: str = "python"
+    session_id: int = None
 
 # Engine instances
 difficulty_engine = AdaptiveDifficultyEngine()
@@ -246,8 +256,7 @@ def start_session(payload: StartSessionRequest, request: Request, user_id: int =
     question_data = difficulty_engine.select_question(
         elo=payload.elo,
         company=payload.company,
-        role=payload.role,
-        persona=payload.persona
+        role=payload.role
     )
     difficulty = min(10, max(1, int((payload.elo - 800) / 100)))
     replay_system.log_event(new_session_id, "question_asked", question_data)
@@ -255,6 +264,9 @@ def start_session(payload: StartSessionRequest, request: Request, user_id: int =
     return {
         "session_id": new_session_id,
         "question": question_data["question"],
+        "scenario": question_data.get("scenario", ""),
+        "constraints": question_data.get("constraints", []),
+        "ask": question_data.get("ask", ""),
         "category": question_data["category"],
         "sub_category": question_data.get("sub_category", ""),
         "difficulty": difficulty,
@@ -363,6 +375,9 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
             "scores": scores, "overall_score": overall, "gaps": gaps,
             "peer_comparison": peer, "new_elo": new_elo,
             "next_question": next_question_data["question"],
+            "next_scenario": next_question_data.get("scenario", ""),
+            "next_constraints": next_question_data.get("constraints", []),
+            "next_ask": next_question_data.get("ask", ""),
             "next_category": next_question_data["category"],
             "next_sub_category": next_question_data.get("sub_category", ""),
             "answer_id": answer_record.id
@@ -386,9 +401,6 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
 
 @app.post("/answer/submit")
 @limiter.limit("20/minute")
-
-@app.post("/answer/submit")
-@limiter.limit("20/minute")
 def submit_answer(payload: SubmitAnswerRequest, background_tasks: BackgroundTasks, request: Request, user_id: int = Depends(get_current_user_id)):
     # Token budget check — separate from the request-count limiter above.
     # This catches the case where someone stays under 20 requests/minute
@@ -397,9 +409,6 @@ def submit_answer(payload: SubmitAnswerRequest, background_tasks: BackgroundTask
     if user_id and not check_and_charge_token_budget(user_id, estimated):
         return {"error": "Daily usage limit reached. Please try again tomorrow."}
 
-    # ... rest of your existing function body continues unchanged below this point
-
-def submit_answer(payload: SubmitAnswerRequest, background_tasks: BackgroundTasks, request: Request, user_id: int = Depends(get_current_user_id)):
     logger.info("answer_submitted", session_id=payload.session_id, difficulty=payload.difficulty, user_id=user_id)
 
     db = SessionLocal()
@@ -437,22 +446,6 @@ def get_scoring_status(job_id: int, user_id: int = Depends(get_current_user_id))
     finally:
         db.close()
 
-@app.post("/coach/analyze")
-def analyze_text(request: CoachTextRequest):
-    coach = ConfidenceCoach()
-    feedback = coach.analyze_text(request.text)
-    replay_system.log_event(request.session_id, "coaching_feedback", {
-        "suggestion": feedback.suggestion,
-        "wpm": feedback.words_per_minute,
-        "confidence": feedback.confidence_score,
-        "fillers": feedback.fillers_found
-    })
-    return {
-        "confidence_score": feedback.confidence_score,
-        "words_per_minute": feedback.words_per_minute,
-        "fillers_found": feedback.fillers_found,
-        "suggestion": feedback.suggestion
-    }
 
 class HintRequest(BaseModel):
     problem: str
@@ -576,6 +569,228 @@ def get_user_sessions(user_id: int = Depends(get_current_user_id)):
     finally:
         db.close()
 
+# --- Coding Track (Track B) ---
+
+@app.get("/coding/problems")
+def list_coding_problems():
+    """List problems without exposing test cases — just enough to build a picker UI."""
+    db = SessionLocal()
+    try:
+        problems = db.query(CodingProblem).all()
+        return {
+            "problems": [
+                {
+                    "id": p.id,
+                    "slug": p.slug,
+                    "title": p.title,
+                    "difficulty": p.difficulty,
+                    "topics": p.topics,
+                    "companies": p.companies,
+                }
+                for p in problems
+            ]
+        }
+    finally:
+        db.close()
+
+
+@app.get("/coding/problems/{slug}")
+def get_coding_problem(slug: str):
+    """Full problem detail — starter code + VISIBLE test cases only. Hidden cases never leave the server."""
+    db = SessionLocal()
+    try:
+        problem = db.query(CodingProblem).filter(CodingProblem.slug == slug).first()
+        if not problem:
+            return {"error": "Problem not found"}
+
+        visible_cases = db.query(CodingTestCase).filter(
+            CodingTestCase.problem_id == problem.id,
+            CodingTestCase.is_hidden == 0
+        ).all()
+
+        return {
+            "id": problem.id,
+            "slug": problem.slug,
+            "title": problem.title,
+            "description": problem.description,
+            "starter_code": problem.starter_code,
+            "difficulty": problem.difficulty,
+            "topics": problem.topics,
+            "sample_test_cases": [
+                {"input": tc.input_data, "expected_output": tc.expected_output} for tc in visible_cases
+            ],
+        }
+    finally:
+        db.close()
+
+
+@app.post("/coding/run")
+@limiter.limit("20/minute")
+def run_code(request: Request, payload: RunCodeRequest, user_id: int = Depends(get_current_user_id)):
+    """
+    'Run' button — executes against VISIBLE sample cases only. Self-check for the
+    candidate, mirrors what a real IDE's 'run against examples' does. Nothing persisted.
+    """
+    db = SessionLocal()
+    try:
+        problem = db.query(CodingProblem).filter(CodingProblem.id == payload.problem_id).first()
+        if not problem:
+            return {"error": "Problem not found"}
+
+        visible_cases = db.query(CodingTestCase).filter(
+            CodingTestCase.problem_id == problem.id,
+            CodingTestCase.is_hidden == 0
+        ).all()
+    finally:
+        db.close()
+
+    test_cases = [{"input": tc.input_data, "expected_output": tc.expected_output} for tc in visible_cases]
+    results = code_executor.run_test_cases(payload.code, payload.language, test_cases)
+
+    return {
+        "results": [
+            {"passed": r.passed, "input": r.input, "expected": r.expected, "actual": r.actual, "stderr": r.stderr}
+            for r in results
+        ],
+        "passed_count": sum(1 for r in results if r.passed),
+        "total": len(results),
+    }
+
+
+@app.post("/coding/submit")
+@limiter.limit("10/minute")
+def submit_code(request: Request, payload: SubmitCodeRequest, user_id: int = Depends(get_current_user_id)):
+    """
+    'Submit' button — executes against ALL test cases (visible + hidden), grades
+    quality with Claude via coding_engine.grade_submission(), and persists the result.
+    """
+    if not user_id:
+        return {"error": "You must be logged in to submit"}
+
+    db = SessionLocal()
+    try:
+        problem = db.query(CodingProblem).filter(CodingProblem.id == payload.problem_id).first()
+        if not problem:
+            return {"error": "Problem not found"}
+
+        all_cases = db.query(CodingTestCase).filter(CodingTestCase.problem_id == problem.id).all()
+        test_cases = [{"input": tc.input_data, "expected_output": tc.expected_output} for tc in all_cases]
+
+        exec_results = code_executor.run_test_cases(payload.code, payload.language, test_cases)
+        test_results_for_grading = [
+            {"passed": r.passed, "input": r.input, "expected": r.expected, "actual": r.actual}
+            for r in exec_results
+        ]
+
+        grading = coding_engine.grade_submission(problem.description, payload.code, test_results_for_grading)
+
+        # ELO update — reuses the exact same formula the interview track
+        # uses (difficulty_engine.update_elo), so Track A and Track B share
+        # one consistent skill rating instead of two disconnected numbers.
+        # Score is primarily test-pass-rate (correctness matters most in a
+        # real interview), blended with a smaller weight toward Claude's
+        # code-quality scores when they're available.
+        pass_ratio_score = (grading["tests_passed"] / max(grading["tests_total"], 1)) * 10
+        quality_scores = [s for s in [grading.get("cleanliness_score"), grading.get("naming_score")] if s is not None]
+        if quality_scores:
+            quality_avg = sum(quality_scores) / len(quality_scores)
+            coding_score = 0.8 * pass_ratio_score + 0.2 * quality_avg
+        else:
+            coding_score = pass_ratio_score
+
+        user = db.query(User).filter(User.id == user_id).first()
+        new_elo = None
+        if user:
+            new_elo = difficulty_engine.update_elo(
+                current_elo=user.elo_rating, question_difficulty=problem.difficulty, score=coding_score
+            )
+            user.elo_rating = new_elo
+
+        submission = CodingSubmission(
+            user_id=user_id,
+            session_id=payload.session_id,
+            problem_id=problem.id,
+            code=payload.code,
+            language=payload.language,
+            tests_passed=grading["tests_passed"],
+            tests_total=grading["tests_total"],
+            complexity_estimate=grading.get("complexity_estimate"),
+            cleanliness_score=grading.get("cleanliness_score"),
+            naming_score=grading.get("naming_score"),
+            feedback=grading.get("feedback"),
+        )
+        db.add(submission)
+        db.commit()
+        db.refresh(submission)
+
+        logger.info("coding_submission_graded", user_id=user_id, problem_id=problem.id,
+                    tests_passed=grading["tests_passed"], tests_total=grading["tests_total"], new_elo=new_elo)
+
+        return {
+            "submission_id": submission.id,
+            "tests_passed": grading["tests_passed"],
+            "tests_total": grading["tests_total"],
+            "complexity_estimate": grading.get("complexity_estimate"),
+            "cleanliness_score": grading.get("cleanliness_score"),
+            "naming_score": grading.get("naming_score"),
+            "feedback": grading.get("feedback"),
+            "new_elo": new_elo,
+            # hidden test case inputs/expected outputs intentionally never returned here
+        }
+    finally:
+        db.close()
+
+
+@app.get("/coding/next")
+def get_next_coding_problem(user_id: int = Depends(get_current_user_id)):
+    """
+    Picks the next coding problem for the authenticated user based on their
+    current ELO — same difficulty-band logic the interview track uses
+    (elo-800)/100 — and skips problems they've already fully passed, so
+    the coding track finally adapts instead of always serving 'two_sum'.
+    """
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id).first() if user_id else None
+        elo = user.elo_rating if user else 1200.0
+        difficulty = min(10, max(1, int((elo - 800) / 100)))
+
+        # Problems this user has already fully solved (all hidden+visible tests passing)
+        solved_ids = {
+            s.problem_id for s in db.query(CodingSubmission).filter(
+                CodingSubmission.user_id == user_id,
+                CodingSubmission.tests_passed == CodingSubmission.tests_total,
+            ).all()
+        } if user_id else set()
+
+        candidates = db.query(CodingProblem).filter(
+            CodingProblem.difficulty >= max(1, difficulty - 1),
+            CodingProblem.difficulty <= min(10, difficulty + 1),
+        ).all()
+        unsolved = [p for p in candidates if p.id not in solved_ids]
+        pool = unsolved if unsolved else candidates  # if everything nearby is solved, allow repeats rather than dead-ending
+
+        if not pool:
+            # No problems exist in range at all — widen to the full bank as a last resort
+            pool = db.query(CodingProblem).all()
+
+        if not pool:
+            return {"error": "No coding problems available"}
+
+        import random
+        chosen = random.choice(pool)
+
+        return {
+            "id": chosen.id,
+            "slug": chosen.slug,
+            "title": chosen.title,
+            "difficulty": chosen.difficulty,
+            "your_current_difficulty_target": difficulty,
+        }
+    finally:
+        db.close()
+
+
 # --- WebSocket: Real-Time Confidence Coaching ---
 # This replaces the manual "Analyze Confidence" button.
 # The browser sends each typed/spoken chunk as it happens,
@@ -590,9 +805,15 @@ import os as os_module
 
 # Load Whisper once at startup, not per-connection — loading takes ~15s
 # and we don't want every new WebSocket connection to pay that cost.
-print("Loading Whisper model for live transcription...")
-whisper_model = whisper.load_model("small")
-print("Whisper model ready")
+whisper_model = None
+
+def get_whisper_model():
+    global whisper_model
+    if whisper_model is None:
+        print("Loading Whisper model for live transcription...")
+        whisper_model = whisper.load_model("small")
+        print("Whisper model ready")
+    return whisper_model
 
 @app.websocket("/ws/coaching/{session_id}")
 async def coaching_websocket(websocket: WebSocket, session_id: int, token: str = None):
@@ -628,25 +849,18 @@ async def coaching_websocket(websocket: WebSocket, session_id: int, token: str =
     try:
         while True:
             message = await websocket.receive()
-            print(f"DEBUG: Received message keys: {list(message.keys())}, type: {message.get('type')}")
 
             # Audio path: browser sends raw audio bytes (webm/wav chunk)
             if "bytes" in message and message["bytes"]:
                 audio_bytes = message["bytes"]
-
-                debug_path = os_module.path.join(os_module.getcwd(), "debug_last_chunk.webm")
-                with open(debug_path, "wb") as f:
-                    f.write(audio_bytes)
-                print(f"DEBUG: Saved audio chunk, size = {len(audio_bytes)} bytes, to {debug_path}")
 
                 with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as f:
                     f.write(audio_bytes)
                     temp_path = f.name
 
                 try:
-                    result = whisper_model.transcribe(temp_path, fp16=False)
+                    result = get_whisper_model().transcribe(temp_path, fp16=False)
                     transcribed_text = result["text"].strip()
-                    print(f"DEBUG: Whisper transcribed: '{transcribed_text}'")
                 finally:
                     os_module.remove(temp_path)
 

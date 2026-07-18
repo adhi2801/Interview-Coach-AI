@@ -189,7 +189,6 @@ PREREQUISITES = {
 
 
 def seed_topics():
-    create_tables()
     db = SessionLocal()
 
     print(f"Seeding {len(TOPICS)} topics...")

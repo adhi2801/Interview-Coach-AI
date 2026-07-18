@@ -1,16 +1,26 @@
 import { useState, useEffect } from "react";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import Landing from "./pages/Landing";
 import Dashboard from "./pages/Dashboard";
 import UserDashboard from "./pages/UserDashboard";
 import PreflightCheck from "./pages/PreflightCheck";
 import InterviewRoom from "./pages/InterviewRoom";
 import ReplayViewer from "./pages/ReplayViewer";
 import CodingRoom from "./pages/CodingRoom";
+import "./components/ui/Button.css";
+import "./components/ui/Card.css";
+import "./components/ui/Input.css";
+import "./components/ui/Select.css";
+import "./components/ui/Modal.css";
+import "./components/ui/Toast.css";
+import "./styles/Tokens.css";
+import "./styles/Glass.css";
+import "./styles/Noise.css";
 import "./App.css";
 
 function App() {
-  const [authView, setAuthView] = useState("login"); // "login" or "signup"
+  const [authView, setAuthView] = useState("landing"); // "landing", "login", or "signup"
   const [user, setUser] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [page, setPage] = useState("dashboard");
@@ -49,8 +59,16 @@ function App() {
     return <div style={{ minHeight: "100vh", backgroundColor: "#0a0f1e" }} />;
   }
 
-  // Not logged in: show login or signup
+  // Not logged in: show landing, then login or signup
   if (!user) {
+    if (authView === "landing") {
+      return (
+        <Landing
+          onGetStarted={() => setAuthView("signup")}
+          onSignIn={() => setAuthView("login")}
+        />
+      );
+    }
     return authView === "login" ? (
       <Login onAuth={handleAuth} onSwitchToSignup={() => setAuthView("signup")} />
     ) : (
@@ -92,12 +110,12 @@ function App() {
         />
       )}
 
-    {page === "coding" && (
-  <CodingRoom
-    problem={{ title: "Two Sum", text: "Given an array of integers and a target, return indices of the two numbers that add up to the target." }}
-    onFinish={() => setPage("dashboard")}
-  />
-)}
+      {page === "coding" && (
+        <CodingRoom
+          sessionId={sessionData?.session_id}
+          onFinish={() => setPage("dashboard")}
+        />
+      )}
       {page === "replay" && (
         <ReplayViewer sessionId={sessionData?.session_id} />
       )}
