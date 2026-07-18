@@ -84,12 +84,15 @@ function App() {
           user={user}
           onLogout={handleLogout}
           onStartNew={() => setPage("setup")}
+          onNavigateHistory={() => setPage("replay")}
+          onStartCoding={() => setPage("coding")}
         />
       )}
       {page === "setup" && (
         <Dashboard
           user={user}
           onLogout={handleLogout}
+          onGoBack={() => setPage("dashboard")}
           onStart={(data) => {
             setSessionData(data);
             setPage("preflight");

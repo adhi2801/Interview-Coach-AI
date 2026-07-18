@@ -28,7 +28,7 @@ function SlotNumber({ value }) {
   return <span className="font-mono tabular-nums tracking-tight">{display}</span>;
 }
 
-export default function UserDashboard({ user, onStartNew, onLogout, onNavigateHistory }) {
+export default function UserDashboard({ user, onStartNew, onLogout, onNavigateHistory, onStartCoding }) {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hoverElo, setHoverElo] = useState(null);
@@ -244,16 +244,29 @@ export default function UserDashboard({ user, onStartNew, onLogout, onNavigateHi
             >
               <div className="p-6 border-b border-white/[0.06] flex justify-between items-center bg-black/20">
                 <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Session Ledger</h2>
-                <motion.button 
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={onStartNew}
-                  className="relative group overflow-hidden bg-blue-600 text-white px-5 py-2.5 rounded-lg text-xs font-bold transition-all shadow-[0_0_20px_rgba(37,99,235,0.2)] flex items-center gap-2"
-                >
-                  <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer" />
-                  <Activity size={14} className="relative z-10" /> 
-                  <span className="relative z-10">New Session</span>
-                </motion.button>
+                <div className="flex items-center gap-2">
+                  {/* FIXED: CodingRoom existed fully wired to the backend but had
+                      zero entry point anywhere in the UI. This button is the
+                      first place in the app that ever sets page to "coding". */}
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={onStartCoding}
+                    className="bg-white/[0.04] border border-white/[0.08] text-slate-200 px-5 py-2.5 rounded-lg text-xs font-bold transition-all hover:bg-white/[0.08] flex items-center gap-2"
+                  >
+                    Coding Room
+                  </motion.button>
+                  <motion.button 
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={onStartNew}
+                    className="relative group overflow-hidden bg-blue-600 text-white px-5 py-2.5 rounded-lg text-xs font-bold transition-all shadow-[0_0_20px_rgba(37,99,235,0.2)] flex items-center gap-2"
+                  >
+                    <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer" />
+                    <Activity size={14} className="relative z-10" /> 
+                    <span className="relative z-10">New Session</span>
+                  </motion.button>
+                </div>
               </div>
 
               {loading ? (
