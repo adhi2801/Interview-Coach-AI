@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Landing from "./pages/Landing";
@@ -20,14 +21,113 @@ import "./styles/Glass.css";
 import "./styles/Noise.css";
 import "./App.css";
 
-function App() {
-  const [authView, setAuthView] = useState("landing"); // "landing", "login", or "signup"
-  const [user, setUser] = useState(null);
-  const [checkingAuth, setCheckingAuth] = useState(true);
-  const [page, setPage] = useState("dashboard");
+/**
+ * ROUTING NOTE: this replaces the old manual useState("page") + conditional
+ * render approach with react-router-dom (already installed, previously
+ * unused). Every child page component keeps the EXACT SAME props it had
+ * before — onFinish, onStart, onGoBack, etc. — just wired to navigate()
+ * instead of setPage(). This was done deliberately narrow in scope: only
+ * App.js changed, no other page file needed to be touched, which keeps
+ * the blast radius of this migration contained to one file.
+ *
+ * sessionData still lives in App-level state (not the URL) since it's a
+ * complex object (question, scenario, constraints, etc.) that doesn't
+ * belong in a URL param — this mirrors how it worked before.
+ */
+
+function AuthenticatedApp({ user, onLogout, onEloUpdate }) {
+  const navigate = useNavigate();
   const [sessionData, setSessionData] = useState(null);
 
-  // On app load, check if a token already exists in localStorage
+  return (
+    <Routes>
+      <Route
+        path="/"
+        element={
+          <UserDashboard
+            user={user}
+            onLogout={onLogout}
+            onStartNew={() => navigate("/setup")}
+            onNavigateHistory={() => navigate("/replay")}
+            onStartCoding={() => navigate("/coding")}
+            onNavigateSettings={() => navigate("/settings")}
+          />
+        }
+      />
+      <Route
+        path="/setup"
+        element={
+          <Dashboard
+            user={user}
+            onLogout={onLogout}
+            onGoBack={() => navigate("/")}
+            onStart={(data) => {
+              setSessionData(data);
+              navigate("/preflight");
+            }}
+          />
+        }
+      />
+      <Route
+        path="/preflight"
+        element={
+          <PreflightCheck
+            onReady={() => navigate("/interview")}
+            onSkip={() => navigate("/interview")}
+          />
+        }
+      />
+      <Route
+        path="/interview"
+        element={
+          <InterviewRoom
+            sessionData={sessionData}
+            onFinish={() => navigate("/replay")}
+            onEloUpdate={onEloUpdate}
+          />
+        }
+      />
+      <Route
+        path="/coding"
+        element={
+          <CodingRoom
+            sessionId={sessionData?.session_id}
+            onFinish={() => navigate("/")}
+          />
+        }
+      />
+      <Route path="/replay" element={<ReplayViewer sessionId={sessionData?.session_id} />} />
+      <Route
+        path="/settings"
+        element={<Settings user={user} onLogout={onLogout} onGoBack={() => navigate("/")} />}
+      />
+      {/* Unknown authenticated route: fall back to dashboard rather than a blank page */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
+function UnauthenticatedApp({ onAuth }) {
+  const navigate = useNavigate();
+
+  return (
+    <Routes>
+      <Route
+        path="/"
+        element={<Landing onGetStarted={() => navigate("/signup")} onSignIn={() => navigate("/login")} />}
+      />
+      <Route path="/login" element={<Login onAuth={onAuth} onSwitchToSignup={() => navigate("/signup")} />} />
+      <Route path="/signup" element={<Signup onAuth={onAuth} onSwitchToLogin={() => navigate("/login")} />} />
+      {/* Unknown unauthenticated route: fall back to landing */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
+function App() {
+  const [user, setUser] = useState(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     const token = localStorage.getItem("access_token");
@@ -53,85 +153,22 @@ function App() {
     localStorage.removeItem("access_token");
     localStorage.removeItem("user");
     setUser(null);
-    setPage("dashboard");
   }
 
   if (checkingAuth) {
     return <div style={{ minHeight: "100vh", backgroundColor: "#0a0f1e" }} />;
   }
 
-  // Not logged in: show landing, then login or signup
-  if (!user) {
-    if (authView === "landing") {
-      return (
-        <Landing
-          onGetStarted={() => setAuthView("signup")}
-          onSignIn={() => setAuthView("login")}
-        />
-      );
-    }
-    return authView === "login" ? (
-      <Login onAuth={handleAuth} onSwitchToSignup={() => setAuthView("signup")} />
-    ) : (
-      <Signup onAuth={handleAuth} onSwitchToLogin={() => setAuthView("login")} />
-    );
-  }
-
-  // Logged in: show the actual app
   return (
-    <div className="app">
-      {page === "dashboard" && (
-        <UserDashboard
-          user={user}
-          onLogout={handleLogout}
-          onStartNew={() => setPage("setup")}
-          onNavigateHistory={() => setPage("replay")}
-          onStartCoding={() => setPage("coding")}
-          onNavigateSettings={() => setPage("settings")}
-        />
-      )}
-      {page === "settings" && (
-        <Settings
-          user={user}
-          onLogout={handleLogout}
-          onGoBack={() => setPage("dashboard")}
-        />
-      )}
-      {page === "setup" && (
-        <Dashboard
-          user={user}
-          onLogout={handleLogout}
-          onGoBack={() => setPage("dashboard")}
-          onStart={(data) => {
-            setSessionData(data);
-            setPage("preflight");
-          }}
-        />
-      )}
-      {page === "preflight" && (
-        <PreflightCheck
-          onReady={() => setPage("interview")}
-          onSkip={() => setPage("interview")}
-        />
-      )}
-      {page === "interview" && (
-        <InterviewRoom
-          sessionData={sessionData}
-          onFinish={() => setPage("replay")}
-          onEloUpdate={handleEloUpdate}
-        />
-      )}
-
-      {page === "coding" && (
-        <CodingRoom
-          sessionId={sessionData?.session_id}
-          onFinish={() => setPage("dashboard")}
-        />
-      )}
-      {page === "replay" && (
-        <ReplayViewer sessionId={sessionData?.session_id} />
-      )}
-    </div>
+    <BrowserRouter>
+      <div className="app">
+        {user ? (
+          <AuthenticatedApp user={user} onLogout={handleLogout} onEloUpdate={handleEloUpdate} />
+        ) : (
+          <UnauthenticatedApp onAuth={handleAuth} />
+        )}
+      </div>
+    </BrowserRouter>
   );
 }
 
