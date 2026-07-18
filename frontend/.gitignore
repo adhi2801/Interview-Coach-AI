@@ -21,3 +21,11 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+echo "backend/venv/" >> .gitignore
+echo "backend/__pycache__/" >> .gitignore
+echo "backend/chroma_db/" >> .gitignore
+echo "backend/replays/" >> .gitignore
+echo "backend/interviewcoach.db" >> .gitignore
+echo "backend/debug_last_chunk.webm" >> .gitignore
+echo "frontend/node_modules/" >> .gitignore

@@ -1,13 +1,39 @@
-﻿backend/venv/
-backend/__pycache__/
-backend/engines/__pycache__/
-backend/rag/__pycache__/
-backend/*.db
-backend/replays/
-backend/chroma_db/
-backend/debug_last_chunk.webm
-frontend/node_modules/
-frontend/build/
-__pycache__/
-*.pyc
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# production
+/build
+
+# misc
+.DS_Store
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# backend
+backend/venv/
+backend/__pycache__/
+backend/chroma_db/
+backend/replays/
+backend/interviewcoach.db
+backend/debug_last_chunk.webm
+backend/.env
+backend/alembic/versions/__pycache__/
+backend/engines/__pycache__/
+backend/tests/__pycache__/
+backend/rag/__pycache__/
+
+# frontend
+frontend/node_modules/
+frontend/.env

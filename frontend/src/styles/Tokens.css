@@ -1,0 +1,38 @@
+/* ============================================================
+   Design tokens — Experiential Frontend Architecture spec
+   These values are exact per the locked blueprint. Do not
+   improvise variations — if a value isn't here, it doesn't exist.
+   ============================================================ */
+:root {
+  --bg-void: #000000;
+  --bg-elevated: #0A0A0C;
+  --glass-fill: rgba(255, 255, 255, 0.02);
+  --glass-fill-hover: rgba(255, 255, 255, 0.045);
+  --text-primary: rgba(255, 255, 255, 0.92);
+  --text-secondary: rgba(255, 255, 255, 0.50);
+  --confidence-green: #3DDC84;
+  --confidence-amber: #F5A623;
+  --confidence-red: #F5473D;
+
+  /* Radii — deliberately different per page mood, not a single scale */
+  --radius-narrative: 24px; /* hero/dashboard/landing cards */
+  --radius-terminal: 6px;   /* History table, Coding Room telemetry */
+
+  /* Motion presets — exactly two, used consistently everywhere */
+  --spring-primary: 320 32 0.9;   /* stiffness damping mass — UI entrances/hover/press */
+  --spring-layout: 120 22 1;      /* large layout shifts / page transitions */
+}
+
+.font-display {
+  font-size: clamp(2.5rem, 6vw, 5.5rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.font-display {
+  font-family: 'Clash Display', 'Inter', sans-serif;
+  font-size: clamp(2.5rem, 6vw, 5.5rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}

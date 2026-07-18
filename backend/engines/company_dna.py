@@ -91,7 +91,7 @@ COMPANY_PROFILES = {
 
 class CompanyDNAEngine:
     def __init__(self):
-        self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), timeout=30.0)
     
     def get_profile(self, company_name: str) -> dict:
         key = company_name.lower().strip()

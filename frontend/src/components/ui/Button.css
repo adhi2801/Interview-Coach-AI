@@ -1,0 +1,149 @@
+/* ============================================================
+   Button — design system component styles
+   Every value here traces back to the locked spec. Nothing is
+   guessed. If you need a new button style, add a variant here —
+   never write a one-off button style in a page file again.
+   ============================================================ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font);
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1),
+              border-color 0.15s ease,
+              background-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+/* Real keyboard focus ring — Tab to a button, you see this.
+   Click a button with the mouse, you don't (that's what
+   :focus-visible does over plain :focus). */
+.btn:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 1; /* opacity is handled per-variant below, not globally faded */
+}
+
+/* ---------- Sizes ---------- */
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+.btn-md { padding: 9px 16px; font-size: 13px; }
+.btn-lg { padding: 12px 24px; font-size: 14px; }
+
+.btn-full { width: 100%; }
+
+/* ---------- Variants ---------- */
+
+/* Primary — the ONE accent color in the entire app. Solid, flat,
+   no gradient, no glow. This is the only place #2563eb appears
+   as a fill. */
+.btn-primary {
+  background-color: #2563eb;
+  color: #ffffff;
+}
+.btn-primary:hover:not(:disabled) {
+  background-color: #1d4ed8;
+}
+.btn-primary:disabled {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.25);
+}
+
+/* Secondary — outlined, transparent fill */
+.btn-secondary {
+  background-color: transparent;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+}
+.btn-secondary:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(255, 255, 255, 0.03);
+}
+.btn-secondary:disabled {
+  border-color: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.2);
+}
+
+/* Ghost — no border, no fill, text only until hovered */
+.btn-ghost {
+  background-color: transparent;
+  color: rgba(255, 255, 255, 0.6);
+}
+.btn-ghost:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.85);
+}
+.btn-ghost:disabled {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+/* Danger — the ONLY place red appears on a button, and only
+   for genuinely destructive actions (End Session, Delete). */
+.btn-danger {
+  background-color: transparent;
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #f87171;
+}
+.btn-danger:hover:not(:disabled) {
+  background-color: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+/* ---------- Loading state ---------- */
+.btn-label-loading {
+  opacity: 0.7;
+}
+.btn-spinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: btn-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes btn-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---------- Shortcut hint (rule 10: power-user cues) ---------- */
+.btn-shortcut {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 11px;
+  opacity: 0.5;
+  padding: 1px 5px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  margin-left: 2px;
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ---------- Reduced motion (rule 21) ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
+  .btn:active:not(:disabled) {
+    transform: none;
+  }
+  .btn-spinner {
+    animation-duration: 1.5s;
+  }
+}

@@ -1,0 +1,48 @@
+/* ============================================================
+   Glass material — per section 3 and the explicit anti-pattern
+   warning in section 7. Real glass = top highlight only, not a
+   boxed border. Never wrap more than 2 of these in one viewport
+   at once (section 5) — blur-on-blur turns to visual mud.
+   ============================================================ */
+.ds-glass {
+  background-color: var(--glass-fill);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border-radius: var(--radius-narrative);
+  /* Top-edge highlight only — NOT border: 1px solid on all sides */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: background-color 0.2s ease;
+}
+.ds-glass:hover {
+  background-color: var(--glass-fill-hover);
+}
+
+/* Terminal variant — History, Coding Room telemetry. Sharp, dense,
+   high-contrast. Deliberately NOT glass — this tonal break is
+   intentional per section 6 (page 10) and section 1. */
+.ds-terminal {
+  background-color: var(--bg-elevated);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-terminal);
+}
+
+/* Ghost typography — oversized, pale, atmospheric. Crossfades into
+   real copy as scroll progress advances (section 4). */
+.ds-ghost-text {
+  font-size: clamp(3rem, 8vw, 7rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: rgba(255, 255, 255, 0.06);
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Keyboard focus — explicitly designed per section 8, since glass/blur
+   breaks default browser focus visibility */
+.ds-glass *:focus-visible,
+.ds-terminal *:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 3px;
+  border-radius: 4px;
+}

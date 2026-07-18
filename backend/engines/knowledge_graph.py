@@ -11,7 +11,7 @@ load_dotenv()
 
 class KnowledgeGapGraph:
     def __init__(self):
-        self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), timeout=30.0)
 
     def extract_gaps(self, question: str, answer: str, technical_score: float, company: str = None) -> list:
         if technical_score >= 7.0:

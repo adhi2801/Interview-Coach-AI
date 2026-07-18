@@ -1,117 +1,147 @@
-import os
-import json
+# backend/engines/replay_system.py
+# REPLACES the local-disk version. Same class name, same 5 public methods,
+# same return shapes — every existing caller in main.py keeps working
+# unchanged. Only the storage backend changed: Postgres instead of
+# ./replays/session_*.json, which does not survive a Railway restart/redeploy.
+
 from datetime import datetime
-from pathlib import Path
-from dotenv import load_dotenv
+from database import SessionLocal
+from models import ReplayManifest
 
-load_dotenv()
-
-REPLAY_DIR = Path("./replays")
 
 class ReplaySystem:
     def __init__(self):
-        REPLAY_DIR.mkdir(exist_ok=True)
+        pass  # no directory to create anymore — nothing to set up at construction time
 
     def start_recording(self, session_id: int, user_name: str, company: str, role: str) -> dict:
-        manifest = {
-            "session_id": session_id,
-            "user_name": user_name,
-            "company": company,
-            "role": role,
-            "started_at": datetime.utcnow().isoformat(),
-            "ended_at": None,
-            "events": []
-        }
-        path = REPLAY_DIR / f"session_{session_id}.json"
-        path.write_text(json.dumps(manifest, indent=2))
-        return {"status": "recording started", "session_id": session_id}
+        db = SessionLocal()
+        try:
+            existing = db.query(ReplayManifest).filter(ReplayManifest.session_id == session_id).first()
+            if existing:
+                # Same session started twice (e.g. a retry) — reset rather than duplicate-key error.
+                existing.user_name = user_name
+                existing.company = company
+                existing.role = role
+                existing.started_at = datetime.utcnow()
+                existing.ended_at = None
+                existing.events = []
+            else:
+                db.add(ReplayManifest(
+                    session_id=session_id,
+                    user_name=user_name,
+                    company=company,
+                    role=role,
+                    started_at=datetime.utcnow(),
+                    ended_at=None,
+                    events=[],
+                ))
+            db.commit()
+            return {"status": "recording started", "session_id": session_id}
+        finally:
+            db.close()
 
-    def log_event(self, session_id: int, event_type: str, data: dict):
-        path = REPLAY_DIR / f"session_{session_id}.json"
-        if not path.exists():
-            return {"error": "session not found"}
+    def log_event(self, session_id: int, event_type: str, data: dict) -> dict:
+        db = SessionLocal()
+        try:
+            manifest = db.query(ReplayManifest).filter(ReplayManifest.session_id == session_id).first()
+            if not manifest:
+                return {"error": "session not found"}
 
-        manifest = json.loads(path.read_text())
-        manifest["events"].append({
-            "type": event_type,
-            "timestamp": datetime.utcnow().isoformat(),
-            "data": data
-        })
-        path.write_text(json.dumps(manifest, indent=2))
-        return {"status": "event logged"}
+            # Reassign (not .append()) so SQLAlchemy detects the JSON column changed —
+            # in-place mutation of a JSON column's Python list is invisible to the ORM otherwise.
+            events = list(manifest.events or [])
+            events.append({
+                "type": event_type,
+                "timestamp": datetime.utcnow().isoformat(),
+                "data": data,
+            })
+            manifest.events = events
+            db.commit()
+            return {"status": "event logged"}
+        finally:
+            db.close()
 
     def end_recording(self, session_id: int) -> dict:
-        path = REPLAY_DIR / f"session_{session_id}.json"
-        if not path.exists():
-            return {"error": "session not found"}
+        db = SessionLocal()
+        try:
+            manifest = db.query(ReplayManifest).filter(ReplayManifest.session_id == session_id).first()
+            if not manifest:
+                return {"error": "session not found"}
 
-        manifest = json.loads(path.read_text())
-        manifest["ended_at"] = datetime.utcnow().isoformat()
-        path.write_text(json.dumps(manifest, indent=2))
-        return {"status": "recording ended"}
+            manifest.ended_at = datetime.utcnow()
+            db.commit()
+            return {"status": "recording ended"}
+        finally:
+            db.close()
 
     def get_replay(self, session_id: int) -> dict:
-        path = REPLAY_DIR / f"session_{session_id}.json"
-        if not path.exists():
-            return {"error": "replay not found"}
+        db = SessionLocal()
+        try:
+            manifest = db.query(ReplayManifest).filter(ReplayManifest.session_id == session_id).first()
+            if not manifest:
+                return {"error": "replay not found"}
 
-        manifest = json.loads(path.read_text())
+            questions = []
+            current_q = None
 
-        questions = []
-        current_q = None
+            for event in (manifest.events or []):
+                if event["type"] == "question_asked":
+                    if current_q:
+                        questions.append(current_q)
+                    # Same backward-compat handling as the old file-based version:
+                    # older events used {"text": "..."}, newer ones use the structured
+                    # {"question": "...", "category": "...", ...} shape.
+                    q_data = event["data"]
+                    question_text = q_data.get("question") or q_data.get("text") or ""
+                    current_q = {
+                        "question": question_text,
+                        "category": q_data.get("category"),
+                        "sub_category": q_data.get("sub_category"),
+                        "asked_at": event["timestamp"],
+                        "scores": None,
+                        "answer": None,
+                        "gaps": [],
+                        "coaching_moments": [],
+                    }
+                elif event["type"] == "answer_submitted" and current_q:
+                    current_q["answer"] = event["data"]["text"]
+                elif event["type"] == "scores_calculated" and current_q:
+                    current_q["scores"] = event["data"]
+                elif event["type"] == "gaps_identified" and current_q:
+                    current_q["gaps"] = event["data"]
+                elif event["type"] == "coaching_feedback" and current_q:
+                    current_q["coaching_moments"].append(event["data"])
 
-        for event in manifest["events"]:
-            if event["type"] == "question_asked":
-                if current_q:
-                    questions.append(current_q)
-                # Handles both the old event format ({"text": "..."})
-                # and the new structured format ({"question": "...", "category": "...", ...})
-                # from the updated adaptive_difficulty.py — old replay files
-                # recorded before that change still use "text".
-                q_data = event["data"]
-                question_text = q_data.get("question") or q_data.get("text") or ""
-                current_q = {
-                    "question": question_text,
-                    "category": q_data.get("category"),
-                    "sub_category": q_data.get("sub_category"),
-                    "asked_at": event["timestamp"],
-                    "scores": None,
-                    "answer": None,
-                    "gaps": [],
-                    "coaching_moments": []
-                }
-            elif event["type"] == "answer_submitted" and current_q:
-                current_q["answer"] = event["data"]["text"]
-            elif event["type"] == "scores_calculated" and current_q:
-                current_q["scores"] = event["data"]
-            elif event["type"] == "gaps_identified" and current_q:
-                current_q["gaps"] = event["data"]
-            elif event["type"] == "coaching_feedback" and current_q:
-                current_q["coaching_moments"].append(event["data"])
+            if current_q:
+                questions.append(current_q)
 
-        if current_q:
-            questions.append(current_q)
-
-        return {
-            "session_id": session_id,
-            "user_name": manifest["user_name"],
-            "company": manifest["company"],
-            "role": manifest["role"],
-            "started_at": manifest["started_at"],
-            "ended_at": manifest["ended_at"],
-            "total_questions": len(questions),
-            "questions": questions
-        }
+            return {
+                "session_id": manifest.session_id,
+                "user_name": manifest.user_name,
+                "company": manifest.company,
+                "role": manifest.role,
+                "started_at": manifest.started_at.isoformat() if manifest.started_at else None,
+                "ended_at": manifest.ended_at.isoformat() if manifest.ended_at else None,
+                "total_questions": len(questions),
+                "questions": questions,
+            }
+        finally:
+            db.close()
 
     def list_replays(self) -> list:
-        replays = []
-        for path in REPLAY_DIR.glob("session_*.json"):
-            manifest = json.loads(path.read_text())
-            replays.append({
-                "session_id": manifest["session_id"],
-                "company": manifest["company"],
-                "role": manifest["role"],
-                "started_at": manifest["started_at"],
-                "total_questions": len([e for e in manifest["events"] if e["type"] == "question_asked"])
-            })
-        return replays
+        db = SessionLocal()
+        try:
+            manifests = db.query(ReplayManifest).all()
+            replays = []
+            for m in manifests:
+                question_count = len([e for e in (m.events or []) if e["type"] == "question_asked"])
+                replays.append({
+                    "session_id": m.session_id,
+                    "company": m.company,
+                    "role": m.role,
+                    "started_at": m.started_at.isoformat() if m.started_at else None,
+                    "total_questions": question_count,
+                })
+            return replays
+        finally:
+            db.close()

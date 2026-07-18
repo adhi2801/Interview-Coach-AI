@@ -7,7 +7,7 @@ load_dotenv()
 
 class MultiDimensionalScorer:
     def __init__(self):
-        self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), timeout=30.0)
     
     def score(self, question: str, answer: str) -> dict:
         response = self.client.messages.create(

@@ -131,6 +131,7 @@ class SubmitAnswerRequest(BaseModel):
     company: str = None
     failed_topic: str = None
     category: str = None
+    persona: str = "standard"
 
 class CoachTextRequest(BaseModel):
     text: str
@@ -256,7 +257,8 @@ def start_session(payload: StartSessionRequest, request: Request, user_id: int =
     question_data = difficulty_engine.select_question(
         elo=payload.elo,
         company=payload.company,
-        role=payload.role
+        role=payload.role,
+        persona=payload.persona
     )
     difficulty = min(10, max(1, int((payload.elo - 800) / 100)))
     replay_system.log_event(new_session_id, "question_asked", question_data)
@@ -264,6 +266,7 @@ def start_session(payload: StartSessionRequest, request: Request, user_id: int =
     return {
         "session_id": new_session_id,
         "question": question_data["question"],
+        "persona": payload.persona,
         "scenario": question_data.get("scenario", ""),
         "constraints": question_data.get("constraints", []),
         "ask": question_data.get("ask", ""),
@@ -360,14 +363,16 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
                 elo=new_elo,
                 company=payload.company or "google",
                 role="Software Engineer",
-                previous_category=payload.category if hasattr(payload, "category") else None
+                previous_category=payload.category if hasattr(payload, "category") else None,
+                persona=payload.persona
             )
         else:
             next_question_data = difficulty_engine.select_question(
                 elo=new_elo,
                 company=payload.company or "google",
                 role="Software Engineer",
-                failed_topic=failed_topic
+                failed_topic=failed_topic,
+                persona=payload.persona
             )
         replay_system.log_event(payload.session_id, "question_asked", next_question_data)
 

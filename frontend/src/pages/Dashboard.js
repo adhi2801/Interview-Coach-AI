@@ -1,87 +1,77 @@
 import { API_URL } from "../config";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Terminal, BrainCircuit, ChevronRight, Activity, ArrowLeft } from "lucide-react";
 import axios from "axios";
+import CustomSelect from "../components/ui/CustomSelect";
 
+// Authentic SVGs (Updated with correct Amazon and Meta paths)
 const COMPANIES = [
   {
     id: "google", name: "Google", color: "#4285F4",
     logo: (
-      <svg viewBox="0 0 48 48" width="22" height="22">
-        <path fill="#4285F4" d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z"/>
-        <path fill="#34A853" d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z"/>
-        <path fill="#FBBC05" d="M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34A21.92 21.92 0 0 0 2 24c0 3.57.86 6.94 2.34 9.88l7.35-5.7z"/>
-        <path fill="#EA4335" d="M24 11.75c3.31 0 6.28 1.14 8.62 3.36l6.31-6.31C34.91 5.18 29.93 3 24 3 15.4 3 7.96 7.93 4.34 14.82l7.35 5.7c1.73-5.2 6.58-8.77 12.31-8.77z"/>
+      <svg viewBox="0 0 24 24" className="w-6 h-6">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
       </svg>
     )
   },
   {
     id: "amazon", name: "Amazon", color: "#FF9900",
     logo: (
-      <svg viewBox="0 0 24 24" width="22" height="22">
-        <text x="0" y="16" fontFamily="Arial, sans-serif" fontSize="15" fontWeight="700" fill="#e8eaed">a</text>
-        <path fill="#FF9900" d="M1.5 18.5c2.8 2 7.5 3 11.5 3 3.2 0 6.9-.8 9.6-2.5.4-.3.8.2.4.5-2.5 2.1-6.5 3.3-10.5 3.3-5 0-9.2-1.8-12.5-4.8-.3-.2 0-.7.5-.5z"/>
-        <path fill="#FF9900" d="M21.5 17c-.5-.6-3-.3-4-.1-.3 0-.4-.3-.1-.5 1.6-1.1 4.3-.8 4.7-.4.4.4-.1 3.1-1.6 4.4-.2.2-.5.1-.4-.2.4-1 1.2-3.2.4-3.2z"/>
+      <svg viewBox="0 0 24 24" className="w-6 h-6">
+        <text x="1" y="15" fontFamily="Arial, sans-serif" fontSize="14" fontWeight="700" fill="#e2e8f0">amazon</text>
+        <path fill="#FF9900" d="M2.2 17.3c2.5 1.85 6.9 2.8 10.4 2.8 2.9 0 6.2-.7 8.6-2.05.35-.2.65.2.35.45-2.15 1.85-5.85 2.95-9.4 2.95-4.55 0-8.6-1.65-11.65-4.4-.25-.2 0-.5.4-.3z"/>
+        <path fill="#FF9900" d="M20.05 15.9c-.4-.5-2.65-.25-3.55-.1-.3.05-.35-.25-.1-.4 1.4-.95 3.75-.7 4.1-.35.35.35-.1 2.65-1.4 3.75-.2.15-.4.1-.35-.15.35-.85.9-2.75.3-2.75z"/>
       </svg>
     )
   },
-
   {
     id: "meta", name: "Meta", color: "#0866FF",
     logo: (
-      <svg viewBox="0 0 48 48" width="22" height="22">
-        <path fill="#0866FF" d="M24 4C12.95 4 4 12.95 4 24c0 9.98 7.31 18.27 16.87 19.74V29.16h-5.1V24h5.1v-3.66c0-5.34 3.27-8.3 7.99-8.3 2.26 0 4.2.17 4.76.24v5.27h-3.26c-2.56 0-3.06 1.22-3.06 3.01V24h5.5l-.72 5.16h-4.78v14.58C36.69 42.27 44 33.98 44 24c0-11.05-8.95-20-20-20z"/>
+      <svg viewBox="0 0 24 24" className="w-6 h-6">
+        <path fill="#0866FF" d="M6.9 4.5c1.9 0 3.4 1.15 4.7 2.9 1.3-1.75 2.8-2.9 4.7-2.9 3.5 0 6.2 3.6 6.2 8.4 0 2.9-1.2 4.85-3 4.85-1.5 0-2.4-1.05-3.9-3.4l-1.6-2.5-.9 1.5c-1.3 2.15-2.35 3.65-4 3.65C6.4 21 5 18.1 5 14.9c0-4.8 1.5-10.4 1.9-10.4zm5.1 8.15 1.05 1.65c1.3 2.05 1.85 2.6 2.65 2.6.85 0 1.3-.75 1.3-2.7 0-3.6-1.55-6.1-3.4-6.1-1 0-1.85.75-2.9 2.45.35.6.7 1.3 1.3 2.1z"/>
       </svg>
     )
   },
   {
     id: "microsoft", name: "Microsoft", color: "#00A4EF",
     logo: (
-      <svg viewBox="0 0 48 48" width="22" height="22">
-        <path fill="#F25022" d="M4 4h19v19H4z"/>
-        <path fill="#7FBA00" d="M25 4h19v19H25z"/>
-        <path fill="#00A4EF" d="M4 25h19v19H4z"/>
-        <path fill="#FFB900" d="M25 25h19v19H25z"/>
+      <svg viewBox="0 0 24 24" className="w-6 h-6">
+        <path fill="#F25022" d="M2 2h9v9H2z"/><path fill="#7FBA00" d="M13 2h9v9h-9z"/>
+        <path fill="#00A4EF" d="M2 13h9v9H2z"/><path fill="#FFB900" d="M13 13h9v9h-9z"/>
       </svg>
     )
   },
   {
-    id: "apple", name: "Apple", color: "#a1a1aa",
+    id: "apple", name: "Apple", color: "#e2e8f0",
     logo: (
-      <svg viewBox="0 0 48 48" width="22" height="22">
-        <path fill="#d4d4d8" d="M36.27 25.45c-.07-3.2 2.62-4.74 2.74-4.81-1.49-2.18-3.81-2.48-4.64-2.51-2.1-.21-4.1 1.24-5.17 1.24-1.08 0-2.74-1.21-4.5-1.18-2.31.03-4.45 1.36-5.63 3.43-2.41 4.18-.62 10.34 1.71 13.73 1.14 1.66 2.51 3.5 4.3 3.43 1.72-.07 2.37-1.12 4.45-1.12 2.07 0 2.66 1.12 4.46 1.08 1.84-.03 3.01-1.66 4.14-3.32 1.31-1.91 1.84-3.76 1.87-3.86-.04-.02-3.57-1.37-3.6-5.42z"/>
-        <path fill="#d4d4d8" d="M30.95 14.86c.9-1.09 1.5-2.6 1.34-4.1-1.29.05-2.87.86-3.8 1.94-.84.96-1.57 2.5-1.37 3.97 1.44.11 2.92-.73 3.83-1.81z"/>
+      <svg viewBox="0 0 24 24" className="w-6 h-6">
+        <path fill="#e2e8f0" d="M18.14 12.73c-.04-1.6 1.31-2.37 1.37-2.41-1.12-1.64-2.86-1.86-3.48-1.88-1.58-.16-3.08.93-3.88.93-.81 0-2.06-.91-3.38-.89-1.73.02-3.34 1.02-4.22 2.57-1.81 3.14-.46 7.76 1.28 10.3 .86 1.25 1.88 2.63 3.23 2.57 1.29-.05 1.78-.84 3.34-.84 1.55 0 2 1.1 3.35 1.08 1.38-.02 2.26-1.25 3.11-2.49.98-1.43 1.38-2.82 1.4-2.9-.03-.01-2.68-1.03-2.7-4.06zM15.48 4.79c.68-.82 1.13-1.95 1.01-3.08-.97.04-2.15.65-2.85 1.46-.63.72-1.18 1.88-1.03 2.98 1.08.08 2.19-.55 2.87-1.36z"/>
       </svg>
     )
   },
-    {
+  {
     id: "netflix", name: "Netflix", color: "#E50914",
     logo: (
-      <svg viewBox="0 0 24 24" width="22" height="22">
-        <rect x="6" y="3" width="3.2" height="18" fill="#E50914"/>
-        <rect x="14.8" y="3" width="3.2" height="18" fill="#E50914"/>
-        <path fill="#B20710" d="M6 3l11 18h-3.2L6 6z"/>
+      <svg viewBox="0 0 24 24" className="w-6 h-6">
+        <path fill="#E50914" d="M6 2v20h3.2V8.6l5.6 13.4H18V2h-3.2v13.4L9.2 2H6z"/>
       </svg>
     )
   },
-
   {
     id: "startup", name: "Startup", color: "#10b981",
-    logo: (
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#34d399" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/>
-        <path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
-        <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/>
-        <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
-      </svg>
-    )
+    logo: <Terminal size={24} className="text-emerald-400" />
   },
 ];
 
 const PERSONAS = [
   { id: "standard", label: "Standard", desc: "Balanced, professional interviewer" },
-  { id: "hostile", label: "Hostile", desc: "Challenges assumptions, adds hard constraints" },
-  { id: "socratic", label: "Socratic", desc: "Guides with questions, never gives answers" },
-  { id: "exhausted", label: "Exhausted", desc: "Bored and terse — you must earn engagement" },
+  { id: "hostile", label: "Hostile", desc: "Challenges assumptions, strict constraints" },
+  { id: "socratic", label: "Socratic", desc: "Guides with questions, never answers" },
+  { id: "exhausted", label: "Exhausted", desc: "Bored and terse — earn engagement" },
 ];
 
 const ROLES = [
@@ -91,18 +81,7 @@ const ROLES = [
   "ML Engineer",
   "Frontend Engineer",
   "Backend Engineer",
-  "Full Stack Engineer",
-  "Data Scientist",
   "System Design Engineer",
-];
-
-const FEATURES = [
-  { label: "Adaptive Difficulty", desc: "Questions scale with your skill level in real time" },
-  { label: "5-Dimension Scoring", desc: "Technical, Communication, Problem Solving, Culture, Confidence" },
-  { label: "Knowledge Gap Graph", desc: "See exactly what to study next and in what order" },
-  { label: "Confidence Coaching", desc: "Filler word detection, pace analysis, tone feedback" },
-  { label: "Peer Benchmarking", desc: "See where you rank against other candidates" },
-  { label: "Session Replay", desc: "Review every answer with annotated AI feedback" },
 ];
 
 const INSIGHTS = {
@@ -115,16 +94,22 @@ const INSIGHTS = {
   startup: "Startups value ownership and adaptability. Demonstrate you can wear multiple hats, move fast, and make decisions with incomplete information.",
 };
 
-export default function Dashboard({ onStart, user, onLogout }) {
+export default function Dashboard({ onStart, user, onGoBack }) {
   const [company, setCompany] = useState("google");
   const [role, setRole] = useState("Software Engineer — L3/IC3");
   const [persona, setPersona] = useState("standard");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [mousePos, setMousePos] = useState({ x: -1000, y: -1000 });
   const [mounted, setMounted] = useState(false);
+  
+  const currentElo = Math.round(user?.elo_rating || 1200);
 
   useEffect(() => {
-    setTimeout(() => setMounted(true), 100);
+    setMounted(true);
+    const handleMouseMove = (e) => setMousePos({ x: e.clientX, y: e.clientY });
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
   async function handleStart() {
@@ -143,424 +128,263 @@ export default function Dashboard({ onStart, user, onLogout }) {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      onStart(response.data);
+      if(onStart) onStart(response.data);
     } catch (err) {
-      setError("Cannot connect to server. Make sure the backend is running.");
+      setError("Cannot connect to server. Ensure backend is running.");
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   const selectedCompany = COMPANIES.find((c) => c.id === company);
 
+  // Animation Variants
+  const containerVars = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.05 } }
+  };
+  
+  const itemVars = {
+    hidden: { opacity: 0, y: 15 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 400, damping: 30 } }
+  };
+
   return (
-    <div style={s.page}>
-      <div style={s.bgOrb1} />
-      <div style={s.bgOrb2} />
-      <div style={s.bgOrb3} />
+    <div className="relative min-h-screen bg-[#000000] text-slate-200 font-sans selection:bg-blue-500/30 overflow-hidden flex flex-col md:flex-row">
+      
+      {/* Inline Shimmer Keyframes */}
+      <style>{`
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        .animate-shimmer {
+          animation: shimmer 2s infinite linear;
+        }
+      `}</style>
 
-      <header style={s.header}>
-        <div style={s.headerInner}>
-          <div style={s.logo}>
-            <div style={s.logoIcon}>AI</div>
-            <span style={s.logoText}>InterviewCoach</span>
-            <span style={s.logoDivider} />
-            <span style={s.logoSub}>by Claude</span>
-          </div>
-          <div style={s.headerRight}>
-            {user && (
-              <span style={s.userPill}>{user.name}</span>
-            )}
-            <span style={s.betaBadge}>Beta</span>
-            <button style={s.logoutBtn} onClick={onLogout}>Log out</button>
-          </div>
-        </div>
-      </header>
+      {/* AMBIENT LIGHTS & GRAIN */}
+      <div className="fixed top-[-20%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-blue-600/10 blur-[120px] pointer-events-none mix-blend-screen z-0" />
+      <div className="fixed bottom-[-10%] right-[-5%] w-[40vw] h-[40vw] rounded-full bg-indigo-500/10 blur-[100px] pointer-events-none mix-blend-screen z-0" />
+      <div 
+        className="fixed inset-0 z-10 pointer-events-none opacity-[0.025] mix-blend-soft-light"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+        }}
+      />
 
-      <main style={s.main}>
-        <div style={{
-          ...s.hero,
-          opacity: mounted ? 1 : 0,
-          transform: mounted ? "translateY(0)" : "translateY(24px)",
-          transition: "all 0.6s ease"
-        }}>
-          <div style={s.heroBadge}>
-            <span style={s.heroBadgeDot} />
-            AI-Powered Interview Training
-          </div>
+      {/* RETURN BUTTON */}
+      {onGoBack && (
+        <button 
+          onClick={onGoBack}
+          className="absolute top-6 left-6 md:top-8 md:left-8 z-50 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-white transition-colors"
+        >
+          <ArrowLeft size={16} /> Dashboard
+        </button>
+      )}
 
-          <h1 style={s.heroTitle}>
-            Land your next<br />
-            <span className="gradient-text">tech role faster.</span>
-          </h1>
-
-          <p style={s.heroSubtitle}>
-            Adaptive difficulty, real-time confidence coaching, and
-            company-specific preparation, engineered to get you hired.
-          </p>
-
-          <div style={s.statsRow}>
-            {[
-              { value: "20+", label: "Companies" },
-              { value: "5", label: "Score dimensions" },
-              { value: "L3-L5", label: "All levels" },
-              { value: "Live", label: "AI coaching" },
-            ].map((stat) => (
-              <div key={stat.label} style={s.statItem}>
-                <span style={s.statValue}>{stat.value}</span>
-                <span style={s.statLabel}>{stat.label}</span>
+      {/* SPLIT PANE ARCHITECTURE */}
+      <div className="relative z-20 w-full flex flex-col md:flex-row min-h-screen">
+        
+        {/* ========================================================================= */}
+        {/* LEFT PANE: Configuration Header & Target DNA                              */}
+        {/* ========================================================================= */}
+        <div className="w-full md:w-[45%] h-auto md:h-screen border-r border-white/[0.06] bg-[#000000]/40 backdrop-blur-xl flex flex-col pt-24 pb-12 px-8 md:px-12 lg:px-16 overflow-y-auto">
+          
+          <motion.div initial="hidden" animate="show" variants={containerVars} className="flex flex-col h-full w-full max-w-md mx-auto md:mx-0">
+            
+            <motion.div variants={itemVars} className="mb-12">
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded border border-blue-500/20 bg-blue-500/10 text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-6">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" /> System Ready
               </div>
-            ))}
-          </div>
+              <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-white mb-4">
+                Initialize<br/>Simulation
+              </h1>
+              <p className="text-sm font-medium text-slate-400 leading-relaxed">
+                Configure your target environment. The AI will enforce constraints matching a <strong className="text-white">Level {Math.min(7, Math.max(3, Math.round((currentElo - 800) / 100)))}</strong> difficulty bracket based on your ELO.
+              </p>
+            </motion.div>
 
-          <div style={s.featureList}>
-            {FEATURES.map((f) => (
-              <div key={f.label} style={s.featureItem}>
-                <div style={s.featureCheck}>✓</div>
-                <div>
-                  <span style={s.featureLabel}>{f.label}</span>
-                  <span style={s.featureDesc}> — {f.desc}</span>
+            <motion.div variants={itemVars} className="space-y-6">
+              <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                  <BrainCircuit size={14} className="text-slate-400" /> 1. Target DNA
+                </label>
+                <div className="text-[10px] font-mono font-bold text-slate-500">
+                  ELO: <span className="text-white tabular-nums tracking-tight text-xs">{currentElo}</span>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
 
-        <div style={{
-          ...s.formWrap,
-          opacity: mounted ? 1 : 0,
-          transform: mounted ? "translateY(0)" : "translateY(32px)",
-          transition: "all 0.6s ease 0.15s"
-        }}>
-          <div style={s.formCard} className="gradient-border">
-            <h2 style={s.formTitle}>Start your session</h2>
-            <p style={s.formSubtitle}>Configure your mock interview below</p>
-
-
-            <div style={s.field}>
-              <label style={s.label}>Target company</label>
-              <div style={s.companyGrid}>
+              <div className="grid grid-cols-2 gap-4">
                 {COMPANIES.map((c) => (
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
                     key={c.id}
-                    className="hover-lift"
-                    style={{
-                      ...s.companyBtn,
-                      ...(company === c.id ? {
-                        borderColor: c.color + "60",
-                        backgroundColor: c.color + "10",
-                        boxShadow: `0 0 16px ${c.color}20`,
-                      } : {})
-                    }}
                     onClick={() => setCompany(c.id)}
+                    className={`flex flex-col items-start p-4 rounded-xl border transition-all duration-200 outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black focus:ring-blue-500 ${
+                      company === c.id 
+                        ? "bg-blue-500/10 border-blue-500 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1),_0_0_15px_rgba(59,130,246,0.2)]" 
+                        : "bg-white/[0.02] border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] hover:bg-white/[0.04] hover:border-white/20"
+                    }`}
                   >
-                    <div style={s.companyLogoWrap}>{c.logo}</div>
-                    <span style={{
-                      ...s.companyName,
-                      color: company === c.id ? "#e2e8f0" : "#64748b"
-                    }}>{c.name}</span>
-                  </button>
+                    <div className="flex-shrink-0 mb-3">{c.logo}</div>
+                    <span className={`text-sm font-bold tracking-tight ${company === c.id ? "text-white" : "text-slate-300"}`}>
+                      {c.name}
+                    </span>
+                  </motion.button>
                 ))}
               </div>
-            </div>
-
-            <div style={s.field}>
-              <label style={s.label}>Target role and level</label>
-              <select
-                style={s.select}
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-              >
-                {ROLES.map((r) => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
-              </select>
-            </div>
-
-            <div style={s.field}>
-              <label style={s.label}>Interviewer style</label>
-              <div style={s.personaGrid}>
-                {PERSONAS.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    style={{
-                      ...s.personaBtn,
-                      ...(persona === p.id ? s.personaBtnActive : {})
-                    }}
-                    onClick={() => setPersona(p.id)}
-                  >
-                    <span style={s.personaLabel}>{p.label}</span>
-                    <span style={s.personaDesc}>{p.desc}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div style={{
-              ...s.insight,
-              borderLeftColor: selectedCompany?.color || "#6366f1"
-            }}>
-              <p style={s.insightLabel}>{selectedCompany?.name} interview style</p>
-              <p style={s.insightText}>{INSIGHTS[company]}</p>
-            </div>
-
-            {error && (
-              <div style={s.error}>⚠ {error}</div>
-            )}
-
-            <button
-              className="bouncy"
-              style={loading ? s.btnDisabled : s.btn}
-              onClick={handleStart}
-              disabled={loading}
-            >
-              {loading ? (
-                <span style={s.btnInner}>
-                  <span style={s.spinner} />
-                  Preparing your session...
-                </span>
-              ) : (
-                <span style={s.btnInner}>
-                  Start Interview
-                  <span style={s.btnArrow}>→</span>
-                </span>
-              )}
-            </button>
-
-            <p style={s.disclaimer}>
-              Powered by Claude Sonnet · Questions adapt to your level in real time
-            </p>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
-      </main>
+
+        {/* ========================================================================= */}
+        {/* RIGHT PANE: Scope, Hostility, Preview & Launch                          */}
+        {/* ========================================================================= */}
+        <div className="w-full md:flex-1 h-auto md:h-screen bg-[#050505]/80 backdrop-blur-2xl flex flex-col pt-12 md:pt-24 pb-12 px-8 md:px-12 lg:px-20 overflow-y-auto">
+          
+          <motion.div initial="hidden" animate="show" variants={containerVars} className="flex flex-col h-full w-full max-w-xl mx-auto md:mx-0">
+            
+            <motion.div variants={itemVars} className="space-y-10 flex-1">
+              
+              {/* Scope Definition */}
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2 mb-4 border-b border-white/[0.06] pb-2">
+                  <Terminal size={14} className="text-slate-400" /> 2. Define Scope
+                </label>
+                <div className="relative z-50">
+                  <CustomSelect 
+                    value={role}
+                    onChange={setRole}
+                    options={ROLES}
+                  />
+                </div>
+              </div>
+
+              {/* Hostility Definition */}
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2 mb-4 border-b border-white/[0.06] pb-2">
+                  <Activity size={14} className="text-slate-400" /> 3. Interviewer Persona
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {PERSONAS.map((p) => (
+                    <motion.button
+                      whileTap={{ scale: 0.98 }}
+                      key={p.id}
+                      onClick={() => setPersona(p.id)}
+                      className={`text-left p-4 rounded-xl border transition-all duration-200 outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black focus:ring-blue-500 ${
+                        persona === p.id 
+                          ? "bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]" 
+                          : "bg-white/[0.02] border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] hover:bg-white/[0.05] hover:border-white/20"
+                      }`}
+                    >
+                      <span className={`block text-sm font-bold mb-1 tracking-tight ${persona === p.id ? "text-black" : "text-white"}`}>{p.label}</span>
+                      <span className={`block text-[11px] font-medium leading-relaxed ${persona === p.id ? "text-slate-700" : "text-slate-500"}`}>{p.desc}</span>
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Dynamic Insights / Live Preview Card */}
+              <AnimatePresence mode="wait">
+                <motion.div 
+                  key={company}
+                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <GlassCard mousePos={mousePos} className="w-full p-6">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: selectedCompany?.color || '#fff' }} />
+                      {selectedCompany?.name} Interview Style
+                    </p>
+                    <p className="text-sm font-medium text-slate-300 leading-relaxed">
+                      {INSIGHTS[company]}
+                    </p>
+                  </GlassCard>
+                </motion.div>
+              </AnimatePresence>
+            </motion.div>
+
+            {/* Launch Action */}
+            <motion.div variants={itemVars} className="pt-10 mt-10 border-t border-white/[0.06] flex flex-col md:flex-row items-center justify-between gap-6">
+              {error && (
+                <div className="text-xs font-bold text-red-400 bg-red-500/10 px-4 py-2 rounded border border-red-500/20">
+                  {error}
+                </div>
+              )}
+              
+              <div className="w-full ml-auto">
+                <motion.button
+                  whileTap={{ scale: loading ? 1 : 0.96 }}
+                  onClick={handleStart}
+                  disabled={loading}
+                  className={`relative w-full flex items-center justify-center gap-3 px-8 py-4 rounded-xl text-sm font-bold transition-all overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black focus:ring-white ${
+                    loading 
+                      ? "bg-[#111111] border border-white/10 text-slate-500 cursor-wait" 
+                      : "bg-white text-black hover:bg-slate-200 shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_30px_rgba(255,255,255,0.25)]"
+                  }`}
+                >
+                  {loading ? (
+                    <>
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]" />
+                      <span className="w-4 h-4 rounded-full border-2 border-slate-600 border-t-slate-400 animate-spin" />
+                      Booting Simulator...
+                    </>
+                  ) : (
+                    <>
+                      Boot Simulator <ChevronRight size={18} />
+                      <kbd className="hidden sm:inline-flex ml-2 items-center justify-center bg-black/10 rounded px-1.5 py-0.5 text-[10px] font-mono text-black/60">↵ Enter</kbd>
+                    </>
+                  )}
+                </motion.button>
+              </div>
+            </motion.div>
+
+          </motion.div>
+        </div>
+
+      </div>
     </div>
   );
 }
 
-const s = {
-  page: {
-    minHeight: "100vh",
-    backgroundColor: "#0a0f1e",
-    fontFamily: "'Inter', sans-serif",
-    position: "relative",
-    overflow: "hidden",
-  },
-  bgOrb1: {
-    position: "fixed", width: "700px", height: "700px", borderRadius: "50%",
-    background: "radial-gradient(circle, rgba(99,102,241,0.10) 0%, transparent 70%)",
-    top: "-300px", left: "-200px", pointerEvents: "none",
-  },
-  bgOrb2: {
-    position: "fixed", width: "500px", height: "500px", borderRadius: "50%",
-    background: "radial-gradient(circle, rgba(139,92,246,0.07) 0%, transparent 70%)",
-    bottom: "-100px", right: "-100px", pointerEvents: "none",
-  },
-  bgOrb3: {
-    position: "fixed", width: "400px", height: "400px", borderRadius: "50%",
-    background: "radial-gradient(circle, rgba(6,182,212,0.05) 0%, transparent 70%)",
-    top: "40%", right: "30%", pointerEvents: "none",
-  },
-  header: {
-    width: "100%", padding: "18px 40px",
-    borderBottom: "1px solid rgba(255,255,255,0.04)",
-    position: "relative", zIndex: 10,
-  },
-  headerInner: {
-    maxWidth: "1200px", margin: "0 auto",
-    display: "flex", alignItems: "center", justifyContent: "space-between",
-  },
-  logo: { display: "flex", alignItems: "center", gap: "10px" },
-  logoIcon: {
-    width: "34px", height: "34px", borderRadius: "9px",
-    background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-    display: "flex", alignItems: "center", justifyContent: "center",
-    fontSize: "12px", fontWeight: "800", color: "#fff",
-  },
-  logoText: { color: "#f1f5f9", fontSize: "17px", fontWeight: "700", letterSpacing: "-0.3px" },
-  logoDivider: {
-    width: "1px", height: "14px", backgroundColor: "#1e293b", display: "inline-block"
-  },
-  logoSub: { color: "#475569", fontSize: "13px", fontWeight: "500" },
-  headerRight: {},
-  betaBadge: {
-    backgroundColor: "rgba(99,102,241,0.1)", color: "#818cf8",
-    border: "1px solid rgba(99,102,241,0.2)",
-    padding: "4px 12px", borderRadius: "20px", fontSize: "11px", fontWeight: "700",
-    textTransform: "uppercase", letterSpacing: "0.5px",
-  },
+// ============================================================================
+// REUSABLE DEEP GLASS CARD (Inlined to ensure independence)
+// ============================================================================
+function GlassCard({ children, className = "", mousePos }) {
+  const [rect, setRect] = useState(null);
+  const cardRef = useRef(null);
 
-  userPill: {
-    color: "#94a3b8", fontSize: "13px", fontWeight: "600",
-  },
-  logoutBtn: {
-    backgroundColor: "transparent", color: "#64748b",
-    border: "1px solid #1e293b", padding: "6px 14px",
-    borderRadius: "20px", fontSize: "12px", fontWeight: "600", cursor: "pointer"
-  },
+  useEffect(() => {
+    if (cardRef.current) {
+      setRect(cardRef.current.getBoundingClientRect());
+    }
+  }, []);
 
-  main: {
-    maxWidth: "1200px", margin: "0 auto",
-    padding: "60px 40px",
-    display: "flex", gap: "80px", alignItems: "flex-start",
-    position: "relative", zIndex: 10,
-  },
-  hero: { flex: 1, paddingTop: "8px" },
-  heroBadge: {
-    display: "inline-flex", alignItems: "center", gap: "8px",
-    backgroundColor: "rgba(99,102,241,0.08)",
-    border: "1px solid rgba(99,102,241,0.15)",
-    color: "#a5b4fc", padding: "6px 14px", borderRadius: "20px",
-    fontSize: "12px", fontWeight: "600", marginBottom: "28px",
-    letterSpacing: "0.2px",
-  },
-  heroBadgeDot: {
-    width: "6px", height: "6px", borderRadius: "50%",
-    backgroundColor: "#6366f1", display: "inline-block",
-    animation: "pulse 2s infinite",
-  },
-  heroTitle: {
-    fontSize: "54px", fontWeight: "800", lineHeight: "1.1",
-    letterSpacing: "-2px", color: "#f8fafc", marginBottom: "20px",
-  },
-  heroSubtitle: {
-    fontSize: "17px", color: "#cbd5e1", lineHeight: "1.75",
-    marginBottom: "40px", maxWidth: "440px", fontWeight: "400",
-  },
-  statsRow: {
-    display: "flex", gap: "36px", marginBottom: "48px",
-    paddingBottom: "40px", borderBottom: "1px solid #1e293b",
-  },
-  statItem: { display: "flex", flexDirection: "column", gap: "3px" },
-  statValue: { fontSize: "22px", fontWeight: "800", color: "#818cf8", letterSpacing: "-0.5px" },
-  statLabel: { fontSize: "12px", color: "#64748b", fontWeight: "500", textTransform: "uppercase", letterSpacing: "0.3px" },
-  featureList: { display: "flex", flexDirection: "column", gap: "14px" },
-  featureItem: { display: "flex", alignItems: "flex-start", gap: "12px" },
-  featureCheck: {
-    width: "18px", height: "18px", borderRadius: "5px",
-    backgroundColor: "rgba(99,102,241,0.15)", color: "#a5b4fc",
-    display: "flex", alignItems: "center", justifyContent: "center",
-    fontSize: "11px", fontWeight: "800", flexShrink: 0, marginTop: "1px",
-  },
-  featureLabel: { color: "#e2e8f0", fontSize: "14px", fontWeight: "600" },
-  featureDesc: { color: "#94a3b8", fontSize: "14px", fontWeight: "400" },
-  formWrap: { width: "440px", flexShrink: 0 },
-  formCard: {
-    padding: "36px",
-    backgroundColor: "rgba(13, 20, 36, 0.65)",
-    backdropFilter: "blur(24px)",
-    WebkitBackdropFilter: "blur(24px)",
-    border: "1px solid rgba(255,255,255,0.08)",
-    boxShadow: "0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)",
-  },
-  formTitle: {
-    fontSize: "20px", fontWeight: "700", color: "#f8fafc",
-    letterSpacing: "-0.4px", marginBottom: "4px",
-  },
-  formSubtitle: {
-    fontSize: "13px", color: "#94a3b8", marginBottom: "28px",
-  },
-  field: { marginBottom: "22px" },
-  label: {
-    display: "block", color: "#94a3b8", fontSize: "11px",
-    fontWeight: "700", textTransform: "uppercase",
-    letterSpacing: "0.6px", marginBottom: "10px",
-  },
-  input: {
-    width: "100%", padding: "12px 14px",
-    backgroundColor: "#070c18", border: "1px solid #1e293b",
-    borderRadius: "10px", color: "#f1f5f9", fontSize: "14px",
-    outline: "none", boxSizing: "border-box",
-    transition: "border-color 0.2s",
-  },
-  companyGrid: {
-    display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px",
-  },
-  companyBtn: {
-    display: "flex", flexDirection: "column", alignItems: "center", gap: "6px",
-    padding: "10px 6px", backgroundColor: "rgba(7,12,24,0.6)",
-    backdropFilter: "blur(8px)",
-    border: "1px solid #1e293b", borderRadius: "10px",
-    cursor: "pointer", transition: "all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)",
-  },
-  companyLogoWrap: {
-    width: "32px", height: "32px",
-    display: "flex", alignItems: "center", justifyContent: "center",
-  },
-  companyName: {
-    fontSize: "10px", fontWeight: "600",
-    transition: "color 0.2s",
-  },
-  select: {
-    width: "100%", padding: "12px 14px",
-    backgroundColor: "#070c18", border: "1px solid #1e293b",
-    borderRadius: "10px", color: "#f1f5f9", fontSize: "14px",
-    outline: "none", cursor: "pointer", boxSizing: "border-box",
-  },
-  personaGrid: {
-    display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px",
-  },
-  personaBtn: {
-    display: "flex", flexDirection: "column", alignItems: "flex-start",
-    gap: "2px", padding: "10px 12px",
-    backgroundColor: "#070c18", border: "1px solid #1e293b",
-    borderRadius: "10px", cursor: "pointer", transition: "all 0.2s ease",
-    textAlign: "left"
-  },
-  personaBtnActive: {
-    borderColor: "rgba(99,102,241,0.6)",
-    backgroundColor: "rgba(99,102,241,0.08)",
-    boxShadow: "0 0 12px rgba(99,102,241,0.15)"
-  },
-  personaLabel: {
-    color: "#e2e8f0", fontSize: "13px", fontWeight: "700"
-  },
-  personaDesc: {
-    color: "#475569", fontSize: "11px", lineHeight: "1.4"
-  },
-  insight: {
-    borderLeft: "2px solid #6366f1",
-    paddingLeft: "14px", marginBottom: "22px",
-  },
-  insightLabel: {
-    color: "#94a3b8", fontSize: "11px", fontWeight: "700",
-    textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px",
-  },
-  insightText: {
-    color: "#cbd5e1", fontSize: "13px", lineHeight: "1.6",
-  },
-  error: {
-    color: "#fca5a5", backgroundColor: "rgba(248,113,113,0.06)",
-    border: "1px solid rgba(248,113,113,0.12)",
-    borderRadius: "8px", padding: "10px 14px",
-    fontSize: "13px", marginBottom: "16px",
-  },
-  btn: {
-    width: "100%", padding: "14px",
-    background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-    color: "#fff", border: "none", borderRadius: "10px",
-    fontSize: "15px", fontWeight: "700", cursor: "pointer",
-    boxShadow: "0 4px 24px rgba(99,102,241,0.35)",
-    transition: "all 0.2s ease", letterSpacing: "-0.2px",
-  },
-  btnDisabled: {
-    width: "100%", padding: "14px",
-    backgroundColor: "#111827", color: "#475569",
-    border: "1px solid #1e293b", borderRadius: "10px",
-    fontSize: "15px", fontWeight: "700", cursor: "not-allowed",
-  },
-  btnInner: {
-    display: "flex", alignItems: "center",
-    justifyContent: "center", gap: "8px",
-  },
-  btnArrow: { fontSize: "16px" },
-  spinner: {
-    width: "15px", height: "15px",
-    border: "2px solid #334155", borderTopColor: "#818cf8",
-    borderRadius: "50%", display: "inline-block",
-    animation: "spin 0.8s linear infinite",
-  },
-  disclaimer: {
-    color: "#64748b", fontSize: "12px",
-    textAlign: "center", marginTop: "14px", lineHeight: "1.5",
-  },
-};
+  const isHovered = rect && 
+    mousePos.x >= rect.left && mousePos.x <= rect.right &&
+    mousePos.y >= rect.top && mousePos.y <= rect.bottom;
+
+  const cursorX = rect ? mousePos.x - rect.left : 0;
+  const cursorY = rect ? mousePos.y - rect.top : 0;
+
+  return (
+    <div 
+      ref={cardRef}
+      className={`relative rounded-2xl bg-[#080808]/80 border border-white/[0.06] overflow-hidden backdrop-blur-2xl ${className}`}
+      style={{
+        boxShadow: 'inset 0 1px 0 0 rgba(255, 255, 255, 0.08), 0 20px 40px -10px rgba(0,0,0,0.8)'
+      }}
+    >
+      <div 
+        className="absolute inset-0 pointer-events-none transition-opacity duration-300 z-0"
+        style={{
+          background: `radial-gradient(400px circle at ${cursorX}px ${cursorY}px, rgba(255,255,255,0.04), transparent 40%)`,
+          opacity: isHovered ? 1 : 0
+        }}
+      />
+      <div className="relative z-10 h-full">
+        {children}
+      </div>
+    </div>
+  );
+}

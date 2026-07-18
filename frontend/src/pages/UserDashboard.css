@@ -1,0 +1,250 @@
+/* Sidebar shell */
+.dash-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.dash-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dash-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary, #f5f5f5);
+  margin-bottom: 40px;
+}
+.dash-brand-mark {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background-color: #2563eb;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.dash-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+.dash-nav-item {
+  padding: 9px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: var(--font, 'Inter', sans-serif);
+  color: rgba(255, 255, 255, 0.72); /* was 0.5 — combined with :disabled's 0.4 opacity multiplier, text was rendering at effectively ~0.2 alpha, close to unreadable */
+  cursor: pointer;
+  text-decoration: none;
+  text-align: left;
+  background: none;
+  border: none;
+  width: 100%;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.dash-nav-item:disabled {
+  cursor: default;
+  opacity: 0.65; /* was 0.4 — same math problem as above */
+}
+.dash-nav-item:disabled:hover {
+  background-color: transparent;
+  color: rgba(255, 255, 255, 0.72);
+}
+.dash-nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.85);
+}
+.dash-nav-active {
+  background-color: rgba(37, 99, 235, 0.12);
+  color: #60a5fa;
+  font-weight: 600;
+}
+
+.dash-sidebar-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 16px;
+  margin-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.dash-user-name {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Main content */
+.dash-main {
+  flex: 1;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 56px 40px;
+  width: 100%;
+}
+
+.dash-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 40px;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.dash-greeting {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 6px 0;
+  color: var(--text-primary, #f5f5f5);
+}
+.dash-subgreeting {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+}
+.dash-cmdk-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.4);
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  height: fit-content;
+}
+.dash-kbd {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+/* Stat cards — StaggerList renders each Card as a sibling, so THIS row
+   wrapper is what turns them into a horizontal strip instead of stacking
+   vertically like the Recent Sessions list further down does. */
+.dash-stats-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
+}
+.ds-card.dash-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px 24px; /* was 18px 20px — arbitrary; now matches Rule 5's 24px card standard on the horizontal axis */
+  min-width: 140px;
+  flex: 1;
+  background-color: var(--bg-elevated, #0A0A0C);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+}
+.dash-stat-next-value {
+  text-transform: capitalize; /* fixes "More google" -> "More Google" — this was raw lowercase company data rendered as-is, not a CSS bug, but fixable at the display layer without touching stored data */
+}
+.dash-stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary, #f5f5f5);
+}
+.dash-stat-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.dash-stat-next {
+  justify-content: center;
+}
+.dash-stat-next-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #60a5fa;
+}
+
+.dash-chart-card {
+  margin-bottom: 24px;
+}
+.dash-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 16px 0;
+  color: var(--text-primary, #f5f5f5);
+}
+.dash-card-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.dash-card-title-row .dash-card-title {
+  margin: 0;
+}
+
+/* mono / session-row / skeleton / empty-text — unchanged from before,
+   still used as-is by the JS */
+.mono {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-variant-numeric: tabular-nums;
+}
+.session-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.session-row:last-child { border-bottom: none; }
+.session-left { display: flex; flex-direction: column; gap: 2px; }
+.session-company { font-size: 14px; font-weight: 600; color: var(--text-primary, #f5f5f5); }
+.session-role { font-size: 12px; color: rgba(255, 255, 255, 0.4); }
+.session-right { display: flex; align-items: center; gap: 16px; }
+.session-questions, .session-date {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+}
+.empty-text {
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 14px;
+  margin: 0;
+}
+
+.skeleton-list { display: flex; flex-direction: column; gap: 12px; }
+.skeleton-row { display: flex; justify-content: space-between; padding: 14px 0; }
+.skeleton-block {
+  background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+@keyframes skeleton-shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-block { animation-duration: 3s; }
+}
+
+@media (max-width: 768px) {
+  .dash-sidebar { display: none; } /* mobile fallback, consistent with Auth.css's pattern */
+  .dash-main { padding: 32px 20px; }
+}

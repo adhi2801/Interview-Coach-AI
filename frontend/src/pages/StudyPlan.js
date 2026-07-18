@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { API_URL } from "../config";
-import { motion, AnimatePresence } from "framer-motion";
 
 export default function StudyPlan({ topicName, company, onClose }) {
   const [plan, setPlan] = useState(null);
@@ -35,20 +34,8 @@ export default function StudyPlan({ topicName, company, onClose }) {
   if (!plan || !plan.steps?.length) return null;
 
   return (
-    <motion.div
-      style={s.overlay}
-      onClick={onClose}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-    >
-      <motion.div
-        style={s.modal}
-        onClick={(e) => e.stopPropagation()}
-        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-      >
+    <div style={s.overlay} onClick={onClose}>
+      <div style={s.modal} onClick={(e) => e.stopPropagation()}>
         <div style={s.header}>
           <div>
             <p style={s.headerLabel}>Study Path</p>
@@ -68,15 +55,15 @@ export default function StudyPlan({ topicName, company, onClose }) {
             const relevanceColor =
               step.company_relevance >= 1.6 ? "#f87171" :
               step.company_relevance >= 1.3 ? "#facc15" :
-              step.company_relevance <= 0.6 ? "#475569" : "#6366f1";
+              step.company_relevance <= 0.6 ? "#475569" : "#2563eb";
 
             return (
               <div key={step.name} style={s.stepRow}>
                 <div style={s.stepLeft}>
                   <div style={{
                     ...s.stepDot,
-                    backgroundColor: isTarget ? "#6366f1" : "#1e293b",
-                    border: isTarget ? "none" : "2px solid #334155"
+                    backgroundColor: isTarget ? "#2563eb" : "rgba(255,255,255,0.06)",
+                    border: isTarget ? "none" : "1px solid rgba(255,255,255,0.1)"
                   }}>
                     {i + 1}
                   </div>
@@ -103,50 +90,52 @@ export default function StudyPlan({ topicName, company, onClose }) {
             );
           })}
         </div>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }
 
 const s = {
   overlay: {
     position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)",
+    backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(6px)",
     display: "flex", alignItems: "center", justifyContent: "center",
     zIndex: 1000, padding: "20px"
   },
   modal: {
-    backgroundColor: "#0f172a", border: "1px solid #1e293b",
-    borderRadius: "20px", padding: "32px", maxWidth: "560px",
+    backgroundColor: "#0A0A0A", border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: "18px", padding: "32px", maxWidth: "560px",
     width: "100%", maxHeight: "80vh", overflowY: "auto",
-    fontFamily: "'Inter', sans-serif"
+    fontFamily: "'Inter', sans-serif",
+    boxShadow: "0 30px 60px rgba(0,0,0,0.5)"
   },
-  loadingText: { color: "#94a3b8", fontSize: "14px", textAlign: "center" },
+  loadingText: { color: "#71717a", fontSize: "14px", textAlign: "center" },
   header: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" },
-  headerLabel: { color: "#6366f1", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", margin: "0 0 4px 0" },
-  headerTitle: { color: "#f8fafc", fontSize: "22px", fontWeight: "800", margin: 0, textTransform: "capitalize" },
-  closeBtn: { background: "none", border: "none", color: "#475569", fontSize: "24px", cursor: "pointer", lineHeight: 1 },
-  subtitle: { color: "#64748b", fontSize: "13px", lineHeight: "1.6", marginBottom: "24px" },
+  headerLabel: { color: "#2563eb", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 4px 0" },
+  headerTitle: { color: "#f5f5f5", fontSize: "22px", fontWeight: "800", margin: 0, textTransform: "capitalize", letterSpacing: "-0.02em" },
+  closeBtn: { background: "none", border: "none", color: "#52525b", fontSize: "24px", cursor: "pointer", lineHeight: 1, transition: "transform 0.12s cubic-bezier(0.34,1.56,0.64,1)" },
+  subtitle: { color: "#71717a", fontSize: "13px", lineHeight: "1.6", marginBottom: "24px" },
   timeline: { display: "flex", flexDirection: "column" },
   stepRow: { display: "flex", gap: "16px" },
   stepLeft: { display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 },
   stepDot: {
-    width: "32px", height: "32px", borderRadius: "50%",
+    width: "30px", height: "30px", borderRadius: "50%",
     display: "flex", alignItems: "center", justifyContent: "center",
-    color: "#cbd5e1", fontSize: "13px", fontWeight: "700", flexShrink: 0
+    color: "#a1a1aa", fontSize: "13px", fontWeight: "700", flexShrink: 0,
+    fontVariantNumeric: "tabular-nums"
   },
-  stepLine: { width: "2px", flex: 1, backgroundColor: "#1e293b", minHeight: "24px" },
+  stepLine: { width: "2px", flex: 1, backgroundColor: "rgba(255,255,255,0.08)", minHeight: "24px" },
   stepContent: { paddingBottom: "24px", flex: 1 },
   stepTop: { display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px", flexWrap: "wrap" },
-  stepName: { color: "#e2e8f0", fontSize: "15px", fontWeight: "600", textTransform: "capitalize" },
+  stepName: { color: "#e4e4e7", fontSize: "15px", fontWeight: "600", textTransform: "capitalize" },
   stepNameTarget: { color: "#a5b4fc", fontSize: "16px", fontWeight: "800", textTransform: "capitalize" },
   diffBadge: {
-    backgroundColor: "#1e293b", color: "#64748b", fontSize: "10px",
-    fontWeight: "700", padding: "2px 6px", borderRadius: "4px"
+    backgroundColor: "rgba(255,255,255,0.06)", color: "#71717a", fontSize: "10px",
+    fontWeight: "700", padding: "2px 6px", borderRadius: "4px", fontVariantNumeric: "tabular-nums"
   },
   relevanceBadge: {
     fontSize: "10px", fontWeight: "700", padding: "2px 8px",
-    borderRadius: "20px", border: "1px solid", textTransform: "uppercase"
+    borderRadius: "6px", border: "1px solid", textTransform: "uppercase", letterSpacing: "0.04em"
   },
-  stepDesc: { color: "#64748b", fontSize: "13px", lineHeight: "1.5", margin: 0 }
+  stepDesc: { color: "#71717a", fontSize: "13px", lineHeight: "1.5", margin: 0 }
 };
