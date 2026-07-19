@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { useScroll, useTransform, motion, useMotionValueEvent } from "framer-motion";
+import { Target, Building2, Activity, Network, Code2 } from "lucide-react";
 import PremiumLayout from "../components/layout/PremiumLayout";
 import KnowledgeGraphScene from "../components/scenes/KnowledgeGraphScene";
 import Button from "../components/ui/Button";
@@ -13,7 +14,46 @@ import "./Landing.css";
  * 2. Morphing Header Pill (Dynamic scroll threshold)
  * 3. Radial Vignette Masking (Prevents text/node collision)
  * 4. Infinite Sliding Marquee (Social proof)
+ * 5. Features section + closing CTA — added because the page previously
+ *    ended right after the logo marquee, meaning a first-time visitor
+ *    never saw what the product actually does (adaptive difficulty,
+ *    company-specific mutation, live coaching, the knowledge graph,
+ *    the coding track) before the page just stopped.
  */
+
+const FEATURES = [
+  {
+    icon: Target,
+    title: "Adaptive ELO Difficulty",
+    description:
+      "Every answer updates your rating in real time. Questions get harder when you're doing well, ease off when you're not — the same difficulty curve a real interview loop would apply.",
+  },
+  {
+    icon: Building2,
+    title: "Company-Specific Mutation",
+    description:
+      "Questions aren't generic — they're mutated to match how each company actually interviews. Amazon questions map to Leadership Principles, Google questions emphasize scale and ambiguity.",
+  },
+  {
+    icon: Activity,
+    title: "Live Confidence Coaching",
+    description:
+      "Real-time words-per-minute, filler-word detection, and confidence scoring as you speak or type — delivered over a live connection, not a button you press after the fact.",
+  },
+  {
+    icon: Network,
+    title: "93-Topic Knowledge Graph",
+    description:
+      "Every gap in your answers ties back to a real prerequisite chain across 93 CS topics and 96 dependency edges — so you know exactly what to study next, and in what order.",
+  },
+  {
+    icon: Code2,
+    title: "Full Coding Sandbox",
+    description:
+      "A separate coding track with a real code editor, sandboxed execution, and Socratic hints that guide without ever handing you the answer — with the same adaptive difficulty as the interview track.",
+  },
+];
+
 export default function Landing({ onGetStarted, onSignIn }) {
   const heroRef = useRef(null);
   
@@ -51,7 +91,7 @@ export default function Landing({ onGetStarted, onSignIn }) {
       scene={
         <motion.div 
           className="w-full h-full absolute inset-0"
-          style={{ scale: graphScale, filter: `blur(${graphBlur.get()})`, opacity: graphOpacity }}
+          style={{ scale: graphScale, filter: graphBlur, opacity: graphOpacity }}
         >
           <KnowledgeGraphScene scrollTargetRef={heroRef} />
         </motion.div>
@@ -130,6 +170,39 @@ export default function Landing({ onGetStarted, onSignIn }) {
             ))}
           </div>
         </div>
+      </section>
+
+      {/* NEW: Features section — the page previously ended at the marquee
+          above, meaning nobody ever saw what the product actually does
+          before signing up. */}
+      <section className="landing-features">
+        <div className="landing-features-header">
+          <p className="landing-features-label">What's actually under the hood</p>
+          <h2 className="landing-features-title">Not a wrapper around a chatbot.</h2>
+        </div>
+        <div className="landing-features-grid">
+          {FEATURES.map((f) => (
+            <div key={f.title} className="landing-feature-card">
+              <div className="landing-feature-icon">
+                <f.icon size={20} />
+              </div>
+              <h3 className="landing-feature-title">{f.title}</h3>
+              <p className="landing-feature-desc">{f.description}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* NEW: Closing CTA — repeats the primary action after someone has
+          scrolled through everything, so they don't have to scroll back up. */}
+      <section className="landing-closing-cta">
+        <h2 className="landing-closing-title">Ready to know the terrain?</h2>
+        <p className="landing-closing-subline">
+          Free to start. No credit card required.
+        </p>
+        <Button size="lg" onClick={onGetStarted} className="tactile-cta">
+          Start free →
+        </Button>
       </section>
     </PremiumLayout>
   );
