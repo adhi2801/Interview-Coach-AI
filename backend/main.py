@@ -574,6 +574,41 @@ def get_user_sessions(user_id: int = Depends(get_current_user_id)):
     finally:
         db.close()
 
+@app.delete("/user/me")
+def delete_my_account(user_id: int = Depends(get_current_user_id)):
+    if not user_id:
+        return {"error": "Authentication required"}
+
+    db = SessionLocal()
+    try:
+        session_ids = [
+            s.id for s in db.query(InterviewSession).filter(
+                InterviewSession.user_id == user_id
+            ).all()
+        ]
+
+        if session_ids:
+            db.query(Answer).filter(Answer.session_id.in_(session_ids)).delete(synchronize_session=False)
+            db.query(ReplayManifest).filter(ReplayManifest.session_id.in_(session_ids)).delete(synchronize_session=False)
+            db.query(ScoringJob).filter(ScoringJob.session_id.in_(session_ids)).delete(synchronize_session=False)
+
+        db.query(CodingSubmission).filter(CodingSubmission.user_id == user_id).delete(synchronize_session=False)
+        db.query(InterviewSession).filter(InterviewSession.user_id == user_id).delete(synchronize_session=False)
+
+        user = db.query(User).filter(User.id == user_id).first()
+        if user:
+            db.delete(user)
+
+        db.commit()
+        logger.info("user_account_deleted", user_id=user_id, sessions_deleted=len(session_ids))
+        return {"status": "deleted"}
+    except Exception as e:
+        db.rollback()
+        logger.error("account_deletion_failed", user_id=user_id, error=str(e))
+        return {"error": "Deletion failed. Please try again or contact support."}
+    finally:
+        db.close()        
+
 # --- Coding Track (Track B) ---
 
 @app.get("/coding/problems")
