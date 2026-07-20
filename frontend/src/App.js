@@ -96,7 +96,10 @@ function AuthenticatedApp({ user, onLogout, onEloUpdate }) {
           />
         }
       />
-      <Route path="/replay" element={<ReplayViewer sessionId={sessionData?.session_id} />} />
+      <Route
+        path="/replay"
+        element={<ReplayViewer sessionId={sessionData?.session_id} onExit={() => navigate("/")} />}
+      />
       <Route
         path="/settings"
         element={<Settings user={user} onLogout={onLogout} onGoBack={() => navigate("/")} />}

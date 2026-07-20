@@ -29,7 +29,12 @@ function AnimatedScore({ value }) {
   return <>{display}</>;
 }
 
-export default function ReplayViewer({ sessionId }) {
+// FIXED: added onExit prop. Previously the "Exit Replay" button had zero
+// onClick — full hover styling, looked completely clickable, did nothing.
+// Worse, App.js never even passed a way to leave this page — the only
+// escape was the browser back button. Now wired to a real navigation
+// callback, same pattern as every other page's onFinish/onGoBack prop.
+export default function ReplayViewer({ sessionId, onExit }) {
   const [replay, setReplay] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(0);
@@ -69,6 +74,15 @@ export default function ReplayViewer({ sessionId }) {
         <div className="text-center">
            <AlertTriangle size={32} className="text-red-500 mx-auto mb-4" />
            <p className="text-sm font-bold text-white uppercase tracking-widest">Replay Corrupted or Missing</p>
+           {/* Also give an exit path from the error state — previously a dead end too */}
+           {onExit && (
+             <button
+               onClick={onExit}
+               className="mt-6 flex items-center gap-2 mx-auto text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-white transition-colors"
+             >
+               <ChevronLeft size={14} /> Back to Dashboard
+             </button>
+           )}
         </div>
       </div>
     );
@@ -140,7 +154,10 @@ export default function ReplayViewer({ sessionId }) {
            <span className="text-xs font-mono font-bold text-slate-500 bg-white/[0.03] border border-white/10 px-3 py-1.5 rounded-md">
              {replay.total_questions} Nodes Logged
            </span>
-           <button className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-white transition-colors">
+           <button
+             onClick={onExit}
+             className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-white transition-colors"
+           >
               <ChevronLeft size={14} /> Exit Replay
            </button>
         </div>
