@@ -1,13 +1,15 @@
 # backend/seed_coding_problems.py
 # Run once to populate the coding_problems / coding_test_cases tables.
-# Same philosophy as seed_questions.py: real, hand-picked problems with
-# real test cases, not LLM-generated on the fly — a candidate should be
-# graded against the same fixed bar every time they hit a given problem.
 #
-# STDIN/STDOUT CONTRACT: every starter template reads input via input()/stdin
-# and prints the result via print(). This is what lets Piston (a raw process
-# executor, no test framework) grade arbitrary code — the contract is just
-# "read this, print that," which works identically across every language.
+# LANGUAGE SUPPORT: each problem now has starter_code for python, javascript,
+# java, and cpp — matching what code_executor.py's LANGUAGE_VERSIONS already
+# supports on the Piston side. All four follow the exact same contract:
+# read from stdin, print to stdout, so the same test cases grade every
+# language identically without any language-specific test logic.
+#
+# If you re-run this after problems already exist, the "skip" branch means
+# starter_code won't be updated for existing rows — delete the row first
+# (or add an UPDATE path) if you need to refresh starter code on an existing DB.
 
 from database import SessionLocal
 from models import CodingProblem, CodingTestCase
@@ -35,7 +37,56 @@ PROBLEMS = [
                 "    pass\n\n"
                 "result = two_sum(nums, target)\n"
                 "print(*result)\n"
-            )
+            ),
+            "javascript": (
+                "const lines = require('fs').readFileSync('/dev/stdin', 'utf8').split('\\n');\n"
+                "const nums = lines[0].trim().split(' ').map(Number);\n"
+                "const target = parseInt(lines[1].trim());\n\n"
+                "function twoSum(nums, target) {\n"
+                "  // your code here\n"
+                "}\n\n"
+                "const result = twoSum(nums, target);\n"
+                "console.log(result.join(' '));\n"
+            ),
+            "java": (
+                "import java.util.*;\n\n"
+                "public class Main {\n"
+                "    public static void main(String[] args) {\n"
+                "        Scanner sc = new Scanner(System.in);\n"
+                "        String[] parts = sc.nextLine().trim().split(\" \");\n"
+                "        int[] nums = new int[parts.length];\n"
+                "        for (int i = 0; i < parts.length; i++) nums[i] = Integer.parseInt(parts[i]);\n"
+                "        int target = Integer.parseInt(sc.nextLine().trim());\n\n"
+                "        int[] result = twoSum(nums, target);\n"
+                "        System.out.println(result[0] + \" \" + result[1]);\n"
+                "    }\n\n"
+                "    static int[] twoSum(int[] nums, int target) {\n"
+                "        // your code here\n"
+                "        return new int[]{-1, -1};\n"
+                "    }\n"
+                "}\n"
+            ),
+            "cpp": (
+                "#include <bits/stdc++.h>\n"
+                "using namespace std;\n\n"
+                "vector<int> twoSum(vector<int>& nums, int target) {\n"
+                "    // your code here\n"
+                "    return {-1, -1};\n"
+                "}\n\n"
+                "int main() {\n"
+                "    string line;\n"
+                "    getline(cin, line);\n"
+                "    stringstream ss(line);\n"
+                "    vector<int> nums;\n"
+                "    int x;\n"
+                "    while (ss >> x) nums.push_back(x);\n"
+                "    int target;\n"
+                "    cin >> target;\n\n"
+                "    vector<int> result = twoSum(nums, target);\n"
+                "    cout << result[0] << \" \" << result[1] << endl;\n"
+                "    return 0;\n"
+                "}\n"
+            ),
         },
         "test_cases": [
             {"input": "2 7 11 15\n9", "expected_output": "0 1", "is_hidden": 0},
@@ -64,7 +115,42 @@ PROBLEMS = [
                 "    # your code here\n"
                 "    pass\n\n"
                 "print(str(is_valid(s)).lower())\n"
-            )
+            ),
+            "javascript": (
+                "const s = require('fs').readFileSync('/dev/stdin', 'utf8').trim();\n\n"
+                "function isValid(s) {\n"
+                "  // your code here\n"
+                "}\n\n"
+                "console.log(isValid(s));\n"
+            ),
+            "java": (
+                "import java.util.*;\n\n"
+                "public class Main {\n"
+                "    public static void main(String[] args) {\n"
+                "        Scanner sc = new Scanner(System.in);\n"
+                "        String s = sc.nextLine().trim();\n"
+                "        System.out.println(isValid(s));\n"
+                "    }\n\n"
+                "    static boolean isValid(String s) {\n"
+                "        // your code here\n"
+                "        return false;\n"
+                "    }\n"
+                "}\n"
+            ),
+            "cpp": (
+                "#include <bits/stdc++.h>\n"
+                "using namespace std;\n\n"
+                "bool isValid(string s) {\n"
+                "    // your code here\n"
+                "    return false;\n"
+                "}\n\n"
+                "int main() {\n"
+                "    string s;\n"
+                "    getline(cin, s);\n"
+                "    cout << (isValid(s) ? \"true\" : \"false\") << endl;\n"
+                "    return 0;\n"
+                "}\n"
+            ),
         },
         "test_cases": [
             {"input": "()", "expected_output": "true", "is_hidden": 0},
@@ -96,7 +182,65 @@ PROBLEMS = [
                 "    pass\n\n"
                 "result = merge(intervals)\n"
                 "print(' '.join(f'{a},{b}' for a, b in result))\n"
-            )
+            ),
+            "javascript": (
+                "const raw = require('fs').readFileSync('/dev/stdin', 'utf8').trim().split(' ');\n"
+                "const intervals = raw.map(pair => pair.split(',').map(Number));\n\n"
+                "function merge(intervals) {\n"
+                "  // your code here\n"
+                "}\n\n"
+                "const result = merge(intervals);\n"
+                "console.log(result.map(([a, b]) => `${a},${b}`).join(' '));\n"
+            ),
+            "java": (
+                "import java.util.*;\n\n"
+                "public class Main {\n"
+                "    public static void main(String[] args) {\n"
+                "        Scanner sc = new Scanner(System.in);\n"
+                "        String[] raw = sc.nextLine().trim().split(\" \");\n"
+                "        int[][] intervals = new int[raw.length][2];\n"
+                "        for (int i = 0; i < raw.length; i++) {\n"
+                "            String[] pair = raw[i].split(\",\");\n"
+                "            intervals[i][0] = Integer.parseInt(pair[0]);\n"
+                "            intervals[i][1] = Integer.parseInt(pair[1]);\n"
+                "        }\n\n"
+                "        int[][] result = merge(intervals);\n"
+                "        StringBuilder sb = new StringBuilder();\n"
+                "        for (int[] r : result) sb.append(r[0]).append(\",\").append(r[1]).append(\" \");\n"
+                "        System.out.println(sb.toString().trim());\n"
+                "    }\n\n"
+                "    static int[][] merge(int[][] intervals) {\n"
+                "        // your code here\n"
+                "        return intervals;\n"
+                "    }\n"
+                "}\n"
+            ),
+            "cpp": (
+                "#include <bits/stdc++.h>\n"
+                "using namespace std;\n\n"
+                "vector<pair<int,int>> merge(vector<pair<int,int>>& intervals) {\n"
+                "    // your code here\n"
+                "    return intervals;\n"
+                "}\n\n"
+                "int main() {\n"
+                "    string line;\n"
+                "    getline(cin, line);\n"
+                "    stringstream ss(line);\n"
+                "    string token;\n"
+                "    vector<pair<int,int>> intervals;\n"
+                "    while (ss >> token) {\n"
+                "        int comma = token.find(',');\n"
+                "        intervals.push_back({stoi(token.substr(0, comma)), stoi(token.substr(comma + 1))});\n"
+                "    }\n\n"
+                "    vector<pair<int,int>> result = merge(intervals);\n"
+                "    for (size_t i = 0; i < result.size(); i++) {\n"
+                "        cout << result[i].first << \",\" << result[i].second;\n"
+                "        if (i + 1 < result.size()) cout << \" \";\n"
+                "    }\n"
+                "    cout << endl;\n"
+                "    return 0;\n"
+                "}\n"
+            ),
         },
         "test_cases": [
             {"input": "1,3 2,6 8,10 15,18", "expected_output": "1,6 8,10 15,18", "is_hidden": 0},
@@ -142,7 +286,85 @@ PROBLEMS = [
                 "    elif parts[0] == 'GET':\n"
                 "        output.append(str(cache.get(int(parts[1]))))\n"
                 "print('\\n'.join(output))\n"
-            )
+            ),
+            "javascript": (
+                "const lines = require('fs').readFileSync('/dev/stdin', 'utf8').split('\\n').filter(l => l.length);\n"
+                "const capacity = parseInt(lines[0]);\n"
+                "const commands = lines.slice(1);\n\n"
+                "class LRUCache {\n"
+                "  constructor(capacity) {\n"
+                "    // your code here\n"
+                "  }\n"
+                "  get(key) {}\n"
+                "  put(key, value) {}\n"
+                "}\n\n"
+                "const cache = new LRUCache(capacity);\n"
+                "const output = [];\n"
+                "for (const cmd of commands) {\n"
+                "  const parts = cmd.split(' ');\n"
+                "  if (parts[0] === 'PUT') cache.put(parseInt(parts[1]), parseInt(parts[2]));\n"
+                "  else if (parts[0] === 'GET') output.push(String(cache.get(parseInt(parts[1]))));\n"
+                "}\n"
+                "console.log(output.join('\\n'));\n"
+            ),
+            "java": (
+                "import java.util.*;\n\n"
+                "public class Main {\n"
+                "    public static void main(String[] args) {\n"
+                "        Scanner sc = new Scanner(System.in);\n"
+                "        int capacity = Integer.parseInt(sc.nextLine().trim());\n"
+                "        LRUCache cache = new LRUCache(capacity);\n"
+                "        StringBuilder sb = new StringBuilder();\n"
+                "        while (sc.hasNextLine()) {\n"
+                "            String line = sc.nextLine().trim();\n"
+                "            if (line.isEmpty()) continue;\n"
+                "            String[] parts = line.split(\" \");\n"
+                "            if (parts[0].equals(\"PUT\")) cache.put(Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));\n"
+                "            else if (parts[0].equals(\"GET\")) sb.append(cache.get(Integer.parseInt(parts[1]))).append(\"\\n\");\n"
+                "        }\n"
+                "        System.out.print(sb.toString().trim());\n"
+                "    }\n"
+                "}\n\n"
+                "class LRUCache {\n"
+                "    LRUCache(int capacity) {\n"
+                "        // your code here\n"
+                "    }\n"
+                "    int get(int key) { return -1; }\n"
+                "    void put(int key, int value) {}\n"
+                "}\n"
+            ),
+            "cpp": (
+                "#include <bits/stdc++.h>\n"
+                "using namespace std;\n\n"
+                "class LRUCache {\n"
+                "public:\n"
+                "    LRUCache(int capacity) {\n"
+                "        // your code here\n"
+                "    }\n"
+                "    int get(int key) { return -1; }\n"
+                "    void put(int key, int value) {}\n"
+                "};\n\n"
+                "int main() {\n"
+                "    int capacity;\n"
+                "    cin >> capacity;\n"
+                "    cin.ignore();\n"
+                "    LRUCache cache(capacity);\n"
+                "    string line;\n"
+                "    while (getline(cin, line)) {\n"
+                "        if (line.empty()) continue;\n"
+                "        stringstream ss(line);\n"
+                "        string cmd; ss >> cmd;\n"
+                "        if (cmd == \"PUT\") {\n"
+                "            int k, v; ss >> k >> v;\n"
+                "            cache.put(k, v);\n"
+                "        } else if (cmd == \"GET\") {\n"
+                "            int k; ss >> k;\n"
+                "            cout << cache.get(k) << endl;\n"
+                "        }\n"
+                "    }\n"
+                "    return 0;\n"
+                "}\n"
+            ),
         },
         "test_cases": [
             {"input": "2\nPUT 1 1\nPUT 2 2\nGET 1\nPUT 3 3\nGET 2\nGET 3", "expected_output": "1\n-1\n3", "is_hidden": 0},
@@ -167,7 +389,42 @@ PROBLEMS = [
                 "    # your code here\n"
                 "    pass\n\n"
                 "print(length_of_longest_substring(s))\n"
-            )
+            ),
+            "javascript": (
+                "const s = require('fs').readFileSync('/dev/stdin', 'utf8').trim();\n\n"
+                "function lengthOfLongestSubstring(s) {\n"
+                "  // your code here\n"
+                "}\n\n"
+                "console.log(lengthOfLongestSubstring(s));\n"
+            ),
+            "java": (
+                "import java.util.*;\n\n"
+                "public class Main {\n"
+                "    public static void main(String[] args) {\n"
+                "        Scanner sc = new Scanner(System.in);\n"
+                "        String s = sc.hasNextLine() ? sc.nextLine().trim() : \"\";\n"
+                "        System.out.println(lengthOfLongestSubstring(s));\n"
+                "    }\n\n"
+                "    static int lengthOfLongestSubstring(String s) {\n"
+                "        // your code here\n"
+                "        return 0;\n"
+                "    }\n"
+                "}\n"
+            ),
+            "cpp": (
+                "#include <bits/stdc++.h>\n"
+                "using namespace std;\n\n"
+                "int lengthOfLongestSubstring(string s) {\n"
+                "    // your code here\n"
+                "    return 0;\n"
+                "}\n\n"
+                "int main() {\n"
+                "    string s;\n"
+                "    getline(cin, s);\n"
+                "    cout << lengthOfLongestSubstring(s) << endl;\n"
+                "    return 0;\n"
+                "}\n"
+            ),
         },
         "test_cases": [
             {"input": "abcabcbb", "expected_output": "3", "is_hidden": 0},
@@ -189,7 +446,13 @@ def seed_coding_problems():
         for entry in PROBLEMS:
             existing = db.query(CodingProblem).filter(CodingProblem.slug == entry["slug"]).first()
             if existing:
-                print(f"  skip (already exists): {entry['slug']}")
+                # Refresh starter_code on existing rows too — this is the one
+                # field that changed in this pass (added javascript/java/cpp
+                # templates), and skipping it entirely would leave old
+                # deployments stuck on python-only forever.
+                existing.starter_code = entry["starter_code"]
+                db.commit()
+                print(f"  updated starter_code: {entry['slug']}")
                 continue
 
             problem = CodingProblem(
@@ -217,7 +480,8 @@ def seed_coding_problems():
             print(f"  added: {entry['slug']} ({len(entry['test_cases'])} test cases)")
 
         db.commit()
-        print(f"\nSeeded {problem_count} problems, {test_case_count} test cases")
+        print(f"\nSeeded {problem_count} new problems, {test_case_count} test cases, "
+              f"refreshed starter_code on {len(PROBLEMS) - problem_count} existing problems")
     finally:
         db.close()
 

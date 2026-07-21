@@ -23,9 +23,15 @@ export default function StudyPlan({ topicName, company, onClose }) {
 
   if (loading) {
     return (
-      <div style={s.overlay} onClick={onClose}>
-        <div style={s.modal} onClick={(e) => e.stopPropagation()}>
-          <p style={s.loadingText}>Building your study path...</p>
+      <div
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[1000] p-5"
+        onClick={onClose}
+      >
+        <div
+          className="bg-black border border-white/[0.08] rounded-2xl p-8 max-w-[560px] w-full shadow-[0_30px_60px_rgba(0,0,0,0.5)]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <p className="text-slate-500 text-sm text-center">Building your study path...</p>
         </div>
       </div>
     );
@@ -34,57 +40,75 @@ export default function StudyPlan({ topicName, company, onClose }) {
   if (!plan || !plan.steps?.length) return null;
 
   return (
-    <div style={s.overlay} onClick={onClose}>
-      <div style={s.modal} onClick={(e) => e.stopPropagation()}>
-        <div style={s.header}>
+    <div
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[1000] p-5"
+      onClick={onClose}
+    >
+      <div
+        className="bg-black border border-white/[0.08] rounded-2xl p-8 max-w-[560px] w-full max-h-[80vh] overflow-y-auto shadow-[0_30px_60px_rgba(0,0,0,0.5)]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-start mb-2">
           <div>
-            <p style={s.headerLabel}>Study Path</p>
-            <h2 style={s.headerTitle}>{topicName.replace(/_/g, " ")}</h2>
+            <p className="text-blue-500 text-[11px] font-bold uppercase tracking-widest mb-1">Study Path</p>
+            <h2 className="text-white text-[22px] font-extrabold capitalize tracking-tight">
+              {topicName.replace(/_/g, " ")}
+            </h2>
           </div>
-          <button style={s.closeBtn} onClick={onClose}>×</button>
+          <button
+            className="text-zinc-600 text-2xl leading-none hover:text-white transition-colors"
+            onClick={onClose}
+          >
+            ×
+          </button>
         </div>
 
-        <p style={s.subtitle}>
+        <p className="text-zinc-500 text-[13px] leading-relaxed mb-6">
           {plan.steps.length} concepts to master, in the order our knowledge graph
           determined you need them — each step unlocks the next.
         </p>
 
-        <div style={s.timeline}>
+        <div className="flex flex-col">
           {plan.steps.map((step, i) => {
             const isTarget = i === plan.steps.length - 1;
-            const relevanceColor =
-              step.company_relevance >= 1.6 ? "#f87171" :
-              step.company_relevance >= 1.3 ? "#facc15" :
-              step.company_relevance <= 0.6 ? "#475569" : "#2563eb";
+            const relevance =
+              step.company_relevance >= 1.6 ? { label: `Critical for ${company}`, color: "text-red-400 border-red-400/25" } :
+              step.company_relevance >= 1.3 ? { label: `Important for ${company}`, color: "text-amber-400 border-amber-400/25" } :
+              step.company_relevance <= 0.6 ? { label: "Lower priority", color: "text-slate-500 border-slate-500/25" } :
+              { label: "Standard", color: "text-blue-400 border-blue-400/25" };
 
             return (
-              <div key={step.name} style={s.stepRow}>
-                <div style={s.stepLeft}>
-                  <div style={{
-                    ...s.stepDot,
-                    backgroundColor: isTarget ? "#2563eb" : "rgba(255,255,255,0.06)",
-                    border: isTarget ? "none" : "1px solid rgba(255,255,255,0.1)"
-                  }}>
+              <div key={step.name} className="flex gap-4">
+                <div className="flex flex-col items-center flex-shrink-0">
+                  <div
+                    className={`w-[30px] h-[30px] rounded-full flex items-center justify-center text-[13px] font-bold tabular-nums flex-shrink-0 ${
+                      isTarget
+                        ? "bg-blue-600 text-white"
+                        : "bg-white/[0.06] border border-white/10 text-slate-400"
+                    }`}
+                  >
                     {i + 1}
                   </div>
-                  {i < plan.steps.length - 1 && <div style={s.stepLine} />}
+                  {i < plan.steps.length - 1 && (
+                    <div className="w-0.5 flex-1 bg-white/[0.08] min-h-[24px]" />
+                  )}
                 </div>
 
-                <div style={s.stepContent}>
-                  <div style={s.stepTop}>
-                    <span style={isTarget ? s.stepNameTarget : s.stepName}>
+                <div className="pb-6 flex-1">
+                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                    <span className={`capitalize ${isTarget ? "text-indigo-300 text-base font-extrabold" : "text-slate-200 text-[15px] font-semibold"}`}>
                       {step.name.replace(/_/g, " ")}
                     </span>
-                    <span style={s.diffBadge}>L{step.difficulty}</span>
+                    <span className="bg-white/[0.06] text-slate-500 text-[10px] font-bold px-1.5 py-0.5 rounded tabular-nums">
+                      L{step.difficulty}
+                    </span>
                     {company && (
-                      <span style={{ ...s.relevanceBadge, color: relevanceColor, borderColor: relevanceColor + "40" }}>
-                        {step.company_relevance >= 1.6 ? "Critical for " + company :
-                         step.company_relevance >= 1.3 ? "Important for " + company :
-                         step.company_relevance <= 0.6 ? "Lower priority" : "Standard"}
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border uppercase tracking-wide ${relevance.color}`}>
+                        {relevance.label}
                       </span>
                     )}
                   </div>
-                  <p style={s.stepDesc}>{step.description}</p>
+                  <p className="text-zinc-500 text-[13px] leading-relaxed">{step.description}</p>
                 </div>
               </div>
             );
@@ -94,48 +118,3 @@ export default function StudyPlan({ topicName, company, onClose }) {
     </div>
   );
 }
-
-const s = {
-  overlay: {
-    position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(6px)",
-    display: "flex", alignItems: "center", justifyContent: "center",
-    zIndex: 1000, padding: "20px"
-  },
-  modal: {
-    backgroundColor: "#0A0A0A", border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: "18px", padding: "32px", maxWidth: "560px",
-    width: "100%", maxHeight: "80vh", overflowY: "auto",
-    fontFamily: "'Inter', sans-serif",
-    boxShadow: "0 30px 60px rgba(0,0,0,0.5)"
-  },
-  loadingText: { color: "#71717a", fontSize: "14px", textAlign: "center" },
-  header: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" },
-  headerLabel: { color: "#2563eb", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 4px 0" },
-  headerTitle: { color: "#f5f5f5", fontSize: "22px", fontWeight: "800", margin: 0, textTransform: "capitalize", letterSpacing: "-0.02em" },
-  closeBtn: { background: "none", border: "none", color: "#52525b", fontSize: "24px", cursor: "pointer", lineHeight: 1, transition: "transform 0.12s cubic-bezier(0.34,1.56,0.64,1)" },
-  subtitle: { color: "#71717a", fontSize: "13px", lineHeight: "1.6", marginBottom: "24px" },
-  timeline: { display: "flex", flexDirection: "column" },
-  stepRow: { display: "flex", gap: "16px" },
-  stepLeft: { display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 },
-  stepDot: {
-    width: "30px", height: "30px", borderRadius: "50%",
-    display: "flex", alignItems: "center", justifyContent: "center",
-    color: "#a1a1aa", fontSize: "13px", fontWeight: "700", flexShrink: 0,
-    fontVariantNumeric: "tabular-nums"
-  },
-  stepLine: { width: "2px", flex: 1, backgroundColor: "rgba(255,255,255,0.08)", minHeight: "24px" },
-  stepContent: { paddingBottom: "24px", flex: 1 },
-  stepTop: { display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px", flexWrap: "wrap" },
-  stepName: { color: "#e4e4e7", fontSize: "15px", fontWeight: "600", textTransform: "capitalize" },
-  stepNameTarget: { color: "#a5b4fc", fontSize: "16px", fontWeight: "800", textTransform: "capitalize" },
-  diffBadge: {
-    backgroundColor: "rgba(255,255,255,0.06)", color: "#71717a", fontSize: "10px",
-    fontWeight: "700", padding: "2px 6px", borderRadius: "4px", fontVariantNumeric: "tabular-nums"
-  },
-  relevanceBadge: {
-    fontSize: "10px", fontWeight: "700", padding: "2px 8px",
-    borderRadius: "6px", border: "1px solid", textTransform: "uppercase", letterSpacing: "0.04em"
-  },
-  stepDesc: { color: "#71717a", fontSize: "13px", lineHeight: "1.5", margin: 0 }
-};

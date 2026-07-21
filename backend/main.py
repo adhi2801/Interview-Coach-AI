@@ -2,7 +2,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, Request, B
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from database import get_db, create_tables, SessionLocal
-from models import InterviewSession, Answer, Topic, ScoringJob, CodingProblem, CodingTestCase, CodingSubmission
+from models import InterviewSession, Answer, Topic, ScoringJob, CodingProblem, CodingTestCase, CodingSubmission, ReplayManifest
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from slowapi import Limiter, _rate_limit_exceeded_handler

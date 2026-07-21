@@ -1,19 +1,33 @@
-/* STREAMING_CHUNK: Morphing Header Pill Variables */
+/* ==========================================================================
+   GLOBAL FIXES
+   Force transparent inheritance on all landing sections to allow the
+   PremiumLayout ambient lights and film grain to show through, completely
+   eliminating the harsh "seam" lines.
+   ========================================================================== */
+
+section {
+  background: transparent !important;
+}
+
+/* ==========================================================================
+   MORPHING HEADER PILL
+   ========================================================================== */
 
 .landing-nav {
   position: fixed;
-  top: 0;
+  top: 24px;
   left: 0;
   right: 0;
   z-index: 100;
   display: flex;
   justify-content: center;
-  padding-top: 24px;
-  transition: padding-top 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    top 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    padding 0.4s;
 }
 
 .landing-nav.is-scrolled {
-  padding-top: 12px;
+  top: 12px;
 }
 
 .landing-nav-inner {
@@ -31,7 +45,7 @@
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* The "Docked Pill" State */
+/* Docked Pill State */
 
 .landing-nav.is-scrolled .landing-nav-inner {
   background-color: rgba(10, 10, 12, 0.6);
@@ -45,6 +59,10 @@
   width: auto;
   padding: 10px 20px;
 }
+
+/* ==========================================================================
+   BRANDING
+   ========================================================================== */
 
 .landing-brand {
   display: flex;
@@ -60,7 +78,7 @@
   height: 24px;
   border-radius: 6px;
   background-color: #2563eb;
-  color: #fff;
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -74,8 +92,9 @@
   gap: 12px;
 }
 
-
-/* STREAMING_CHUNK: Radial Vignette Masking */
+/* ==========================================================================
+   RADIAL VIGNETTE MASKING
+   ========================================================================== */
 
 .landing-vignette {
   position: absolute;
@@ -89,8 +108,9 @@
   );
 }
 
-
-/* STREAMING_CHUNK: Hero Sections */
+/* ==========================================================================
+   HERO SECTION
+   ========================================================================== */
 
 .landing-hero-sticky {
   position: sticky;
@@ -101,7 +121,10 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  overflow: hidden;
+
+  /* Allow child content to exit bounding box if needed */
+  overflow: visible;
+
   z-index: 10;
 }
 
@@ -126,17 +149,17 @@
   letter-spacing: -0.03em;
   line-height: 1.05;
   color: #ffffff;
-  margin: 0 0 24px 0;
+  margin: 0 0 24px;
   text-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .landing-subline {
   font-size: 18px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.6);
   line-height: 1.6;
-  margin: 0 auto 40px auto;
+  color: rgba(255, 255, 255, 0.6);
   max-width: 500px;
+  margin: 0 auto 40px;
 }
 
 .landing-hero-actions {
@@ -146,20 +169,21 @@
   gap: 16px;
 }
 
-
-/* Enhanced CTA Buttons */
+/* ==========================================================================
+   CTA BUTTONS
+   ========================================================================== */
 
 .tactile-cta {
-  background-color: #ffffff;
-  color: #000000;
-  font-weight: 700;
   display: flex;
   align-items: center;
   gap: 8px;
+  background-color: #ffffff;
+  color: #000000;
+  font-weight: 700;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
   transition:
     transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
     box-shadow 0.2s;
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
 }
 
 .tactile-cta:hover {
@@ -174,9 +198,9 @@
 .cta-shortcut {
   font-family: "JetBrains Mono", monospace;
   font-size: 10px;
-  background-color: rgba(0, 0, 0, 0.1);
   padding: 2px 6px;
   border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.1);
   opacity: 0.6;
 }
 
@@ -196,32 +220,31 @@
   bottom: 40px;
   font-size: 12px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.4);
   letter-spacing: 0.05em;
   text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
 }
 
-
-/* STREAMING_CHUNK: Infinite Sliding Logo Marquee */
+/* ==========================================================================
+   LOGO MARQUEE
+   ========================================================================== */
 
 .landing-proof {
   position: relative;
+  z-index: 10;
   padding: 64px 0;
   text-align: center;
-  z-index: 10;
-  background: linear-gradient(
-    to top,
-    #000000 0%,
-    transparent 100%
-  );
+
+  /* Background stripped out to remove horizontal seam */
+  background: transparent;
 }
 
 .landing-proof-label {
   font-size: 11px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.4);
   text-transform: uppercase;
   letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.4);
   margin-bottom: 32px;
 }
 
@@ -252,7 +275,7 @@
 .landing-proof-strip {
   display: inline-flex;
   gap: 80px;
-  padding-left: 80px; /* Offset to match gap */
+  padding-left: 80px;
   animation: marquee 25s linear infinite;
 }
 
@@ -267,126 +290,34 @@
   color: rgba(255, 255, 255, 0.8);
 }
 
+/* ==========================================================================
+   BENTO GRID (Mapped to JS Class Name)
+   ========================================================================== */
 
-/* STREAMING_CHUNK: Features Section (added — page previously ended at the
-   marquee above, so a first-time visitor never saw what the product does) */
-
-.landing-features {
+.landing-bento {
   position: relative;
   z-index: 10;
-  background-color: #000000;
-  padding: 120px 24px;
-  max-width: 1100px;
-  margin: 0 auto;
+
+  /* Background stripped out to remove horizontal seam */
+  background-color: transparent;
 }
 
-.landing-features-header {
-  text-align: center;
-  margin-bottom: 64px;
-}
+/* ==========================================================================
+   CLOSING CTA (Mapped to JS Class Name)
+   ========================================================================== */
 
-.landing-features-label {
-  font-size: 11px;
-  font-weight: 700;
-  color: #60a5fa;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-bottom: 16px;
-}
-
-.landing-features-title {
-  font-size: clamp(2rem, 4vw, 2.75rem);
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: #ffffff;
-  margin: 0;
-}
-
-.landing-features-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-}
-
-.landing-feature-card {
-  background-color: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 16px;
-  padding: 28px;
-  transition: border-color 0.2s ease, background-color 0.2s ease;
-}
-
-.landing-feature-card:hover {
-  border-color: rgba(255, 255, 255, 0.14);
-  background-color: rgba(255, 255, 255, 0.03);
-}
-
-.landing-feature-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background-color: rgba(37, 99, 235, 0.12);
-  color: #60a5fa;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 20px;
-}
-
-.landing-feature-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: #ffffff;
-  margin: 0 0 10px 0;
-  letter-spacing: -0.01em;
-}
-
-.landing-feature-desc {
-  font-size: 14px;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.55);
-  margin: 0;
-}
-
-/* Two cards on the last row of a 5-item grid at 3 columns — the 5th card
-   would sit alone under column 1. Span it wider on the last row instead
-   of leaving it stranded to the left. */
-.landing-feature-card:nth-child(4) {
-  grid-column: span 1;
-}
-.landing-feature-card:nth-child(5) {
-  grid-column: span 1;
-}
-
-
-/* STREAMING_CHUNK: Closing CTA (added — repeats the primary action after
-   the reader has scrolled through everything, so they don't scroll back up) */
-
-.landing-closing-cta {
+.landing-cta {
   position: relative;
   z-index: 10;
-  background-color: #000000;
+
+  /* Background stripped out to remove horizontal seam */
+  background-color: transparent;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  padding: 100px 24px 120px 24px;
-  text-align: center;
 }
 
-.landing-closing-title {
-  font-size: clamp(1.75rem, 3.5vw, 2.5rem);
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: #ffffff;
-  margin: 0 0 12px 0;
-}
-
-.landing-closing-subline {
-  font-size: 15px;
-  color: rgba(255, 255, 255, 0.5);
-  margin: 0 0 32px 0;
-}
-
-
-/* Animations */
+/* ==========================================================================
+   ANIMATIONS
+   ========================================================================== */
 
 @keyframes marquee {
   0% {
@@ -394,13 +325,23 @@
   }
 
   100% {
-    /* Shifts exactly half the duplicated content */
     transform: translateX(-50%);
   }
 }
 
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
 
-/* Accessibility */
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ==========================================================================
+   ACCESSIBILITY
+   ========================================================================== */
 
 @media (prefers-reduced-motion: reduce) {
   .landing-nav-inner {
@@ -409,14 +350,5 @@
 
   .landing-proof-strip {
     animation: none;
-  }
-}
-
-
-/* Responsive: features grid drops to 1 column on narrow viewports */
-
-@media (max-width: 900px) {
-  .landing-features-grid {
-    grid-template-columns: 1fr;
   }
 }

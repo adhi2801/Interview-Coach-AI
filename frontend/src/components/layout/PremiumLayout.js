@@ -1,24 +1,13 @@
 import { Suspense, useState, useEffect, useRef } from "react";
 
 /**
- * PremiumLayout — the shared four-layer architecture every page uses.
- *
- *   z-0  Canvas    — R3F 3D scene, unique per page, passed in as `scene`
- *   z-5  Ambient    — 2-3 blurred radial gradient blobs, color-tuned per page
- *   z-10 Noise      — drifting grain, mix-blend soft-light, never static
- *   z-20 UI         — the real content, passed in as children
- *
- * Per section 8 (Performance & Accessibility Contract):
- *   - Canvas lazy-mounts via IntersectionObserver, static gradient shows first
- *   - prefers-reduced-motion freezes camera drift / noise drift entirely
- *   - Mobile/low-end: Canvas is dropped, static gradient + noise only
- *
- * Usage:
- *   <PremiumLayout scene={<KnowledgeGraphScene />} ambientColors={["#2563eb", "#7c3aed"]}>
- *     <YourPageContent />
- *   </PremiumLayout>
+ * PremiumLayout — Shared four-layer dark mode architecture.
+ *   z-0  Canvas    — R3F 3D scene (optional)
+ *   z-5  Ambient   — Viewport-spanning radial gradient spotlights
+ *   z-10 Noise     — Soft film grain overlay
+ *   z-20 UI        — Main page content
  */
-export default function PremiumLayout({ scene, ambientColors = ["#2563eb"], children }) {
+export default function PremiumLayout({ scene, ambientColors = ["#2563eb", "#7c3aed"], children }) {
   const [shouldRenderCanvas, setShouldRenderCanvas] = useState(false);
   const containerRef = useRef(null);
 
@@ -27,7 +16,6 @@ export default function PremiumLayout({ scene, ambientColors = ["#2563eb"], chil
     const isLowEnd = navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4;
     const isMobile = window.innerWidth < 768;
 
-    // Section 8: mobile/low-end drops the live Canvas entirely, static gradient + noise only
     if (prefersReducedMotion || isLowEnd || isMobile) {
       setShouldRenderCanvas(false);
       return;
@@ -49,9 +37,12 @@ export default function PremiumLayout({ scene, ambientColors = ["#2563eb"], chil
   }, [scene]);
 
   return (
-    <div ref={containerRef} style={{ position: "relative", minHeight: "100vh", backgroundColor: "var(--bg-void)" }}>
+    <div 
+      ref={containerRef} 
+      style={{ position: "relative", minHeight: "100vh", backgroundColor: "#000000", overflowX: "hidden" }}
+    >
       {/* z-0: Canvas layer */}
-      <div style={{ position: "fixed", inset: 0, zIndex: 0 }}>
+      <div style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none" }}>
         {shouldRenderCanvas && scene ? (
           <Suspense fallback={<StaticGradientFallback colors={ambientColors} />}>
             {scene}
@@ -61,51 +52,81 @@ export default function PremiumLayout({ scene, ambientColors = ["#2563eb"], chil
         )}
       </div>
 
-      {/* z-5: Ambient light layer — kept separate from Canvas so it can be
-          retuned without touching WebGL code, per section 2.
-          BOOSTED: larger blobs, higher opacity, positioned to sit behind
-          the content column instead of near the page edges — the previous
-          values were so faint and so far from where cards actually sit
-          that they contributed almost no visible light to the page. */}
-      <div style={{ position: "fixed", inset: 0, zIndex: 5, pointerEvents: "none" }}>
-        {ambientColors.slice(0, 3).map((color, i) => (
-          <div
-            key={i}
-            style={{
-              position: "absolute",
-              width: "1000px",
-              height: "800px",
-              borderRadius: "50%",
-              filter: "blur(120px)",
-              opacity: 0.28,
-              background: `radial-gradient(ellipse, ${color}, transparent 70%)`,
-              top: `${-100 + i * 260}px`,
-              left: i % 2 === 0 ? "10%" : "45%",
-            }}
-          />
-        ))}
+      {/* z-5: Extended Ambient Spotlights (Fixed & Viewport-spanning) */}
+      <div style={{ position: "fixed", inset: 0, zIndex: 5, pointerEvents: "none", overflow: "hidden" }}>
+        <div
+          style={{
+            position: "absolute",
+            width: "70vw",
+            height: "70vw",
+            maxWidth: "900px",
+            maxHeight: "900px",
+            borderRadius: "50%",
+            filter: "blur(140px)",
+            opacity: 0.22,
+            background: `radial-gradient(circle, ${ambientColors[0] || "#2563eb"} 0%, transparent 70%)`,
+            top: "-15%",
+            left: "15%",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            width: "60vw",
+            height: "60vw",
+            maxWidth: "800px",
+            maxHeight: "800px",
+            borderRadius: "50%",
+            filter: "blur(140px)",
+            opacity: 0.18,
+            background: `radial-gradient(circle, ${ambientColors[1] || "#7c3aed"} 0%, transparent 70%)`,
+            top: "40%",
+            right: "-10%",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            width: "65vw",
+            height: "65vw",
+            maxWidth: "850px",
+            maxHeight: "850px",
+            borderRadius: "50%",
+            filter: "blur(150px)",
+            opacity: 0.15,
+            background: `radial-gradient(circle, ${ambientColors[0] || "#2563eb"} 0%, transparent 70%)`,
+            bottom: "-10%",
+            left: "-10%",
+          }}
+        />
       </div>
 
-      {/* z-10: Noise grain — must drift, never static (section 2 + 5) */}
-      <div className="ds-noise-grain" style={{ zIndex: 10 }} />
+      {/* z-10: Film grain texture */}
+      <div 
+        style={{ 
+          zIndex: 10, 
+          position: "fixed", 
+          inset: 0, 
+          pointerEvents: "none", 
+          opacity: 0.03, 
+          mixBlendMode: "soft-light",
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`
+        }} 
+      />
 
-      {/* z-20: Real UI content */}
+      {/* z-20: Main UI Content */}
       <div style={{ position: "relative", zIndex: 20 }}>{children}</div>
     </div>
   );
 }
 
-/**
- * Static gradient fallback — shown while the Canvas is lazy-loading, and
- * permanently on mobile/low-end/reduced-motion. SSR-safe, no WebGL dependency.
- */
 function StaticGradientFallback({ colors }) {
   return (
     <div
       style={{
         position: "absolute",
         inset: 0,
-        background: `radial-gradient(circle at 30% 20%, ${colors[0]}15, transparent 60%)`,
+        background: `radial-gradient(circle at 50% 30%, ${colors[0]}15, transparent 70%)`,
       }}
     />
   );
