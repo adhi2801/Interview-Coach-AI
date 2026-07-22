@@ -52,7 +52,7 @@ export default function PremiumLayout({ scene, ambientColors = ["#2563eb", "#7c3
         )}
       </div>
 
-      {/* z-5: Extended Ambient Spotlights (Fixed & Viewport-spanning) */}
+      {/* z-5: Extended Ambient Spotlights (Fixed & Viewport-spanning to prevent lighting cliffs) */}
       <div style={{ position: "fixed", inset: 0, zIndex: 5, pointerEvents: "none", overflow: "hidden" }}>
         <div
           style={{

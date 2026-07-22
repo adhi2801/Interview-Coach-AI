@@ -1,8 +1,5 @@
 /* ==========================================================================
-   GLOBAL FIXES
-   Force transparent inheritance on all landing sections to allow the
-   PremiumLayout ambient lights and film grain to show through, completely
-   eliminating the harsh "seam" lines.
+   GLOBAL TRANSPARENT INHERITANCE FIX
    ========================================================================== */
 
 section {
@@ -121,10 +118,7 @@ section {
   align-items: center;
   justify-content: center;
   text-align: center;
-
-  /* Allow child content to exit bounding box if needed */
   overflow: visible;
-
   z-index: 10;
 }
 
@@ -234,8 +228,6 @@ section {
   z-index: 10;
   padding: 64px 0;
   text-align: center;
-
-  /* Background stripped out to remove horizontal seam */
   background: transparent;
 }
 
@@ -254,7 +246,6 @@ section {
   width: 100%;
   max-width: 1000px;
   margin: 0 auto;
-
   mask-image: linear-gradient(
     to right,
     transparent,
@@ -262,7 +253,6 @@ section {
     black 85%,
     transparent
   );
-
   -webkit-mask-image: linear-gradient(
     to right,
     transparent,
@@ -291,26 +281,22 @@ section {
 }
 
 /* ==========================================================================
-   BENTO GRID (Mapped to JS Class Name)
+   BENTO GRID
    ========================================================================== */
 
 .landing-bento {
   position: relative;
   z-index: 10;
-
-  /* Background stripped out to remove horizontal seam */
   background-color: transparent;
 }
 
 /* ==========================================================================
-   CLOSING CTA (Mapped to JS Class Name)
+   CLOSING CTA
    ========================================================================== */
 
 .landing-cta {
   position: relative;
   z-index: 10;
-
-  /* Background stripped out to remove horizontal seam */
   background-color: transparent;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }

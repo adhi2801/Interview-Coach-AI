@@ -79,7 +79,7 @@ try:
 except Exception:
     redis_client = None  # same fail-open pattern as company_dna.py — don't crash the app if Redis is down
 
-DAILY_TOKEN_BUDGET = 500  # tune this — rough starting point for a free-tier user
+DAILY_TOKEN_BUDGET = 20000 # tune this — rough starting point for a free-tier user
 
 def estimate_tokens(text: str) -> int:
     # Rough approximation: ~4 characters per token for English text.

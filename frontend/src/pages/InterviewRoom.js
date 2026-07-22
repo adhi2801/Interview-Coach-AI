@@ -4,8 +4,8 @@ import axios from "axios";
 import StudyPlan from "./StudyPlan";
 import GlassCard from "../components/ui/GlassCard";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
-import { motion, AnimatePresence } from "framer-motion";
-import { Mic, Square, AlertTriangle, Lightbulb, Activity, Code2, ShieldAlert } from "lucide-react";
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
+import { Mic, Square, AlertTriangle, Lightbulb, Activity, Code2, ShieldAlert, ChevronRight, Target, CheckCircle2, Lock, ArrowRight, ThumbsUp, ThumbsDown } from "lucide-react";
 
 export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   // All original state variables perfectly preserved
@@ -14,10 +14,6 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   const [scenario, setScenario] = useState(sessionData?.scenario || "");
   const [constraints, setConstraints] = useState(sessionData?.constraints || []);
   const [ask, setAsk] = useState(sessionData?.ask || "");
-  // FIXED: persona now comes from the session-start response (main.py echoes it
-  // back) and is stored for the lifetime of this interview, so every follow-up
-  // question keeps the same interviewer persona instead of silently resetting
-  // to "standard" the moment the first /answer/submit call fires.
   const [persona] = useState(sessionData?.persona || "standard");
   const [answer, setAnswer] = useState("");
   const [scores, setScores] = useState(null);
@@ -233,7 +229,21 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
+      if (startRes.data.error) {
+        console.error("Answer submit blocked:", startRes.data.error);
+        setScoringError(startRes.data.error);
+        setLoading(false);
+        return;
+      }
+
       const jobId = startRes.data.job_id;
+      if (!jobId) {
+        console.error("No job_id in response:", startRes.data);
+        setScoringError("Unexpected response from server. Please try again.");
+        setLoading(false);
+        return;
+      }
+
       await pollForResult(jobId);
     } catch (err) {
       console.error(err);
@@ -347,30 +357,29 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
         scores.score_confidence) / 5).toFixed(1)
     : null;
 
-  const overallColor = overall >= 7 ? "border-emerald-400 shadow-[0_0_30px_rgba(74,222,128,0.25)]"
-    : overall >= 5 ? "border-amber-400 shadow-[0_0_30px_rgba(250,204,21,0.25)]"
-    : "border-red-400 shadow-[0_0_30px_rgba(248,113,113,0.25)]";
-
   const company = sessionData?.company_profile;
-  const diffColor = difficulty <= 3 ? "bg-emerald-400" : difficulty <= 6 ? "bg-amber-400" : "bg-red-400";
-
-  // Ambient Color Shifting mapping
   const confidenceScore = liveCoaching?.confidence_score ?? 10;
   const cloudColor = confidenceScore >= 7.5 ? 'rgba(16,185,129,0.06)' : 
                      confidenceScore >= 4.5 ? 'rgba(245,158,11,0.04)' : 'rgba(239,68,68,0.04)';
 
+  // Theme calculation for Results Phase
+  const ovNum = parseFloat(overall || 0);
+  const theme = ovNum >= 7 ? "emerald" : ovNum >= 4 ? "amber" : "rose";
+  const themeHex = theme === "emerald" ? "#10b981" : theme === "amber" ? "#f59e0b" : "#f43f5e";
+
   return (
     <div className="h-screen w-full bg-[#000000] text-slate-100 font-sans flex flex-col overflow-hidden selection:bg-blue-500/30">
       
-      {/* Inline Shimmer Keyframes */}
       <style>{`
         @keyframes shimmer {
           0% { transform: translateX(-100%); }
           100% { transform: translateX(100%); }
         }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
-      {/* Dynamic Ambient Light Base */}
+      {/* Dynamic Ambient Light Base (Answering Phase Only) */}
       {phase === "answering" && (
         <div 
           className="fixed inset-0 z-0 pointer-events-none transition-colors duration-1000 ease-out mix-blend-screen"
@@ -392,7 +401,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
             </span>
             <span className="text-zinc-600 text-xs font-medium">&middot; {sessionData?.role || ""}</span>
             {persona && persona !== "standard" && (
-              <span className="ml-2 bg-white/[0.04] border border-white/10 text-slate-300 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded">
+              <span className="ml-2 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded">
                 {persona}
               </span>
             )}
@@ -430,13 +439,11 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
         
         {phase === "answering" ? (
           /* ====================================================================
-             PHASE 1: ZEN 50/50 SPLIT-PANE
+             PHASE 1: ZEN 50/50 SPLIT-PANE (UNCHANGED)
              ==================================================================== */
           <div className="w-full h-full flex transition-opacity duration-500" style={{ opacity: mounted ? 1 : 0 }}>
-            
-            {/* LEFT PANE: The Editorial Case Study */}
+            {/* LEFT PANE */}
             <div className="w-[45%] h-full overflow-y-auto border-r border-white/[0.06] bg-[#000000] px-12 py-16 flex flex-col">
-              
               <div className="flex items-center gap-4 mb-10">
                 <span className="bg-white/[0.03] border border-white/[0.08] px-3 py-1 rounded text-[10px] font-bold text-slate-300 uppercase tracking-widest">
                   {category ? category.replace(/_/g, " ") : "Technical"}
@@ -483,7 +490,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
               )}
             </div>
 
-            {/* RIGHT PANE: The Zen Writing Canvas */}
+            {/* RIGHT PANE */}
             <div className="w-[55%] h-full relative bg-[#000000] flex flex-col">
               
               {/* Invisible Telemetry HUD: Floating Pill */}
@@ -579,7 +586,6 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                   {scoringError && <span className="text-xs text-red-400 font-bold">{scoringError}</span>}
                   <span className="text-[11px] font-mono text-slate-600 font-bold tabular-nums hidden sm:block">{answer.length} chars</span>
                   
-                  {/* Shimmer-locked submission */}
                   <button
                     onClick={submitAnswer}
                     disabled={loading}
@@ -602,73 +608,103 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                   </button>
                 </div>
               </div>
-
             </div>
           </div>
         ) : (
           /* ====================================================================
-             PHASE 2: RESULTS (Executive Report)
-             Preserving all your original charts and components
+             PHASE 2: THE PREMIUM 3-ZONE DIAGNOSTIC COCKPIT
+             (Apple/Linear/Vercel Aesthetic)
              ==================================================================== */
-          <div className="w-full h-full overflow-y-auto bg-[#000000] p-8 lg:p-12 flex justify-center">
-            <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
-              
-              <div className="flex flex-col gap-6 transition-all duration-500">
-                <GlassCard className="p-7">
-                  <div className="flex gap-5 mb-7">
-                    <div className="flex flex-col items-center gap-2.5">
-                      <div className={`w-[88px] h-[88px] rounded-full border-2 bg-black flex flex-col items-center justify-center ${overallColor}`}>
-                        <span className="text-[28px] font-extrabold tabular-nums font-mono">{overall}</span>
-                        <span className="text-[11px] text-zinc-600">/ 10</span>
-                      </div>
-                      <span className="text-zinc-600 text-[11px] font-semibold uppercase tracking-wide">Overall Score</span>
-                    </div>
+          <div className="w-full h-full overflow-y-auto bg-[#000000] relative pb-32 scrollbar-hide">
+            
+            {/* Volumetric Score Gradient */}
+            <div 
+              className={`absolute top-0 left-1/2 -translate-x-1/2 w-[80vw] max-w-[1000px] h-[500px] opacity-20 blur-[150px] pointer-events-none transition-colors duration-1000 bg-${theme}-600`}
+            />
 
+            <div className="max-w-6xl mx-auto px-6 pt-12 flex flex-col gap-8 relative z-10">
+
+              {/* ZONE 1: THE VERDICT HERO */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
+                className={`bg-[#08080A] border border-${theme}-500/30 rounded-3xl p-8 md:p-12 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1),_0_30px_60px_rgba(0,0,0,0.8)] flex flex-col md:flex-row items-center gap-12 relative overflow-hidden`}
+              >
+                {/* Background flourish inside the hero */}
+                <div className={`absolute -right-20 -top-20 w-96 h-96 bg-${theme}-500/10 blur-[80px] pointer-events-none rounded-full`} />
+
+                {/* Score Circular Ticker */}
+                <div className="flex flex-col items-center justify-center shrink-0 relative z-10">
+                  <div className={`w-40 h-40 rounded-full border-4 border-[#111] flex flex-col items-center justify-center relative shadow-[0_0_50px_rgba(0,0,0,0.5)]`}>
+                    <svg className="absolute inset-0 w-full h-full -rotate-90">
+                      <circle cx="80" cy="80" r="76" fill="none" stroke="#222" strokeWidth="4" />
+                      <motion.circle cx="80" cy="80" r="76" fill="none" stroke={themeHex} strokeWidth="4" strokeDasharray="477" 
+                        initial={{ strokeDashoffset: 477 }} 
+                        animate={{ strokeDashoffset: 477 - (477 * (ovNum / 10)) }} 
+                        transition={{ duration: 1.5, ease: "easeOut" }}
+                      />
+                    </svg>
+                    <span className={`text-6xl font-extrabold tabular-nums font-mono text-${theme}-400 drop-shadow-[0_0_20px_currentColor]`}>
+                      <AnimatedNumber value={ovNum} />
+                    </span>
+                    <span className="text-zinc-600 text-sm font-bold tracking-widest uppercase mt-1">/ 10</span>
+                  </div>
+                </div>
+
+                {/* Verdict Copy & Meta Pills */}
+                <div className="flex-1 flex flex-col relative z-10">
+                  <h2 className="text-2xl md:text-3xl font-bold text-white leading-[1.4] tracking-tight mb-6">
+                    {scores.overall_summary || "Diagnostic analysis complete."}
+                  </h2>
+                  
+                  <div className="flex flex-wrap items-center gap-3">
                     {peer && (
-                      <div className="flex-1 bg-white/[0.02] border border-white/10 rounded-md p-4.5">
-                        <div className="flex items-start gap-2.5 mb-3.5">
-                          <span className={`w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 ${
-                            peer.tier === "excellent" ? "bg-emerald-400" :
-                            peer.tier === "strong" ? "bg-blue-400" :
-                            peer.tier === "good" ? "bg-amber-400" :
-                            peer.tier === "weak" ? "bg-orange-400" : "bg-red-400"
-                          }`} />
-                          <div>
-                            <p className="text-slate-100 text-[13px] font-semibold mb-1">{peer.context}</p>
-                            <p className="text-zinc-600 text-xs">vs {peer.total_attempts} candidates</p>
-                          </div>
-                        </div>
-                        <div className="h-[5px] bg-white/10 rounded-full overflow-hidden mb-2.5">
-                          <div
-                            className={`h-full rounded-full transition-all duration-700 ${peer.percentile >= 75 ? "bg-emerald-400" : peer.percentile >= 50 ? "bg-amber-400" : "bg-red-400"}`}
-                            style={{ width: `${peer.percentile}%` }}
-                          />
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-zinc-600 text-[11px] tabular-nums font-mono">{peer.percentile}th percentile</span>
-                          <span className="text-zinc-600 text-[11px] tabular-nums font-mono">Avg: {peer.average_score}/10</span>
-                        </div>
+                      <div className="flex items-center gap-2 bg-white/[0.03] border border-white/10 px-4 py-2 rounded-full">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Peer Percentile</span>
+                        <span className="text-sm font-bold text-white font-mono">{peer.percentile}th</span>
+                        <div className="w-px h-3 bg-white/20 mx-1" />
+                        <span className="text-xs text-slate-400">vs {peer.total_attempts}</span>
+                      </div>
+                    )}
+                    {newElo && (
+                      <div className="flex items-center gap-2 bg-white/[0.03] border border-white/10 px-4 py-2 rounded-full">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">ELO Impact</span>
+                        <span className="text-sm font-bold text-slate-300 font-mono line-through">{currentElo}</span>
+                        <ArrowRight size={12} className="text-slate-500" />
+                        <span className={`text-sm font-bold font-mono ${newElo > currentElo ? "text-emerald-400" : "text-rose-400"}`}>{newElo}</span>
                       </div>
                     )}
                   </div>
+                </div>
+              </motion.div>
 
-                  <div className="flex gap-6 mb-6">
-                    <div className="flex-1">
-                      <p className="text-zinc-600 text-[11px] font-bold uppercase tracking-wide mb-4">Score Breakdown</p>
-                      {[
-                        ["Technical", scores.score_technical, scores.technical_feedback],
-                        ["Communication", scores.score_communication, scores.communication_feedback],
-                        ["Problem Solving", scores.score_problem_solving, scores.problem_solving_feedback],
-                        ["Cultural Fit", scores.score_cultural_fit, null],
-                        ["Confidence", scores.score_confidence, null],
-                      ].map(([label, val, fb]) => (
-                        <ScoreRow key={label} label={label} value={val} feedback={fb} />
-                      ))}
+              {/* ZONE 2: DIAGNOSTIC MATRIX (65/35 Split) */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
+                
+                {/* COLUMN A: Kinetic Score Breakdown & Radar (65%) */}
+                <div className="lg:col-span-7 flex flex-col gap-8">
+                  
+                  {/* Kinetic Expandable Score Rows */}
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <Activity size={16} className="text-blue-500" />
+                      <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Evaluation Breakdown</h3>
                     </div>
+                    
+                    <div className="flex flex-col gap-3">
+                      <ExpandableScoreRow label="Technical Accuracy" value={scores.score_technical} feedback={scores.technical_feedback} />
+                      <ExpandableScoreRow label="Communication & Clarity" value={scores.score_communication} feedback={scores.communication_feedback} />
+                      <ExpandableScoreRow label="Problem Solving" value={scores.score_problem_solving} feedback={scores.problem_solving_feedback} />
+                      <ExpandableScoreRow label="Cultural Fit" value={scores.score_cultural_fit} feedback={null} />
+                      <ExpandableScoreRow label="Confidence Telemetry" value={scores.score_confidence} feedback={null} />
+                    </div>
+                  </motion.div>
 
-                    <div className="w-[280px] flex-shrink-0">
-                      <p className="text-zinc-600 text-[11px] font-bold uppercase tracking-wide mb-4">Skill Radar</p>
-                      <ResponsiveContainer width="100%" height={220}>
+                  {/* Reimagined Glass Radar Chart */}
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }} className="bg-[#08080A] border border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_20px_40px_rgba(0,0,0,0.5)] rounded-3xl p-8 flex flex-col items-center relative overflow-hidden">
+                    <div className={`absolute inset-0 bg-blue-500/5 blur-[80px] pointer-events-none`} />
+                    <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 w-full text-left mb-6">Skill Morphology</h3>
+                    <div className="w-full max-w-[400px] h-[300px]">
+                      <ResponsiveContainer width="100%" height="100%">
                         <RadarChart data={[
                           { dim: "Technical", value: scores.score_technical },
                           { dim: "Comm.", value: scores.score_communication },
@@ -676,141 +712,93 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                           { dim: "Culture", value: scores.score_cultural_fit },
                           { dim: "Confidence", value: scores.score_confidence },
                         ]}>
-                          <PolarGrid stroke="#1e293b" />
-                          <PolarAngleAxis dataKey="dim" tick={{ fill: "#64748b", fontSize: 11 }} />
+                          <PolarGrid stroke="#27272a" />
+                          <PolarAngleAxis dataKey="dim" tick={{ fill: "#a1a1aa", fontSize: 11, fontWeight: "bold" }} />
                           <PolarRadiusAxis domain={[0, 10]} tick={false} axisLine={false} />
-                          <Radar dataKey="value" stroke="#60a5fa" fill="#2563eb" fillOpacity={0.35} strokeWidth={2} />
+                          <Radar dataKey="value" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.2} strokeWidth={2} style={{ filter: 'drop-shadow(0 0 10px rgba(59,130,246,0.5))' }} />
                         </RadarChart>
                       </ResponsiveContainer>
                     </div>
-                  </div>
+                  </motion.div>
 
-                  {scoreHistory.length > 1 && (
-                    <div className="bg-white/[0.02] border border-white/10 rounded-md p-4.5 mb-6">
-                      <p className="text-zinc-600 text-[11px] font-bold uppercase tracking-wide mb-4">Progress This Session</p>
-                      <ResponsiveContainer width="100%" height={160}>
-                        <LineChart data={scoreHistory}>
-                          <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
-                          <XAxis dataKey="question" tick={{ fill: "#64748b", fontSize: 11 }} axisLine={{ stroke: "#1e293b" }} />
-                          <YAxis domain={[0, 10]} tick={{ fill: "#64748b", fontSize: 11 }} axisLine={{ stroke: "#1e293b" }} />
-                          <Tooltip contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "8px", fontSize: "12px" }} />
-                          <Line type="monotone" dataKey="overall" stroke="#60a5fa" strokeWidth={2} dot={{ fill: "#2563eb", r: 4 }} name="Overall" />
-                          <Line type="monotone" dataKey="confidence" stroke="#4ade80" strokeWidth={2} dot={{ fill: "#4ade80", r: 4 }} name="Confidence" />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
+                </div>
+
+                {/* COLUMN B: Knowledge Gaps & Playbook (35%) */}
+                <div className="lg:col-span-5 flex flex-col gap-8">
+                  
+                  {/* Knowledge Gaps Spotlight Cards */}
+                  {gaps?.length > 0 && (
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }}>
+                      <div className="flex items-center gap-3 mb-4">
+                        <Target size={16} className="text-rose-500" />
+                        <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Critical Knowledge Gaps</h3>
+                      </div>
+                      
+                      <div className="flex flex-col gap-4">
+                        {gaps.map((gap, i) => (
+                          <KnowledgeGapCard key={i} gap={gap} onClick={() => setStudyPlanTopic(gap.gap)} />
+                        ))}
+                      </div>
+                    </motion.div>
                   )}
 
-                  {scores.overall_summary && (
-                    <div className="bg-white/[0.02] border border-white/10 rounded-md p-4 mb-6">
-                      <div className="flex justify-between items-center mb-2.5">
-                        <p className="text-zinc-600 text-[11px] font-bold uppercase tracking-wide m-0">AI Feedback</p>
-                        {feedbackRating === null ? (
-                          <div className="flex items-center gap-2">
-                            <span className="text-zinc-600 text-[11px]">Helpful?</span>
-                            <button className="bg-transparent text-blue-300 border border-blue-500/30 px-2.5 py-1 rounded text-[11px] font-semibold" onClick={() => rateFeedback(true)}>Yes</button>
-                            <button className="bg-transparent text-blue-300 border border-blue-500/30 px-2.5 py-1 rounded text-[11px] font-semibold" onClick={() => rateFeedback(false)}>No</button>
-                          </div>
-                        ) : (
-                          <span className="text-emerald-400 text-[11px] font-semibold">Thanks for the feedback</span>
+                  {/* Company Playbook Interactive Accordion */}
+                  {(company?.green_flags?.length > 0 || company?.red_flags?.length > 0) && (
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.4 }}>
+                      <div className="flex items-center gap-3 mb-4 mt-4">
+                        <Code2 size={16} className="text-amber-500" />
+                        <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{company?.name} Playbook</h3>
+                      </div>
+                      <div className="bg-[#08080A] border border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_20px_40px_rgba(0,0,0,0.5)] rounded-2xl p-2">
+                        {company?.green_flags?.length > 0 && (
+                          <InteractiveAccordion title="DO THIS" color="emerald" items={company.green_flags} defaultOpen={true} />
+                        )}
+                        {company?.red_flags?.length > 0 && (
+                          <InteractiveAccordion title="AVOID THIS" color="rose" items={company.red_flags} defaultOpen={false} />
                         )}
                       </div>
-                      <p className="text-zinc-400 text-[13px] leading-relaxed">{scores.overall_summary}</p>
-                    </div>
+                    </motion.div>
                   )}
-
-                  {newElo && (
-                    <div className="flex justify-between items-center bg-white/[0.02] border border-white/10 rounded-md px-4.5 py-3.5 mb-5">
-                      <span className="text-zinc-600 text-xs font-semibold uppercase tracking-wide">ELO Rating</span>
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-zinc-600 text-sm font-semibold tabular-nums font-mono">{currentElo}</span>
-                        <span className="text-zinc-700">→</span>
-                        <span className={`text-base font-bold tabular-nums font-mono ${newElo > currentElo ? "text-emerald-400" : "text-red-400"}`}>{newElo}</span>
-                        <span className={`text-[13px] font-semibold tabular-nums font-mono ${newElo > currentElo ? "text-emerald-400" : "text-red-400"}`}>
-                          {newElo > currentElo ? "+" : ""}{(newElo - currentElo).toFixed(1)}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  <button className="w-full py-3.5 bg-blue-600 text-white rounded-md text-sm font-bold hover:scale-[1.01] active:scale-[0.99] transition-transform" onClick={goNextQuestion}>
-                    Next Question →
-                  </button>
-                </GlassCard>
-              </div>
-
-              {/* RIGHT: coaching / gaps / tips */}
-              <div className="flex flex-col gap-4">
-                {gaps?.length > 0 && (
-                  <GlassCard className="p-5">
-                    <p className="text-slate-100 text-[13px] font-bold mb-4">Knowledge Gaps</p>
-                    {gaps.map((gap, i) => (
-                      <div
-                        key={i}
-                        className="bg-[#0a0f1e] border border-slate-800 rounded-lg p-3 mb-2 cursor-pointer hover:border-slate-700 transition-colors"
-                        onClick={() => setStudyPlanTopic(gap.gap)}
-                      >
-                        <div className="flex justify-between items-center mb-1.5">
-                          <span className="text-slate-50 text-[13px] font-semibold">{gap.gap.replace(/_/g, " ")}</span>
-                          <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                            gap.urgency === "critical" ? "bg-red-500/15 text-red-300" :
-                            gap.urgency === "high" ? "bg-red-400/10 text-red-300" : "bg-yellow-400/10 text-yellow-200"
-                          }`}>
-                            {gap.urgency}
-                          </span>
-                        </div>
-                        {gap.prerequisites_to_study_first?.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {gap.prerequisites_to_study_first.map((p, j) => (
-                              <span key={j} className="text-slate-600 text-[11px]">
-                                {p}{j < gap.prerequisites_to_study_first.length - 1 ? " →" : ""}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        <span className="text-blue-400 text-[11px] font-semibold block mt-1.5">View full study path →</span>
-                      </div>
-                    ))}
-                  </GlassCard>
-                )}
-
-                {studyPlanTopic && (
-                  <StudyPlan
-                    topicName={studyPlanTopic}
-                    company={company?.name?.toLowerCase()}
-                    onClose={() => setStudyPlanTopic(null)}
-                  />
-                )}
-
-                <GlassCard className="p-5">
-                  <p className="text-slate-100 text-[13px] font-bold mb-4">{company?.name} Interview Tips</p>
-                  <div className="mb-3.5">
-                    <p className="text-emerald-400 text-[11px] font-bold uppercase tracking-wide mb-2">Do this</p>
-                    {company?.green_flags?.map((f) => (
-                      <div key={f} className="flex items-start gap-2 mb-1.5">
-                        <span className="w-1 h-1 rounded-full bg-emerald-400 mt-1.5 flex-shrink-0" />
-                        <span className="text-slate-400 text-xs leading-snug">{f}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mb-3.5">
-                    <p className="text-red-400 text-[11px] font-bold uppercase tracking-wide mb-2">Avoid this</p>
-                    {company?.red_flags?.map((f) => (
-                      <div key={f} className="flex items-start gap-2 mb-1.5">
-                        <span className="w-1 h-1 rounded-full bg-red-400 mt-1.5 flex-shrink-0" />
-                        <span className="text-slate-400 text-xs leading-snug">{f}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {company?.values?.map((v) => (
-                      <span key={v} className="bg-blue-600/[0.08] text-blue-500 border border-blue-600/15 px-2.5 py-1 rounded-md text-[11px] font-semibold">{v}</span>
-                    ))}
-                  </div>
-                </GlassCard>
+                  
+                </div>
               </div>
 
             </div>
+
+            {/* ZONE 3: FLOATING MAC-STYLE DOCK */}
+            <motion.div 
+              initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6, type: "spring", damping: 20 }}
+              className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-white/[0.05] border border-white/10 backdrop-blur-2xl px-3 py-3 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.8),_inset_0_1px_0_0_rgba(255,255,255,0.1)]"
+            >
+              <div className="flex items-center pr-3 border-r border-white/10 gap-2">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-2">Feedback</span>
+                <button onClick={() => rateFeedback(true)} className={`p-2 rounded-xl transition-colors ${feedbackRating === true ? "bg-emerald-500/20 text-emerald-400" : "text-slate-400 hover:bg-white/10 hover:text-white"}`}>
+                  <ThumbsUp size={16} />
+                </button>
+                <button onClick={() => rateFeedback(false)} className={`p-2 rounded-xl transition-colors ${feedbackRating === false ? "bg-rose-500/20 text-rose-400" : "text-slate-400 hover:bg-white/10 hover:text-white"}`}>
+                  <ThumbsDown size={16} />
+                </button>
+              </div>
+
+              <button
+                onClick={goNextQuestion}
+                className="relative overflow-hidden px-6 py-2.5 rounded-xl bg-white text-black font-bold text-sm hover:scale-[0.98] transition-all flex items-center gap-2"
+              >
+                <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full animate-[shimmer_2.5s_infinite]" />
+                Next Question
+                <kbd className="font-mono text-[10px] bg-black/10 px-1.5 py-0.5 rounded opacity-60">⌘↵</kbd>
+              </button>
+            </motion.div>
+
+            {/* Overlay Modals */}
+            {studyPlanTopic && (
+              <StudyPlan
+                topicName={studyPlanTopic}
+                company={company?.name?.toLowerCase()}
+                onClose={() => setStudyPlanTopic(null)}
+              />
+            )}
+
           </div>
         )}
       </main>
@@ -818,19 +806,131 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   );
 }
 
-function ScoreRow({ label, value, feedback }) {
-  const color = value >= 7 ? "text-emerald-400" : value >= 5 ? "text-amber-400" : "text-red-400";
-  const barColor = value >= 7 ? "bg-emerald-400" : value >= 5 ? "bg-amber-400" : "bg-red-400";
+/* ============================================================================
+   NEW PHASE 2 PREMIUM COMPONENTS
+   ============================================================================ */
+
+function AnimatedNumber({ value }) {
+  const count = useMotionValue(0);
+  const rounded = useTransform(count, (v) => v.toFixed(1));
+  const [display, setDisplay] = useState("0.0");
+  
+  useEffect(() => {
+    const controls = animate(count, value, { duration: 1.5, ease: "easeOut" });
+    const unsub = rounded.on("change", setDisplay);
+    return () => { controls.stop(); unsub(); };
+  }, [value, count, rounded]);
+
+  return <>{display}</>;
+}
+
+function ExpandableScoreRow({ label, value, feedback }) {
+  const [expanded, setExpanded] = useState(false);
+  const isHigh = value >= 7;
+  const isMid = value >= 4 && value < 7;
+  const colorClass = isHigh ? "bg-emerald-500" : isMid ? "bg-amber-500" : "bg-rose-500";
+  const textClass = isHigh ? "text-emerald-400" : isMid ? "text-amber-400" : "text-rose-400";
+
   return (
-    <div className="mb-3.5">
-      <div className="flex justify-between mb-1.5">
-        <span className="text-zinc-400 text-[13px] font-medium">{label}</span>
-        <span className={`text-[13px] font-bold tabular-nums ${color}`}>{value}/10</span>
+    <div className="bg-[#08080A] border border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] rounded-2xl overflow-hidden hover:border-white/[0.15] transition-colors">
+      <button onClick={() => setExpanded(!expanded)} className="w-full px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 outline-none">
+        <span className="text-sm font-bold text-white tracking-wide">{label}</span>
+        <div className="flex items-center gap-4 w-full sm:w-auto justify-end">
+          <div className="w-32 h-1.5 bg-black rounded-full overflow-hidden shadow-inner flex-shrink-0">
+            <motion.div 
+              initial={{ width: 0 }} animate={{ width: `${value * 10}%` }} 
+              transition={{ duration: 1, delay: 0.3, ease: "easeOut" }} 
+              className={`h-full ${colorClass} shadow-[0_0_10px_currentColor]`} 
+            />
+          </div>
+          <span className={`text-sm font-mono font-bold tabular-nums w-10 text-right ${textClass}`}>{value}/10</span>
+        </div>
+      </button>
+      <AnimatePresence>
+        {expanded && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="px-6 text-left">
+            <div className="pb-5 pt-1 border-t border-white/[0.05] text-[13px] text-slate-400 leading-relaxed font-medium">
+              {feedback ? (
+                <div className="flex items-start gap-3 mt-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0" />
+                  <p>{feedback}</p>
+                </div>
+              ) : (
+                <p className="mt-3 italic opacity-50">No specific diagnostic data recorded for this metric.</p>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function KnowledgeGapCard({ gap, onClick }) {
+  const isCritical = gap.urgency === "critical";
+  const badgeColor = isCritical ? "bg-rose-500/10 text-rose-400 border-rose-500/20" : "bg-amber-500/10 text-amber-400 border-amber-500/20";
+  const Icon = isCritical ? ShieldAlert : Lock;
+
+  return (
+    <div onClick={onClick} className="group relative bg-[#08080A] border border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] rounded-2xl p-5 cursor-pointer overflow-hidden transition-all hover:border-white/[0.15] hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+      {/* Spotlight Hover Effect */}
+      <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+      
+      <div className="flex justify-between items-start mb-4 relative z-10">
+        <span className="text-white text-[15px] font-bold tracking-tight capitalize">{gap.gap.replace(/_/g, " ")}</span>
+        <span className={`px-2 py-1 rounded-[6px] text-[9px] font-bold uppercase tracking-widest border flex items-center gap-1.5 ${badgeColor}`}>
+          <Icon size={10} /> {gap.urgency}
+        </span>
       </div>
-      <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden">
-        <div className={`h-full rounded-full transition-all duration-1000 ${barColor}`} style={{ width: `${value * 10}%` }} />
+
+      {/* Prerequisite Node Graph */}
+      {gap.prerequisites_to_study_first?.length > 0 && (
+        <div className="flex items-center flex-wrap gap-2 relative z-10 mb-4 bg-black/50 p-3 rounded-xl border border-white/[0.03]">
+          {gap.prerequisites_to_study_first.map((p, j) => (
+            <div key={j} className="flex items-center gap-2">
+              <span className="text-slate-400 text-[10px] font-mono border border-white/10 px-2 py-0.5 rounded-full bg-white/[0.02]">
+                {p}
+              </span>
+              {j < gap.prerequisites_to_study_first.length - 1 && <ArrowRight size={10} className="text-slate-600" />}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 text-blue-400 text-[11px] font-bold uppercase tracking-widest group-hover:text-blue-300 transition-colors relative z-10">
+        View Full Study Path <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform" />
       </div>
-      {feedback && <p className="text-zinc-600 text-xs mt-1.5 leading-relaxed">{feedback}</p>}
+    </div>
+  );
+}
+
+function InteractiveAccordion({ title, color, items, defaultOpen }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const isEmerald = color === "emerald";
+  const titleColor = isEmerald ? "text-emerald-400" : "text-rose-400";
+  const dotColor = isEmerald ? "bg-emerald-400" : "bg-rose-400";
+  const hoverBg = isEmerald ? "hover:bg-emerald-500/5" : "hover:bg-rose-500/5";
+
+  return (
+    <div className="mb-1">
+      <button onClick={() => setOpen(!open)} className={`w-full px-4 py-3 flex items-center justify-between rounded-xl transition-colors ${hoverBg} outline-none`}>
+        <span className={`text-[11px] font-bold uppercase tracking-[0.2em] ${titleColor}`}>{title}</span>
+        <ChevronRight size={14} className={`text-slate-500 transition-transform ${open ? "rotate-90" : ""}`} />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="px-4 pb-3">
+            <div className="flex flex-col gap-2 pt-2">
+              {items.map((item, idx) => (
+                <div key={idx} className="flex items-start gap-3 bg-black/40 border border-white/[0.03] p-3 rounded-lg">
+                  <span className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${dotColor} shadow-[0_0_8px_currentColor]`} />
+                  <span className="text-xs text-slate-300 font-medium leading-relaxed">{item}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
