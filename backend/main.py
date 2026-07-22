@@ -108,7 +108,7 @@ def check_and_charge_token_budget(user_id: int, estimated_tokens: int) -> bool:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
-    allow_origin_regex=r"https://.*\.up\.railway\.app",
+    allow_origin_regex=r"https://.*\.up\.railway\.app|https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
