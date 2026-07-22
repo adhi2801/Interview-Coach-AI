@@ -1,94 +1,92 @@
 # backend/rag/vector_store.py
+# Postgres-backed replacement for the old local-disk ChromaDB store.
+# Railway's filesystem is ephemeral, so anything ChromaDB wrote to disk
+# was wiped on every redeploy. This stores embeddings as JSON rows in
+# Postgres instead, and does cosine similarity in plain Python — fine
+# at this scale (dozens to low hundreds of questions).
 
-# This is the actual RAG implementation.
-# Step 1: Convert every question's text into a 384-number vector (embedding)
-# Step 2: Store those vectors in ChromaDB on disk
-# Step 3: When we need a question, convert our SEARCH QUERY into a vector too
-# Step 4: Find the closest matching vectors — that's semantic search
-
-import chromadb
+import numpy as np
 from sentence_transformers import SentenceTransformer
-import os
+from sqlalchemy.orm import Session
+from database import SessionLocal
+from models import QuestionEmbedding
+
 
 class QuestionVectorStore:
     def __init__(self):
-        # PersistentClient saves to disk so we don't re-embed every restart
-        db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "chroma_db")
-        self.client = chromadb.PersistentClient(path=db_path)
-        self.collection = self.client.get_or_create_collection(
-            name="interview_questions",
-            metadata={"hnsw:space": "cosine"}
-        )
-        # This model converts text into 384-dimensional vectors
-        # It downloads once (~80MB) then runs locally, no API calls
         print("Loading embedding model...")
         self.embedder = SentenceTransformer("all-MiniLM-L6-v2")
         print("Embedding model loaded")
 
     def seed_database(self, questions: list):
-        """
-        Run once to populate ChromaDB with our question bank.
-        Safe to call multiple times — it just overwrites existing IDs.
-        """
-        existing_count = self.collection.count()
-        if existing_count >= len(questions):
-            print(f"Database already seeded with {existing_count} questions. Skipping.")
-            return
+        db: Session = SessionLocal()
+        try:
+            existing_count = db.query(QuestionEmbedding).count()
+            if existing_count >= len(questions):
+                print(f"Database already seeded with {existing_count} questions. Skipping.")
+                return
 
-        texts = [q["text"] for q in questions]
-        print(f"Generating embeddings for {len(texts)} questions...")
-        embeddings = self.embedder.encode(texts).tolist()
+            texts = [q["text"] for q in questions]
+            print(f"Generating embeddings for {len(texts)} questions...")
+            embeddings = self.embedder.encode(texts).tolist()
 
-        self.collection.upsert(
-            ids=[q["id"] for q in questions],
-            embeddings=embeddings,
-            documents=texts,
-            metadatas=[{
-                "difficulty": q["difficulty"],
-                "topics": ",".join(q["topics"]),
-                "companies": ",".join(q.get("companies", []))
-            } for q in questions]
-        )
-        print(f"Seeded {len(questions)} questions into ChromaDB")
+            for q, emb in zip(questions, embeddings):
+                existing = db.query(QuestionEmbedding).filter_by(id=q["id"]).first()
+                if existing:
+                    existing.text = q["text"]
+                    existing.difficulty = q["difficulty"]
+                    existing.topics = q["topics"]
+                    existing.companies = q.get("companies", [])
+                    existing.embedding = emb
+                else:
+                    db.add(QuestionEmbedding(
+                        id=q["id"],
+                        text=q["text"],
+                        difficulty=q["difficulty"],
+                        topics=q["topics"],
+                        companies=q.get("companies", []),
+                        embedding=emb
+                    ))
+            db.commit()
+            print(f"Seeded {len(questions)} questions into Postgres")
+        finally:
+            db.close()
 
     def search(self, query: str, difficulty_min: int, difficulty_max: int, company: str = None, n_results: int = 5) -> list:
-        """
-        Semantic search: find questions whose MEANING matches the query,
-        filtered by difficulty range and optionally by company.
-        """
-        query_embedding = self.embedder.encode([query]).tolist()
+        db: Session = SessionLocal()
+        try:
+            query_embedding = np.array(self.embedder.encode([query])[0])
 
-        where_filter = {
-            "$and": [
-                {"difficulty": {"$gte": difficulty_min}},
-                {"difficulty": {"$lte": difficulty_max}}
-            ]
-        }
+            rows = db.query(QuestionEmbedding).filter(
+                QuestionEmbedding.difficulty >= difficulty_min,
+                QuestionEmbedding.difficulty <= difficulty_max
+            ).all()
 
-        results = self.collection.query(
-            query_embeddings=query_embedding,
-            n_results=n_results,
-            where=where_filter
-        )
+            def cosine_sim(a, b):
+                a, b = np.array(a), np.array(b)
+                return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
 
-        questions = []
-        if results["documents"] and results["documents"][0]:
-            for i, doc in enumerate(results["documents"][0]):
-                meta = results["metadatas"][0][i]
-                companies = meta["companies"].split(",") if meta["companies"] else []
-                # Soft-filter by company preference — boost matches, don't exclude
+            questions = []
+            for row in rows:
+                sim = cosine_sim(query_embedding, row.embedding)
+                companies = row.companies or []
                 questions.append({
-                    "text": doc,
-                    "difficulty": meta["difficulty"],
-                    "topics": meta["topics"].split(","),
+                    "text": row.text,
+                    "difficulty": row.difficulty,
+                    "topics": row.topics or [],
                     "companies": companies,
-                    "similarity": round(1 - results["distances"][0][i], 3),
+                    "similarity": round(sim, 3),
                     "company_match": company in companies if company else False
                 })
 
-        # Sort so company matches come first
-        questions.sort(key=lambda q: (not q["company_match"], -q["similarity"]))
-        return questions
+            questions.sort(key=lambda q: (not q["company_match"], -q["similarity"]))
+            return questions[:n_results]
+        finally:
+            db.close()
 
     def count(self) -> int:
-        return self.collection.count()
+        db: Session = SessionLocal()
+        try:
+            return db.query(QuestionEmbedding).count()
+        finally:
+            db.close()

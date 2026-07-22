@@ -166,3 +166,13 @@ class ReplayManifest(Base):
     started_at = Column(DateTime, default=datetime.utcnow)
     ended_at = Column(DateTime, nullable=True)
     events = Column(JSON, default=list)  # same event shape as before: {"type", "timestamp", "data"}    
+
+class QuestionEmbedding(Base):
+    __tablename__ = "question_embeddings"
+
+    id = Column(String, primary_key=True)  # matches QUESTION_BANK's own "id" field, e.g. "q1"
+    text = Column(Text, nullable=False)
+    difficulty = Column(Integer, nullable=False)
+    topics = Column(JSON)      # list of strings
+    companies = Column(JSON)   # list of strings
+    embedding = Column(JSON, nullable=False)  # list of 384 floats from all-MiniLM-L6-v2    
