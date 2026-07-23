@@ -5,16 +5,16 @@ import { Terminal, BrainCircuit, ChevronRight, Activity, ArrowLeft } from "lucid
 import axios from "axios";
 import CustomSelect from "../components/ui/CustomSelect";
 
-// Authentic SVGs (Updated with correct Amazon and Meta paths)
+// Authentic Official Vector SVGs
 const COMPANIES = [
   {
     id: "google", name: "Google", color: "#4285F4",
     logo: (
       <svg viewBox="0 0 24 24" className="w-6 h-6">
-        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3h3.88c2.28-2.1 3.665-5.2 3.665-9.12z"/>
+        <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3c-1.08.72-2.45 1.16-4.05 1.16-3.1 0-5.73-2.1-6.67-4.93H1.29v3.08C3.26 21.3 7.37 24 12 24z"/>
+        <path fill="#FBBC05" d="M5.33 14.32c-.24-.72-.38-1.49-.38-2.32s.14-1.6.38-2.32V6.6H1.29C.47 8.23 0 10.06 0 12s.47 3.77 1.29 5.4l4.04-3.08z"/>
+        <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.37 0 3.26 2.7 1.29 6.6l4.04 3.08c.94-2.83 3.57-4.93 6.67-4.93z"/>
       </svg>
     )
   },
@@ -22,9 +22,8 @@ const COMPANIES = [
     id: "amazon", name: "Amazon", color: "#FF9900",
     logo: (
       <svg viewBox="0 0 24 24" className="w-6 h-6">
-        <text x="1" y="15" fontFamily="Arial, sans-serif" fontSize="14" fontWeight="700" fill="#e2e8f0">amazon</text>
-        <path fill="#FF9900" d="M2.2 17.3c2.5 1.85 6.9 2.8 10.4 2.8 2.9 0 6.2-.7 8.6-2.05.35-.2.65.2.35.45-2.15 1.85-5.85 2.95-9.4 2.95-4.55 0-8.6-1.65-11.65-4.4-.25-.2 0-.5.4-.3z"/>
-        <path fill="#FF9900" d="M20.05 15.9c-.4-.5-2.65-.25-3.55-.1-.3.05-.35-.25-.1-.4 1.4-.95 3.75-.7 4.1-.35.35.35-.1 2.65-1.4 3.75-.2.15-.4.1-.35-.15.35-.85.9-2.75.3-2.75z"/>
+        <path fill="#FF9900" d="M13.958 10.023c0 1.292-.093 2.147-.82 3.033-.497.604-1.222.953-2.02.953-1.144 0-1.803-.76-1.803-1.895 0-1.57.994-2.228 2.775-2.228h1.868v.137zm1.61 6.33c-.347-.288-.415-.497-.282-.907.397-1.192 1.303-4.223 1.303-4.223 0-.083.023-.153-.06-.188-.135-.046-.388.083-.54.162-1.02.535-2.083.82-3.19.82-2.19 0-3.483-1.09-3.483-3.14 0-2.368 1.83-3.882 4.608-3.882 1.05 0 2.22.183 3.03.542.48.21.61.533.61 1.077v5.278c0 .943.342 1.318 1.01 1.318.34 0 .72-.093 1.07-.27.136-.07.21-.023.25.07.082.186.25.688.33.876.04.116.02.21-.09.28-.73.498-1.7.756-2.61.756-1.39 0-2.06-.63-2.06-2.072zm6.235 3.535c-3.18 2.34-7.79 3.57-11.75 3.57-5.55 0-10.51-2.05-14.33-5.48-.31-.28-.03-.66.35-.45 4.1 2.3 9.17 3.68 14.33 3.68 3.51 0 7.37-.82 10.61-2.52.48-.25.88.27.39.65z"/>
+        <path fill="#FF9900" d="M22.84 18.23c-.41-.53-2.71-.25-3.64-.13-.28.04-.33-.2-.08-.38 1.63-1.18 4.31-.83 4.68-.37.37.46-.22 3.12-1.74 4.41-.23.2-.44.09-.34-.17.34-.87 1.25-2.83.12-3.36z"/>
       </svg>
     )
   },
@@ -32,7 +31,7 @@ const COMPANIES = [
     id: "meta", name: "Meta", color: "#0866FF",
     logo: (
       <svg viewBox="0 0 24 24" className="w-6 h-6">
-        <path fill="#0866FF" d="M6.9 4.5c1.9 0 3.4 1.15 4.7 2.9 1.3-1.75 2.8-2.9 4.7-2.9 3.5 0 6.2 3.6 6.2 8.4 0 2.9-1.2 4.85-3 4.85-1.5 0-2.4-1.05-3.9-3.4l-1.6-2.5-.9 1.5c-1.3 2.15-2.35 3.65-4 3.65C6.4 21 5 18.1 5 14.9c0-4.8 1.5-10.4 1.9-10.4zm5.1 8.15 1.05 1.65c1.3 2.05 1.85 2.6 2.65 2.6.85 0 1.3-.75 1.3-2.7 0-3.6-1.55-6.1-3.4-6.1-1 0-1.85.75-2.9 2.45.35.6.7 1.3 1.3 2.1z"/>
+        <path fill="#0866FF" d="M16.812 3.834c-1.928 0-3.585.99-4.812 2.637-1.227-1.647-2.884-2.637-4.812-2.637-3.666 0-6.688 3.256-6.688 8.017 0 4.108 2.28 7.149 5.48 7.149 2.054 0 3.513-1.071 4.793-3.111l1.227-1.972 1.227 1.972c1.28 2.04 2.739 3.111 4.793 3.111 3.2 0 5.48-3.041 5.48-7.149 0-4.761-3.022-8.017-6.688-8.017zm-9.624 12.3c-1.666 0-3.088-1.782-3.088-4.283 0-2.842 1.341-4.782 3.088-4.782 1.239 0 2.456 1.055 3.353 2.766l-1.39 2.235c-.887 1.428-1.579 2.064-1.963 2.064zm9.624 0c-.384 0-1.076-.636-1.963-2.064l-1.39-2.235c.897-1.711 2.114-2.766 3.353-2.766 1.747 0 3.088 1.94 3.088 4.782 0 2.501-1.422 4.283-3.088 4.283z"/>
       </svg>
     )
   },
@@ -40,8 +39,10 @@ const COMPANIES = [
     id: "microsoft", name: "Microsoft", color: "#00A4EF",
     logo: (
       <svg viewBox="0 0 24 24" className="w-6 h-6">
-        <path fill="#F25022" d="M2 2h9v9H2z"/><path fill="#7FBA00" d="M13 2h9v9h-9z"/>
-        <path fill="#00A4EF" d="M2 13h9v9H2z"/><path fill="#FFB900" d="M13 13h9v9h-9z"/>
+        <path fill="#F25022" d="M1 1h10v10H1z"/>
+        <path fill="#7FBA00" d="M13 1h10v10H13z"/>
+        <path fill="#00A4EF" d="M1 13h10v10H1z"/>
+        <path fill="#FFB900" d="M13 13h10v10H13z"/>
       </svg>
     )
   },
@@ -49,7 +50,7 @@ const COMPANIES = [
     id: "apple", name: "Apple", color: "#e2e8f0",
     logo: (
       <svg viewBox="0 0 24 24" className="w-6 h-6">
-        <path fill="#e2e8f0" d="M18.14 12.73c-.04-1.6 1.31-2.37 1.37-2.41-1.12-1.64-2.86-1.86-3.48-1.88-1.58-.16-3.08.93-3.88.93-.81 0-2.06-.91-3.38-.89-1.73.02-3.34 1.02-4.22 2.57-1.81 3.14-.46 7.76 1.28 10.3 .86 1.25 1.88 2.63 3.23 2.57 1.29-.05 1.78-.84 3.34-.84 1.55 0 2 1.1 3.35 1.08 1.38-.02 2.26-1.25 3.11-2.49.98-1.43 1.38-2.82 1.4-2.9-.03-.01-2.68-1.03-2.7-4.06zM15.48 4.79c.68-.82 1.13-1.95 1.01-3.08-.97.04-2.15.65-2.85 1.46-.63.72-1.18 1.88-1.03 2.98 1.08.08 2.19-.55 2.87-1.36z"/>
+        <path fill="#e2e8f0" d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.06 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97.01c.02.04.04.09.04.13 0 1.56-.8 3.12-1.8 3.99-.95.83-2.45 1.43-3.69 1.34-.14-.02-.27-.06-.39-.12.02-.04-.04-.09-.04-.13 0-1.59.83-3.12 1.83-3.97C12.91.42 14.52-.16 15.97.01z"/>
       </svg>
     )
   },
@@ -57,7 +58,7 @@ const COMPANIES = [
     id: "netflix", name: "Netflix", color: "#E50914",
     logo: (
       <svg viewBox="0 0 24 24" className="w-6 h-6">
-        <path fill="#E50914" d="M6 2v20h3.2V8.6l5.6 13.4H18V2h-3.2v13.4L9.2 2H6z"/>
+        <path fill="#E50914" d="M5.398 0v24h4.103V10.355L14.73 24h3.872V0h-4.103v13.645L9.27 0H5.398z"/>
       </svg>
     )
   },
@@ -140,16 +141,16 @@ export default function Dashboard({ onStart, user, onGoBack }) {
   // Animation Variants
   const containerVars = {
     hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { staggerChildren: 0.05 } }
+    show: { opacity: 1, transition: { staggerChildren: 0.08 } }
   };
   
   const itemVars = {
     hidden: { opacity: 0, y: 15 },
-    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 400, damping: 30 } }
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 350, damping: 28 } }
   };
 
   return (
-    <div className="relative min-h-screen bg-[#000000] text-slate-200 font-sans selection:bg-blue-500/30 overflow-hidden flex flex-col md:flex-row">
+    <div className="relative min-h-screen bg-[#000000] text-slate-200 font-sans selection:bg-blue-500/30 overflow-x-hidden flex flex-col items-center">
       
       {/* Inline Shimmer Keyframes */}
       <style>{`
@@ -158,98 +159,135 @@ export default function Dashboard({ onStart, user, onGoBack }) {
           100% { transform: translateX(100%); }
         }
         .animate-shimmer {
-          animation: shimmer 2s infinite linear;
+          animation: shimmer 2.5s infinite linear;
         }
       `}</style>
 
-      {/* AMBIENT LIGHTS & GRAIN */}
-      <div className="fixed top-[-20%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-blue-600/10 blur-[120px] pointer-events-none mix-blend-screen z-0" />
-      <div className="fixed bottom-[-10%] right-[-5%] w-[40vw] h-[40vw] rounded-full bg-indigo-500/10 blur-[100px] pointer-events-none mix-blend-screen z-0" />
+      {/* AMBIENT LIGHTS & GRAIN (Company Color Synced) */}
       <div 
-        className="fixed inset-0 z-10 pointer-events-none opacity-[0.025] mix-blend-soft-light"
+        className="fixed top-[-20%] left-[20%] w-[50vw] h-[50vw] rounded-full blur-[150px] pointer-events-none mix-blend-screen z-0 transition-colors duration-700" 
+        style={{ backgroundColor: `${selectedCompany?.color || '#3b82f6'}15` }}
+      />
+      <div className="fixed bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-indigo-600/10 blur-[150px] pointer-events-none mix-blend-screen z-0" />
+      <div 
+        className="fixed inset-0 z-10 pointer-events-none opacity-[0.03] mix-blend-soft-light"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
         }}
       />
 
-      {/* RETURN BUTTON */}
-      {onGoBack && (
-        <button 
-          onClick={onGoBack}
-          className="absolute top-6 left-6 md:top-8 md:left-8 z-50 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-white transition-colors"
-        >
-          <ArrowLeft size={16} /> Dashboard
-        </button>
-      )}
+      {/* FLOATING HEADER BAR */}
+      <header className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-7xl h-14 border border-white/[0.08] bg-white/[0.02] backdrop-blur-2xl rounded-full shadow-[0_20px_40px_rgba(0,0,0,0.5),_inset_0_1px_0_0_rgba(255,255,255,0.05)] flex items-center justify-between px-6">
+        {onGoBack ? (
+          <button 
+            onClick={onGoBack}
+            className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors outline-none"
+          >
+            <ArrowLeft size={16} /> Dashboard
+          </button>
+        ) : (
+          <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-widest text-white">
+            <div className="w-5 h-5 rounded bg-blue-600 flex items-center justify-center text-[10px]">IC</div>
+            InterviewCoach
+          </div>
+        )}
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] font-mono font-bold text-slate-400 bg-black/40 border border-white/5 px-3 py-1 rounded-full">
+            ELO: <span className="text-white">{currentElo}</span>
+          </span>
+        </div>
+      </header>
 
-      {/* SPLIT PANE ARCHITECTURE */}
-      <div className="relative z-20 w-full flex flex-col md:flex-row min-h-screen">
+      {/* ATMOSPHERIC SPLIT-PANE CONTAINER */}
+      <main className="relative z-20 w-full max-w-7xl min-h-screen pt-32 pb-24 px-6 md:px-10 flex items-center justify-center">
         
-        {/* ========================================================================= */}
-        {/* LEFT PANE: Configuration Header & Target DNA                              */}
-        {/* ========================================================================= */}
-        <div className="w-full md:w-[45%] h-auto md:h-screen border-r border-white/[0.06] bg-[#000000]/40 backdrop-blur-xl flex flex-col pt-24 pb-12 px-8 md:px-12 lg:px-16 overflow-y-auto">
+        <motion.div initial="hidden" animate={mounted ? "show" : "hidden"} variants={containerVars} className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
           
-          <motion.div initial="hidden" animate="show" variants={containerVars} className="flex flex-col h-full w-full max-w-md mx-auto md:mx-0">
+          {/* ========================================================================= */}
+          {/* LEFT PANE (40% - STICKY CONTEXT & DYNAMIC INSIGHTS)                       */}
+          {/* ========================================================================= */}
+          <motion.div variants={itemVars} className="lg:col-span-5 flex flex-col justify-between gap-8">
             
-            <motion.div variants={itemVars} className="mb-12">
-              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded border border-blue-500/20 bg-blue-500/10 text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-6">
+            <div className="space-y-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/20 bg-blue-500/10 text-[10px] font-bold uppercase tracking-widest text-blue-400">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" /> System Ready
               </div>
-              <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-white mb-4">
+              <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-white leading-[1.05]">
                 Initialize<br/>Simulation
               </h1>
               <p className="text-sm font-medium text-slate-400 leading-relaxed">
                 Configure your target environment. The AI will enforce constraints matching a <strong className="text-white">Level {Math.min(7, Math.max(3, Math.round((currentElo - 800) / 100)))}</strong> difficulty bracket based on your ELO.
               </p>
-            </motion.div>
+            </div>
 
-            <motion.div variants={itemVars} className="space-y-6">
-              <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                  <BrainCircuit size={14} className="text-slate-400" /> 1. Target DNA
+            {/* Dynamic Company Insights Card (Crossfades on Change) */}
+            <div className="mt-auto">
+              <AnimatePresence mode="wait">
+                <motion.div 
+                  key={company}
+                  initial={{ opacity: 0, y: 10, filter: "blur(8px)" }} 
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} 
+                  exit={{ opacity: 0, y: -10, filter: "blur(8px)" }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <GlassCard mousePos={mousePos} className="w-full p-6 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 blur-[50px] pointer-events-none rounded-full" style={{ backgroundColor: `${selectedCompany?.color || '#3b82f6'}20` }} />
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2 relative z-10">
+                      <span className="w-2 h-2 rounded-full shadow-[0_0_10px_currentColor]" style={{ backgroundColor: selectedCompany?.color || '#fff' }} />
+                      {selectedCompany?.name} Interview Style
+                    </p>
+                    <p className="text-sm font-medium text-slate-300 leading-relaxed relative z-10">
+                      {INSIGHTS[company]}
+                    </p>
+                  </GlassCard>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+          </motion.div>
+
+          {/* ========================================================================= */}
+          {/* RIGHT PANE (60% - CONTROL BOARD: TARGET DNA, SCOPE, PERSONA)              */}
+          {/* ========================================================================= */}
+          <motion.div variants={itemVars} className="lg:col-span-7 bg-[#08080A]/80 backdrop-blur-3xl border border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),_0_30px_60px_rgba(0,0,0,0.8)] rounded-[2rem] p-8 md:p-10 flex flex-col justify-between gap-8 relative overflow-hidden">
+            
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+
+            <div className="space-y-8 relative z-10">
+              
+              {/* 1. Target DNA */}
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 block mb-4">
+                  1. Target Company DNA
                 </label>
-                <div className="text-[10px] font-mono font-bold text-slate-500">
-                  ELO: <span className="text-white tabular-nums tracking-tight text-xs">{currentElo}</span>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {COMPANIES.map((c) => (
+                    <motion.button
+                      whileTap={{ scale: 0.97 }}
+                      key={c.id}
+                      onClick={() => setCompany(c.id)}
+                      className={`flex flex-col items-start p-3.5 rounded-xl border transition-all duration-200 outline-none relative overflow-hidden ${
+                        company === c.id 
+                          ? "bg-white/[0.06] border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2),_0_10px_25px_rgba(0,0,0,0.5)]" 
+                          : "bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.04] hover:border-white/10"
+                      }`}
+                    >
+                      {company === c.id && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-transparent pointer-events-none" />
+                      )}
+                      <div className="flex-shrink-0 mb-2 relative z-10">{c.logo}</div>
+                      <span className={`text-xs font-bold tracking-tight relative z-10 ${company === c.id ? "text-white" : "text-slate-300"}`}>
+                        {c.name}
+                      </span>
+                    </motion.button>
+                  ))}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                {COMPANIES.map((c) => (
-                  <motion.button
-                    whileTap={{ scale: 0.97 }}
-                    key={c.id}
-                    onClick={() => setCompany(c.id)}
-                    className={`flex flex-col items-start p-4 rounded-xl border transition-all duration-200 outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black focus:ring-blue-500 ${
-                      company === c.id 
-                        ? "bg-blue-500/10 border-blue-500 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1),_0_0_15px_rgba(59,130,246,0.2)]" 
-                        : "bg-white/[0.02] border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] hover:bg-white/[0.04] hover:border-white/20"
-                    }`}
-                  >
-                    <div className="flex-shrink-0 mb-3">{c.logo}</div>
-                    <span className={`text-sm font-bold tracking-tight ${company === c.id ? "text-white" : "text-slate-300"}`}>
-                      {c.name}
-                    </span>
-                  </motion.button>
-                ))}
-              </div>
-            </motion.div>
-          </motion.div>
-        </div>
-
-        {/* ========================================================================= */}
-        {/* RIGHT PANE: Scope, Hostility, Preview & Launch                          */}
-        {/* ========================================================================= */}
-        <div className="w-full md:flex-1 h-auto md:h-screen bg-[#050505]/80 backdrop-blur-2xl flex flex-col pt-12 md:pt-24 pb-12 px-8 md:px-12 lg:px-20 overflow-y-auto">
-          
-          <motion.div initial="hidden" animate="show" variants={containerVars} className="flex flex-col h-full w-full max-w-xl mx-auto md:mx-0">
-            
-            <motion.div variants={itemVars} className="space-y-10 flex-1">
-              
-              {/* Scope Definition */}
+              {/* 2. Define Scope */}
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2 mb-4 border-b border-white/[0.06] pb-2">
-                  <Terminal size={14} className="text-slate-400" /> 2. Define Scope
+                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 block mb-3">
+                  2. Define Scope & Level
                 </label>
                 <div className="relative z-50">
                   <CustomSelect 
@@ -260,89 +298,79 @@ export default function Dashboard({ onStart, user, onGoBack }) {
                 </div>
               </div>
 
-              {/* Hostility Definition */}
+              {/* 3. Interviewer Persona */}
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2 mb-4 border-b border-white/[0.06] pb-2">
-                  <Activity size={14} className="text-slate-400" /> 3. Interviewer Persona
+                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 block mb-4">
+                  3. Interviewer Persona
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {PERSONAS.map((p) => (
                     <motion.button
                       whileTap={{ scale: 0.98 }}
                       key={p.id}
                       onClick={() => setPersona(p.id)}
-                      className={`text-left p-4 rounded-xl border transition-all duration-200 outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black focus:ring-blue-500 ${
+                      className={`text-left p-3.5 rounded-xl border transition-all duration-200 outline-none relative overflow-hidden ${
                         persona === p.id 
-                          ? "bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]" 
-                          : "bg-white/[0.02] border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] hover:bg-white/[0.05] hover:border-white/20"
+                          ? "bg-white/[0.06] border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2),_0_10px_25px_rgba(0,0,0,0.5)]" 
+                          : "bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.04] hover:border-white/10"
                       }`}
                     >
-                      <span className={`block text-sm font-bold mb-1 tracking-tight ${persona === p.id ? "text-black" : "text-white"}`}>{p.label}</span>
-                      <span className={`block text-[11px] font-medium leading-relaxed ${persona === p.id ? "text-slate-700" : "text-slate-500"}`}>{p.desc}</span>
+                      {persona === p.id && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-transparent pointer-events-none" />
+                      )}
+                      <span className={`block text-xs font-bold mb-1 tracking-tight relative z-10 ${persona === p.id ? "text-white" : "text-slate-300"}`}>{p.label}</span>
+                      <span className={`block text-[10px] font-medium leading-relaxed relative z-10 ${persona === p.id ? "text-slate-300" : "text-slate-500"}`}>{p.desc}</span>
                     </motion.button>
                   ))}
                 </div>
               </div>
 
-              {/* Dynamic Insights / Live Preview Card */}
-              <AnimatePresence mode="wait">
-                <motion.div 
-                  key={company}
-                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <GlassCard mousePos={mousePos} className="w-full p-6">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: selectedCompany?.color || '#fff' }} />
-                      {selectedCompany?.name} Interview Style
-                    </p>
-                    <p className="text-sm font-medium text-slate-300 leading-relaxed">
-                      {INSIGHTS[company]}
-                    </p>
-                  </GlassCard>
-                </motion.div>
-              </AnimatePresence>
-            </motion.div>
+            </div>
 
-            {/* Launch Action */}
-            <motion.div variants={itemVars} className="pt-10 mt-10 border-t border-white/[0.06] flex flex-col md:flex-row items-center justify-between gap-6">
-              {error && (
-                <div className="text-xs font-bold text-red-400 bg-red-500/10 px-4 py-2 rounded border border-red-500/20">
+            {/* Launch Action Footer */}
+            <div className="pt-6 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4 relative z-10">
+              {error ? (
+                <div className="text-xs font-bold text-red-400 bg-red-500/10 px-4 py-2 rounded-lg border border-red-500/20">
                   {error}
                 </div>
+              ) : (
+                <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest hidden sm:inline">
+                  Ready to initialize ELO tracking
+                </span>
               )}
               
-              <div className="w-full ml-auto">
+              <div className="w-full sm:w-auto ml-auto">
                 <motion.button
                   whileTap={{ scale: loading ? 1 : 0.96 }}
                   onClick={handleStart}
                   disabled={loading}
-                  className={`relative w-full flex items-center justify-center gap-3 px-8 py-4 rounded-xl text-sm font-bold transition-all overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black focus:ring-white ${
+                  className={`relative group overflow-hidden w-full sm:w-auto flex items-center justify-center gap-3 px-8 py-4 rounded-xl text-sm font-bold transition-all shadow-[0_0_30px_rgba(255,255,255,0.15)] hover:shadow-[0_0_45px_rgba(255,255,255,0.25)] ${
                     loading 
                       ? "bg-[#111111] border border-white/10 text-slate-500 cursor-wait" 
-                      : "bg-white text-black hover:bg-slate-200 shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_30px_rgba(255,255,255,0.25)]"
+                      : "bg-white text-black hover:bg-slate-200"
                   }`}
                 >
                   {loading ? (
                     <>
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]" />
-                      <span className="w-4 h-4 rounded-full border-2 border-slate-600 border-t-slate-400 animate-spin" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]" />
+                      <span className="w-4 h-4 rounded-full border-2 border-slate-600 border-t-black animate-spin" />
                       Booting Simulator...
                     </>
                   ) : (
                     <>
-                      Boot Simulator <ChevronRight size={18} />
-                      <kbd className="hidden sm:inline-flex ml-2 items-center justify-center bg-black/10 rounded px-1.5 py-0.5 text-[10px] font-mono text-black/60">↵ Enter</kbd>
+                      <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
+                      Boot Simulator <ChevronRight size={16} />
+                      <kbd className="hidden sm:inline-flex ml-2 items-center justify-center bg-black/10 rounded px-1.5 py-0.5 text-[10px] font-mono text-black/60">↵</kbd>
                     </>
                   )}
                 </motion.button>
               </div>
-            </motion.div>
+            </div>
 
           </motion.div>
-        </div>
 
-      </div>
+        </motion.div>
+      </main>
     </div>
   );
 }
