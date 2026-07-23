@@ -6,6 +6,7 @@ section {
   background: transparent !important;
 }
 
+
 /* ==========================================================================
    MORPHING HEADER PILL
    ========================================================================== */
@@ -32,13 +33,17 @@ section {
   align-items: center;
   justify-content: space-between;
   gap: 48px;
+
   padding: 16px 32px;
+
   background-color: transparent;
   border: 1px solid transparent;
   border-radius: 999px;
+
   min-width: 600px;
   max-width: 1200px;
   width: 100%;
+
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -46,16 +51,21 @@ section {
 
 .landing-nav.is-scrolled .landing-nav-inner {
   background-color: rgba(10, 10, 12, 0.6);
+
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
+
   border-color: rgba(255, 255, 255, 0.08);
+
   box-shadow:
     0 10px 30px -10px rgba(0, 0, 0, 0.5),
     inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+
   min-width: 480px;
   width: auto;
   padding: 10px 20px;
 }
+
 
 /* ==========================================================================
    BRANDING
@@ -65,6 +75,7 @@ section {
   display: flex;
   align-items: center;
   gap: 8px;
+
   font-size: 14px;
   font-weight: 700;
   color: var(--text-primary, #ffffff);
@@ -73,12 +84,16 @@ section {
 .landing-brand-mark {
   width: 24px;
   height: 24px;
+
   border-radius: 6px;
+
   background-color: #2563eb;
   color: #ffffff;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   font-size: 11px;
   font-weight: 800;
 }
@@ -89,6 +104,7 @@ section {
   gap: 12px;
 }
 
+
 /* ==========================================================================
    RADIAL VIGNETTE MASKING
    ========================================================================== */
@@ -97,6 +113,7 @@ section {
   position: absolute;
   inset: 0;
   z-index: 5;
+
   background: radial-gradient(
     circle at center,
     rgba(0, 0, 0, 0.8) 0%,
@@ -105,6 +122,7 @@ section {
   );
 }
 
+
 /* ==========================================================================
    HERO SECTION
    ========================================================================== */
@@ -112,13 +130,17 @@ section {
 .landing-hero-sticky {
   position: sticky;
   top: 0;
+
   height: 100vh;
+
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+
   text-align: center;
   overflow: visible;
+
   z-index: 10;
 }
 
@@ -126,13 +148,16 @@ section {
   font-size: clamp(3rem, 8vw, 6rem);
   font-weight: 800;
   letter-spacing: -0.04em;
+
   color: rgba(255, 255, 255, 0.15);
+
   margin: 0;
 }
 
 .landing-hero-real {
   position: relative;
   z-index: 20;
+
   max-width: 640px;
   padding: 0 24px;
 }
@@ -142,8 +167,11 @@ section {
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.05;
+
   color: #ffffff;
+
   margin: 0 0 24px;
+
   text-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
@@ -151,7 +179,9 @@ section {
   font-size: 18px;
   font-weight: 500;
   line-height: 1.6;
+
   color: rgba(255, 255, 255, 0.6);
+
   max-width: 500px;
   margin: 0 auto 40px;
 }
@@ -163,6 +193,7 @@ section {
   gap: 16px;
 }
 
+
 /* ==========================================================================
    CTA BUTTONS
    ========================================================================== */
@@ -171,10 +202,13 @@ section {
   display: flex;
   align-items: center;
   gap: 8px;
+
   background-color: #ffffff;
   color: #000000;
   font-weight: 700;
+
   box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+
   transition:
     transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
     box-shadow 0.2s;
@@ -192,8 +226,10 @@ section {
 .cta-shortcut {
   font-family: "JetBrains Mono", monospace;
   font-size: 10px;
+
   padding: 2px 6px;
   border-radius: 4px;
+
   background-color: rgba(0, 0, 0, 0.1);
   opacity: 0.6;
 }
@@ -202,6 +238,7 @@ section {
   background-color: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #ffffff;
+
   backdrop-filter: blur(8px);
 }
 
@@ -212,12 +249,15 @@ section {
 .landing-scroll-hint {
   position: absolute;
   bottom: 40px;
+
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+
   color: rgba(255, 255, 255, 0.4);
 }
+
 
 /* ==========================================================================
    LOGO MARQUEE
@@ -226,59 +266,74 @@ section {
 .landing-proof {
   position: relative;
   z-index: 10;
+
   padding: 64px 0;
   text-align: center;
+
   background: transparent;
 }
 
 .landing-proof-label {
   font-size: 11px;
   font-weight: 700;
+
   text-transform: uppercase;
   letter-spacing: 0.1em;
+
   color: rgba(255, 255, 255, 0.4);
+
   margin-bottom: 32px;
 }
 
 .landing-proof-marquee-wrapper {
   overflow: hidden;
   white-space: nowrap;
+
   width: 100%;
   max-width: 1000px;
   margin: 0 auto;
-  mask-image: linear-gradient(
-    to right,
-    transparent,
-    black 15%,
-    black 85%,
-    transparent
-  );
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent,
-    black 15%,
-    black 85%,
-    transparent
-  );
+
+  mask-image:
+    linear-gradient(
+      to right,
+      transparent,
+      black 15%,
+      black 85%,
+      transparent
+    );
+
+  -webkit-mask-image:
+    linear-gradient(
+      to right,
+      transparent,
+      black 15%,
+      black 85%,
+      transparent
+    );
 }
 
 .landing-proof-strip {
   display: inline-flex;
   gap: 80px;
+
   padding-left: 80px;
+
   animation: marquee 25s linear infinite;
 }
 
 .landing-proof-item {
   font-size: 18px;
   font-weight: 700;
+
   color: rgba(255, 255, 255, 0.3);
+
   transition: color 0.3s ease;
 }
 
 .landing-proof-item:hover {
   color: rgba(255, 255, 255, 0.8);
 }
+
 
 /* ==========================================================================
    BENTO GRID
@@ -287,8 +342,10 @@ section {
 .landing-bento {
   position: relative;
   z-index: 10;
+
   background-color: transparent;
 }
+
 
 /* ==========================================================================
    CLOSING CTA
@@ -297,9 +354,11 @@ section {
 .landing-cta {
   position: relative;
   z-index: 10;
+
   background-color: transparent;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
+
 
 /* ==========================================================================
    ANIMATIONS
@@ -325,11 +384,13 @@ section {
   }
 }
 
+
 /* ==========================================================================
    ACCESSIBILITY
    ========================================================================== */
 
 @media (prefers-reduced-motion: reduce) {
+
   .landing-nav-inner {
     transition: none;
   }
@@ -337,4 +398,5 @@ section {
   .landing-proof-strip {
     animation: none;
   }
+
 }

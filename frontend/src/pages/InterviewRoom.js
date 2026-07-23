@@ -441,9 +441,9 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
           /* ====================================================================
              PHASE 1: ZEN 50/50 SPLIT-PANE (UNCHANGED)
              ==================================================================== */
-          <div className="w-full h-full flex transition-opacity duration-500" style={{ opacity: mounted ? 1 : 0 }}>
+          <div className="w-full h-full flex flex-col md:flex-row transition-opacity duration-500 overflow-y-auto md:overflow-hidden" style={{ opacity: mounted ? 1 : 0 }}>
             {/* LEFT PANE */}
-            <div className="w-[45%] h-full overflow-y-auto border-r border-white/[0.06] bg-[#000000] px-12 py-16 flex flex-col">
+            <div className="w-full md:w-[45%] md:h-full overflow-y-auto border-b md:border-b-0 md:border-r border-white/[0.06] bg-[#000000] px-6 md:px-12 py-10 md:py-16 flex flex-col">
               <div className="flex items-center gap-4 mb-10">
                 <span className="bg-white/[0.03] border border-white/[0.08] px-3 py-1 rounded text-[10px] font-bold text-slate-300 uppercase tracking-widest">
                   {category ? category.replace(/_/g, " ") : "Technical"}
@@ -491,7 +491,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
             </div>
 
             {/* RIGHT PANE */}
-            <div className="w-[55%] h-full relative bg-[#000000] flex flex-col">
+            <div className="w-full md:w-[55%] h-[70vh] md:h-full relative bg-[#000000] flex flex-col">
               
               {/* Invisible Telemetry HUD: Floating Pill */}
               <AnimatePresence>
@@ -564,7 +564,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
               </div>
 
               {/* Action Footer */}
-              <div className="absolute bottom-8 left-12 right-12 flex justify-between items-center z-20">
+              <div className="absolute bottom-4 md:bottom-8 left-4 right-4 md:left-12 md:right-12 flex flex-col md:flex-row gap-4 md:gap-0 justify-between items-stretch md:items-center z-20">
                 <div className="flex items-center gap-6">
                   <button
                     onClick={isRecording ? stopRecording : startRecording}
