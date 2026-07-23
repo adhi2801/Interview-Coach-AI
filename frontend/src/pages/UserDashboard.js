@@ -26,7 +26,7 @@ function SlotNumber({ value }) {
   return <span className="font-mono tabular-nums tracking-tight">{display}</span>;
 }
 
-export default function UserDashboard({ user, onStartNew, onLogout, onNavigateHistory, onStartCoding, onNavigateSettings }) {
+export default function UserDashboard({ user, onStartNew, onLogout, onNavigateHistory, onStartCoding, onNavigateSettings, onNavigateStudyPlan }) {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hoverElo, setHoverElo] = useState(null);
@@ -400,13 +400,13 @@ export default function UserDashboard({ user, onStartNew, onLogout, onNavigateHi
         initial={{ y: 100, opacity: 0 }} 
         animate={{ y: 0, opacity: 1 }} 
         transition={{ delay: 0.5, type: "spring", damping: 22 }}
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#050507]/90 border border-white/[0.1] backdrop-blur-3xl p-2.5 rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.8),_inset_0_1px_0_0_rgba(255,255,255,0.1)] flex items-center gap-1 overflow-x-auto max-w-[95vw]"
+        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#050507]/90 border border-white/[0.1] backdrop-blur-3xl p-2.5 rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.8),_inset_0_1px_0_0_rgba(255,255,255,0.1)] flex items-center gap-1 overflow-x-auto max-w-[95vw] pointer-events-none"
       >
         <DockItem icon={LayoutGrid} label="Dashboard" active />
         <DockItem icon={History} label="History" onClick={onNavigateHistory} />
-        <DockItem icon={Target} label="Study Plan" disabled badge="SOON" />
+        <DockItem icon={Target} label="Study Plan" onClick={onNavigateStudyPlan} />
         <DockItem icon={Settings} label="Settings" onClick={onNavigateSettings} />
-        <div className="w-px h-8 bg-white/10 mx-2" />
+        <div className="w-px h-8 bg-white/10 mx-2 pointer-events-none" />
         <DockItem icon={LogOut} label="Log Out" onClick={onLogout} danger />
       </motion.div>
 
@@ -420,7 +420,7 @@ function DockItem({ icon: Icon, label, active, disabled, badge, onClick, danger 
     <button 
       onClick={disabled ? null : onClick}
       disabled={disabled}
-      className={`relative group px-4 py-3 rounded-xl flex items-center gap-3 transition-all outline-none flex-shrink-0 ${
+      className={`pointer-events-auto relative group px-4 py-3 rounded-xl flex items-center gap-3 transition-all outline-none flex-shrink-0 ${
         active ? "bg-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]" : 
         disabled ? "opacity-50 cursor-not-allowed" : 
         danger ? "hover:bg-rose-500/10" : "hover:bg-white/[0.04]"

@@ -10,6 +10,7 @@ import InterviewRoom from "./pages/InterviewRoom";
 import ReplayViewer from "./pages/ReplayViewer";
 import CodingRoom from "./pages/CodingRoom";
 import Settings from "./pages/Settings";
+import StudyPlanBrowser from "./pages/StudyPlanBrowser";
 import "./components/ui/Button.css";
 import "./components/ui/Card.css";
 import "./components/ui/Input.css";
@@ -51,6 +52,7 @@ function AuthenticatedApp({ user, onLogout, onEloUpdate }) {
             onNavigateHistory={() => navigate("/replay")}
             onStartCoding={() => navigate("/coding")}
             onNavigateSettings={() => navigate("/settings")}
+            onNavigateStudyPlan={() => navigate("/study-plan")}
           />
         }
       />
@@ -101,8 +103,8 @@ function AuthenticatedApp({ user, onLogout, onEloUpdate }) {
         element={<ReplayViewer sessionId={sessionData?.session_id} onExit={() => navigate("/")} />}
       />
       <Route
-        path="/settings"
-        element={<Settings user={user} onLogout={onLogout} onGoBack={() => navigate("/")} />}
+        path="/study-plan"
+        element={<StudyPlanBrowser onGoBack={() => navigate("/")} />}
       />
       {/* Unknown authenticated route: fall back to dashboard rather than a blank page */}
       <Route path="*" element={<Navigate to="/" replace />} />

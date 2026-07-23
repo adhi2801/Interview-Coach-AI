@@ -181,6 +181,20 @@ def root():
 def list_companies():
     return {"companies": company_engine.list_companies()}
 
+@app.get("/topics")
+def list_topics():
+    db = SessionLocal()
+    try:
+        topics = db.query(Topic).order_by(Topic.category, Topic.name).all()
+        return {
+            "topics": [
+                {"name": t.name, "category": t.category, "difficulty": t.difficulty_level}
+                for t in topics
+            ]
+        }
+    finally:
+        db.close()
+
 @app.post("/auth/signup")
 def signup(payload: SignupRequest):
     db = SessionLocal()
