@@ -1,6 +1,7 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from typing import Optional
 from database import get_db, create_tables, SessionLocal
 from models import InterviewSession, Answer, Topic, ScoringJob, CodingProblem, CodingTestCase, CodingSubmission, ReplayManifest
 from dotenv import load_dotenv
