@@ -155,7 +155,7 @@ class SubmitCodeRequest(BaseModel):
     problem_id: int
     code: str
     language: str = "python"
-    session_id: int = None
+    session_id: Optional[int] = None
 
 # Engine instances
 difficulty_engine = AdaptiveDifficultyEngine()

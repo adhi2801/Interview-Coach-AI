@@ -1,41 +1,34 @@
 # backend/code_executor.py
 #
-# Executes candidate-submitted code safely using Piston (https://github.com/engineer-man/piston),
-# a free, open-source sandboxed code execution engine. We use the public instance to start —
-# self-host later if you outgrow the ~5 req/sec rate limit on the free API.
-#
-# This is the missing piece between the editor (which already works) and grading
-# (coding_engine.grade_submission, which already works) — right now nothing sits
-# between them. This file is that missing middle step.
+# Executes candidate-submitted code using Judge0 (via RapidAPI), a sandboxed
+# code execution engine. Piston's public API (emkc.org) stopped granting
+# access to portfolio/non-commercial projects as of Feb 2026 — this replaces
+# it with Judge0 CE, keeping the exact same public interface (run_code,
+# run_test_cases) so no other file needs to change.
 
+import os
+import time
 import httpx
-from dataclasses import dataclass, field
+import base64
+from dataclasses import dataclass
+from dotenv import load_dotenv
 
-PISTON_URL = "https://emkc.org/api/v2/piston/execute"
+load_dotenv()
 
-# Piston needs an exact runtime version per language. These are stable, known-good
-# versions as of Piston's current runtime list. If a language stops working, the
-# most likely cause is Piston deprecating that version — check GET /api/v2/piston/runtimes.
-LANGUAGE_VERSIONS = {
-    "python": "3.10.0",
-    "javascript": "18.15.0",
-    "java": "15.0.2",
-    "cpp": "10.2.0",
-    "c": "10.2.0",
-    "go": "1.16.2",
+JUDGE0_URL = "https://judge0-ce.p.rapidapi.com/submissions"
+JUDGE0_API_KEY = os.getenv("JUDGE0_API_KEY")
+
+# Judge0's numeric language IDs for the languages this app supports.
+LANGUAGE_IDS = {
+    "python": 71,      # Python 3.8.1
+    "javascript": 63,  # Node.js 12.14.0
+    "java": 62,        # Java (OpenJDK 13.0.1)
+    "cpp": 54,         # C++ (GCC 9.2.0)
+    "c": 50,           # C (GCC 9.2.0)
+    "go": 60,          # Go 1.13.5
 }
 
-# Piston needs a filename with the right extension per language to know how to compile/run it.
-LANGUAGE_FILENAMES = {
-    "python": "main.py",
-    "javascript": "main.js",
-    "java": "Main.java",
-    "cpp": "main.cpp",
-    "c": "main.c",
-    "go": "main.go",
-}
-
-EXECUTION_TIMEOUT_SECONDS = 10  # per test case — prevents an infinite loop from hanging a request forever
+EXECUTION_TIMEOUT_SECONDS = 10
 
 
 @dataclass
@@ -58,47 +51,78 @@ class ExecutionResult:
 
 class CodeExecutor:
     def __init__(self):
-        self.client = httpx.Client(timeout=EXECUTION_TIMEOUT_SECONDS + 5)
+        self.client = httpx.Client(timeout=EXECUTION_TIMEOUT_SECONDS + 15)
 
     def run_code(self, code: str, language: str, stdin: str = "") -> ExecutionResult:
         """
         Runs code once against a single stdin input. Used for the 'Run' button —
         candidate self-checking against a sample case, no grading, nothing persisted.
         """
-        if language not in LANGUAGE_VERSIONS:
-            raise ValueError(f"Unsupported language: {language}. Supported: {list(LANGUAGE_VERSIONS.keys())}")
+        if language not in LANGUAGE_IDS:
+            raise ValueError(f"Unsupported language: {language}. Supported: {list(LANGUAGE_IDS.keys())}")
+
+        headers = {
+            "content-type": "application/json",
+            "X-RapidAPI-Key": JUDGE0_API_KEY,
+            "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
+        }
 
         payload = {
-            "language": language,
-            "version": LANGUAGE_VERSIONS[language],
-            "files": [{"name": LANGUAGE_FILENAMES[language], "content": code}],
-            "stdin": stdin,
-            "run_timeout": EXECUTION_TIMEOUT_SECONDS * 1000,
+            "source_code": base64.b64encode(code.encode()).decode(),
+            "language_id": LANGUAGE_IDS[language],
+            "stdin": base64.b64encode(stdin.encode()).decode(),
+            "cpu_time_limit": EXECUTION_TIMEOUT_SECONDS,
         }
 
         try:
-            response = self.client.post(PISTON_URL, json=payload)
-            response.raise_for_status()
-            data = response.json()
+            # Submit the code — base64_encoded=true keeps output safe from
+            # weird characters, wait=false means we poll for the result.
+            create_res = self.client.post(
+                f"{JUDGE0_URL}?base64_encoded=true&wait=false",
+                json=payload,
+                headers=headers,
+            )
+            create_res.raise_for_status()
+            token = create_res.json()["token"]
+
+            # Poll for the result — Judge0 processes async, usually finishes in <2s.
+            for _ in range(20):
+                time.sleep(0.5)
+                result_res = self.client.get(
+                    f"{JUDGE0_URL}/{token}?base64_encoded=true&fields=stdout,stderr,status,compile_output",
+                    headers=headers,
+                )
+                result_res.raise_for_status()
+                data = result_res.json()
+                status_id = data.get("status", {}).get("id")
+
+                # status_id 1 = In Queue, 2 = Processing — keep polling.
+                if status_id not in (1, 2):
+                    break
+            else:
+                return ExecutionResult(stdout="", stderr="Execution timed out.", exit_code=-1, timed_out=True)
+
+            def decode(field):
+                val = data.get(field)
+                return base64.b64decode(val).decode(errors="replace") if val else ""
+
+            stdout = decode("stdout")
+            stderr = decode("stderr") or decode("compile_output")
+            status_desc = data.get("status", {}).get("description", "")
+            exit_code = 0 if status_desc == "Accepted" else -1
+
+            return ExecutionResult(stdout=stdout, stderr=stderr, exit_code=exit_code)
+
         except httpx.TimeoutException:
             return ExecutionResult(stdout="", stderr="Execution timed out.", exit_code=-1, timed_out=True)
         except httpx.HTTPError as e:
             return ExecutionResult(stdout="", stderr=f"Sandbox error: {e}", exit_code=-1)
 
-        run = data.get("run", {})
-        return ExecutionResult(
-            stdout=run.get("stdout", ""),
-            stderr=run.get("stderr", ""),
-            exit_code=run.get("code", -1),
-        )
-
     def run_test_cases(self, code: str, language: str, test_cases: list) -> list[TestCaseResult]:
         """
         test_cases: list of {"input": str, "expected_output": str}
-        Runs the SAME code once per test case (Piston has no concept of "one program,
-        many inputs" — each call is a fresh sandboxed process). Comparison is done
-        with trailing-whitespace-insensitive matching, since a trailing newline
-        difference is not a real logic bug and shouldn't fail a candidate.
+        Runs the SAME code once per test case. Comparison is trailing-whitespace-
+        insensitive, since a trailing newline difference isn't a real logic bug.
         """
         results = []
         for case in test_cases:
