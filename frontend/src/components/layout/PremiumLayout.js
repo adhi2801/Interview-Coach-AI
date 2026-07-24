@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
+import { motion, useMotionValue, useTransform, animate, useInView } from 'framer-motion';
 
 /**
  * PremiumLayout — The core foundation for the Experiential Design System.
@@ -47,25 +47,25 @@ export default function PremiumLayout({ children, scene, ambientColors = ["#2563
       {/* 
         1. Volumetric Spotlights 
         Fixed to viewport to prevent scroll gaps/cliffs.
-        Animated breathing so the background feels alive.
+        Animated breathing so the background feels alive with smooth color transition on track switch.
       */}
       <motion.div 
         animate={{ 
           scale: [1, 1.05, 1],
-          opacity: [0.12, 0.18, 0.12]
+          opacity: [0.14, 0.20, 0.14]
         }}
         transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-        className="fixed top-[-15%] left-[-10%] w-[60vw] h-[60vw] max-w-[800px] max-h-[800px] rounded-full blur-[160px] pointer-events-none mix-blend-screen z-0"
+        className="fixed top-[-15%] left-[-10%] w-[60vw] h-[60vw] max-w-[800px] max-h-[800px] rounded-full blur-[160px] pointer-events-none mix-blend-screen z-0 transition-colors duration-1000"
         style={{ background: `radial-gradient(circle, ${ambientColors[0]} 0%, transparent 70%)` }}
       />
       
       <motion.div 
         animate={{ 
           scale: [1, 1.1, 1],
-          opacity: [0.1, 0.15, 0.1]
+          opacity: [0.12, 0.18, 0.12]
         }}
         transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-        className="fixed bottom-[-10%] right-[-5%] w-[50vw] h-[50vw] max-w-[700px] max-h-[700px] rounded-full blur-[140px] pointer-events-none mix-blend-screen z-0"
+        className="fixed bottom-[-10%] right-[-5%] w-[50vw] h-[50vw] max-w-[700px] max-h-[700px] rounded-full blur-[140px] pointer-events-none mix-blend-screen z-0 transition-colors duration-1000"
         style={{ background: `radial-gradient(circle, ${ambientColors[1]} 0%, transparent 70%)` }}
       />
 
@@ -103,26 +103,40 @@ function StaticGradientFallback({ colors }) {
 /**
  * GlassCard
  * The universal container. Enforces the Vercel-style cursor tracking
- * spotlight and the Apple top-edge bevel highlight.
+ * spotlight and the Apple top-edge bevel highlight. Recalculates rect on hover
+ * to maintain 100% accuracy during scrolling.
  */
 export function GlassCard({ children, className = "", mousePos }) {
   const [rect, setRect] = useState(null);
   const cardRef = useRef(null);
 
+  const updateRect = () => {
+    if (cardRef.current) {
+      setRect(cardRef.current.getBoundingClientRect());
+    }
+  };
+
   useEffect(() => {
-    if (cardRef.current) setRect(cardRef.current.getBoundingClientRect());
+    updateRect();
+    window.addEventListener("scroll", updateRect, { passive: true });
+    window.addEventListener("resize", updateRect, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", updateRect);
+      window.removeEventListener("resize", updateRect);
+    };
   }, []);
 
   const isHovered = rect && mousePos &&
     mousePos.x >= rect.left && mousePos.x <= rect.right &&
     mousePos.y >= rect.top && mousePos.y <= rect.bottom;
 
-  const cursorX = rect ? mousePos.x - rect.left : 0;
-  const cursorY = rect ? mousePos.y - rect.top : 0;
+  const cursorX = rect && mousePos ? mousePos.x - rect.left : 0;
+  const cursorY = rect && mousePos ? mousePos.y - rect.top : 0;
 
   return (
     <motion.div 
       ref={cardRef}
+      onMouseEnter={updateRect}
       whileHover={{ y: -2 }}
       className={`relative rounded-2xl bg-white/[0.02] border border-white/[0.06] p-6 overflow-hidden backdrop-blur-2xl transition-colors duration-300 hover:bg-white/[0.03] ${className}`}
       style={{ 
@@ -147,17 +161,22 @@ export function GlassCard({ children, className = "", mousePos }) {
 /**
  * AnimatedNumber
  * Tabular slot-machine number roll-up.
+ * Now triggers only when scrolled into view.
  */
-export function AnimatedNumber({ to, decimals = 0 }) {
+export function AnimatedNumber({ to, decimals = 0, suffix = "" }) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-40px" });
   const count = useMotionValue(0);
   const rounded = useTransform(count, (v) => Number(v.toFixed(decimals)));
   const [display, setDisplay] = useState(0);
 
   useEffect(() => {
-    const controls = animate(count, to, { duration: 2, ease: [0.16, 1, 0.3, 1] });
-    const unsub = rounded.on("change", setDisplay);
-    return () => { controls.stop(); unsub(); };
-  }, [to, count, rounded]);
+    if (isInView) {
+      const controls = animate(count, to, { duration: 2, ease: [0.16, 1, 0.3, 1] });
+      const unsub = rounded.on("change", setDisplay);
+      return () => { controls.stop(); unsub(); };
+    }
+  }, [isInView, to, count, rounded]);
 
-  return <>{display}</>;
+  return <span ref={ref}>{display}{suffix}</span>;
 }

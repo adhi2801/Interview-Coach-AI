@@ -9,7 +9,7 @@ import PremiumLayout, { GlassCard, AnimatedNumber } from "../components/layout/P
 import { 
   ChevronRight, BrainCircuit, Activity, Target, Terminal, 
   Code2, CheckCircle2, AlertTriangle, Lock, Users, BarChart3, 
-  Layers, Mic, Sparkles, Play, ExternalLink, Cpu, Check
+  Layers, Mic, Sparkles, Play, ExternalLink, Cpu, Check, ShieldCheck, Key
 } from "lucide-react";
 import "./Landing.css";
 
@@ -31,7 +31,6 @@ function ScrollAnimatedNumber({ to, decimals = 0, suffix = "" }) {
   return <span ref={ref}>{display}{suffix}</span>;
 }
 
-// Inline GitHub SVG Icon to avoid Lucide deprecation build errors
 function Github({ size = 16, className = "" }) {
   return (
     <svg 
@@ -53,16 +52,15 @@ function Github({ size = 16, className = "" }) {
 
 function StarField({ scrollYProgress }) {
   const ref = useRef();
-  const [sphere] = useState(() => random.inSphere(new Float32Array(4000), { radius: 12 }));
+  const [sphere] = useState(() => random.inSphere(new Float32Array(2500), { radius: 12 }));
   const smoothY = useSpring(scrollYProgress, { damping: 50, stiffness: 400 });
 
   useFrame((state, delta) => {
     if (ref.current) {
-      ref.current.rotation.x -= delta / 18;
-      ref.current.rotation.y -= delta / 22;
+      ref.current.rotation.x -= delta / 20;
+      ref.current.rotation.y -= delta / 25;
     }
     
-    // Smooth camera Z movement based on scroll
     const zPosition = 22 - (smoothY.get() * 12); 
     state.camera.position.z = Math.max(10, Math.min(22, zPosition));
 
@@ -78,10 +76,10 @@ function StarField({ scrollYProgress }) {
         <PointMaterial 
           transparent 
           color="#818cf8" 
-          size={0.045} 
+          size={0.048} 
           sizeAttenuation={true} 
           depthWrite={false} 
-          opacity={0.45} 
+          opacity={0.55} 
         />
       </Points>
     </group>
@@ -103,7 +101,6 @@ export default function Landing({ onGetStarted, onSignIn }) {
   const [mousePos, setMousePos] = useState({ x: -1000, y: -1000 });
   const containerRef = useRef(null);
   
-  // Track scroll for background animation
   const { scrollYProgress } = useScroll({ target: containerRef, offset: ["start start", "end start"] });
 
   useEffect(() => {
@@ -120,21 +117,23 @@ export default function Landing({ onGetStarted, onSignIn }) {
       ambientColors={activeTrack === 'system' ? ["#2563eb", "#6366f1"] : ["#d97706", "#2563eb"]}
     >
       
-      {/* FLOATING CONTROL CAPSULE */}
-      <nav className="fixed top-5 left-0 right-0 z-[100] flex justify-center px-4">
+      {/* FLOATING CONTROL CAPSULE (Fixed Z-index & backdrop bounds) */}
+      <nav className="fixed top-5 left-0 right-0 z-[80] flex justify-center px-4 pointer-events-auto">
         <motion.div 
           initial={{ y: -20, opacity: 0 }} 
           animate={{ y: 0, opacity: 1 }} 
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="flex items-center justify-between w-full max-w-5xl bg-[#0A0A0C]/85 backdrop-blur-2xl border border-white/[0.08] px-4 py-2 rounded-full shadow-[0_20px_40px_rgba(0,0,0,0.8),_inset_0_1px_0_0_rgba(255,255,255,0.1)]"
+          className="flex items-center justify-between w-full max-w-5xl bg-[#0A0A0C]/90 backdrop-blur-2xl border border-white/[0.08] px-4 py-2 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.9),_inset_0_1px_0_0_rgba(255,255,255,0.1)]"
         >
-          {/* Logo */}
+          {/* Brand Mark */}
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center font-extrabold text-white text-[10px] shadow-[0_0_15px_rgba(37,99,235,0.6)]">
               IC
             </div>
             <span className="font-bold text-white tracking-tight text-sm hidden sm:block">InterviewCoach</span>
-            <span className="text-[9px] font-mono font-bold bg-white/10 text-slate-400 px-2 py-0.5 rounded-full hidden md:inline-block">v2.4 DEMO</span>
+            <span className="text-[9px] font-mono font-bold bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full hidden md:inline-flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> DEMO READY
+            </span>
           </div>
 
           {/* Track Switcher */}
@@ -190,6 +189,7 @@ export default function Landing({ onGetStarted, onSignIn }) {
         </motion.div>
       </nav>
 
+      {/* HERO SECTION */}
       <section ref={containerRef} className="relative pt-32 pb-20 w-full z-10">
         <div className="w-full max-w-6xl mx-auto px-6 flex flex-col items-center text-center">
           
@@ -212,7 +212,7 @@ export default function Landing({ onGetStarted, onSignIn }) {
                 {activeTrack === 'system' ? '93 CS Topics · Adaptive ELO Engine' : 'Sandboxed Execution · 4 Languages'}
               </div>
 
-              {/* Dynamic Headline - Clear, punchy, informative */}
+              {/* Dynamic Headline */}
               <h1 className="text-4xl md:text-6xl lg:text-[72px] font-extrabold tracking-tighter text-white leading-[1.08] mb-6 drop-shadow-2xl max-w-4xl">
                 {activeTrack === 'system' ? (
                   <>
@@ -282,7 +282,7 @@ export default function Landing({ onGetStarted, onSignIn }) {
           </p>
           
           <div className="overflow-hidden mask-edges w-full max-w-5xl mx-auto mb-16">
-            <div className="flex gap-16 w-max animate-marquee opacity-50">
+            <div className="flex gap-16 w-max animate-marquee opacity-60">
               {[...logos, ...logos, ...logos].map((logo, i) => (
                 <span key={`${logo}-${i}`} className="text-2xl font-extrabold text-slate-400 uppercase tracking-tighter hover:text-white transition-colors cursor-default">{logo}</span>
               ))}
@@ -311,7 +311,7 @@ export default function Landing({ onGetStarted, onSignIn }) {
                 A real code editor.<br />
                 Not a static text box.
               </h2>
-              <p className="text-slate-400 text-sm sm:text-base leading-relaxed font-medium">
+              <p className="text-slate-300 text-sm sm:text-base leading-relaxed font-medium">
                 Practice Data Structures & Algorithms in Python, JavaScript, C++, or Java. Your code executes inside an isolated Linux sandbox with live test case suites and automated complexity estimations.
               </p>
 
@@ -332,14 +332,14 @@ export default function Landing({ onGetStarted, onSignIn }) {
         </div>
       </section>
 
-      {/* BENTO GRID MATRIX */}
+      {/* BENTO GRID MATRIX WITH REAL EVALUATION REPORT SHOWCASE */}
       <section className="relative z-30 py-28 bg-transparent">
         <div className="max-w-[1200px] mx-auto px-6">
           
           <div className="text-center mb-20">
             <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-400 bg-indigo-500/10 px-3 py-1.5 rounded-full border border-indigo-500/20">Under The Hood</span>
             <h2 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-white mt-6">Not a wrapper around a chatbot.</h2>
-            <p className="text-slate-400 mt-4 max-w-2xl mx-auto font-medium text-lg">An architecture built on localized execution, active telemetry, and adaptive mathematics.</p>
+            <p className="text-slate-300 mt-4 max-w-2xl mx-auto font-medium text-lg">An architecture built on localized execution, active telemetry, and adaptive mathematics.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 auto-rows-fr">
@@ -350,12 +350,12 @@ export default function Landing({ onGetStarted, onSignIn }) {
             <div className="md:col-span-1 relative"><GlassCard mousePos={mousePos} className="h-full"><AudioWaveformWidget /></GlassCard></div>
 
             {/* ROW 2 */}
-            <div className="md:col-span-2 relative"><GlassCard mousePos={mousePos} className="h-full p-0"><CodingSandboxWidget /></GlassCard></div>
+            <div className="md:col-span-2 relative"><GlassCard mousePos={mousePos} className="h-full p-0"><SocraticEngineWidget /></GlassCard></div>
             <div className="md:col-span-1 relative"><GlassCard mousePos={mousePos} className="h-full"><CompanyDnaWidget /></GlassCard></div>
             <div className="md:col-span-1 relative"><GlassCard mousePos={mousePos} className="h-full"><PeerPercentileWidget /></GlassCard></div>
 
-            {/* ROW 3 */}
-            <div className="md:col-span-2 relative"><GlassCard mousePos={mousePos} className="h-full"><ReplayReportWidget /></GlassCard></div>
+            {/* ROW 3: REPLAY & SCORING PAYOFF PREVIEW */}
+            <div className="md:col-span-2 relative"><GlassCard mousePos={mousePos} className="h-full"><ScoringAndResultsWidget /></GlassCard></div>
             <div className="md:col-span-2 relative"><GlassCard mousePos={mousePos} className="h-full"><InteractiveGraphWidget /></GlassCard></div>
 
           </div>
@@ -371,17 +371,17 @@ export default function Landing({ onGetStarted, onSignIn }) {
           <h2 className="text-3xl md:text-4xl font-extrabold tracking-tighter text-white mb-4">
             Built from scratch for production scale.
           </h2>
-          <p className="text-slate-400 text-sm max-w-xl mx-auto font-medium mb-12">
-            No generic templates. Built with FastAPI, PostgreSQL + pgvector, WebSockets, Claude 3.5 Sonnet, and Framer Motion.
+          <p className="text-slate-300 text-sm max-w-xl mx-auto font-medium mb-12">
+            No generic templates. Built with FastAPI, PostgreSQL, WebSockets, JWT + bcrypt, Claude 3.5 Sonnet, and Framer Motion.
           </p>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-left">
             <TechBadge label="Backend API" val="FastAPI / Python 3.11" />
-            <TechBadge label="Vector DB" val="PostgreSQL + pgvector" />
+            <TechBadge label="Vector DB" val="PostgreSQL (cosine similarity)" />
             <TechBadge label="AI Scorer" val="Claude 3.5 Sonnet" />
             <TechBadge label="Live Voice" val="Whisper VAD Websockets" />
+            <TechBadge label="Auth & Security" val="JWT + bcrypt" />
             <TechBadge label="Frontend" val="React 18 / Tailwind" />
-            <TechBadge label="3D Engine" val="React Three Fiber" />
             <TechBadge label="Cache Layer" val="Redis TTL Budget" />
             <TechBadge label="Monitoring" val="Sentry + Structlog" />
           </div>
@@ -394,7 +394,7 @@ export default function Landing({ onGetStarted, onSignIn }) {
           <h2 className="text-4xl md:text-6xl font-extrabold tracking-tighter text-white mb-6 leading-tight">
             Ready to test your skill?
           </h2>
-          <p className="text-slate-400 text-base md:text-lg font-medium mb-10 max-w-lg mx-auto leading-relaxed">
+          <p className="text-slate-300 text-base md:text-lg font-medium mb-10 max-w-lg mx-auto leading-relaxed">
             Free portfolio demo. No credit card required. Master technical, behavioral, and live coding interviews natively.
           </p>
           <div className="flex justify-center">
@@ -457,15 +457,14 @@ function HeroSystemDesignPreview() {
           <p className="text-slate-200 font-sans font-medium">"Your rate limiter uses a fixed window log. How does it handle 100k RPS spike traffic without overwhelming memory?"</p>
         </div>
 
-        {/* FIX: Converted from absolute overlap to clean flex layout */}
         <div className="bg-black/60 border border-white/10 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
+          <div className="flex-1 pr-2">
             <span className="text-[10px] font-sans font-bold text-slate-500 uppercase tracking-widest block mb-1">Candidate Response (Voice Input)</span>
-            <p className="text-slate-300 font-mono">"I would transition to a Redis Sorted Set Sliding Window with a local In-Memory Token Bucket buffer..."</p>
+            <p className="text-slate-200 font-mono text-xs leading-relaxed">"I would transition to a Redis Sorted Set Sliding Window with an In-Memory Token Bucket..."</p>
           </div>
           <div className="flex-shrink-0 flex items-center gap-2 bg-indigo-500/20 border border-indigo-500/30 px-3 py-1.5 rounded text-[10px] font-sans font-bold text-indigo-300 self-start sm:self-auto">
             <Mic size={12} className="animate-pulse text-indigo-400" />
-            <span>138 WPM &middot; Confidence 8.8/10</span>
+            <span>138 WPM &middot; Conf 8.8/10</span>
           </div>
         </div>
       </div>
@@ -507,7 +506,7 @@ function HeroLiveCodingPreview() {
           <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
             <CheckCircle2 size={13} /> 12/12 Test Cases Passed (0.8ms)
           </span>
-          <span className="text-[10px] font-mono text-slate-400">Time: O(N) | Space: O(min(N, M))</span>
+          <span className="text-[10px] font-mono text-slate-300">Time: O(N) | Space: O(min(N, M))</span>
         </div>
       </div>
     </motion.div>
@@ -558,7 +557,7 @@ function InteractiveMonacoShowcase() {
               className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-all ${
                 lang === l 
                   ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' 
-                  : 'text-slate-500 hover:text-white'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               {l.substring(0, 3)}
@@ -579,7 +578,7 @@ function InteractiveMonacoShowcase() {
         <div className="flex items-center gap-2 text-emerald-400 font-bold">
           <CheckCircle2 size={14} /> <span>12/12 Hidden Test Cases Passed</span>
         </div>
-        <span className="text-slate-500 font-mono">Exec Time: 1.2ms</span>
+        <span className="text-slate-300 font-mono">Exec Time: 1.2ms</span>
       </div>
     </div>
   );
@@ -589,7 +588,7 @@ function MetricColumn({ value, label, icon: Icon, color }) {
   return (
     <div className="flex flex-col items-center">
       <div className="text-4xl md:text-5xl font-extrabold text-white tracking-tighter mb-3 font-mono tabular-nums">{value}</div>
-      <div className="text-[11px] font-bold uppercase tracking-widest text-slate-500 flex items-center justify-center gap-1.5">
+      <div className="text-[11px] font-bold uppercase tracking-widest text-slate-400 flex items-center justify-center gap-1.5">
         <Icon size={14} className={color} /> {label}
       </div>
     </div>
@@ -604,13 +603,12 @@ function FeatureCheck({ title, desc }) {
       </div>
       <div>
         <h4 className="text-xs font-bold text-white">{title}</h4>
-        <p className="text-xs text-slate-400 font-medium leading-relaxed">{desc}</p>
+        <p className="text-xs text-slate-300 font-medium leading-relaxed">{desc}</p>
       </div>
     </div>
   );
 }
 
-{/* FIX: Improved contrast for TechBadge */}
 function TechBadge({ label, val }) {
   return (
     <div className="bg-white/[0.04] border border-white/10 p-4 rounded-xl shadow-sm">
@@ -619,7 +617,6 @@ function TechBadge({ label, val }) {
     </div>
   );
 }
-
 
 // BENTO TILE 1: ELO Engine
 function InteractiveEloWidget() {
@@ -630,13 +627,13 @@ function InteractiveEloWidget() {
           <BrainCircuit size={20} className="text-indigo-400" />
         </div>
         <h3 className="text-xl font-bold text-white tracking-tight mb-2">Adaptive ELO Difficulty</h3>
-        <p className="text-sm font-medium text-slate-400 max-w-sm leading-relaxed">
+        <p className="text-sm font-medium text-slate-300 max-w-sm leading-relaxed">
           Every answer updates your rating in real-time. Difficulty scales to enforce a state of flow.
         </p>
       </div>
       <div className="mt-8 flex items-end justify-between relative h-32">
         <div className="z-10 relative">
-          <span className="block text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">Current Rating</span>
+          <span className="block text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-2">Current Rating</span>
           <div className="text-6xl font-extrabold text-white font-mono tabular-nums tracking-tighter leading-none"><AnimatedNumber to={1416} /></div>
           <span className="inline-block mt-3 bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded">Level 5 Active</span>
         </div>
@@ -669,7 +666,7 @@ function InterviewerPersonaWidget() {
             <button
               key={key} onClick={() => setActive(key)}
               className={`py-2 rounded-md text-[10px] font-bold uppercase tracking-wider border transition-all text-center w-full outline-none ${
-                active === key ? `bg-white/[0.12] text-white border-white/20 shadow-sm` : "bg-transparent border-white/10 text-slate-500 hover:text-white"
+                active === key ? `bg-white/[0.12] text-white border-white/20 shadow-sm` : "bg-transparent border-white/10 text-slate-400 hover:text-white"
               }`}
             >
               {p.label}
@@ -678,7 +675,7 @@ function InterviewerPersonaWidget() {
         </div>
       </div>
       <div className="mt-4 flex-1 flex flex-col justify-end">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 block mb-2">Simulated Response</span>
+        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-2">Simulated Response</span>
         <AnimatePresence mode="wait">
           <motion.div key={active} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} className={`p-3 rounded-lg border ${personas[active].bg} ${personas[active].border}`}>
             <p className={`text-xs font-medium leading-relaxed ${personas[active].color}`}>"{personas[active].quote}"</p>
@@ -689,55 +686,41 @@ function InterviewerPersonaWidget() {
   );
 }
 
-// BENTO TILE 3: Monaco Sandbox
-function CodingSandboxWidget() {
-  const [lang, setLang] = useState("python");
-  const codes = {
-    python: "def rate_limiter(user_id):\n    # Token bucket via Redis\n    pass",
-    js: "function rateLimiter(userId) {\n  // Token bucket via Redis\n}",
-    cpp: "bool rate_limiter(string user_id) {\n  // Token bucket via Redis\n}",
-    java: "public boolean rateLimiter(String userId) {\n  // Token bucket via Redis\n}"
-  };
-
+// BENTO TILE 3: Socratic AI Engine
+function SocraticEngineWidget() {
   return (
     <div className="flex flex-col h-full w-full min-h-[280px]">
       <div className="flex items-center justify-between px-5 py-3 border-b border-white/5 bg-black/40">
         <div className="flex items-center gap-3">
-          <Code2 size={16} className="text-amber-400" />
-          <h3 className="text-sm font-bold text-white tracking-tight">Monaco Sandbox</h3>
+          <Sparkles size={16} className="text-indigo-400" />
+          <h3 className="text-sm font-bold text-white tracking-tight">Socratic AI Debugger</h3>
         </div>
-        <div className="flex gap-2">
-          {["python", "js", "cpp", "java"].map(l => (
-            <button key={l} onClick={() => setLang(l)} className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border transition-colors ${lang === l ? "bg-amber-500/10 text-amber-400 border-amber-500/30" : "border-transparent text-slate-500 hover:text-white"}`}>
-              {l.substring(0,3)}
-            </button>
-          ))}
-        </div>
+        <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded">
+          Active Tutor
+        </span>
       </div>
-      <div className="flex-1 bg-[#050505] p-5 font-mono text-xs leading-relaxed text-slate-300 relative">
-        <AnimatePresence mode="wait">
-          <motion.pre key={lang} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-indigo-200">
-            {codes[lang]}
-          </motion.pre>
-        </AnimatePresence>
-        
-        {/* Animated Tests Passing */}
-        <motion.div animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 2, repeat: Infinity }} className="absolute bottom-5 left-5 flex items-center gap-2">
-           <Play size={12} className="text-emerald-400 fill-current" />
-           <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">12/12 Passed</span>
-        </motion.div>
+      <div className="flex-1 bg-[#050505] p-5 flex flex-col justify-between relative overflow-hidden">
+        <div className="space-y-3 font-mono text-xs">
+          <div className="p-3 bg-white/[0.02] border border-white/5 rounded-lg text-slate-300">
+            <span className="text-indigo-400 font-bold block mb-1">User Attempt:</span>
+            "I will loop through the array and use a nested loop to check for duplicates."
+          </div>
+          <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-indigo-200">
+            <span className="text-amber-400 font-bold block mb-1">Socratic Guidance:</span>
+            "Nested loops result in O(N²) time. Can you trade O(N) space memory to bring time complexity down to O(N)?"
+          </div>
+        </div>
 
-        {/* Socratic Hint */}
-        <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} className="absolute bottom-5 right-5 bg-indigo-500/10 border border-indigo-500/20 p-3 rounded-lg backdrop-blur-md flex items-start gap-2 max-w-[200px] shadow-2xl">
-          <Sparkles size={14} className="text-indigo-400 mt-0.5 flex-shrink-0" />
-          <span className="text-[11px] font-medium text-indigo-200 leading-snug font-sans">Hint: How does this handle concurrent race conditions?</span>
-        </motion.div>
+        <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-[10px] font-sans text-slate-400">
+          <span>Guided Learning Mode</span>
+          <span className="text-emerald-400 font-bold flex items-center gap-1"><CheckCircle2 size={12}/> Zero Answer Spoilers</span>
+        </div>
       </div>
     </div>
   );
 }
 
-// BENTO TILE 4: Audio Waveform
+// BENTO TILE 4: Voice Telemetry
 function AudioWaveformWidget() {
   return (
     <div className="flex flex-col justify-between h-full w-full min-h-[280px]">
@@ -753,7 +736,7 @@ function AudioWaveformWidget() {
             <motion.div key={i} className="flex-1 bg-emerald-400/80 rounded-t-sm" animate={{ height: [6, Math.random() * 50 + 10, 6] }} transition={{ duration: 0.8 + Math.random(), repeat: Infinity, ease: "easeInOut" }} />
           ))}
         </div>
-        <div className="flex justify-between items-center text-[11px] font-mono font-bold text-slate-400 border-t border-white/10 pt-3">
+        <div className="flex justify-between items-center text-[11px] font-mono font-bold text-slate-300 border-t border-white/10 pt-3">
           <span className="text-white">135 WPM</span>
           <span className="text-emerald-400">Conf: 8.6/10</span>
         </div>
@@ -775,7 +758,7 @@ function CompanyDnaWidget() {
         </h3>
         <div className="flex gap-2 w-full">
           {["google", "meta", "amazon"].map(c => (
-            <button key={c} onClick={() => setActiveCompany(c)} className={`py-1.5 rounded text-[10px] font-bold uppercase tracking-wider border transition-all text-center w-full outline-none ${activeCompany === c ? 'bg-white/[0.12] text-white border-white/20' : 'bg-transparent border-white/10 text-slate-500 hover:text-white'}`}>
+            <button key={c} onClick={() => setActiveCompany(c)} className={`py-1.5 rounded text-[10px] font-bold uppercase tracking-wider border transition-all text-center w-full outline-none ${activeCompany === c ? 'bg-white/[0.12] text-white border-white/20' : 'bg-transparent border-white/10 text-slate-400 hover:text-white'}`}>
               {c.substring(0,4)}
             </button>
           ))}
@@ -783,11 +766,11 @@ function CompanyDnaWidget() {
       </div>
       <div className="space-y-4 mt-6">
         <div>
-          <div className="flex justify-between text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1.5"><span>Scale</span><span className="text-white font-mono">85%</span></div>
+          <div className="flex justify-between text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1.5"><span>Scale</span><span className="text-white font-mono">85%</span></div>
           <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden"><div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${vectorStats[activeCompany][0]}%` }} /></div>
         </div>
         <div>
-          <div className="flex justify-between text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1.5"><span>Tradeoffs</span><span className="text-emerald-400 font-mono">60%</span></div>
+          <div className="flex justify-between text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1.5"><span>Tradeoffs</span><span className="text-emerald-400 font-mono">60%</span></div>
           <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${vectorStats[activeCompany][1]}%` }} /></div>
         </div>
       </div>
@@ -795,31 +778,44 @@ function CompanyDnaWidget() {
   );
 }
 
-// BENTO TILE 6: Replay Report
-function ReplayReportWidget() {
+// BENTO TILE 6: 5D Evaluation & Scoring Payoff Widget (NEW PAYOFF PREVIEW)
+function ScoringAndResultsWidget() {
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-6 h-full w-full min-h-[280px]">
-       <div className="w-full sm:w-1/2">
-         <h3 className="text-lg font-bold text-white tracking-tight mb-2">5D Session Report</h3>
-         <p className="text-sm font-medium text-slate-400 leading-relaxed mb-8">Review timeline node data with multi-dimensional radar plotting.</p>
-         <div className="space-y-2 w-full">
-           <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">
-             <span>Timeline</span><span>Node 4</span>
-           </div>
-           <div className="h-1.5 w-full bg-white/10 rounded-full relative">
-             <div className="absolute top-0 left-0 h-full w-[60%] bg-indigo-500 rounded-full" />
-             <div className="absolute top-1/2 -translate-y-1/2 left-[60%] w-3 h-3 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)] border border-indigo-500" />
-           </div>
-         </div>
-       </div>
-       <div className="w-36 h-36 relative flex items-center justify-center flex-shrink-0">
-         <div className="absolute inset-0 bg-indigo-500/10 blur-2xl rounded-full" />
-         <svg viewBox="0 0 100 100" className="w-full h-full opacity-80 z-10 overflow-visible">
-           <polygon points="50,10 90,35 75,85 25,85 10,35" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-           <polygon points="50,25 75,43 65,72 35,72 25,43" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-           <polygon points="50,15 80,45 60,80 30,70 15,40" fill="rgba(99,102,241,0.3)" stroke="#6366f1" strokeWidth="1.5" />
-         </svg>
-       </div>
+    <div className="flex flex-col justify-between h-full w-full min-h-[280px] p-1">
+      <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-3">
+        <div className="flex items-center gap-2">
+          <Activity size={16} className="text-emerald-400" />
+          <h3 className="text-sm font-bold text-white tracking-tight">5D Evaluation & Scoring Engine</h3>
+        </div>
+        <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded font-bold">
+          Payoff Report
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center flex-1">
+        {/* Score Circle & ELO Delta */}
+        <div className="sm:col-span-5 flex flex-col items-center justify-center bg-black/50 border border-white/5 p-4 rounded-xl text-center">
+          <span className="text-[9px] font-mono uppercase tracking-widest text-slate-400 block mb-1">Overall Evaluation</span>
+          <div className="text-5xl font-black text-white font-mono tabular-nums tracking-tighter">8.8<span className="text-sm text-slate-500">/10</span></div>
+          <div className="mt-2 flex items-center gap-1.5 text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
+            <span>ELO 1200 ➔ 1224</span>
+            <span className="text-emerald-400 font-extrabold">↑ +24</span>
+          </div>
+        </div>
+
+        {/* 5D Skill Radar Polygon */}
+        <div className="sm:col-span-7 flex flex-col items-center justify-center relative">
+          <div className="w-full h-32 relative flex items-center justify-center">
+            <svg viewBox="0 0 100 100" className="w-full h-full opacity-85 overflow-visible">
+              <polygon points="50,10 90,35 75,85 25,85 10,35" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+              <polygon points="50,22 82,40 68,78 32,78 18,40" fill="rgba(16,185,129,0.2)" stroke="#10b981" strokeWidth="1.5" />
+            </svg>
+            <span className="absolute top-1 text-[8px] font-mono font-bold text-slate-400 uppercase">Technical (9.2)</span>
+            <span className="absolute bottom-1 text-[8px] font-mono font-bold text-slate-400 uppercase">Comm (8.4)</span>
+          </div>
+          <p className="text-[10px] text-slate-400 font-medium text-center mt-1">Multi-dimensional scoring across 5 skill vectors</p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -833,12 +829,12 @@ function InteractiveGraphWidget() {
            <Layers size={20} className="text-amber-400" />
          </div>
          <h3 className="text-lg font-bold text-white tracking-tight mb-2">93-Node Curriculum</h3>
-         <p className="text-sm font-medium text-slate-400 leading-relaxed">Diagnostic trees track dependencies. Never fail a systems question due to a hidden foundation gap.</p>
+         <p className="text-sm font-medium text-slate-300 leading-relaxed">Diagnostic trees track dependencies. Never fail a systems question due to a hidden foundation gap.</p>
        </div>
        <div className="w-full sm:w-1/2 flex flex-col gap-3 font-mono text-[11px] text-slate-300 sm:pl-6 mt-6 sm:mt-0">
          <div className="flex items-center gap-3 bg-white/[0.03] p-2.5 rounded border border-white/10"><CheckCircle2 size={16} className="text-emerald-400"/> Token Bucket</div>
          <div className="flex items-center gap-3 bg-amber-500/10 p-2.5 rounded border border-amber-500/30 text-amber-200"><AlertTriangle size={16} className="text-amber-400 animate-pulse"/> Leaky Bucket</div>
-         <div className="flex items-center gap-3 opacity-50 p-2.5"><Lock size={16} className="text-slate-500"/> Sliding Window</div>
+         <div className="flex items-center gap-3 opacity-50 p-2.5"><Lock size={16} className="text-slate-400"/> Sliding Window</div>
        </div>
     </div>
   );
@@ -850,9 +846,9 @@ function PeerPercentileWidget() {
     <div className="flex flex-col justify-between items-center text-center h-full w-full min-h-[280px]">
       <Activity size={28} className="text-emerald-400 mt-4" />
       <div>
-        <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500 block mb-2">Global Rank</span>
+        <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400 block mb-2">Global Rank</span>
         <div className="text-4xl font-extrabold text-white tracking-tighter tabular-nums mb-2 font-mono">Top 12%</div>
-        <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 bg-white/5 border border-white/10 px-3 py-1.5 rounded inline-block font-mono">1,240 Peers</div>
+        <div className="text-[10px] font-bold uppercase tracking-widest text-slate-300 bg-white/5 border border-white/10 px-3 py-1.5 rounded inline-block font-mono">1,240 Peers</div>
       </div>
     </div>
   );

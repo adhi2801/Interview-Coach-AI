@@ -1,8 +1,7 @@
 /* ==========================================================================
-   STREAMING CHUNK
-
    Landing.css
-   Hardware-accelerated animations, edge masking, and scrollbar hiding
+
+   Hardware-accelerated animations, edge masking, and scrollbar utilities
    for the Experiential Design System.
    ========================================================================== */
 
@@ -55,6 +54,7 @@
   will-change: transform;
 }
 
+
 @keyframes pulse-slow {
   0%,
   100% {
@@ -103,10 +103,35 @@
 
 
 /* ==========================================================================
-   4. Scrollbar Utilities
+   4. Custom Scrollbar Styling
    ========================================================================== */
 
-/* Hide scrollbar for internal bento elements */
+/* Custom scrollbars for code boxes, terminal widgets, and scrollable panels */
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+
+/* ==========================================================================
+   5. Scrollbar Utility Classes
+   ========================================================================== */
+
+/* Hide scrollbar for internal bento elements and overflow containers */
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;

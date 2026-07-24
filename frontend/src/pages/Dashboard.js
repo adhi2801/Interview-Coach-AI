@@ -1,5 +1,5 @@
 import { API_URL } from "../config";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Terminal, BrainCircuit, ChevronRight, Activity, ArrowLeft, Rocket } from "lucide-react";
 import axios from "axios";
@@ -28,11 +28,9 @@ const COMPANIES = [
       </svg>
     )
   },
-{
+  {
     id: "amazon", name: "Amazon", color: "#FF9900",
-    logo: (
-       <FaAmazon size={24} color="#FF9900" />
-    )
+    logo: <FaAmazon size={24} color="#FF9900" />
   },
   {
     id: "meta", name: "Meta", color: "#0866FF",
@@ -45,7 +43,7 @@ const COMPANIES = [
         <path fill="#F25022" d="M1 1h10v10H1z"/>
         <path fill="#7FBA00" d="M13 1h10v10H13z"/>
         <path fill="#00A4EF" d="M1 13h10v10H1z"/>
-        <path fill="#FFB900" d="M13 13h10v10H13z"/>
+        <path fill="#FFB900" d="M13 13h10v10H1z"/>
       </svg>
     )
   },
@@ -62,7 +60,7 @@ const COMPANIES = [
     logo: <Rocket size={24} className="text-emerald-400" />
   },
 ];
-  
+
 const PERSONAS = [
   { id: "standard", label: "Standard", desc: "Balanced, professional interviewer" },
   { id: "hostile", label: "Hostile", desc: "Challenges assumptions, strict constraints" },
@@ -98,8 +96,10 @@ export default function Dashboard({ onStart, user, onGoBack }) {
   const [error, setError] = useState("");
   const [mousePos, setMousePos] = useState({ x: -1000, y: -1000 });
   const [mounted, setMounted] = useState(false);
+  const [bootText, setBootText] = useState("");
   
   const currentElo = Math.round(user?.elo_rating || 1200);
+  const selectedCompany = COMPANIES.find((c) => c.id === company);
 
   useEffect(() => {
     setMounted(true);
@@ -108,7 +108,28 @@ export default function Dashboard({ onStart, user, onGoBack }) {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  async function handleStart() {
+  // Premium Feature: Subsecond Terminal Boot Sequence
+  const bootSequence = [
+    `> Injecting ${selectedCompany?.name} DNA...`, 
+    `> Calibrating Hostility...`, 
+    `> Establishing WebRTC...`, 
+    `> Simulation Ready`
+  ];
+
+  useEffect(() => {
+    if (loading) {
+      let i = 0;
+      setBootText(bootSequence[0]);
+      const interval = setInterval(() => {
+        i++;
+        if (i < bootSequence.length) setBootText(bootSequence[i]);
+      }, 350);
+      return () => clearInterval(interval);
+    }
+  }, [loading, selectedCompany]);
+
+  const handleStart = useCallback(async () => {
+    if (loading) return;
     setLoading(true);
     setError("");
     try {
@@ -124,14 +145,27 @@ export default function Dashboard({ onStart, user, onGoBack }) {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      if(onStart) onStart(response.data);
+      // Slight delay to allow terminal boot animation to complete
+      setTimeout(() => {
+        if(onStart) onStart(response.data);
+      }, 1400);
     } catch (err) {
       setError("Cannot connect to server. Ensure backend is running.");
       setLoading(false);
     }
-  }
+  }, [loading, company, role, persona, user, onStart]);
 
-  const selectedCompany = COMPANIES.find((c) => c.id === company);
+  // Premium Feature: Global Keyboard Shortcut (Enter key)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Enter' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        handleStart();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleStart]);
 
   // Animation Variants
   const containerVars = {
@@ -145,7 +179,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#000000] text-slate-200 font-sans selection:bg-blue-500/30 overflow-x-hidden flex flex-col items-center">
+    <div className="relative min-h-screen bg-[#000000] text-slate-200 font-sans selection:bg-blue-500/30 overflow-x-hidden flex flex-col items-center justify-center">
       
       {/* Inline Shimmer Keyframes */}
       <style>{`
@@ -158,12 +192,12 @@ export default function Dashboard({ onStart, user, onGoBack }) {
         }
       `}</style>
 
-      {/* AMBIENT LIGHTS & GRAIN (Company Color Synced) */}
+      {/* AMBIENT LIGHTS & GRAIN (Brand Color Synced with Edge Safeguards) */}
       <div 
-        className="fixed top-[-20%] left-[20%] w-[50vw] h-[50vw] rounded-full blur-[150px] pointer-events-none mix-blend-screen z-0 transition-colors duration-700" 
-        style={{ backgroundColor: `${selectedCompany?.color || '#3b82f6'}15` }}
+        className="fixed top-[-15%] left-[25%] w-[45vw] h-[45vw] max-w-[700px] max-h-[700px] rounded-full blur-[160px] pointer-events-none mix-blend-screen z-0 transition-colors duration-1000" 
+        style={{ backgroundColor: selectedCompany?.color || '#3b82f6', opacity: 0.14 }}
       />
-      <div className="fixed bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-indigo-600/10 blur-[150px] pointer-events-none mix-blend-screen z-0" />
+      <div className="fixed bottom-[-10%] right-[-5%] w-[35vw] h-[35vw] max-w-[600px] max-h-[600px] rounded-full bg-indigo-600/10 blur-[150px] pointer-events-none mix-blend-screen z-0" />
       <div 
         className="fixed inset-0 z-10 pointer-events-none opacity-[0.03] mix-blend-soft-light"
         style={{
@@ -176,7 +210,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
         {onGoBack ? (
           <button 
             onClick={onGoBack}
-            className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors outline-none"
+            className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors outline-none focus:outline-none"
           >
             <ArrowLeft size={16} /> Dashboard
           </button>
@@ -193,30 +227,30 @@ export default function Dashboard({ onStart, user, onGoBack }) {
         </div>
       </header>
 
-      {/* ATMOSPHERIC SPLIT-PANE CONTAINER */}
-      <main className="relative z-20 w-full max-w-7xl min-h-screen pt-32 pb-24 px-6 md:px-10 flex items-center justify-center">
+      {/* ATMOSPHERIC SPLIT-PANE CONTAINER (Tightened vertical padding to eliminate bottom viewport clipping) */}
+      <main className="relative z-20 w-full max-w-7xl min-h-screen pt-16 lg:pt-20 pb-8 px-6 md:px-10 flex items-center justify-center">
         
-        <motion.div initial="hidden" animate={mounted ? "show" : "hidden"} variants={containerVars} className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+        <motion.div initial="hidden" animate={mounted ? "show" : "hidden"} variants={containerVars} className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch my-auto">
           
           {/* ========================================================================= */}
           {/* LEFT PANE (40% - STICKY CONTEXT & DYNAMIC INSIGHTS)                       */}
           {/* ========================================================================= */}
-          <motion.div variants={itemVars} className="lg:col-span-5 flex flex-col justify-between gap-8">
+          <motion.div variants={itemVars} className="lg:col-span-5 flex flex-col justify-between h-full gap-5">
             
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/20 bg-blue-500/10 text-[10px] font-bold uppercase tracking-widest text-blue-400">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" /> System Ready
               </div>
               <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-white leading-[1.05]">
                 Initialize<br/>Simulation
               </h1>
-              <p className="text-sm font-medium text-slate-400 leading-relaxed">
+              <p className="text-sm font-medium text-slate-300 leading-relaxed">
                 Configure your target environment. The AI will enforce constraints matching a <strong className="text-white">Level {Math.min(7, Math.max(3, Math.round((currentElo - 800) / 100)))}</strong> difficulty bracket based on your ELO.
               </p>
             </div>
 
-            {/* Dynamic Company Insights Card (Crossfades on Change) */}
-            <div className="mt-auto">
+            {/* Dynamic Company Insights Card */}
+            <div className="mt-2 lg:mt-auto">
               <AnimatePresence mode="wait">
                 <motion.div 
                   key={company}
@@ -225,13 +259,13 @@ export default function Dashboard({ onStart, user, onGoBack }) {
                   exit={{ opacity: 0, y: -10, filter: "blur(8px)" }}
                   transition={{ duration: 0.3 }}
                 >
-                  <GlassCard mousePos={mousePos} className="w-full p-6 relative overflow-hidden">
+                  <GlassCard mousePos={mousePos} className="w-full p-5 md:p-6 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 blur-[50px] pointer-events-none rounded-full" style={{ backgroundColor: `${selectedCompany?.color || '#3b82f6'}20` }} />
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2 relative z-10">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-2 relative z-10">
                       <span className="w-2 h-2 rounded-full shadow-[0_0_10px_currentColor]" style={{ backgroundColor: selectedCompany?.color || '#fff' }} />
                       {selectedCompany?.name} Interview Style
                     </p>
-                    <p className="text-sm font-medium text-slate-300 leading-relaxed relative z-10">
+                    <p className="text-xs md:text-sm font-medium text-slate-200 leading-relaxed relative z-10">
                       {INSIGHTS[company]}
                     </p>
                   </GlassCard>
@@ -244,24 +278,24 @@ export default function Dashboard({ onStart, user, onGoBack }) {
           {/* ========================================================================= */}
           {/* RIGHT PANE (60% - CONTROL BOARD: TARGET DNA, SCOPE, PERSONA)              */}
           {/* ========================================================================= */}
-          <motion.div variants={itemVars} className="lg:col-span-7 bg-[#08080A]/80 backdrop-blur-3xl border border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),_0_30px_60px_rgba(0,0,0,0.8)] rounded-[2rem] p-8 md:p-10 flex flex-col justify-between gap-8 relative overflow-hidden">
+          <motion.div variants={itemVars} className="lg:col-span-7 bg-[#08080A]/80 backdrop-blur-3xl border border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),_0_30px_60px_rgba(0,0,0,0.8)] rounded-[2rem] p-6 md:p-8 flex flex-col justify-between gap-6 relative overflow-hidden">
             
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
 
-            <div className="space-y-8 relative z-10">
+            <div className="space-y-6 relative z-10">
               
               {/* 1. Target DNA */}
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 block mb-4">
+                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 block mb-2.5">
                   1. Target Company DNA
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-2.5">
                   {COMPANIES.map((c) => (
                     <motion.button
                       whileTap={{ scale: 0.97 }}
                       key={c.id}
                       onClick={() => setCompany(c.id)}
-                      className={`flex flex-col items-start p-3.5 rounded-xl border transition-all duration-200 outline-none relative overflow-hidden ${
+                      className={`flex flex-col items-start p-3 rounded-xl border transition-all duration-200 outline-none relative overflow-hidden ${
                         company === c.id 
                           ? "bg-white/[0.06] border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2),_0_10px_25px_rgba(0,0,0,0.5)]" 
                           : "bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.04] hover:border-white/10"
@@ -270,7 +304,9 @@ export default function Dashboard({ onStart, user, onGoBack }) {
                       {company === c.id && (
                         <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-transparent pointer-events-none" />
                       )}
-                      <div className="flex-shrink-0 mb-2 relative z-10">{c.logo}</div>
+                      <div className="flex-shrink-0 mb-1.5 relative z-10 w-6 h-6 flex items-center justify-center grayscale-0 opacity-90 overflow-visible">
+                        {c.logo}
+                      </div>
                       <span className={`text-xs font-bold tracking-tight relative z-10 ${company === c.id ? "text-white" : "text-slate-300"}`}>
                         {c.name}
                       </span>
@@ -281,7 +317,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
 
               {/* 2. Define Scope */}
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 block mb-3">
+                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 block mb-2">
                   2. Define Scope & Level
                 </label>
                 <div className="relative z-50">
@@ -293,18 +329,18 @@ export default function Dashboard({ onStart, user, onGoBack }) {
                 </div>
               </div>
 
-              {/* 3. Interviewer Persona */}
+              {/* 3. Interviewer Persona (WCAG AAA High Contrast) */}
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 block mb-4">
+                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 block mb-2.5">
                   3. Interviewer Persona
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {PERSONAS.map((p) => (
                     <motion.button
                       whileTap={{ scale: 0.98 }}
                       key={p.id}
                       onClick={() => setPersona(p.id)}
-                      className={`text-left p-3.5 rounded-xl border transition-all duration-200 outline-none relative overflow-hidden ${
+                      className={`text-left p-3 rounded-xl border transition-all duration-200 outline-none relative overflow-hidden ${
                         persona === p.id 
                           ? "bg-white/[0.06] border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2),_0_10px_25px_rgba(0,0,0,0.5)]" 
                           : "bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.04] hover:border-white/10"
@@ -313,8 +349,8 @@ export default function Dashboard({ onStart, user, onGoBack }) {
                       {persona === p.id && (
                         <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-transparent pointer-events-none" />
                       )}
-                      <span className={`block text-xs font-bold mb-1 tracking-tight relative z-10 ${persona === p.id ? "text-white" : "text-slate-300"}`}>{p.label}</span>
-                      <span className={`block text-[10px] font-medium leading-relaxed relative z-10 ${persona === p.id ? "text-slate-300" : "text-slate-500"}`}>{p.desc}</span>
+                      <span className={`block text-xs font-bold mb-0.5 tracking-tight relative z-10 ${persona === p.id ? "text-white" : "text-slate-200"}`}>{p.label}</span>
+                      <span className={`block text-[10px] font-medium leading-relaxed relative z-10 ${persona === p.id ? "text-slate-300" : "text-slate-300"}`}>{p.desc}</span>
                     </motion.button>
                   ))}
                 </div>
@@ -323,13 +359,13 @@ export default function Dashboard({ onStart, user, onGoBack }) {
             </div>
 
             {/* Launch Action Footer */}
-            <div className="pt-6 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4 relative z-10">
+            <div className="pt-4 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4 relative z-10">
               {error ? (
                 <div className="text-xs font-bold text-red-400 bg-red-500/10 px-4 py-2 rounded-lg border border-red-500/20">
                   {error}
                 </div>
               ) : (
-                <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest hidden sm:inline">
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest hidden sm:inline">
                   Ready to initialize ELO tracking
                 </span>
               )}
@@ -339,17 +375,17 @@ export default function Dashboard({ onStart, user, onGoBack }) {
                   whileTap={{ scale: loading ? 1 : 0.96 }}
                   onClick={handleStart}
                   disabled={loading}
-                  className={`relative group overflow-hidden w-full sm:w-auto flex items-center justify-center gap-3 px-8 py-4 rounded-xl text-sm font-bold transition-all shadow-[0_0_30px_rgba(255,255,255,0.15)] hover:shadow-[0_0_45px_rgba(255,255,255,0.25)] ${
+                  className={`relative group overflow-hidden w-full sm:w-auto flex items-center justify-center gap-3 px-8 py-3 rounded-xl text-sm font-bold transition-all shadow-[0_0_30px_rgba(255,255,255,0.15)] hover:shadow-[0_0_45px_rgba(255,255,255,0.25)] ${
                     loading 
-                      ? "bg-[#111111] border border-white/10 text-slate-500 cursor-wait" 
+                      ? "bg-white/10 border border-white/10 text-white cursor-wait min-w-[200px]" 
                       : "bg-white text-black hover:bg-slate-200"
                   }`}
                 >
                   {loading ? (
                     <>
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]" />
-                      <span className="w-4 h-4 rounded-full border-2 border-slate-600 border-t-black animate-spin" />
-                      Booting Simulator...
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]" />
+                      <span className="w-4 h-4 rounded-full border-2 border-slate-600 border-t-white animate-spin flex-shrink-0" />
+                      <span className="font-mono text-xs">{bootText}</span>
                     </>
                   ) : (
                     <>
@@ -371,7 +407,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
 }
 
 // ============================================================================
-// REUSABLE DEEP GLASS CARD (Inlined to ensure independence)
+// REUSABLE DEEP GLASS CARD
 // ============================================================================
 function GlassCard({ children, className = "", mousePos }) {
   const [rect, setRect] = useState(null);
