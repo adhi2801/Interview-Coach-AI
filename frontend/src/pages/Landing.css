@@ -1,367 +1,14 @@
 /* ==========================================================================
-   GLOBAL TRANSPARENT INHERITANCE FIX
-   ========================================================================== */
+   STREAMING CHUNK
 
-section {
-  background: transparent !important;
-}
+   Landing.css
+   Hardware-accelerated animations, edge masking, and scrollbar hiding
+   for the Experiential Design System.
+   ========================================================================== */
 
 
 /* ==========================================================================
-   MORPHING HEADER PILL
-   ========================================================================== */
-
-.landing-nav {
-  position: fixed;
-  top: 24px;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  display: flex;
-  justify-content: center;
-  transition:
-    top 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-    padding 0.4s;
-}
-
-.landing-nav.is-scrolled {
-  top: 12px;
-}
-
-.landing-nav-inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 48px;
-
-  padding: 16px 32px;
-
-  background-color: transparent;
-  border: 1px solid transparent;
-  border-radius: 999px;
-
-  min-width: 600px;
-  max-width: 1200px;
-  width: 100%;
-
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* Docked Pill State */
-
-.landing-nav.is-scrolled .landing-nav-inner {
-  background-color: rgba(10, 10, 12, 0.6);
-
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-
-  border-color: rgba(255, 255, 255, 0.08);
-
-  box-shadow:
-    0 10px 30px -10px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
-
-  min-width: 480px;
-  width: auto;
-  padding: 10px 20px;
-}
-
-
-/* ==========================================================================
-   BRANDING
-   ========================================================================== */
-
-.landing-brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-primary, #ffffff);
-}
-
-.landing-brand-mark {
-  width: 24px;
-  height: 24px;
-
-  border-radius: 6px;
-
-  background-color: #2563eb;
-  color: #ffffff;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.landing-nav-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-
-/* ==========================================================================
-   RADIAL VIGNETTE MASKING
-   ========================================================================== */
-
-.landing-vignette {
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-
-  background: radial-gradient(
-    circle at center,
-    rgba(0, 0, 0, 0.8) 0%,
-    rgba(0, 0, 0, 0.4) 30%,
-    transparent 70%
-  );
-}
-
-
-/* ==========================================================================
-   HERO SECTION
-   ========================================================================== */
-
-.landing-hero-sticky {
-  position: sticky;
-  top: 0;
-
-  height: 100vh;
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-
-  text-align: center;
-  overflow: visible;
-
-  z-index: 10;
-}
-
-.ds-ghost-text {
-  font-size: clamp(3rem, 8vw, 6rem);
-  font-weight: 800;
-  letter-spacing: -0.04em;
-
-  color: rgba(255, 255, 255, 0.15);
-
-  margin: 0;
-}
-
-.landing-hero-real {
-  position: relative;
-  z-index: 20;
-
-  max-width: 640px;
-  padding: 0 24px;
-}
-
-.landing-headline {
-  font-size: clamp(3rem, 6vw, 4.5rem);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.05;
-
-  color: #ffffff;
-
-  margin: 0 0 24px;
-
-  text-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-}
-
-.landing-subline {
-  font-size: 18px;
-  font-weight: 500;
-  line-height: 1.6;
-
-  color: rgba(255, 255, 255, 0.6);
-
-  max-width: 500px;
-  margin: 0 auto 40px;
-}
-
-.landing-hero-actions {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-}
-
-
-/* ==========================================================================
-   CTA BUTTONS
-   ========================================================================== */
-
-.tactile-cta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  background-color: #ffffff;
-  color: #000000;
-  font-weight: 700;
-
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
-
-  transition:
-    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.2s;
-}
-
-.tactile-cta:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(255, 255, 255, 0.2);
-}
-
-.tactile-cta:active {
-  transform: scale(0.96);
-}
-
-.cta-shortcut {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 10px;
-
-  padding: 2px 6px;
-  border-radius: 4px;
-
-  background-color: rgba(0, 0, 0, 0.1);
-  opacity: 0.6;
-}
-
-.secondary-cta {
-  background-color: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-
-  backdrop-filter: blur(8px);
-}
-
-.secondary-cta:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.landing-scroll-hint {
-  position: absolute;
-  bottom: 40px;
-
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-
-  color: rgba(255, 255, 255, 0.4);
-}
-
-
-/* ==========================================================================
-   LOGO MARQUEE
-   ========================================================================== */
-
-.landing-proof {
-  position: relative;
-  z-index: 10;
-
-  padding: 64px 0;
-  text-align: center;
-
-  background: transparent;
-}
-
-.landing-proof-label {
-  font-size: 11px;
-  font-weight: 700;
-
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-
-  color: rgba(255, 255, 255, 0.4);
-
-  margin-bottom: 32px;
-}
-
-.landing-proof-marquee-wrapper {
-  overflow: hidden;
-  white-space: nowrap;
-
-  width: 100%;
-  max-width: 1000px;
-  margin: 0 auto;
-
-  mask-image:
-    linear-gradient(
-      to right,
-      transparent,
-      black 15%,
-      black 85%,
-      transparent
-    );
-
-  -webkit-mask-image:
-    linear-gradient(
-      to right,
-      transparent,
-      black 15%,
-      black 85%,
-      transparent
-    );
-}
-
-.landing-proof-strip {
-  display: inline-flex;
-  gap: 80px;
-
-  padding-left: 80px;
-
-  animation: marquee 25s linear infinite;
-}
-
-.landing-proof-item {
-  font-size: 18px;
-  font-weight: 700;
-
-  color: rgba(255, 255, 255, 0.3);
-
-  transition: color 0.3s ease;
-}
-
-.landing-proof-item:hover {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-
-/* ==========================================================================
-   BENTO GRID
-   ========================================================================== */
-
-.landing-bento {
-  position: relative;
-  z-index: 10;
-
-  background-color: transparent;
-}
-
-
-/* ==========================================================================
-   CLOSING CTA
-   ========================================================================== */
-
-.landing-cta {
-  position: relative;
-  z-index: 10;
-
-  background-color: transparent;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-
-/* ==========================================================================
-   ANIMATIONS
+   1. Marquee Animations
    ========================================================================== */
 
 @keyframes marquee {
@@ -370,9 +17,27 @@ section {
   }
 
   100% {
-    transform: translateX(-50%);
+    transform: translateX(calc(-50%));
   }
 }
+
+.animate-marquee {
+  /* Uses a 30s linear loop for smooth, infinite scrolling */
+  animation: marquee 30s linear infinite;
+  display: flex;
+  will-change: transform;
+}
+
+/* Pause marquee on hover for better UX */
+
+.marquee-container:hover .animate-marquee {
+  animation-play-state: paused;
+}
+
+
+/* ==========================================================================
+   2. Shimmer & Shine Effects
+   ========================================================================== */
 
 @keyframes shimmer {
   0% {
@@ -384,19 +49,70 @@ section {
   }
 }
 
+.animate-shimmer {
+  /* Diagonal light sweep effect for primary CTA buttons */
+  animation: shimmer 2.5s infinite linear;
+  will-change: transform;
+}
+
+@keyframes pulse-slow {
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  will-change: transform, opacity;
+}
+
 
 /* ==========================================================================
-   ACCESSIBILITY
+   3. Masks & Utility Classes
    ========================================================================== */
 
-@media (prefers-reduced-motion: reduce) {
+/*
+   Linear gradient mask to smoothly fade elements
+   at the edges of scroll containers.
+ */
 
-  .landing-nav-inner {
-    transition: none;
-  }
+.mask-edges {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 15%,
+    black 85%,
+    transparent
+  );
 
-  .landing-proof-strip {
-    animation: none;
-  }
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 15%,
+    black 85%,
+    transparent
+  );
+}
 
+
+/* ==========================================================================
+   4. Scrollbar Utilities
+   ========================================================================== */
+
+/* Hide scrollbar for internal bento elements */
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

@@ -1,71 +1,684 @@
-import React, { useRef, useState, useEffect } from "react";
-import { useScroll, useTransform, motion, useMotionValue, animate, AnimatePresence } from "framer-motion";
-import PremiumLayout from "../components/layout/PremiumLayout";
-import KnowledgeGraphScene from "../components/scenes/KnowledgeGraphScene";
-import Button from "../components/ui/Button";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import { 
-  ChevronRight, BrainCircuit, Activity, Target, ShieldAlert, 
-  Terminal, Lock, CheckCircle2, Code2, Mic, Users, BarChart3,
-  Layers, Play, Sparkles
+  motion, useScroll, useSpring, AnimatePresence, useInView, useMotionValue, useTransform, animate
+} from "framer-motion";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { Points, PointMaterial } from "@react-three/drei";
+import * as random from "maath/random/dist/maath-random.esm";
+import PremiumLayout, { GlassCard, AnimatedNumber } from "../components/layout/PremiumLayout";
+import { 
+  ChevronRight, BrainCircuit, Activity, Target, Terminal, 
+  Code2, CheckCircle2, AlertTriangle, Lock, Users, BarChart3, 
+  Layers, Mic, Sparkles, Play, ExternalLink, Cpu, Check
 } from "lucide-react";
 import "./Landing.css";
 
-// =========================================================================
-// WIDGET 1: Adaptive ELO Engine
-// =========================================================================
-function InteractiveEloWidget() {
-  const count = useMotionValue(1185);
-  const rounded = useTransform(count, (v) => Math.round(v));
-  const [displayVal, setDisplayValue] = useState(1185);
+function ScrollAnimatedNumber({ to, decimals = 0, suffix = "" }) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-40px" });
+  const count = useMotionValue(0);
+  const rounded = useTransform(count, (v) => Number(v.toFixed(decimals)));
+  const [display, setDisplay] = useState(0);
 
   useEffect(() => {
-    const controls = animate(count, 1420, { duration: 3, ease: [0.16, 1, 0.3, 1], repeat: Infinity, repeatType: "reverse", repeatDelay: 2 });
-    const unsub = rounded.on("change", (v) => setDisplayValue(v));
-    return () => { controls.stop(); unsub(); };
-  }, [count, rounded]);
+    if (isInView) {
+      const controls = animate(count, to, { duration: 2, ease: [0.16, 1, 0.3, 1] });
+      const unsub = rounded.on("change", setDisplay);
+      return () => { controls.stop(); unsub(); };
+    }
+  }, [isInView, to, count, rounded]);
+
+  return <span ref={ref}>{display}{suffix}</span>;
+}
+
+// Inline GitHub SVG Icon to avoid Lucide deprecation build errors
+function Github({ size = 16, className = "" }) {
+  return (
+    <svg 
+      viewBox="0 0 24 24" 
+      width={size} 
+      height={size} 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      className={className}
+    >
+      <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.26 1.23-.26 1.85v4" />
+      <path d="M9 18c-4.51 2-5-2-7-2" />
+    </svg>
+  );
+}
+
+function StarField({ scrollYProgress }) {
+  const ref = useRef();
+  const [sphere] = useState(() => random.inSphere(new Float32Array(4000), { radius: 12 }));
+  const smoothY = useSpring(scrollYProgress, { damping: 50, stiffness: 400 });
+
+  useFrame((state, delta) => {
+    if (ref.current) {
+      ref.current.rotation.x -= delta / 18;
+      ref.current.rotation.y -= delta / 22;
+    }
+    
+    // Smooth camera Z movement based on scroll
+    const zPosition = 22 - (smoothY.get() * 12); 
+    state.camera.position.z = Math.max(10, Math.min(22, zPosition));
+
+    const fov = 35 + (smoothY.get() * 20); 
+    state.camera.fov = Math.max(35, Math.min(55, fov));
+    
+    state.camera.updateProjectionMatrix();
+  });
 
   return (
-    <div className="flex flex-col items-center justify-center h-full w-full p-6 relative bg-[#040404]/80 rounded-xl border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent pointer-events-none" />
-      <svg className="absolute bottom-0 w-full h-24 text-indigo-500/15" preserveAspectRatio="none" viewBox="0 0 100 100">
-        <path d="M0,100 L0,70 L20,85 L40,50 L60,65 L80,30 L100,45 L100,100 Z" fill="currentColor" />
-        <motion.path d="M0,70 L20,85 L40,50 L60,65 L80,30 L100,45" fill="none" stroke="#6366f1" strokeWidth="2" strokeDasharray="200" initial={{ strokeDashoffset: 200 }} animate={{ strokeDashoffset: 0 }} transition={{ duration: 3, repeat: Infinity, repeatType: "reverse" }} />
-      </svg>
-      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 relative z-10">Adaptive ELO Rating</span>
-      <span className="text-5xl font-extrabold tracking-tighter text-indigo-400 tabular-nums leading-none relative z-10">{displayVal}</span>
-      <span className="text-[9px] font-mono text-emerald-400 mt-3 bg-emerald-400/10 border border-emerald-400/20 px-2.5 py-0.5 rounded-full relative z-10">LEVEL 5 ACTIVE</span>
+    <group rotation={[0, 0, Math.PI / 4]}>
+      <Points ref={ref} positions={sphere} stride={3} frustumCulled={false}>
+        <PointMaterial 
+          transparent 
+          color="#818cf8" 
+          size={0.045} 
+          sizeAttenuation={true} 
+          depthWrite={false} 
+          opacity={0.45} 
+        />
+      </Points>
+    </group>
+  );
+}
+
+function SceneCanvas({ scrollYProgress }) {
+  return (
+    <Canvas camera={{ position: [0, 0, 22], fov: 35 }} className="w-full h-full pointer-events-none" dpr={[1, 2]}>
+      <Suspense fallback={null}>
+        <StarField scrollYProgress={scrollYProgress} />
+      </Suspense>
+    </Canvas>
+  );
+}
+
+export default function Landing({ onGetStarted, onSignIn }) {
+  const [activeTrack, setActiveTrack] = useState("system"); // 'system' | 'coding'
+  const [mousePos, setMousePos] = useState({ x: -1000, y: -1000 });
+  const containerRef = useRef(null);
+  
+  // Track scroll for background animation
+  const { scrollYProgress } = useScroll({ target: containerRef, offset: ["start start", "end start"] });
+
+  useEffect(() => {
+    const handleMouseMove = (e) => setMousePos({ x: e.clientX, y: e.clientY });
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
+  const logos = ["Google", "Meta", "Amazon", "Microsoft", "Apple", "Netflix"];
+
+  return (
+    <PremiumLayout
+      scene={<SceneCanvas scrollYProgress={scrollYProgress} />}
+      ambientColors={activeTrack === 'system' ? ["#2563eb", "#6366f1"] : ["#d97706", "#2563eb"]}
+    >
+      
+      {/* FLOATING CONTROL CAPSULE */}
+      <nav className="fixed top-5 left-0 right-0 z-[100] flex justify-center px-4">
+        <motion.div 
+          initial={{ y: -20, opacity: 0 }} 
+          animate={{ y: 0, opacity: 1 }} 
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="flex items-center justify-between w-full max-w-5xl bg-[#0A0A0C]/85 backdrop-blur-2xl border border-white/[0.08] px-4 py-2 rounded-full shadow-[0_20px_40px_rgba(0,0,0,0.8),_inset_0_1px_0_0_rgba(255,255,255,0.1)]"
+        >
+          {/* Logo */}
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center font-extrabold text-white text-[10px] shadow-[0_0_15px_rgba(37,99,235,0.6)]">
+              IC
+            </div>
+            <span className="font-bold text-white tracking-tight text-sm hidden sm:block">InterviewCoach</span>
+            <span className="text-[9px] font-mono font-bold bg-white/10 text-slate-400 px-2 py-0.5 rounded-full hidden md:inline-block">v2.4 DEMO</span>
+          </div>
+
+          {/* Track Switcher */}
+          <div className="flex items-center gap-1 bg-white/[0.03] p-1 rounded-full border border-white/[0.05] relative">
+            <button 
+              onClick={() => setActiveTrack("system")} 
+              className={`relative px-4 py-1.5 rounded-full text-xs font-bold transition-all z-10 outline-none flex items-center gap-1.5 ${activeTrack === 'system' ? 'text-white' : 'text-slate-400 hover:text-white'}`}
+            >
+              <BrainCircuit size={13} />
+              <span>System Design</span>
+            </button>
+            <button 
+              onClick={() => setActiveTrack("coding")} 
+              className={`relative px-4 py-1.5 rounded-full text-xs font-bold transition-all z-10 outline-none flex items-center gap-1.5 ${activeTrack === 'coding' ? 'text-white' : 'text-slate-400 hover:text-white'}`}
+            >
+              <Code2 size={13} />
+              <span>Live Coding</span>
+            </button>
+            <motion.div 
+              className="absolute top-1 bottom-1 bg-white/[0.12] border border-white/20 rounded-full z-0"
+              initial={false}
+              animate={{ 
+                left: activeTrack === "system" ? "4px" : "50%", 
+                width: "calc(50% - 4px)" 
+              }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            />
+          </div>
+
+          {/* Action Pair */}
+          <div className="flex items-center gap-3">
+            <a 
+              href="https://github.com" 
+              target="_blank" 
+              rel="noreferrer" 
+              className="hidden lg:flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white transition-colors px-2.5 py-1.5"
+            >
+              <Github size={14} />
+              <span>Source</span>
+            </a>
+            <button onClick={onSignIn} className="text-xs font-bold text-slate-300 hover:text-white transition-colors px-3 py-1.5 outline-none">
+              Sign In
+            </button>
+            <motion.button 
+              whileTap={{ scale: 0.95 }}
+              onClick={onGetStarted} 
+              className="bg-white text-black px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-[0_0_15px_rgba(255,255,255,0.2)] hover:shadow-[0_0_25px_rgba(255,255,255,0.4)] outline-none flex items-center gap-1"
+            >
+              <span>Try Demo</span>
+              <ChevronRight size={14} />
+            </motion.button>
+          </div>
+        </motion.div>
+      </nav>
+
+      <section ref={containerRef} className="relative pt-32 pb-20 w-full z-10">
+        <div className="w-full max-w-6xl mx-auto px-6 flex flex-col items-center text-center">
+          
+          <AnimatePresence mode="wait">
+            <motion.div 
+              key={activeTrack}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col items-center"
+            >
+              {/* Category Pill */}
+              <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-widest mb-6 ${
+                activeTrack === 'system' 
+                  ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300 shadow-[inset_0_1px_0_0_rgba(99,102,241,0.2)]' 
+                  : 'bg-amber-500/10 border-amber-500/20 text-amber-300 shadow-[inset_0_1px_0_0_rgba(245,158,11,0.2)]'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${activeTrack === 'system' ? 'bg-indigo-400' : 'bg-amber-400'}`} />
+                {activeTrack === 'system' ? '93 CS Topics · Adaptive ELO Engine' : 'Sandboxed Execution · 4 Languages'}
+              </div>
+
+              {/* Dynamic Headline - Clear, punchy, informative */}
+              <h1 className="text-4xl md:text-6xl lg:text-[72px] font-extrabold tracking-tighter text-white leading-[1.08] mb-6 drop-shadow-2xl max-w-4xl">
+                {activeTrack === 'system' ? (
+                  <>
+                    Practice technical interviews<br className="hidden md:block" />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-indigo-500">that actually adapt to you.</span>
+                  </>
+                ) : (
+                  <>
+                    Master live algorithms<br className="hidden md:block" />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-300 to-amber-500">with sandboxed execution.</span>
+                  </>
+                )}
+              </h1>
+
+              {/* Subheadline */}
+              <p className="text-base md:text-xl text-slate-300 max-w-2xl leading-relaxed mb-8 font-medium">
+                {activeTrack === 'system' 
+                  ? "Adaptive difficulty, real-time voice telemetry, and company-specific architecture simulations — built on a diagnostic computer science knowledge graph."
+                  : "Isolated multi-language subprocess execution, automated test case pipelines, and Socratic hints that guide you without revealing the answer."}
+              </p>
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Action CTAs */}
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto mb-16">
+            <motion.button 
+              whileTap={{ scale: 0.96 }}
+              onClick={onGetStarted} 
+              className="relative group overflow-hidden bg-white text-black px-8 py-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-3 w-full sm:w-auto shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:shadow-[0_0_45px_rgba(255,255,255,0.4)] outline-none"
+            >
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
+              Start Free Demo <ChevronRight size={16} className="relative z-10" />
+              <kbd className="hidden sm:inline-block ml-1 font-mono text-[10px] bg-black/10 px-1.5 py-0.5 rounded text-black/60 relative z-10 border border-black/10">↵ Enter</kbd>
+            </motion.button>
+            
+            <a 
+              href="https://github.com" 
+              target="_blank" 
+              rel="noreferrer"
+              className="px-6 py-4 rounded-xl text-sm font-bold text-slate-300 bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.06] hover:text-white transition-colors outline-none backdrop-blur-md flex items-center gap-2 w-full sm:w-auto justify-center"
+            >
+              <Github size={16} /> View GitHub Repo <ExternalLink size={12} className="text-slate-500" />
+            </a>
+          </div>
+
+          {/* HERO COCKPIT PREVIEW */}
+          <div className="w-full max-w-4xl relative">
+            <GlassCard mousePos={mousePos} className="p-0 text-left border-white/10 shadow-[0_30px_100px_rgba(0,0,0,0.9)]">
+              <AnimatePresence mode="wait">
+                {activeTrack === 'system' ? (
+                  <HeroSystemDesignPreview key="sys-preview" />
+                ) : (
+                  <HeroLiveCodingPreview key="code-preview" />
+                )}
+              </AnimatePresence>
+            </GlassCard>
+          </div>
+
+        </div>
+      </section>
+
+      {/* METRICS & LOGOS */}
+      <section className="relative z-30 py-16 bg-transparent">
+        <div className="max-w-7xl mx-auto px-6">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 text-center mb-8">
+            Engineered for FAANG-level technical evaluation standards
+          </p>
+          
+          <div className="overflow-hidden mask-edges w-full max-w-5xl mx-auto mb-16">
+            <div className="flex gap-16 w-max animate-marquee opacity-50">
+              {[...logos, ...logos, ...logos].map((logo, i) => (
+                <span key={`${logo}-${i}`} className="text-2xl font-extrabold text-slate-400 uppercase tracking-tighter hover:text-white transition-colors cursor-default">{logo}</span>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center divide-x divide-white/[0.05]">
+            <MetricColumn value={<ScrollAnimatedNumber to={93} />} label="CS Graph Nodes" icon={Layers} color="text-indigo-400" />
+            <MetricColumn value={<ScrollAnimatedNumber to={4} />} label="IDE Languages" icon={Code2} color="text-emerald-400" />
+            <MetricColumn value={<ScrollAnimatedNumber to={100} suffix="%" />} label="Sandboxed Exec" icon={Terminal} color="text-rose-400" />
+            <MetricColumn value="5D" label="Telemetry Vectors" icon={BarChart3} color="text-amber-400" />
+          </div>
+        </div>
+      </section>
+
+      {/* TRACK B SHOWCASE */}
+      <section className="relative z-30 py-24 bg-transparent">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            
+            <div className="lg:col-span-5 space-y-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-widest">
+                <Code2 size={12} /> Track B: Live IDE Engine
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tighter text-white leading-tight">
+                A real code editor.<br />
+                Not a static text box.
+              </h2>
+              <p className="text-slate-400 text-sm sm:text-base leading-relaxed font-medium">
+                Practice Data Structures & Algorithms in Python, JavaScript, C++, or Java. Your code executes inside an isolated Linux sandbox with live test case suites and automated complexity estimations.
+              </p>
+
+              <div className="space-y-4 pt-2">
+                <FeatureCheck title="Sandboxed Multiprocess Execution" desc="Subsecond execution with stdout, stderr, and memory limits." />
+                <FeatureCheck title="Socratic AI Debugging" desc="Never gives away answers. Guides you toward optimal Big-O bounds." />
+                <FeatureCheck title="Automated Test Pipelines" desc="Evaluates edge cases, large inputs, and memory constraints." />
+              </div>
+            </div>
+
+            <div className="lg:col-span-7">
+              <GlassCard mousePos={mousePos} className="p-0 overflow-hidden border-amber-500/20 shadow-2xl">
+                <InteractiveMonacoShowcase />
+              </GlassCard>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* BENTO GRID MATRIX */}
+      <section className="relative z-30 py-28 bg-transparent">
+        <div className="max-w-[1200px] mx-auto px-6">
+          
+          <div className="text-center mb-20">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-400 bg-indigo-500/10 px-3 py-1.5 rounded-full border border-indigo-500/20">Under The Hood</span>
+            <h2 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-white mt-6">Not a wrapper around a chatbot.</h2>
+            <p className="text-slate-400 mt-4 max-w-2xl mx-auto font-medium text-lg">An architecture built on localized execution, active telemetry, and adaptive mathematics.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 auto-rows-fr">
+            
+            {/* ROW 1 */}
+            <div className="md:col-span-2 relative"><GlassCard mousePos={mousePos} className="h-full"><InteractiveEloWidget /></GlassCard></div>
+            <div className="md:col-span-1 relative"><GlassCard mousePos={mousePos} className="h-full"><InterviewerPersonaWidget /></GlassCard></div>
+            <div className="md:col-span-1 relative"><GlassCard mousePos={mousePos} className="h-full"><AudioWaveformWidget /></GlassCard></div>
+
+            {/* ROW 2 */}
+            <div className="md:col-span-2 relative"><GlassCard mousePos={mousePos} className="h-full p-0"><CodingSandboxWidget /></GlassCard></div>
+            <div className="md:col-span-1 relative"><GlassCard mousePos={mousePos} className="h-full"><CompanyDnaWidget /></GlassCard></div>
+            <div className="md:col-span-1 relative"><GlassCard mousePos={mousePos} className="h-full"><PeerPercentileWidget /></GlassCard></div>
+
+            {/* ROW 3 */}
+            <div className="md:col-span-2 relative"><GlassCard mousePos={mousePos} className="h-full"><ReplayReportWidget /></GlassCard></div>
+            <div className="md:col-span-2 relative"><GlassCard mousePos={mousePos} className="h-full"><InteractiveGraphWidget /></GlassCard></div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* RECRUITER & ENGINEERING ARCHITECTURE SECTION */}
+      <section className="relative z-30 py-20 bg-transparent">
+        <div className="max-w-5xl mx-auto px-6 text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-bold uppercase tracking-widest mb-6">
+            <Cpu size={12} /> Engineering Architecture
+          </div>
+          <h2 className="text-3xl md:text-4xl font-extrabold tracking-tighter text-white mb-4">
+            Built from scratch for production scale.
+          </h2>
+          <p className="text-slate-400 text-sm max-w-xl mx-auto font-medium mb-12">
+            No generic templates. Built with FastAPI, PostgreSQL + pgvector, WebSockets, Claude 3.5 Sonnet, and Framer Motion.
+          </p>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-left">
+            <TechBadge label="Backend API" val="FastAPI / Python 3.11" />
+            <TechBadge label="Vector DB" val="PostgreSQL + pgvector" />
+            <TechBadge label="AI Scorer" val="Claude 3.5 Sonnet" />
+            <TechBadge label="Live Voice" val="Whisper VAD Websockets" />
+            <TechBadge label="Frontend" val="React 18 / Tailwind" />
+            <TechBadge label="3D Engine" val="React Three Fiber" />
+            <TechBadge label="Cache Layer" val="Redis TTL Budget" />
+            <TechBadge label="Monitoring" val="Sentry + Structlog" />
+          </div>
+        </div>
+      </section>
+
+      {/* FINAL CTA */}
+      <section className="relative z-30 pt-16 pb-28 px-6 text-center bg-transparent">
+        <div className="relative z-10 max-w-3xl mx-auto">
+          <h2 className="text-4xl md:text-6xl font-extrabold tracking-tighter text-white mb-6 leading-tight">
+            Ready to test your skill?
+          </h2>
+          <p className="text-slate-400 text-base md:text-lg font-medium mb-10 max-w-lg mx-auto leading-relaxed">
+            Free portfolio demo. No credit card required. Master technical, behavioral, and live coding interviews natively.
+          </p>
+          <div className="flex justify-center">
+            <motion.button 
+              whileTap={{ scale: 0.96 }}
+              onClick={onGetStarted} 
+              className="relative group overflow-hidden bg-white text-black px-10 py-4 rounded-xl text-sm font-bold transition-all shadow-[0_0_30px_rgba(255,255,255,0.15)] hover:shadow-[0_0_50px_rgba(255,255,255,0.3)] flex items-center gap-3 outline-none"
+            >
+               <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
+               Start Free Demo <ChevronRight size={16} className="relative z-10" />
+               <kbd className="hidden sm:inline-block ml-2 font-mono text-[10px] bg-black/10 px-1.5 py-0.5 rounded text-black/60 relative z-10 border border-black/10">↵ Enter</kbd>
+            </motion.button>
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="relative z-30 py-8 text-center bg-transparent">
+        <div className="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-[11px] font-bold tracking-widest text-slate-500 uppercase">
+            © 2026 InterviewCoach. <span className="text-slate-300 ml-1">Designed & Engineered by Adhiswauran.</span>
+          </p>
+          <div className="flex items-center gap-6 text-xs font-bold text-slate-400">
+            <a href="https://github.com" target="_blank" rel="noreferrer" className="hover:text-white transition-colors flex items-center gap-1">
+              <Github size={14} /> GitHub
+            </a>
+            <span className="text-slate-600">&middot;</span>
+            <span className="text-slate-500">Portfolio Build</span>
+          </div>
+        </div>
+      </footer>
+
+    </PremiumLayout>
+  );
+}
+
+
+function HeroSystemDesignPreview() {
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="p-6 md:p-8 bg-[#08080C]/90 backdrop-blur-2xl rounded-2xl border border-white/10"
+    >
+      <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-3 h-3 rounded-full bg-rose-500/80" />
+          <div className="w-3 h-3 rounded-full bg-amber-500/80" />
+          <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
+          <span className="text-xs font-mono font-bold text-slate-400 ml-2">system_design_session.md</span>
+        </div>
+        <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Meta L5 System Active</span>
+        </div>
+      </div>
+
+      <div className="space-y-4 font-mono text-xs md:text-sm">
+        <div className="bg-white/[0.02] border border-white/5 p-4 rounded-xl">
+          <span className="text-[10px] font-sans font-bold text-indigo-400 uppercase tracking-widest block mb-1">Interviewer Prompt (Hostile Persona)</span>
+          <p className="text-slate-200 font-sans font-medium">"Your rate limiter uses a fixed window log. How does it handle 100k RPS spike traffic without overwhelming memory?"</p>
+        </div>
+
+        {/* FIX: Converted from absolute overlap to clean flex layout */}
+        <div className="bg-black/60 border border-white/10 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <span className="text-[10px] font-sans font-bold text-slate-500 uppercase tracking-widest block mb-1">Candidate Response (Voice Input)</span>
+            <p className="text-slate-300 font-mono">"I would transition to a Redis Sorted Set Sliding Window with a local In-Memory Token Bucket buffer..."</p>
+          </div>
+          <div className="flex-shrink-0 flex items-center gap-2 bg-indigo-500/20 border border-indigo-500/30 px-3 py-1.5 rounded text-[10px] font-sans font-bold text-indigo-300 self-start sm:self-auto">
+            <Mic size={12} className="animate-pulse text-indigo-400" />
+            <span>138 WPM &middot; Confidence 8.8/10</span>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function HeroLiveCodingPreview() {
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="p-6 md:p-8 bg-[#08080C]/90 backdrop-blur-2xl rounded-2xl border border-white/10"
+    >
+      <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-3 h-3 rounded-full bg-rose-500/80" />
+          <div className="w-3 h-3 rounded-full bg-amber-500/80" />
+          <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
+          <span className="text-xs font-mono font-bold text-amber-400 ml-2">solution.py</span>
+        </div>
+        <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+          <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">Sandboxed Python 3.11</span>
+        </div>
+      </div>
+
+      <div className="bg-[#040406] p-4 rounded-xl font-mono text-xs text-indigo-200 leading-relaxed relative">
+        <pre>{`def length_of_longest_substring(s: str) -> int:
+    char_map = {}
+    left = max_len = 0
+    for right, char in enumerate(s):
+        if char in char_map and char_map[char] >= left:
+            left = char_map[char] + 1
+        char_map[char] = right
+        max_len = max(max_len, right - left + 1)
+    return max_len`}</pre>
+
+        <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+          <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
+            <CheckCircle2 size={13} /> 12/12 Test Cases Passed (0.8ms)
+          </span>
+          <span className="text-[10px] font-mono text-slate-400">Time: O(N) | Space: O(min(N, M))</span>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function InteractiveMonacoShowcase() {
+  const [lang, setLang] = useState("python");
+  const snippets = {
+    python: `def rate_limiter(user_id: str, limit: int = 100) -> bool:
+    # Token Bucket in Redis with Atomic Lua Script
+    pipe = redis.pipeline()
+    pipe.zadd(f"rate:{user_id}", {now: now})
+    pipe.zremrangebyscore(f"rate:{user_id}", 0, now - 60)
+    return len(pipe.execute()) <= limit`,
+    javascript: `async function rateLimiter(userId, limit = 100) {
+  // Token Bucket in Redis
+  const key = \`rate:\${userId}\`;
+  const now = Date.now();
+  await redis.zadd(key, now, now);
+  return (await redis.zcard(key)) <= limit;
+}`,
+    cpp: `bool rate_limiter(const std::string& user_id, int limit) {
+    // Sliding Window Log
+    auto now = std::chrono::system_clock::now();
+    clean_expired_tokens(user_id, now);
+    return get_window_count(user_id) <= limit;
+}`,
+    java: `public boolean rateLimiter(String userId, int limit) {
+    long now = System.currentTimeMillis();
+    redis.zadd("rate:" + userId, now, String.valueOf(now));
+    return redis.zcard("rate:" + userId) <= limit;
+}`
+  };
+
+  return (
+    <div className="flex flex-col bg-[#050508] font-mono text-xs">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-white/10 bg-black/60">
+        <div className="flex items-center gap-2">
+          <Terminal size={14} className="text-amber-400" />
+          <span className="text-xs font-bold text-white font-sans">Monaco IDE Sandbox</span>
+        </div>
+        <div className="flex gap-1.5">
+          {["python", "javascript", "cpp", "java"].map((l) => (
+            <button
+              key={l}
+              onClick={() => setLang(l)}
+              className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-all ${
+                lang === l 
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' 
+                  : 'text-slate-500 hover:text-white'
+              }`}
+            >
+              {l.substring(0, 3)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="p-5 text-indigo-200 leading-relaxed overflow-x-auto min-h-[160px]">
+        <AnimatePresence mode="wait">
+          <motion.pre key={lang} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            {snippets[lang]}
+          </motion.pre>
+        </AnimatePresence>
+      </div>
+
+      <div className="p-4 bg-black/40 border-t border-white/5 flex items-center justify-between text-[11px] font-sans">
+        <div className="flex items-center gap-2 text-emerald-400 font-bold">
+          <CheckCircle2 size={14} /> <span>12/12 Hidden Test Cases Passed</span>
+        </div>
+        <span className="text-slate-500 font-mono">Exec Time: 1.2ms</span>
+      </div>
     </div>
   );
 }
 
-// =========================================================================
-// WIDGET 2: 4 Interviewer Personas (NEW)
-// =========================================================================
+function MetricColumn({ value, label, icon: Icon, color }) {
+  return (
+    <div className="flex flex-col items-center">
+      <div className="text-4xl md:text-5xl font-extrabold text-white tracking-tighter mb-3 font-mono tabular-nums">{value}</div>
+      <div className="text-[11px] font-bold uppercase tracking-widest text-slate-500 flex items-center justify-center gap-1.5">
+        <Icon size={14} className={color} /> {label}
+      </div>
+    </div>
+  );
+}
+
+function FeatureCheck({ title, desc }) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="w-5 h-5 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mt-0.5 flex-shrink-0">
+        <Check size={12} />
+      </div>
+      <div>
+        <h4 className="text-xs font-bold text-white">{title}</h4>
+        <p className="text-xs text-slate-400 font-medium leading-relaxed">{desc}</p>
+      </div>
+    </div>
+  );
+}
+
+{/* FIX: Improved contrast for TechBadge */}
+function TechBadge({ label, val }) {
+  return (
+    <div className="bg-white/[0.04] border border-white/10 p-4 rounded-xl shadow-sm">
+      <span className="text-[9px] font-bold uppercase tracking-widest text-indigo-300 block mb-1">{label}</span>
+      <span className="text-xs font-bold text-white font-mono">{val}</span>
+    </div>
+  );
+}
+
+
+// BENTO TILE 1: ELO Engine
+function InteractiveEloWidget() {
+  return (
+    <div className="flex flex-col justify-between h-full w-full min-h-[280px]">
+      <div>
+        <div className="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-4">
+          <BrainCircuit size={20} className="text-indigo-400" />
+        </div>
+        <h3 className="text-xl font-bold text-white tracking-tight mb-2">Adaptive ELO Difficulty</h3>
+        <p className="text-sm font-medium text-slate-400 max-w-sm leading-relaxed">
+          Every answer updates your rating in real-time. Difficulty scales to enforce a state of flow.
+        </p>
+      </div>
+      <div className="mt-8 flex items-end justify-between relative h-32">
+        <div className="z-10 relative">
+          <span className="block text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">Current Rating</span>
+          <div className="text-6xl font-extrabold text-white font-mono tabular-nums tracking-tighter leading-none"><AnimatedNumber to={1416} /></div>
+          <span className="inline-block mt-3 bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded">Level 5 Active</span>
+        </div>
+        <svg className="absolute bottom-0 right-0 w-[80%] h-full text-indigo-500/40 overflow-visible" viewBox="0 0 200 100" preserveAspectRatio="none">
+          <path d="M0,80 Q50,80 100,50 T200,20" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="hover:text-indigo-400 transition-colors" />
+          <circle cx="200" cy="20" r="5" fill="#818cf8" className="animate-pulse shadow-[0_0_15px_#818cf8]" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+// BENTO TILE 2: Personas
 function InterviewerPersonaWidget() {
   const [active, setActive] = useState("hostile");
   const personas = {
-    standard: { label: "Standard", color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20", quote: "Let's explore your approach to scaling this database." },
-    hostile: { label: "Hostile", color: "text-rose-400", bg: "bg-rose-500/10", border: "border-rose-500/20", quote: "That complexity won't scale. What happens when we hit 100k RPS?" },
-    socratic: { label: "Socratic", color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20", quote: "Interesting. Why did you choose a Hash Map over a Trie here?" },
-    exhausted: { label: "Exhausted", color: "text-slate-400", bg: "bg-slate-500/10", border: "border-slate-500/20", quote: "...Right. Just walk me through the code, please." }
+    standard: { label: "Std", color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20", quote: "Explore your approach to scaling." },
+    hostile: { label: "Hostile", color: "text-rose-400", bg: "bg-rose-500/10", border: "border-rose-500/20", quote: "That won't scale at 100k RPS. Fix it." },
+    socratic: { label: "Socratic", color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20", quote: "Why a Hash Map over a Trie?" }
   };
 
   return (
-    <div className="flex flex-col gap-4 p-5 bg-[#040404]/80 rounded-xl border border-white/10 h-full w-full justify-between shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]">
-      <div className="grid grid-cols-2 gap-2 w-full relative z-10">
-        {Object.entries(personas).map(([key, p]) => (
-          <button
-            key={key} onClick={() => setActive(key)}
-            className={`py-1.5 rounded-md text-[9px] font-bold uppercase tracking-wider border transition-all text-center w-full ${
-              active === key ? `bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]` : "bg-white/[0.03] border-white/10 text-slate-400 hover:text-white"
-            }`}
-          >
-            {p.label}
-          </button>
-        ))}
+    <div className="flex flex-col h-full w-full justify-between min-h-[280px]">
+      <div>
+        <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2 mb-4">
+          <Users size={16} className="text-rose-400"/> Personas
+        </h3>
+        <div className="flex gap-2 w-full">
+          {Object.entries(personas).map(([key, p]) => (
+            <button
+              key={key} onClick={() => setActive(key)}
+              className={`py-2 rounded-md text-[10px] font-bold uppercase tracking-wider border transition-all text-center w-full outline-none ${
+                active === key ? `bg-white/[0.12] text-white border-white/20 shadow-sm` : "bg-transparent border-white/10 text-slate-500 hover:text-white"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
       </div>
-      <div className="flex-1 w-full mt-2 flex flex-col justify-end relative z-10">
-        <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 block mb-2">Simulated Response</span>
+      <div className="mt-4 flex-1 flex flex-col justify-end">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 block mb-2">Simulated Response</span>
         <AnimatePresence mode="wait">
           <motion.div key={active} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} className={`p-3 rounded-lg border ${personas[active].bg} ${personas[active].border}`}>
             <p className={`text-xs font-medium leading-relaxed ${personas[active].color}`}>"{personas[active].quote}"</p>
@@ -76,449 +689,171 @@ function InterviewerPersonaWidget() {
   );
 }
 
-// =========================================================================
-// WIDGET 3: Monaco Coding Sandbox (NEW)
-// =========================================================================
+// BENTO TILE 3: Monaco Sandbox
 function CodingSandboxWidget() {
   const [lang, setLang] = useState("python");
   const codes = {
-    python: "def rate_limiter(user_id):\n    # TODO: Implement token bucket\n    pass",
-    js: "function rateLimiter(userId) {\n  // TODO: Implement token bucket\n}",
+    python: "def rate_limiter(user_id):\n    # Token bucket via Redis\n    pass",
+    js: "function rateLimiter(userId) {\n  // Token bucket via Redis\n}",
+    cpp: "bool rate_limiter(string user_id) {\n  // Token bucket via Redis\n}",
+    java: "public boolean rateLimiter(String userId) {\n  // Token bucket via Redis\n}"
   };
 
   return (
-    <div className="flex flex-col bg-[#040404]/80 rounded-xl border border-white/10 h-full w-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-black/50">
-        <div className="flex gap-4">
-          {["python", "js"].map(l => (
-            <button key={l} onClick={() => setLang(l)} className={`text-[10px] font-mono font-bold uppercase tracking-wider transition-colors ${lang === l ? "text-indigo-400" : "text-slate-500 hover:text-white"}`}>{l}</button>
+    <div className="flex flex-col h-full w-full min-h-[280px]">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-white/5 bg-black/40">
+        <div className="flex items-center gap-3">
+          <Code2 size={16} className="text-amber-400" />
+          <h3 className="text-sm font-bold text-white tracking-tight">Monaco Sandbox</h3>
+        </div>
+        <div className="flex gap-2">
+          {["python", "js", "cpp", "java"].map(l => (
+            <button key={l} onClick={() => setLang(l)} className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border transition-colors ${lang === l ? "bg-amber-500/10 text-amber-400 border-amber-500/30" : "border-transparent text-slate-500 hover:text-white"}`}>
+              {l.substring(0,3)}
+            </button>
           ))}
         </div>
-        <div className="flex gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-rose-500/50" /><div className="w-2 h-2 rounded-full bg-amber-500/50" /><div className="w-2 h-2 rounded-full bg-emerald-500/50" />
-        </div>
       </div>
-      <div className="flex-1 p-4 relative font-mono text-xs leading-relaxed text-slate-300">
-        <div className="absolute left-0 top-0 bottom-0 w-8 border-r border-white/5 bg-black/30 text-right pr-2 pt-4 text-slate-600 select-none">
-          1<br/>2<br/>3
-        </div>
+      <div className="flex-1 bg-[#050505] p-5 font-mono text-xs leading-relaxed text-slate-300 relative">
         <AnimatePresence mode="wait">
-          <motion.pre key={lang} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ml-8 text-indigo-200">
+          <motion.pre key={lang} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-indigo-200">
             {codes[lang]}
           </motion.pre>
         </AnimatePresence>
         
-        {/* Socratic Hint Pill */}
-        <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 4, repeat: Infinity }} className="absolute bottom-4 right-4 bg-indigo-500/10 border border-indigo-500/20 px-3 py-2 rounded-lg backdrop-blur-md flex items-start gap-2 max-w-[200px]">
-          <Sparkles size={12} className="text-indigo-400 mt-0.5 flex-shrink-0" />
-          <p className="text-[10px] text-indigo-200 font-sans font-medium leading-snug">Socratic Hint: How does your approach handle concurrent requests from the same user?</p>
+        {/* Animated Tests Passing */}
+        <motion.div animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 2, repeat: Infinity }} className="absolute bottom-5 left-5 flex items-center gap-2">
+           <Play size={12} className="text-emerald-400 fill-current" />
+           <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">12/12 Passed</span>
+        </motion.div>
+
+        {/* Socratic Hint */}
+        <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} className="absolute bottom-5 right-5 bg-indigo-500/10 border border-indigo-500/20 p-3 rounded-lg backdrop-blur-md flex items-start gap-2 max-w-[200px] shadow-2xl">
+          <Sparkles size={14} className="text-indigo-400 mt-0.5 flex-shrink-0" />
+          <span className="text-[11px] font-medium text-indigo-200 leading-snug font-sans">Hint: How does this handle concurrent race conditions?</span>
         </motion.div>
       </div>
     </div>
   );
 }
 
-// =========================================================================
-// WIDGET 4: Audio Waveform
-// =========================================================================
+// BENTO TILE 4: Audio Waveform
 function AudioWaveformWidget() {
   return (
-    <div className="flex flex-col justify-between p-5 bg-[#040404]/80 rounded-xl border border-white/10 h-full w-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]">
-      <div className="flex justify-between items-center mb-3 relative z-10">
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Live Telemetry</span>
-        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.8)]" />
+    <div className="flex flex-col justify-between h-full w-full min-h-[280px]">
+      <div className="flex justify-between items-start mb-2">
+        <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+          <Mic size={16} className="text-emerald-400"/> Voice Telemetry
+        </h3>
+        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_#34d399]" />
       </div>
-      <div className="flex items-end justify-between gap-1 h-16 my-2 w-full overflow-hidden relative z-10">
-        {Array.from({ length: 24 }).map((_, i) => (
-          <motion.div
-            key={i} animate={{ height: [12, Math.random() * 42 + 10, 12] }}
-            transition={{ duration: 1 + Math.random(), repeat: Infinity, ease: "easeInOut" }}
-            className="w-1.5 rounded-full bg-emerald-400/80 shadow-[0_0_8px_rgba(52,211,153,0.4)]"
-          />
-        ))}
-      </div>
-      <div className="flex justify-between text-[10px] font-mono text-slate-400 mt-2 relative z-10">
-        <span className="text-white font-bold">135 WPM</span>
-        <span>Conf: 8.2/10</span>
+      <div className="mt-auto">
+        <div className="flex items-end gap-1.5 h-16 mb-4 w-full overflow-hidden">
+          {Array.from({length: 16}).map((_, i) => (
+            <motion.div key={i} className="flex-1 bg-emerald-400/80 rounded-t-sm" animate={{ height: [6, Math.random() * 50 + 10, 6] }} transition={{ duration: 0.8 + Math.random(), repeat: Infinity, ease: "easeInOut" }} />
+          ))}
+        </div>
+        <div className="flex justify-between items-center text-[11px] font-mono font-bold text-slate-400 border-t border-white/10 pt-3">
+          <span className="text-white">135 WPM</span>
+          <span className="text-emerald-400">Conf: 8.6/10</span>
+        </div>
       </div>
     </div>
   );
 }
 
-// =========================================================================
-// WIDGET 5: Company DNA
-// =========================================================================
+// BENTO TILE 5: Company DNA
 function CompanyDnaWidget() {
   const [activeCompany, setActiveCompany] = useState("google");
-  const focusAreas = { google: "Algorithms & Scale", meta: "Execution & System Tradeoffs", amazon: "Leadership Principles" };
-  const vectorStats = { google: [85, 60, 40], meta: [65, 90, 50], amazon: [45, 60, 95] };
+  const vectorStats = { google: [85, 60], meta: [65, 90], amazon: [45, 95] };
 
   return (
-    <div className="flex flex-col gap-4 p-5 bg-[#040404]/80 rounded-xl border border-white/10 h-full w-full justify-between shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]">
-      <div className="grid grid-cols-3 gap-2 w-full relative z-10">
-        {["google", "meta", "amazon"].map((c) => (
-          <button
-            key={c} onClick={() => setActiveCompany(c)}
-            className={`py-2 rounded-lg text-[9px] font-bold uppercase tracking-wider border transition-all text-center w-full ${
-              activeCompany === c ? "bg-white text-black border-white shadow-[0_0_10px_rgba(255,255,255,0.15)]" : "bg-white/[0.03] border-white/10 text-slate-400 hover:text-white"
-            }`}
-          >
-            {c.substring(0,3)}
-          </button>
-        ))}
+    <div className="flex flex-col justify-between h-full w-full min-h-[280px]">
+      <div>
+        <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2 mb-5">
+          <Target size={16} className="text-blue-400" /> Company DNA
+        </h3>
+        <div className="flex gap-2 w-full">
+          {["google", "meta", "amazon"].map(c => (
+            <button key={c} onClick={() => setActiveCompany(c)} className={`py-1.5 rounded text-[10px] font-bold uppercase tracking-wider border transition-all text-center w-full outline-none ${activeCompany === c ? 'bg-white/[0.12] text-white border-white/20' : 'bg-transparent border-white/10 text-slate-500 hover:text-white'}`}>
+              {c.substring(0,4)}
+            </button>
+          ))}
+        </div>
       </div>
-      <div className="flex-1 w-full mt-2 flex flex-col justify-center gap-2 relative z-10">
-        <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 block mb-1 truncate">Vector: {focusAreas[activeCompany]}</span>
-        <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-          <div className="h-full bg-indigo-500 transition-all duration-500" style={{ width: `${vectorStats[activeCompany][0]}%` }} />
+      <div className="space-y-4 mt-6">
+        <div>
+          <div className="flex justify-between text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1.5"><span>Scale</span><span className="text-white font-mono">85%</span></div>
+          <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden"><div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${vectorStats[activeCompany][0]}%` }} /></div>
         </div>
-        <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-          <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${vectorStats[activeCompany][1]}%` }} />
-        </div>
-        <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-          <div className="h-full bg-amber-500 transition-all duration-500" style={{ width: `${vectorStats[activeCompany][2]}%` }} />
+        <div>
+          <div className="flex justify-between text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1.5"><span>Tradeoffs</span><span className="text-emerald-400 font-mono">60%</span></div>
+          <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${vectorStats[activeCompany][1]}%` }} /></div>
         </div>
       </div>
     </div>
   );
 }
 
-// =========================================================================
-// WIDGET 6: Session Replay & 5D Radar (NEW)
-// =========================================================================
+// BENTO TILE 6: Replay Report
 function ReplayReportWidget() {
   return (
-    <div className="flex flex-col md:flex-row p-5 bg-[#040404]/80 rounded-xl border border-white/10 h-full w-full justify-between items-center shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] overflow-hidden gap-6">
-      <div className="flex-1 w-full">
-        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Session Replay</h3>
-        <p className="text-sm font-bold text-white leading-tight mb-4">Post-Flight 5D Diagnostics</p>
-        
-        {/* Fake Scrubber */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-[9px] font-mono text-slate-500">
-            <span>Node 1</span><span>Node 4</span>
-          </div>
-          <div className="h-1.5 w-full bg-white/10 rounded-full relative">
-            <div className="absolute top-0 left-0 h-full w-[60%] bg-blue-500 rounded-full" />
-            <div className="absolute top-1/2 -translate-y-1/2 left-[60%] w-3 h-3 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
-          </div>
-        </div>
-      </div>
-
-      {/* SVG Radar Chart Approximation */}
-      <div className="w-32 h-32 relative flex items-center justify-center flex-shrink-0">
-        <div className="absolute inset-0 bg-blue-500/10 blur-xl rounded-full" />
-        <svg viewBox="0 0 100 100" className="w-full h-full opacity-80 z-10">
-          <polygon points="50,10 90,35 75,85 25,85 10,35" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-          <polygon points="50,25 75,43 65,72 35,72 25,43" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-          <polygon points="50,15 80,45 60,80 30,70 15,40" fill="rgba(59,130,246,0.3)" stroke="#3b82f6" strokeWidth="1.5" />
-          <line x1="50" y1="50" x2="50" y2="10" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-          <line x1="50" y1="50" x2="90" y2="35" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-          <line x1="50" y1="50" x2="75" y2="85" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-          <line x1="50" y1="50" x2="25" y2="85" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-          <line x1="50" y1="50" x2="10" y2="35" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-        </svg>
-      </div>
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-6 h-full w-full min-h-[280px]">
+       <div className="w-full sm:w-1/2">
+         <h3 className="text-lg font-bold text-white tracking-tight mb-2">5D Session Report</h3>
+         <p className="text-sm font-medium text-slate-400 leading-relaxed mb-8">Review timeline node data with multi-dimensional radar plotting.</p>
+         <div className="space-y-2 w-full">
+           <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">
+             <span>Timeline</span><span>Node 4</span>
+           </div>
+           <div className="h-1.5 w-full bg-white/10 rounded-full relative">
+             <div className="absolute top-0 left-0 h-full w-[60%] bg-indigo-500 rounded-full" />
+             <div className="absolute top-1/2 -translate-y-1/2 left-[60%] w-3 h-3 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)] border border-indigo-500" />
+           </div>
+         </div>
+       </div>
+       <div className="w-36 h-36 relative flex items-center justify-center flex-shrink-0">
+         <div className="absolute inset-0 bg-indigo-500/10 blur-2xl rounded-full" />
+         <svg viewBox="0 0 100 100" className="w-full h-full opacity-80 z-10 overflow-visible">
+           <polygon points="50,10 90,35 75,85 25,85 10,35" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+           <polygon points="50,25 75,43 65,72 35,72 25,43" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+           <polygon points="50,15 80,45 60,80 30,70 15,40" fill="rgba(99,102,241,0.3)" stroke="#6366f1" strokeWidth="1.5" />
+         </svg>
+       </div>
     </div>
   );
 }
 
-// =========================================================================
-// WIDGET 7: Knowledge Graph
-// =========================================================================
+// BENTO TILE 7: Knowledge Graph
 function InteractiveGraphWidget() {
   return (
-    <div className="flex flex-col p-5 bg-[#040404]/80 rounded-xl border border-white/10 h-full relative overflow-hidden w-full justify-between shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]">
-      <div className="relative z-10 mb-2 flex justify-between items-start w-full">
-        <div>
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Diagnostic Path</span>
-          <span className="text-sm font-bold text-white leading-tight">Rate Limiter Algorithms</span>
-        </div>
-        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest bg-white/10 px-2 py-1 rounded">Knowledge Graph</span>
-      </div>
-      
-      <div className="flex-1 flex flex-col text-[11px] font-mono text-slate-300 gap-2.5 w-full relative z-10 justify-end pt-2">
-        <div className="flex justify-between items-center border-b border-white/10 pb-1.5">
-          <span className="text-slate-200">Token Bucket</span> <CheckCircle2 size={14} className="text-emerald-400"/>
-        </div>
-        <div className="flex justify-between items-center border-b border-white/10 pb-1.5">
-          <span className="text-slate-200">Leaky Bucket</span> <ShieldAlert size={14} className="text-amber-400 animate-pulse"/>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="text-slate-500">Sliding Window Log</span> <Lock size={14} className="text-slate-600"/>
-        </div>
-      </div>
+    <div className="flex flex-col sm:flex-row items-center justify-between h-full w-full min-h-[280px]">
+       <div className="w-full sm:w-1/2 pr-6 sm:border-r border-white/[0.06]">
+         <div className="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-4">
+           <Layers size={20} className="text-amber-400" />
+         </div>
+         <h3 className="text-lg font-bold text-white tracking-tight mb-2">93-Node Curriculum</h3>
+         <p className="text-sm font-medium text-slate-400 leading-relaxed">Diagnostic trees track dependencies. Never fail a systems question due to a hidden foundation gap.</p>
+       </div>
+       <div className="w-full sm:w-1/2 flex flex-col gap-3 font-mono text-[11px] text-slate-300 sm:pl-6 mt-6 sm:mt-0">
+         <div className="flex items-center gap-3 bg-white/[0.03] p-2.5 rounded border border-white/10"><CheckCircle2 size={16} className="text-emerald-400"/> Token Bucket</div>
+         <div className="flex items-center gap-3 bg-amber-500/10 p-2.5 rounded border border-amber-500/30 text-amber-200"><AlertTriangle size={16} className="text-amber-400 animate-pulse"/> Leaky Bucket</div>
+         <div className="flex items-center gap-3 opacity-50 p-2.5"><Lock size={16} className="text-slate-500"/> Sliding Window</div>
+       </div>
     </div>
   );
 }
 
-// =========================================================================
-// WIDGET 8: Peer Percentile (NEW)
-// =========================================================================
+// BENTO TILE 8: Peer Percentile
 function PeerPercentileWidget() {
   return (
-    <div className="flex flex-col p-5 bg-[#040404]/80 rounded-xl border border-white/10 h-full relative overflow-hidden w-full justify-between shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]">
-      <div className="relative z-10">
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Global Percentile</span>
-        <span className="text-2xl font-extrabold tracking-tighter text-white">Top 12%</span>
+    <div className="flex flex-col justify-between items-center text-center h-full w-full min-h-[280px]">
+      <Activity size={28} className="text-emerald-400 mt-4" />
+      <div>
+        <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500 block mb-2">Global Rank</span>
+        <div className="text-4xl font-extrabold text-white tracking-tighter tabular-nums mb-2 font-mono">Top 12%</div>
+        <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 bg-white/5 border border-white/10 px-3 py-1.5 rounded inline-block font-mono">1,240 Peers</div>
       </div>
-      
-      {/* SVG Bell Curve */}
-      <div className="w-full h-16 relative mt-4">
-        <svg viewBox="0 0 100 50" className="w-full h-full absolute inset-0 overflow-visible text-indigo-500/30">
-          <path d="M0,50 Q25,50 40,20 T50,5 T60,20 T100,50" fill="currentColor" />
-          <path d="M0,50 Q25,50 40,20 T50,5 T60,20 T100,50" fill="none" stroke="#6366f1" strokeWidth="1.5" />
-          <circle cx="65" cy="27" r="3" fill="#fff" className="animate-pulse shadow-[0_0_10px_#fff]" />
-        </svg>
-      </div>
-    </div>
-  );
-}
-
-// =========================================================================
-// MAIN LANDING COMPONENT
-// =========================================================================
-export default function Landing({ onGetStarted, onSignIn }) {
-  const heroRef = useRef(null);
-  const [track, setTrack] = useState('design'); // 'design' | 'coding'
-  const [isScrolled, setIsScrolled] = useState(false);
-  
-  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
-  const ghostOpacity = useTransform(scrollYProgress, [0, 0.15], [1, 0]);
-  const ghostScale = useTransform(scrollYProgress, [0, 0.15], [1, 1.08]);
-  const graphScale = useTransform(scrollYProgress, [0, 0.4], [0.85, 1.25]);
-  const graphBlur = useTransform(scrollYProgress, [0, 0.4], ["blur(12px)", "blur(0px)"]);
-  const graphOpacity = useTransform(scrollYProgress, [0, 0.2, 0.4], [0.4, 0.8, 1]);
-  const realOpacity = useTransform(scrollYProgress, [0.15, 0.35], [0, 1]);
-  const realY = useTransform(scrollYProgress, [0.15, 0.35], [40, 0]);
-  const realScale = useTransform(scrollYProgress, [0.15, 0.35], [0.95, 1]);
-
-  useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 80);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const logos = ["Google", "Amazon", "Meta", "Microsoft", "Apple", "Netflix", "Stripe", "OpenAI"];
-  const marqueeLogos = [...logos, ...logos, ...logos];
-
-  const [mousePos, setMousePos] = useState({ x: -1000, y: -1000 });
-  useEffect(() => {
-    const handleMouseMove = (e) => setMousePos({ x: e.clientX, y: e.clientY });
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
-
-  // Rolling numbers for metrics
-  const CountUp = ({ to }) => {
-    const count = useMotionValue(0);
-    const rounded = useTransform(count, Math.round);
-    const [display, setDisplay] = useState(0);
-    useEffect(() => {
-      const controls = animate(count, to, { duration: 2, ease: "easeOut" });
-      const unsub = rounded.on("change", setDisplay);
-      return () => { controls.stop(); unsub(); };
-    }, [to, count, rounded]);
-    return <>{display}</>;
-  };
-
-  return (
-    <PremiumLayout
-      scene={
-        <motion.div className="w-full h-full absolute inset-0" style={{ scale: graphScale, filter: graphBlur, opacity: graphOpacity }}>
-          <KnowledgeGraphScene scrollTargetRef={heroRef} />
-        </motion.div>
-      }
-      ambientColors={["#2563eb", "#7c3aed"]}
-    >
-      <style>{`
-        @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
-        .animate-shimmer { animation: shimmer 2.5s infinite linear; }
-        .mask-edges { mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent); }
-        .marquee-scroll { animation: marquee 30s linear infinite; }
-        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-      `}</style>
-
-      <div className="landing-vignette pointer-events-none" />
-
-      {/* HEADER */}
-      <nav className={`fixed top-0 left-0 right-0 z-[100] flex justify-center transition-all duration-300 ${isScrolled ? "pt-3" : "pt-6"}`}>
-        <div className={`flex items-center justify-between px-6 transition-all duration-300 ${isScrolled ? "w-[90%] max-w-5xl h-14 bg-white/[0.02] backdrop-blur-2xl border border-white/[0.08] rounded-full shadow-[0_20px_40px_rgba(0,0,0,0.5),_inset_0_1px_0_0_rgba(255,255,255,0.05)]" : "w-full max-w-7xl h-14 bg-transparent border-transparent"}`}>
-          <div className="flex items-center gap-2 font-bold text-sm tracking-tight text-white">
-            <div className="w-6 h-6 rounded-lg bg-blue-600 flex items-center justify-center text-[10px] shadow-[0_0_12px_rgba(37,99,235,0.5)]">IC</div>
-            InterviewCoach
-          </div>
-          <div className="hidden md:flex items-center gap-8 text-[11px] font-bold uppercase tracking-widest text-slate-400">
-            <span className="hover:text-white cursor-pointer transition-colors">Methodology</span>
-            <span className="hover:text-white cursor-pointer transition-colors">Sandbox</span>
-            <span className="hover:text-white cursor-pointer transition-colors">Personas</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={onSignIn}>Sign in</Button>
-            <Button size="sm" onClick={onGetStarted} className="shadow-[0_0_15px_rgba(255,255,255,0.2)]">Get started</Button>
-          </div>
-        </div>
-      </nav>
-
-      {/* SECTION 1: HERO & TRACK SWITCHER */}
-      <section ref={heroRef} style={{ height: "200vh", position: "relative" }}>
-        <div className="landing-hero-sticky flex flex-col items-center justify-center min-h-screen pt-20">
-          
-          <motion.h1 className="ds-ghost-text absolute w-full text-center" style={{ opacity: ghostOpacity, scale: ghostScale, top: "40%" }}>
-            Master the terrain.
-          </motion.h1>
-
-          <motion.div className="w-full max-w-[900px] mx-auto px-6 text-center flex flex-col items-center z-20" style={{ opacity: realOpacity, y: realY, scale: realScale }}>
-            
-            {/* Dual Track Switcher */}
-            <div className="flex items-center bg-white/[0.03] border border-white/[0.08] p-1 rounded-full mb-10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] relative">
-               <button onClick={() => setTrack('design')} className={`relative px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-colors z-10 flex items-center gap-2 ${track === 'design' ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}>
-                 <BrainCircuit size={14} /> System Design
-               </button>
-               <button onClick={() => setTrack('coding')} className={`relative px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-colors z-10 flex items-center gap-2 ${track === 'coding' ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}>
-                 <Code2 size={14} /> Live Coding
-               </button>
-               {/* Sliding Background */}
-               <div className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white/[0.08] border border-white/10 rounded-full transition-transform duration-300 ease-out z-0 ${track === 'coding' ? 'translate-x-full' : 'translate-x-0'}`} />
-            </div>
-
-            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tighter text-white leading-[1.05] mb-6 drop-shadow-2xl">
-              Master the technical interview. <br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Autonomously.</span>
-            </h1>
-            <p className="text-lg md:text-xl text-slate-300 font-medium max-w-2xl mx-auto mb-10 leading-relaxed">
-              {track === 'design' 
-                ? "Adaptive difficulty, real-time voice coaching, and company-specific architecture scenarios powered by a 93-node knowledge graph."
-                : "Full Monaco IDE, secure multi-language execution, and Socratic hints that guide you to the optimal algorithm without giving away the answer."}
-            </p>
-            
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
-              <button onClick={onGetStarted} className="relative group overflow-hidden bg-white text-black px-10 py-4 rounded-xl text-sm font-bold active:scale-95 transition-all shadow-[0_0_30px_rgba(255,255,255,0.15)] hover:shadow-[0_0_45px_rgba(255,255,255,0.3)] flex items-center gap-3 w-full sm:w-auto justify-center">
-                <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
-                Start free now
-                <kbd className="hidden sm:inline-flex ml-1 items-center justify-center bg-black/10 rounded px-1.5 py-0.5 text-[10px] font-mono text-black/60">↵</kbd>
-              </button>
-            </div>
-          </motion.div>
-
-          <motion.p className="absolute bottom-12 text-[10px] font-bold uppercase tracking-widest text-slate-500" style={{ opacity: ghostOpacity }}>
-            Scroll to explore engine ↓
-          </motion.p>
-        </div>
-      </section>
-
-      {/* SECTION 2: PROOF MARQUEE & HIGH-DENSITY METRICS */}
-      <section className="relative z-20 py-20 bg-gradient-to-b from-transparent to-black border-b border-white/[0.05]">
-        <div className="max-w-7xl mx-auto px-6">
-          <p className="text-center text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-10">
-            Engineered to conquer interviews at
-          </p>
-          <div className="overflow-hidden mask-edges w-full max-w-4xl mx-auto mb-20">
-            <div className="flex gap-16 whitespace-nowrap marquee-scroll w-max opacity-40">
-              {marqueeLogos.map((c, idx) => (
-                <span key={`${c}-${idx}`} className="text-2xl font-bold tracking-tight text-white">{c}</span>
-              ))}
-            </div>
-          </div>
-
-          {/* 4 Live Metrics Counters */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-5xl mx-auto text-center divide-x divide-white/[0.05]">
-             <div>
-               <div className="text-4xl md:text-5xl font-extrabold tracking-tighter text-white mb-2 tabular-nums"><CountUp to={93} /></div>
-               <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex items-center justify-center gap-1.5"><Layers size={12} className="text-blue-400"/> CS Graph Nodes</div>
-             </div>
-             <div>
-               <div className="text-4xl md:text-5xl font-extrabold tracking-tighter text-white mb-2 tabular-nums"><CountUp to={4} /></div>
-               <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex items-center justify-center gap-1.5"><Code2 size={12} className="text-emerald-400"/> IDE Languages</div>
-             </div>
-             <div>
-               <div className="text-4xl md:text-5xl font-extrabold tracking-tighter text-white mb-2 tabular-nums"><CountUp to={100} />%</div>
-               <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex items-center justify-center gap-1.5"><Terminal size={12} className="text-rose-400"/> Sandboxed Exec</div>
-             </div>
-             <div>
-               <div className="text-4xl md:text-5xl font-extrabold tracking-tighter text-white mb-2 tabular-nums">5D</div>
-               <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex items-center justify-center gap-1.5"><BarChart3 size={12} className="text-amber-400"/> Telemetry Vectors</div>
-             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 3: THE HIGH-DENSITY 8-TILE BENTO GRID */}
-      <section className="relative z-20 py-32 bg-[#000000]">
-        <div className="max-w-[1200px] mx-auto px-6">
-          <div className="text-center mb-20">
-            <span className="text-blue-400 text-[10px] font-bold uppercase tracking-[0.2em] bg-blue-500/10 border border-blue-500/20 px-3 py-1 rounded-full mb-4 inline-block">The Engine</span>
-            <h2 className="text-4xl md:text-6xl font-extrabold tracking-tighter text-white">Not a wrapper around a chatbot.</h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 auto-rows-[280px]">
-            
-            {/* ROW 1 */}
-            <div className="md:col-span-2 relative"><GlassCard mousePos={mousePos}><InteractiveEloWidget /></GlassCard></div>
-            <div className="md:col-span-1 lg:col-span-1 relative"><GlassCard mousePos={mousePos}><InterviewerPersonaWidget /></GlassCard></div>
-            <div className="md:col-span-1 lg:col-span-1 relative"><GlassCard mousePos={mousePos}><AudioWaveformWidget /></GlassCard></div>
-
-            {/* ROW 2 */}
-            <div className="md:col-span-2 lg:col-span-2 relative"><GlassCard mousePos={mousePos}><CodingSandboxWidget /></GlassCard></div>
-            <div className="md:col-span-1 lg:col-span-1 relative"><GlassCard mousePos={mousePos}><CompanyDnaWidget /></GlassCard></div>
-            <div className="md:col-span-1 lg:col-span-1 relative"><GlassCard mousePos={mousePos}><PeerPercentileWidget /></GlassCard></div>
-
-            {/* ROW 3 */}
-            <div className="md:col-span-2 lg:col-span-2 relative"><GlassCard mousePos={mousePos}><ReplayReportWidget /></GlassCard></div>
-            <div className="md:col-span-2 lg:col-span-2 relative"><GlassCard mousePos={mousePos}><InteractiveGraphWidget /></GlassCard></div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 5: HIGH-CONTRAST CLOSING CTA */}
-      <section className="relative z-20 py-40 border-t border-white/[0.05] bg-[#000000] overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-blue-600/10 blur-[150px] rounded-full pointer-events-none" />
-        
-        <div className="max-w-4xl mx-auto text-center px-6 relative z-10">
-          <h2 className="text-5xl md:text-7xl font-extrabold tracking-tighter text-white mb-6">
-            Ready to know the terrain?
-          </h2>
-          <p className="text-slate-400 mb-12 text-lg font-medium max-w-xl mx-auto leading-relaxed">
-            Free to start. No credit card required. Master technical, behavioral, and live coding interviews in a hostile, reactive environment.
-          </p>
-          <div className="flex justify-center">
-            <button onClick={onGetStarted} className="relative group overflow-hidden bg-white text-black px-12 py-5 rounded-2xl text-base font-bold active:scale-95 transition-all shadow-[0_0_40px_rgba(255,255,255,0.2)] hover:shadow-[0_0_60px_rgba(255,255,255,0.3)] flex items-center gap-3">
-              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite]" />
-              Start Free Now <ChevronRight size={18} />
-              <kbd className="hidden sm:inline-flex ml-2 items-center justify-center bg-black/10 rounded px-2 py-1 text-[11px] font-mono text-black/60">↵ Enter</kbd>
-            </button>
-          </div>
-        </div>
-      </section>
-
-    </PremiumLayout>
-  );
-}
-
-// =========================================================================
-// UNIVERSAL GLASS CARD WRAPPER
-// =========================================================================
-function GlassCard({ children, className = "", mousePos }) {
-  const [rect, setRect] = useState(null);
-  const cardRef = useRef(null);
-
-  useEffect(() => {
-    if (cardRef.current) setRect(cardRef.current.getBoundingClientRect());
-  }, []);
-
-  const isHovered = rect && mousePos.x >= rect.left && mousePos.x <= rect.right && mousePos.y >= rect.top && mousePos.y <= rect.bottom;
-  const cursorX = rect ? mousePos.x - rect.left : 0;
-  const cursorY = rect ? mousePos.y - rect.top : 0;
-
-  return (
-    <div 
-      ref={cardRef}
-      className={`absolute inset-0 rounded-2xl bg-white/[0.02] border border-white/[0.08] overflow-hidden backdrop-blur-xl ${className}`}
-      style={{ boxShadow: 'inset 0 1px 0 0 rgba(255, 255, 255, 0.12), 0 20px 40px -10px rgba(0,0,0,0.5)' }}
-    >
-      <div className="absolute inset-0 pointer-events-none transition-opacity duration-300 z-0" style={{ background: `radial-gradient(400px circle at ${cursorX}px ${cursorY}px, rgba(255,255,255,0.06), transparent 40%)`, opacity: isHovered ? 1 : 0 }} />
-      {children}
     </div>
   );
 }
