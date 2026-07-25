@@ -51,6 +51,9 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   const mediaRecorderRef = useRef(null);
   const audioStreamRef = useRef(null);
 
+  // Determine if question is behavioral to swap dynamic scaffolding
+  const isBehavioral = category?.toLowerCase().includes("behavioral") || category?.toLowerCase().includes("leadership");
+
   // Original lifecycle and effect hooks preserved
   useEffect(() => {
     setTimeout(() => setMounted(true), 100);
@@ -396,10 +399,12 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
           </div>
           <div className="w-px h-4 bg-white/10" />
           <div className="flex items-center gap-2">
-            <span className="text-white text-[11px] font-bold uppercase tracking-widest">
+            <span className="bg-white/5 border border-white/10 px-2.5 py-1 rounded-md text-white text-[10px] font-bold uppercase tracking-widest">
               {company?.name || "Interview"}
             </span>
-            <span className="text-zinc-600 text-xs font-medium">&middot; {sessionData?.role || ""}</span>
+            {sessionData?.role && (
+              <span className="text-zinc-600 text-xs font-medium">&middot; {sessionData.role}</span>
+            )}
             {persona && persona !== "standard" && (
               <span className="ml-2 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded">
                 {persona}
@@ -439,7 +444,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
         
         {phase === "answering" ? (
           /* ====================================================================
-             PHASE 1: ZEN 50/50 SPLIT-PANE (UNCHANGED)
+             PHASE 1: ZEN 50/50 SPLIT-PANE
              ==================================================================== */
           <div className="w-full h-full flex flex-col md:flex-row transition-opacity duration-500 overflow-y-auto md:overflow-hidden" style={{ opacity: mounted ? 1 : 0 }}>
             {/* LEFT PANE */}
@@ -518,7 +523,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                 {intervention && (
                   <motion.div 
                     initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
-                    className="absolute bottom-28 right-8 bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl max-w-[300px] z-30 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1),_0_20px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl"
+                    className="absolute bottom-32 right-8 bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl max-w-[300px] z-30 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1),_0_20px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl"
                   >
                     <div className="flex items-center gap-2 mb-1.5">
                       <AlertTriangle size={14} className="text-amber-500" />
@@ -534,7 +539,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                 {showHint && (
                   <motion.div 
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-                    className="absolute bottom-28 left-8 bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl max-w-sm z-30 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1),_0_20px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl flex items-start gap-3"
+                    className="absolute bottom-32 left-8 bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl max-w-sm z-30 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1),_0_20px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl flex items-start gap-3"
                   >
                     <Lightbulb size={16} className="text-blue-400 flex-shrink-0 mt-0.5" />
                     <p className="text-sm font-medium text-blue-100 leading-relaxed flex-1">{hintText}</p>
@@ -548,9 +553,19 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                 {!answer && (
                   <div className="absolute top-12 left-12 pointer-events-none select-none">
                     <pre className="text-zinc-600 text-base font-sans font-medium leading-[1.8] m-0">
-                      // 1. Clarification & Edge Cases...<br/>
-                      // 2. Core Architectural Approach...<br/>
-                      // 3. Trade-offs & Systems Limits...
+                      {isBehavioral ? (
+                        <>
+                          // 1. Situation & Ownership...<br/>
+                          // 2. Key Actions & Stakeholder Alignment...<br/>
+                          // 3. Root Cause Analysis & Preventive Systems...
+                        </>
+                      ) : (
+                        <>
+                          // 1. Clarification & Edge Cases...<br/>
+                          // 2. Core Architectural Approach...<br/>
+                          // 3. Trade-offs & Systems Limits...
+                        </>
+                      )}
                     </pre>
                   </div>
                 )}
@@ -559,12 +574,12 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                   onChange={(e) => handleAnswerChange(e.target.value)}
                   disabled={timeLeft === 0}
                   spellCheck="false"
-                  className="w-full h-full bg-transparent text-slate-200 text-base font-medium leading-[1.8] p-12 resize-none outline-none z-10 relative"
+                  className="w-full h-full bg-transparent text-slate-200 text-base font-medium leading-[1.8] p-12 pb-32 resize-none outline-none z-10 relative"
                 />
               </div>
 
-              {/* Action Footer */}
-              <div className="absolute bottom-4 md:bottom-8 left-4 right-4 md:left-12 md:right-12 flex flex-col md:flex-row gap-4 md:gap-0 justify-between items-stretch md:items-center z-20">
+              {/* Action Footer - Frosted Glass Container */}
+              <div className="absolute bottom-0 left-0 right-0 px-8 md:px-12 py-6 bg-[#000000]/80 backdrop-blur-xl border-t border-white/[0.08] flex flex-col md:flex-row gap-4 md:gap-0 justify-between items-stretch md:items-center z-20">
                 <div className="flex items-center gap-6">
                   <button
                     onClick={isRecording ? stopRecording : startRecording}
@@ -577,14 +592,14 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                     {isRecording ? <Square fill="currentColor" size={12}/> : <Mic size={12}/>}
                     {isRecording ? 'Stop Voice' : 'Use Voice'}
                   </button>
-                  <button onClick={getHint} className="text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-300 transition-colors">
+                  <button onClick={getHint} className="text-[11px] font-bold uppercase tracking-widest text-slate-300 hover:text-white transition-colors">
                     Get Hint
                   </button>
                 </div>
                 
                 <div className="flex items-center gap-6">
                   {scoringError && <span className="text-xs text-red-400 font-bold">{scoringError}</span>}
-                  <span className="text-[11px] font-mono text-slate-600 font-bold tabular-nums hidden sm:block">{answer.length} chars</span>
+                  <span className="text-[11px] font-mono text-slate-400 font-bold tabular-nums hidden sm:block">{answer.length} chars</span>
                   
                   <button
                     onClick={submitAnswer}
@@ -602,7 +617,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                       <>
                         <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full animate-[shimmer_5s_infinite]" />
                         Submit Answer
-                        <kbd className="font-mono text-[10px] bg-black/10 px-1.5 py-0.5 rounded ml-2">↵ Enter</kbd>
+                        <kbd className="font-mono text-[10px] bg-black/10 px-1.5 py-0.5 rounded ml-2 text-black/70">↵ Enter</kbd>
                       </>
                     )}
                   </button>
@@ -612,8 +627,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
           </div>
         ) : (
           /* ====================================================================
-             PHASE 2: THE PREMIUM 3-ZONE DIAGNOSTIC COCKPIT
-             (Apple/Linear/Vercel Aesthetic)
+             PHASE 2: RESULTS (Executive Report)
              ==================================================================== */
           <div className="w-full h-full overflow-y-auto bg-[#000000] relative pb-32 scrollbar-hide">
             
@@ -807,7 +821,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
 }
 
 /* ============================================================================
-   NEW PHASE 2 PREMIUM COMPONENTS
+   PHASE 2 PREMIUM COMPONENTS
    ============================================================================ */
 
 function AnimatedNumber({ value }) {

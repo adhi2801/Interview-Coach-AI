@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { motion, useMotionValue, useTransform, animate } from "framer-motion";
+import { motion, useMotionValue, useTransform, animate, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { API_URL } from "../config";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from "recharts";
 import { 
   Search, LogOut, LayoutGrid, History, Settings, Target, 
-  ChevronRight, Activity, Zap, Code2, Play
+  ChevronRight, Activity, Zap, Code2, Play, Cpu, Wifi, GitBranch,
+  PanelLeftClose, PanelLeftOpen, ArrowRight
 } from "lucide-react";
 
 /**
@@ -32,6 +33,7 @@ function SlotNumber({ value }) {
 export default function UserDashboard({ user, onStartNew, onLogout, onNavigateHistory, onStartCoding, onNavigateSettings, onNavigateStudyPlan }) {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     fetchSessions();
@@ -87,7 +89,8 @@ export default function UserDashboard({ user, onStartNew, onLogout, onNavigateHi
     show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 380, damping: 28 } }
   };
 
-  const firstName = user?.name ? user.name.split(" ")[0].charAt(0).toUpperCase() + user.name.split(" ")[0].slice(1) : "Guest";
+  const firstName = user?.name ? user.name.split(" ")[0].charAt(0).toUpperCase() + user.name.split(" ")[0].slice(1) : "Candidate";
+  const userInitials = user?.name ? user.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "IC";
   const currentElo = Math.round(user?.elo_rating || 1200);
   const targetElo = 1400; // Benchmark target for typical L4
 
@@ -116,28 +119,143 @@ export default function UserDashboard({ user, onStartNew, onLogout, onNavigateHi
         />
       </div>
 
-      {/* LEFT-RAIL SIDEBAR */}
-      <aside className="w-[240px] flex-shrink-0 border-r border-white/[0.08] bg-[#050507]/90 backdrop-blur-2xl flex flex-col justify-between hidden lg:flex relative z-30 shadow-[4px_0_24px_rgba(0,0,0,0.5)]">
-        <div>
-          <div className="h-20 flex items-center px-6 border-b border-white/[0.06]">
-            <div className="w-6 h-6 rounded bg-white flex items-center justify-center font-bold text-black text-[10px] mr-3 shadow-[0_0_15px_rgba(255,255,255,0.3)]">IC</div>
-            <span className="font-bold text-white tracking-tight text-sm">InterviewCoach</span>
+      {/* ========================================================================= */}
+      {/* LEFT-RAIL SIDEBAR (SLIDING SPRING ANIMATION & DEEP GLASS)                  */}
+      {/* ========================================================================= */}
+      <motion.aside 
+        initial={false}
+        animate={{ 
+          width: sidebarOpen ? 260 : 0,
+          opacity: sidebarOpen ? 1 : 0,
+          x: sidebarOpen ? 0 : -20
+        }}
+        transition={{ type: "spring", stiffness: 320, damping: 32 }}
+        className="flex-shrink-0 border-r border-white/[0.08] bg-[#050507]/90 backdrop-blur-2xl flex-col justify-between hidden lg:flex relative z-30 shadow-[4px_0_30px_rgba(0,0,0,0.8)] overflow-hidden"
+      >
+        <div className="flex flex-col h-full justify-between w-[260px]">
+          
+          {/* Top Brand & Core Nav */}
+          <div>
+            <div className="h-20 flex items-center px-6 border-b border-white/[0.06] justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center font-bold text-black text-xs shadow-[0_0_20px_rgba(255,255,255,0.4)] flex-shrink-0">
+                  IC
+                </div>
+                <div>
+                  <span className="font-bold text-white tracking-tight text-sm block leading-none">InterviewCoach</span>
+                  <span className="text-[9px] font-mono text-slate-500 font-bold uppercase tracking-widest block mt-1">Autonomous Engine</span>
+                </div>
+              </div>
+
+              {/* Collapse Button inside Sidebar Header */}
+              <button 
+                onClick={() => setSidebarOpen(false)}
+                className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-colors outline-none"
+                title="Collapse Sidebar"
+              >
+                <PanelLeftClose size={18} />
+              </button>
+            </div>
+
+            <nav className="p-4 space-y-1.5">
+              <SidebarItem 
+                icon={LayoutGrid} 
+                label="Dashboard" 
+                active 
+              />
+              <SidebarItem 
+                icon={History} 
+                label="Session Ledger" 
+                onClick={onNavigateHistory} 
+                badge={meaningfulSessions.length > 0 ? `${meaningfulSessions.length}` : null}
+              />
+              <SidebarItem 
+                icon={Target} 
+                label="Study Plan" 
+                onClick={onNavigateStudyPlan}
+                badge="93 NODES"
+                badgeColor="text-indigo-400 bg-indigo-500/10 border-indigo-500/20"
+              />
+              <SidebarItem 
+                icon={Code2} 
+                label="Coding Sandbox" 
+                onClick={onStartCoding}
+                badge="IDE"
+                badgeColor="text-amber-400 bg-amber-500/10 border-amber-500/20"
+              />
+            </nav>
           </div>
-          <nav className="p-4 space-y-1">
-            <SidebarItem icon={LayoutGrid} label="Dashboard" active />
-            <SidebarItem icon={History} label="Session Ledger" onClick={onNavigateHistory} />
-            <SidebarItem icon={Target} label="Study Plan" onClick={onNavigateStudyPlan} />
-            <SidebarItem icon={Code2} label="Coding Sandbox" onClick={onStartCoding} />
-          </nav>
+
+          {/* Middle: Live System Telemetry HUD */}
+          <div className="px-4 py-3">
+            <div className="bg-black/60 border border-white/[0.06] rounded-2xl p-4 shadow-inner relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 blur-2xl pointer-events-none rounded-full" />
+              
+              <div className="flex items-center justify-between mb-3 pb-2 border-b border-white/[0.06]">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-emerald-400">Engine Online</span>
+                </div>
+                <span className="text-[9px] font-mono text-slate-500 font-bold">v2.4</span>
+              </div>
+
+              <div className="space-y-2 font-mono text-[11px]">
+                <div className="flex justify-between items-center text-slate-400">
+                  <span className="flex items-center gap-1.5 text-slate-500"><Cpu size={12}/> Model</span>
+                  <span className="text-slate-200 font-bold">Claude 3.5</span>
+                </div>
+                <div className="flex justify-between items-center text-slate-400">
+                  <span className="flex items-center gap-1.5 text-slate-500"><Wifi size={12}/> Latency</span>
+                  <span className="text-emerald-400 font-bold tabular-nums">16ms</span>
+                </div>
+                <div className="flex justify-between items-center text-slate-400">
+                  <span className="flex items-center gap-1.5 text-slate-500"><GitBranch size={12}/> Graph</span>
+                  <span className="text-indigo-400 font-bold tabular-nums">93 Nodes</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Account & System Controls */}
+          <div className="p-4 border-t border-white/[0.06] space-y-2">
+            <div className="flex items-center gap-3 px-3 py-2.5 bg-white/[0.02] border border-white/[0.05] rounded-xl mb-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-bold text-white text-xs shadow-inner flex-shrink-0">
+                {userInitials}
+              </div>
+              <div className="overflow-hidden flex-1">
+                <p className="text-xs font-bold text-white truncate leading-tight">{user?.name || "Candidate"}</p>
+                <p className="text-[9px] font-mono text-slate-400 font-bold uppercase tracking-wider truncate mt-0.5">L4 Senior Bracket</p>
+              </div>
+            </div>
+
+            <SidebarItem icon={Settings} label="Settings" onClick={onNavigateSettings} />
+            <SidebarItem icon={LogOut} label="Log Out" onClick={onLogout} danger />
+          </div>
+
         </div>
-        <div className="p-4 border-t border-white/[0.06] space-y-1">
-          <SidebarItem icon={Settings} label="Settings" onClick={onNavigateSettings} />
-          <SidebarItem icon={LogOut} label="Log Out" onClick={onLogout} danger />
-        </div>
-      </aside>
+      </motion.aside>
 
       {/* MAIN CONTENT CANVAS */}
       <main className="flex-1 w-full h-screen overflow-y-auto relative z-20 scrollbar-hide">
+        {/* Floating Sidebar Expand Trigger (Positioned top-left independent of headline) */}
+        <AnimatePresence>
+          {!sidebarOpen && (
+            <motion.button 
+              initial={{ scale: 0.8, opacity: 0, x: -20 }}
+              animate={{ scale: 1, opacity: 1, x: 0 }}
+              exit={{ scale: 0.8, opacity: 0, x: -20 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setSidebarOpen(true)}
+              className="fixed top-6 left-6 z-40 hidden lg:flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-[#08080C]/90 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 backdrop-blur-xl transition-all shadow-[0_10px_25px_rgba(0,0,0,0.5)] outline-none group"
+              title="Expand Sidebar"
+            >
+              <PanelLeftOpen size={18} className="text-blue-400 group-hover:text-white transition-colors" />
+              <span className="text-xs font-bold font-mono uppercase tracking-wider text-slate-400 group-hover:text-white">Menu</span>
+            </motion.button>
+          )}
+        </AnimatePresence>
+
         <div className="max-w-[1440px] mx-auto pt-12 lg:pt-16 pb-32 px-6 lg:px-12">
           
           <motion.div variants={containerVars} initial="hidden" animate="show" className="space-y-6">
@@ -178,7 +296,6 @@ export default function UserDashboard({ user, onStartNew, onLogout, onNavigateHi
               <motion.div variants={itemVars} className="xl:col-span-8 flex flex-col min-h-[420px]">
                 <GlassCard className="p-6 md:p-8 h-full flex flex-col group">
                   
-                  {/* FIX #1: Header Flex Container — flex-shrink-0 prevents "SES! 0" truncation */}
                   <div className="flex flex-wrap justify-between items-center gap-4 mb-6 relative z-10">
                     <div className="flex-1 min-w-[200px]">
                       <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300 mb-2 flex items-center gap-2">
@@ -199,7 +316,6 @@ export default function UserDashboard({ user, onStartNew, onLogout, onNavigateHi
                       </div>
                     </div>
 
-                    {/* Stat Pills Box — min-w-max and flex-shrink-0 to preserve "SESSIONS" label */}
                     <div className="flex items-center gap-6 bg-[#050507]/80 border border-white/[0.08] px-5 py-3.5 rounded-xl shadow-inner flex-shrink-0 min-w-max">
                       <div>
                         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Sessions</span>
@@ -216,7 +332,7 @@ export default function UserDashboard({ user, onStartNew, onLogout, onNavigateHi
                     </div>
                   </div>
 
-                  {/* FIX #2: Cleaned Ghost State — Purged backdrop blur smudge beneath telemetry pill */}
+                  {/* Clean Ghost State */}
                   <div className="flex-1 w-full relative z-10 -ml-2 -mb-2">
                     {meaningfulSessions.length === 0 ? (
                       <div className="w-full h-full relative min-h-[220px] flex items-center justify-center">
@@ -234,7 +350,6 @@ export default function UserDashboard({ user, onStartNew, onLogout, onNavigateHi
                           </AreaChart>
                         </ResponsiveContainer>
                         
-                        {/* Crisp overlay pill without dark rectangular backdrop smudge */}
                         <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none">
                           <div className="bg-[#0A0A0E] border border-indigo-500/30 text-indigo-300 px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest shadow-[0_0_25px_rgba(99,102,241,0.2)] mb-3 flex items-center gap-2">
                             <Activity size={14} className="text-indigo-400 animate-pulse" /> Awaiting Telemetry Data
@@ -324,7 +439,7 @@ export default function UserDashboard({ user, onStartNew, onLogout, onNavigateHi
                   {/* 1-Click Execution Trigger */}
                   <motion.button 
                     whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={onStartNew}
-                    className="w-full bg-white/[0.04] border border-white/[0.1] hover:border-white/[0.2] hover:bg-white/[0.08] text-white px-5 py-3.5 rounded-xl text-xs font-bold transition-all shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),_0_10px_20px_rgba(0,0,0,0.5)] flex items-center justify-between group/btn mt-6 relative z-10"
+                    className="w-full bg-white/[0.04] border border-white/[0.1] hover:border-white/[0.2] hover:bg-white/[0.08] text-white px-5 py-3.5 rounded-xl text-xs font-bold transition-all shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),_0_10px_20px_rgba(0,0,0,0.5)] flex items-center justify-between group/btn mt-6 relative z-10 outline-none"
                   >
                     <span className="flex items-center gap-2.5">
                       <Zap size={15} className="text-amber-500" /> Fix Systems Gap
@@ -348,7 +463,7 @@ export default function UserDashboard({ user, onStartNew, onLogout, onNavigateHi
                   <div className="flex items-center gap-3 w-full sm:w-auto">
                     <motion.button 
                       whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={onStartCoding}
-                      className="w-full sm:w-auto bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.06] text-slate-300 px-5 py-2.5 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-2"
+                      className="w-full sm:w-auto bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.06] text-slate-300 px-5 py-2.5 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-2 outline-none"
                     >
                       <Code2 size={14} className="text-indigo-400" /> Coding Sandbox
                     </motion.button>
@@ -365,7 +480,7 @@ export default function UserDashboard({ user, onStartNew, onLogout, onNavigateHi
                     ))}
                   </div>
                 ) : meaningfulSessions.length === 0 ? (
-                  /* FIX #3: Ghost Table Structural Empty State (Linear/Stripe standard) */
+                  /* Ghost Table Structural Empty State (Linear/Stripe standard) */
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse min-w-[800px]">
                       <thead className="bg-[#050507]/60">
@@ -399,7 +514,7 @@ export default function UserDashboard({ user, onStartNew, onLogout, onNavigateHi
                       <p className="text-xs font-semibold text-slate-400 mb-4">No completed sessions logged yet. Initialize your first simulation to begin recording telemetry history.</p>
                       <motion.button 
                         whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={onStartNew}
-                        className="bg-white text-black px-5 py-2.5 rounded-lg text-xs font-bold flex items-center gap-2 shadow-md"
+                        className="bg-white text-black px-5 py-2.5 rounded-lg text-xs font-bold flex items-center gap-2 shadow-md outline-none"
                       >
                         <Play size={14} className="text-blue-600 fill-current" /> Start First Session
                       </motion.button>
@@ -470,7 +585,7 @@ export default function UserDashboard({ user, onStartNew, onLogout, onNavigateHi
         </div>
       </main>
 
-      {/* MOBILE BOTTOM DOCK (Fallback for < 1024px) */}
+      {/* MOBILE BOTTOM DOCK (Fallback for < 1024px Viewports) */}
       <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#050507]/90 border border-white/[0.08] backdrop-blur-2xl p-2 rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.8),_inset_0_1px_0_0_rgba(255,255,255,0.12)] flex items-center gap-1 lg:hidden">
         <MobileDockItem icon={LayoutGrid} active />
         <MobileDockItem icon={History} onClick={onNavigateHistory} />
@@ -486,17 +601,38 @@ export default function UserDashboard({ user, onStartNew, onLogout, onNavigateHi
 
 // Subcomponents
 
-function SidebarItem({ icon: Icon, label, active, onClick, danger }) {
+function SidebarItem({ icon: Icon, label, active, onClick, danger, badge, badgeColor }) {
   return (
     <button 
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
-        active ? "bg-white/[0.08] text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]" : 
-        danger ? "text-slate-400 hover:text-rose-400 hover:bg-rose-500/10" : "text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]"
+      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all outline-none focus-visible:ring-2 focus-visible:ring-blue-500 relative ${
+        active 
+          ? "bg-white/[0.08] text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1),_0_10px_20px_rgba(0,0,0,0.5)] border border-white/10" 
+          : danger 
+          ? "text-slate-400 hover:text-rose-400 hover:bg-rose-500/10" 
+          : "text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]"
       }`}
     >
-      <Icon size={18} className={active ? "text-white" : danger ? "" : "text-slate-400"} />
-      {label}
+      <div className="flex items-center gap-3">
+        <Icon size={16} className={active ? "text-white" : danger ? "" : "text-slate-400"} />
+        <span>{label}</span>
+      </div>
+      
+      {badge && (
+        <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded border uppercase tracking-widest ${
+          badgeColor || "text-slate-300 bg-white/10 border-white/10"
+        }`}>
+          {badge}
+        </span>
+      )}
+
+      {active && (
+        <motion.div 
+          layoutId="activeSidebarIndicator"
+          className="absolute left-0 top-2 bottom-2 w-1 bg-blue-500 rounded-r-full shadow-[0_0_10px_rgba(59,130,246,0.8)]"
+          transition={{ type: "spring", stiffness: 400, damping: 30 }}
+        />
+      )}
     </button>
   );
 }
@@ -505,7 +641,7 @@ function MobileDockItem({ icon: Icon, active, onClick, danger }) {
   return (
     <button 
       onClick={onClick}
-      className={`p-3 rounded-xl transition-all ${
+      className={`p-3 rounded-xl transition-all outline-none ${
         active ? "bg-white/[0.08] text-white" : 
         danger ? "text-slate-400 hover:text-rose-400 hover:bg-rose-500/10" : "text-slate-400 hover:bg-white/[0.04] hover:text-white"
       }`}
