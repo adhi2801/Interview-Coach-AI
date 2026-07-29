@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate as useNav } from "react-router-dom";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Terminal, LayoutGrid, Code2, LogOut, Settings as SettingsIcon, Play, Database } from "lucide-react";
@@ -164,6 +165,18 @@ function AuthBootloader() {
   );
 }
 
+function RequireSession({ sessionData, redirectTo = "/", children }) {
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!sessionData?.session_id) {
+      navigate(redirectTo, { replace: true });
+    }
+  }, [sessionData, navigate, redirectTo]);
+
+  if (!sessionData?.session_id) return null;
+  return children;
+}
+
 function AuthenticatedRoutes({ user, onLogout, onEloUpdate, sessionData, setSessionData }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -182,9 +195,14 @@ function AuthenticatedRoutes({ user, onLogout, onEloUpdate, sessionData, setSess
           <Route path="/" element={<UserDashboard user={user} onLogout={onLogout} onStartNew={() => navigate("/setup")} onNavigateHistory={() => navigate("/replay")} onStartCoding={() => navigate("/coding")} onNavigateSettings={() => navigate("/settings")} onNavigateStudyPlan={() => navigate("/study-plan")} />} />
           <Route path="/setup" element={<Dashboard user={user} onLogout={onLogout} onGoBack={() => navigate("/")} onStart={(data) => { setSessionData(data); navigate("/preflight"); }} />} />
           <Route path="/preflight" element={<PreflightCheck onReady={() => navigate("/interview")} onSkip={() => navigate("/interview")} />} />
-          <Route path="/interview" element={<InterviewRoom sessionData={sessionData} onFinish={() => navigate("/replay")} onEloUpdate={onEloUpdate} />} />
+          <Route path="/interview" element={
+  <RequireSession sessionData={sessionData}>
+    <InterviewRoom sessionData={sessionData} onFinish={() => navigate("/replay")} onEloUpdate={onEloUpdate} />
+  </RequireSession>
+} />
           <Route path="/coding" element={<CodingRoom sessionId={sessionData?.session_id} onFinish={() => navigate("/")} />} />
-          <Route path="/replay" element={<ReplayViewer sessionId={sessionData?.session_id} onExit={() => navigate("/")} />} />
+          <Route path="/replay" element={<ReplayViewer sessionId={sessionData?.session_id} onExit={() => navigate("/")} onSelectSession={(id) => navigate(`/replay/${id}`)} />} />
+<Route path="/replay/:id" element={<ReplayViewerWithParam onExit={() => navigate("/")} />} />
           <Route path="/study-plan" element={<StudyPlanBrowser onGoBack={() => navigate("/")} />} />
           <Route path="/settings" element={<Settings user={user} onLogout={onLogout} onGoBack={() => navigate("/")} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
@@ -217,6 +235,12 @@ function UnauthenticatedRoutes({ onAuth }) {
       </motion.div>
     </AnimatePresence>
   );
+}
+
+function ReplayViewerWithParam({ onExit }) {
+  const { useParams } = require("react-router-dom");
+  const { id } = useParams();
+  return <ReplayViewer sessionId={parseInt(id, 10)} onExit={onExit} />;
 }
 
 function AppContent({ user, checkingAuth, handleAuth, handleLogout, handleEloUpdate, sessionData, setSessionData }) {

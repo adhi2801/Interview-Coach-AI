@@ -1,13 +1,11 @@
 /* ==========================================================================
    Landing.css
-
-   Hardware-accelerated animations, edge masking, and scrollbar utilities
-   for the Experiential Design System.
+   Hardware-accelerated animations and scrollbar overrides for Concept B.
    ========================================================================== */
 
 
 /* ==========================================================================
-   1. Marquee Animations
+   1. Infinite Logo Marquee
    ========================================================================== */
 
 @keyframes marquee {
@@ -16,73 +14,22 @@
   }
 
   100% {
-    transform: translateX(calc(-50%));
+    transform: translateX(-50%);
   }
 }
 
 .animate-marquee {
-  /* Uses a 30s linear loop for smooth, infinite scrolling */
-  animation: marquee 30s linear infinite;
   display: flex;
+  animation: marquee 30s linear infinite;
   will-change: transform;
 }
 
-/* Pause marquee on hover for better UX */
-
+/* Pause marquee on hover */
 .marquee-container:hover .animate-marquee {
   animation-play-state: paused;
 }
 
-
-/* ==========================================================================
-   2. Shimmer & Shine Effects
-   ========================================================================== */
-
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-.animate-shimmer {
-  /* Diagonal light sweep effect for primary CTA buttons */
-  animation: shimmer 2.5s infinite linear;
-  will-change: transform;
-}
-
-
-@keyframes pulse-slow {
-  0%,
-  100% {
-    opacity: 0.6;
-    transform: scale(1);
-  }
-
-  50% {
-    opacity: 1;
-    transform: scale(1.05);
-  }
-}
-
-.animate-pulse-slow {
-  animation: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  will-change: transform, opacity;
-}
-
-
-/* ==========================================================================
-   3. Masks & Utility Classes
-   ========================================================================== */
-
-/*
-   Linear gradient mask to smoothly fade elements
-   at the edges of scroll containers.
- */
-
+/* Fade logos smoothly at the left and right edges */
 .mask-edges {
   -webkit-mask-image: linear-gradient(
     to right,
@@ -103,40 +50,36 @@
 
 
 /* ==========================================================================
-   4. Custom Scrollbar Styling
+   2. Button Shimmer Sweep
    ========================================================================== */
 
-/* Custom scrollbars for code boxes, terminal widgets, and scrollable panels */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
 
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  100% {
+    transform: translateX(100%);
+  }
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+.animate-shimmer {
+  animation: shimmer 2.5s linear infinite;
+  will-change: transform;
 }
 
 
 /* ==========================================================================
-   5. Scrollbar Utility Classes
+   3. Hidden Scrollbars
+   Keeps internal Bento elements scrollable without displaying scrollbars.
    ========================================================================== */
 
-/* Hide scrollbar for internal bento elements and overflow containers */
-
+/* Chrome, Safari, Edge */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
 
+/* Firefox + legacy Edge/IE */
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
