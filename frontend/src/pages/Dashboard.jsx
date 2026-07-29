@@ -134,6 +134,12 @@ const INTELLIGENCE = {
     pillars: [ { name: "Execution Velocity", val: 95 }, { name: "Product Sense", val: 85 }, { name: "System Architecture", val: 60 } ]
   }
 };
+const PERSONA_OPENERS = {
+  standard: (intel) => `"Walk me through how you'd approach: ${intel.scenario}"`,
+  hostile: (intel) => `"${intel.scenario} — and I don't want to hear about happy paths. What breaks first?"`,
+  socratic: (intel) => `"Before you answer — why do you think this problem exists in the first place? ${intel.scenario}"`,
+  exhausted: (intel) => `"Okay so... ${intel.scenario.charAt(0).toLowerCase() + intel.scenario.slice(1)} Just talk me through it."`
+};
 
 const BOOT_SEQUENCE = [
   "> Establishing secure WebRTC telemetry socket...",
@@ -238,9 +244,9 @@ function CinematicSelect({ value, onChange, options }) {
 // 5. THE MASTER DASHBOARD (Mission Control 2.0)
 // ============================================================================
 export default function Dashboard({ onStart, user, onGoBack }) {
-  const [company, setCompany] = useState("microsoft");
-  const [role, setRole] = useState(ROLES[1]);
-  const [persona, setPersona] = useState("hostile");
+  const [company, setCompany] = useState(() => localStorage.getItem("ic_last_company") || "microsoft");
+  const [role, setRole] = useState(() => localStorage.getItem("ic_last_role") || ROLES[1]);
+  const [persona, setPersona] = useState(() => localStorage.getItem("ic_last_persona") || "hostile");
   const [isBooting, setIsBooting] = useState(false);
   const [bootStep, setBootStep] = useState(0);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -259,8 +265,15 @@ export default function Dashboard({ onStart, user, onGoBack }) {
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
+  // Persist selections so returning users don't have to reconfigure every time
+  useEffect(() => {
+    localStorage.setItem("ic_last_company", company);
+    localStorage.setItem("ic_last_role", role);
+    localStorage.setItem("ic_last_persona", persona);
+  }, [company, role, persona]);
 
   const handleLaunch = async () => {
+    if (isBooting) return; // prevent double-submission from a fast double-click
     setIsBooting(true);
     let step = 0;
     const interval = setInterval(() => {
@@ -471,8 +484,12 @@ export default function Dashboard({ onStart, user, onGoBack }) {
 
               <div className="space-y-6">
                 <div>
-                  <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Architectural Scenario</span>
-                  <p className="text-2xl font-bold text-white leading-snug tracking-tight">"{activeIntel.scenario}"</p>
+                  <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
+                    Opening Line &middot; {activePers.label} Persona
+                  </span>
+                  <p className="text-2xl font-bold text-white leading-snug tracking-tight">
+                    {PERSONA_OPENERS[persona](activeIntel)}
+                  </p>
                 </div>
 
                 <div className="flex flex-wrap gap-3">
