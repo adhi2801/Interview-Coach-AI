@@ -340,10 +340,18 @@ export default function Dashboard({ onStart, user, onGoBack }) {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 flex items-center justify-center pointer-events-auto"
           >
-            <div className="w-[500px] bg-[#0A0A0C] border border-white/10 p-6 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.9)] font-mono text-sm">
+            <div className="w-[90vw] max-w-[500px] bg-[#0A0A0C] border border-white/10 p-6 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.9)] font-mono text-sm">
               <div className="flex items-center gap-3 mb-6 border-b border-white/10 pb-4">
                 <Terminal size={18} className="text-blue-400" />
                 <span className="text-white font-bold">SYSTEM BOOT SEQUENCE</span>
+              </div>
+              <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mb-6">
+                <motion.div
+                  className="h-full bg-blue-500"
+                  initial={{ width: "0%" }}
+                  animate={{ width: `${(bootStep / (BOOT_SEQUENCE.length - 1)) * 100}%` }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                />
               </div>
               <div className="space-y-3 text-slate-400">
                 {BOOT_SEQUENCE.slice(0, bootStep + 1).map((step, i) => (
@@ -392,7 +400,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
           {/* Target Company */}
           <section>
             <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-3 ml-1">Target Company</h2>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-2 gap-2">
               {COMPANIES.map((c) => (
                 <button
                   key={c.id}
@@ -569,10 +577,24 @@ export default function Dashboard({ onStart, user, onGoBack }) {
                 </div>
               </div>
 
-              {/* Dynamic Status Badge */}
+              {/* Dynamic Status Badge — now reflects real distance to target */}
               <div className="bg-[#0A0A0C] border border-white/5 rounded-lg p-3 shadow-inner">
-                <span className="block text-[9px] font-bold uppercase tracking-widest text-emerald-400 mb-1">Above L4 Range</span>
-                <p className="text-[10px] font-medium text-slate-400 leading-snug">Selecting L4 will feel comfortable. Try L5 to challenge your ceiling.</p>
+                {currentElo >= l5Target ? (
+                  <>
+                    <span className="block text-[9px] font-bold uppercase tracking-widest text-emerald-400 mb-1">L5 Ready</span>
+                    <p className="text-[10px] font-medium text-slate-400 leading-snug">You've cleared the L5 benchmark. Keep sharpening — try Hostile persona for real pressure.</p>
+                  </>
+                ) : currentElo >= l4Target ? (
+                  <>
+                    <span className="block text-[9px] font-bold uppercase tracking-widest text-amber-400 mb-1">{l5Target - currentElo} pts to L5</span>
+                    <p className="text-[10px] font-medium text-slate-400 leading-snug">Comfortably above L4. Push toward L5 to challenge your ceiling.</p>
+                  </>
+                ) : (
+                  <>
+                    <span className="block text-[9px] font-bold uppercase tracking-widest text-rose-400 mb-1">{l4Target - currentElo} pts to L4</span>
+                    <p className="text-[10px] font-medium text-slate-400 leading-snug">Keep drilling — you're still building toward the L4 baseline.</p>
+                  </>
+                )}
               </div>
 
             </DeepGlassCard>
