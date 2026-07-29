@@ -6,6 +6,8 @@ import { Search, Terminal, LayoutGrid, Code2, LogOut, Settings as SettingsIcon, 
 
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 import Landing from "./pages/Landing";
 import Dashboard from "./pages/Dashboard";
 import UserDashboard from "./pages/UserDashboard";
@@ -202,9 +204,11 @@ function AuthenticatedRoutes({ user, onLogout, onEloUpdate, sessionData, setSess
 } />
           <Route path="/coding" element={<CodingRoom sessionId={sessionData?.session_id} onFinish={() => navigate("/")} />} />
           <Route path="/replay" element={<ReplayViewer sessionId={sessionData?.session_id} onExit={() => navigate("/")} onSelectSession={(id) => navigate(`/replay/${id}`)} />} />
-<Route path="/replay/:id" element={<ReplayViewerWithParam onExit={() => navigate("/")} />} />
+          <Route path="/replay/:id" element={<ReplayViewerWithParam onExit={() => navigate("/")} />} />
           <Route path="/study-plan" element={<StudyPlanBrowser onGoBack={() => navigate("/")} />} />
           <Route path="/settings" element={<Settings user={user} onLogout={onLogout} onGoBack={() => navigate("/")} />} />
+          <Route path="/privacy" element={<PrivacyPolicy onGoBack={() => navigate("/")} />} />
+          <Route path="/terms" element={<TermsOfService onGoBack={() => navigate("/")} />} />  
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </motion.div>
@@ -230,6 +234,8 @@ function UnauthenticatedRoutes({ onAuth }) {
           <Route path="/" element={<Landing onGetStarted={() => navigate("/signup")} onSignIn={() => navigate("/login")} />} />
           <Route path="/login" element={<Login onAuth={onAuth} onSwitchToSignup={() => navigate("/signup")} />} />
           <Route path="/signup" element={<Signup onAuth={onAuth} onSwitchToLogin={() => navigate("/login")} />} />
+          <Route path="/privacy" element={<PrivacyPolicy onGoBack={() => navigate("/")} />} />
+          <Route path="/terms" element={<TermsOfService onGoBack={() => navigate("/")} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </motion.div>

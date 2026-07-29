@@ -657,8 +657,8 @@ export default function Landing({ onGetStarted, onSignIn }) {
             <ul className="space-y-3 text-sm text-slate-400 font-medium">
               <li><span className="hover:text-white transition-colors cursor-default">FastAPI / Python 3.11</span></li>
               <li><span className="hover:text-white transition-colors cursor-default">PostgreSQL + JWT Security</span></li>
-              <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
+              <li><a href="/privacy" className="hover:text-white transition-colors">Privacy Policy</a></li>
+              <li><a href="/terms" className="hover:text-white transition-colors">Terms of Service</a></li>
             </ul>
           </div>
 
@@ -666,8 +666,8 @@ export default function Landing({ onGetStarted, onSignIn }) {
             <h4 className="text-white font-bold mb-4 text-xs tracking-wider uppercase">Creator</h4>
             <p className="text-xs text-slate-400 font-medium mb-3">Designed & Engineered by <strong className="text-white">Adhiswauran</strong></p>
             <ul className="space-y-3 text-sm text-slate-400 font-medium">
-              <li><a href="#" className="hover:text-white transition-colors flex items-center gap-1">GitHub Source <ArrowRight size={12}/></a></li>
-              <li><a href="#" className="hover:text-white transition-colors flex items-center gap-1">System Audit Log <ArrowRight size={12}/></a></li>
+              <li><a href="https://github.com/adhi2801/Interview-Coach-AI" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors flex items-center gap-1">GitHub Source <ArrowRight size={12}/></a></li>
+              <li><a href="https://github.com/adhi2801/Interview-Coach-AI/commits/main" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors flex items-center gap-1">System Audit Log <ArrowRight size={12}/></a></li>
             </ul>
           </div>
 
