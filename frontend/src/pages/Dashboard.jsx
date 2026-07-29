@@ -405,7 +405,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
                 <button
                   key={c.id}
                   onClick={() => setCompany(c.id)}
-                  className={`flex flex-col items-center justify-center gap-2.5 p-3.5 rounded-xl border transition-all duration-200 outline-none ${
+                  className={`flex flex-col items-center justify-center gap-2.5 p-3.5 rounded-xl border transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
                     company === c.id ? "bg-white/[0.06] border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]" : "bg-white/[0.01] border-white/[0.05] hover:bg-white/[0.03]"
                   }`}
                 >
@@ -429,7 +429,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
                   <button
                     key={p.id}
                     onClick={() => setPersona(p.id)}
-                    className={`relative p-3.5 rounded-xl border text-left transition-all duration-200 outline-none group ${
+                    className={`relative p-3.5 rounded-xl border text-left transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black group ${
                       isActive ? "bg-white/[0.04] border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]" : "bg-white/[0.01] border-white/[0.05] hover:bg-white/[0.03]"
                     }`}
                   >
