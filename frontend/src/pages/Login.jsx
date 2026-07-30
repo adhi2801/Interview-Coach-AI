@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { API_URL } from "../config";
-import { useTheme, ThemeToggle } from "../context/ThemeContext";
 import { ChevronRight, Mail, Lock, Activity, Eye, EyeOff, ShieldCheck } from "lucide-react";
 
 // Inline SVG for GitHub to avoid Lucide import errors
@@ -28,7 +27,6 @@ function GoogleIcon(props) {
 }
 
 export default function Login({ onAuth, onSwitchToSignup }) {
-  const { theme } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -70,22 +68,18 @@ export default function Login({ onAuth, onSwitchToSignup }) {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] font-sans selection:bg-indigo-500/30 overflow-hidden relative flex flex-col md:flex-row">
+    <div className="min-h-screen bg-[#000000] text-slate-200 font-sans selection:bg-indigo-500/30 overflow-hidden relative flex flex-col md:flex-row">
       
-      {/* LAYER 1 & 2: Ambient Spotlights + Film Grain (dark mode only) */}
-      {theme === 'dark' && (
-        <>
-          <div className="fixed top-[-10%] left-[-10%] w-[40vw] h-[50vh] bg-indigo-900/15 blur-[120px] pointer-events-none rounded-full mix-blend-screen z-0" />
-          <div className="fixed bottom-[-10%] right-1/4 w-[50vw] h-[60vh] bg-blue-900/10 blur-[150px] pointer-events-none rounded-full mix-blend-screen z-0" />
-          <div className="fixed inset-0 z-10 pointer-events-none opacity-[0.03] mix-blend-soft-light" style={{ backgroundImage: noiseSvg }} />
-        </>
-      )}
+      {/* LAYER 1 & 2: Ambient Spotlights + Film Grain */}
+      <div className="fixed top-[-10%] left-[-10%] w-[40vw] h-[50vh] bg-indigo-900/15 blur-[120px] pointer-events-none rounded-full mix-blend-screen z-0" />
+      <div className="fixed bottom-[-10%] right-1/4 w-[50vw] h-[60vh] bg-blue-900/10 blur-[150px] pointer-events-none rounded-full mix-blend-screen z-0" />
+      <div className="fixed inset-0 z-10 pointer-events-none opacity-[0.03] mix-blend-soft-light" style={{ backgroundImage: noiseSvg }} />
 
       {/* LAYER 3: The Tailwind UI (z-20) */}
       <div className="relative z-20 flex flex-col md:flex-row w-full min-h-screen">
         
-        {/* Left Column: Value Intro (FIXED: Collision & Fake Telemetry Removed) */}
-        <div className="hidden lg:flex flex-col justify-between w-[45%] p-12 lg:p-16 border-r border-[var(--border-subtle)] relative bg-[var(--bg-surface)]/40 backdrop-blur-3xl overflow-hidden">
+        {/* Left Column: Value Intro */}
+        <div className="hidden lg:flex flex-col justify-between w-[45%] p-12 lg:p-16 border-r border-white/[0.05] relative bg-black/20 backdrop-blur-3xl overflow-hidden">
           
           <div className={`transition-all duration-1000 ease-out transform z-10 relative ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
             <div className="flex items-center gap-3 mb-16">
@@ -93,16 +87,15 @@ export default function Login({ onAuth, onSwitchToSignup }) {
               <span className="font-semibold text-white tracking-tight text-lg">InterviewCoach</span>
             </div>
             
-            <h1 className="text-4xl lg:text-5xl font-extrabold tracking-tighter text-[var(--text-primary)] leading-tight max-w-md mb-6 drop-shadow-lg">
+            <h1 className="text-4xl lg:text-5xl font-extrabold tracking-tighter text-white leading-tight max-w-md mb-6 drop-shadow-lg">
               Resume your training.<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-400 to-slate-600">Master the interview.</span>
             </h1>
-            <p className="text-[var(--text-secondary)] text-sm md:text-base max-w-md leading-relaxed font-medium">
+            <p className="text-slate-300 text-sm md:text-base max-w-md leading-relaxed font-medium">
               Log in to access your ELO progression, review your knowledge gaps, and initialize your next adaptive simulation.
             </p>
           </div>
 
-          {/* FIXED: Shifted and scaled radar graphic to prevent typographic collision */}
           <div className={`absolute top-1/2 -right-16 -translate-y-1/2 w-full max-w-[450px] aspect-square transition-all duration-1000 delay-300 pointer-events-none ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
             <BreathingRadar />
           </div>
@@ -131,20 +124,16 @@ export default function Login({ onAuth, onSwitchToSignup }) {
           <div className={`w-full max-w-[420px] transition-all duration-700 ease-out transform ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-12'}`}>
             
             <GlassCard mousePos={mousePos}>
-              <div className="flex items-center justify-between gap-3 mb-8 pb-8 border-b border-[var(--border-subtle)]">
-                <div className="flex items-center gap-3 lg:hidden">
-                  <div className="w-6 h-6 rounded bg-white flex items-center justify-center font-bold text-black text-[10px] shadow-[0_0_15px_rgba(255,255,255,0.3)]">IC</div>
-                  <span className="font-semibold text-[var(--text-primary)] tracking-tight">InterviewCoach</span>
-                </div>
-                <ThemeToggle className="ml-auto" />
+              <div className="lg:hidden flex items-center gap-3 mb-8 pb-8 border-b border-white/10">
+                <div className="w-6 h-6 rounded bg-white flex items-center justify-center font-bold text-black text-[10px] shadow-[0_0_15px_rgba(255,255,255,0.3)]">IC</div>
+                <span className="font-semibold text-white tracking-tight">InterviewCoach</span>
               </div>
 
               <div className="mb-8 relative z-10">
-                <h2 className="text-2xl font-bold text-[var(--text-primary)] tracking-tight mb-2">Welcome back</h2>
-                <p className="text-sm text-[var(--text-muted)] font-medium">Log in to continue your interview prep.</p>
+                <h2 className="text-2xl font-bold text-white tracking-tight mb-2">Welcome back</h2>
+                <p className="text-sm text-slate-400 font-medium">Log in to continue your interview prep.</p>
               </div>
 
-              {/* UPGRADE: 1-Click Developer OAuth Integration */}
               <div className="space-y-3 mb-6 relative z-10">
                 <motion.button whileTap={{ scale: 0.98 }} className="w-full flex items-center justify-center gap-3 py-2.5 rounded-lg text-sm font-bold bg-[#171717] hover:bg-[#202020] border border-white/10 text-white transition-all shadow-sm">
                   <GithubIcon size={18} /> Continue with GitHub
@@ -162,7 +151,6 @@ export default function Login({ onAuth, onSwitchToSignup }) {
 
               <form onSubmit={handleLogin} className="space-y-4 relative z-10">
                 
-                {/* Email Field */}
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 block ml-1">Work Email</label>
                   <div className="relative group">
@@ -180,7 +168,6 @@ export default function Login({ onAuth, onSwitchToSignup }) {
                   </div>
                 </div>
 
-                {/* Password Field */}
                 <div className="space-y-1.5">
                   <div className="flex justify-between items-center ml-1">
                     <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 block">Password</label>
@@ -321,7 +308,7 @@ function GlassCard({ children, className = "", mousePos }) {
   return (
     <div 
       ref={cardRef}
-      className={`relative rounded-3xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] p-8 md:p-10 overflow-hidden backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),_0_30px_60px_rgba(0,0,0,0.8)] ${className}`}
+      className={`relative rounded-3xl bg-[#08080C] border border-white/[0.08] p-8 md:p-10 overflow-hidden backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),_0_30px_60px_rgba(0,0,0,0.8)] ${className}`}
     >
       <div 
         className="absolute inset-0 pointer-events-none transition-opacity duration-300 z-0"
