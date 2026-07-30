@@ -146,7 +146,7 @@ export default function Landing({ onGetStarted, onSignIn }) {
   const { theme } = useTheme();
 
   const COMPANIES = ['Google', 'Meta', 'Amazon', 'Microsoft', 'Apple', 'Netflix', 'Startup'];
-  const FAANG_LOGOS = ['Google', 'Meta', 'Amazon', 'Microsoft', 'Apple', 'Netflix', 'Stripe'];
+  const FAANG_LOGOS = ['Google', 'Meta', 'Amazon', 'Microsoft', 'Apple', 'Netflix'];
 
   return (
     <div className="relative min-h-screen w-full bg-[var(--bg-canvas)] overflow-x-hidden font-sans text-[var(--text-primary)] selection:bg-blue-500/30 flex flex-col">

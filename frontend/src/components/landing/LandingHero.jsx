@@ -72,7 +72,7 @@ function GlassCard({ children, className = "", onClick, active = false }) {
 }
 
 export default function LandingHero({ activeTrack, setActiveTrack, onGetStarted }) {
-  const logos = ["Google", "Meta", "Amazon", "Microsoft", "Apple", "Netflix", "Stripe"];
+  const logos = ["Google", "Meta", "Amazon", "Microsoft", "Apple", "Netflix"];
 
   return (
     <>

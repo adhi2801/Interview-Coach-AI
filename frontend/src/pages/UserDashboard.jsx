@@ -466,17 +466,19 @@ export default function UserDashboard({
         {/* RIGHT RAIL (35%) — STICKY INSTRUMENT DECK                                 */}
         {/* ========================================================================= */}
         {}
-        <div className="w-full lg:w-[35%] flex flex-col gap-6 lg:sticky lg:top-24 lg:h-[calc(100vh-8rem)]">
+        <div className="w-full lg:w-[35%] flex flex-col gap-6">
           
           {/* COMPANY DNA RADAR CHART */}
           <section className="bg-[#050508] border border-white/[0.08] rounded-2xl p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] relative overflow-hidden shrink-0">
             <div className="flex justify-between items-center mb-2 relative z-10">
               <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Company DNA · {activeTarget} L4</h2>
-              {hoveredSessionId && (
-                <span className="text-[9px] font-mono bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded animate-pulse">
-                  Scrubbing Session #{hoveredSessionId}
-                </span>
-              )}
+              <span className={`text-[9px] font-mono px-2 py-0.5 rounded border transition-colors ${
+                hoveredSessionId 
+                  ? "bg-blue-500/20 text-blue-400 border-blue-500/30 animate-pulse" 
+                  : "bg-white/5 text-slate-500 border-white/10"
+              }`}>
+                {hoveredSessionId ? `Previewing Session #${hoveredSessionId}` : "Live Company Average"}
+              </span>
             </div>
 
             <div className="h-56 w-full relative z-10 -ml-2">
