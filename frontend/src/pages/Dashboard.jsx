@@ -51,7 +51,15 @@ const COMPANIES = [
 // ============================================================================
 // 3. INTELLIGENCE DATA (Scenarios, Personas, Playbooks)
 // ============================================================================
-const ROLES = ["Software Engineer — L3", "Senior Engineer — L4", "Staff Engineer — L5", "ML Engineer", "Systems Architect"];
+const ROLES = [
+  "Software Engineer — L3",
+  "Senior Engineer — L4",
+  "Staff Engineer — L5",
+  "Backend Engineer — L4",
+  "Frontend Engineer — L4",
+  "ML Engineer",
+  "Systems Architect"
+];
 
 const PERSONAS = [
   { 
