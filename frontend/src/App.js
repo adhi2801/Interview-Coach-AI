@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate as useNav } from "react-router-dom";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Terminal, LayoutGrid, Code2, LogOut, Settings as SettingsIcon, Play, Database } from "lucide-react";
 
@@ -131,7 +131,7 @@ function AuthBootloader() {
     let i = 0;
     const interval = setInterval(() => {
       if (i < sequence.length) {
-        const item = sequence[i]; // Store reference safely
+        const item = sequence[i];
         setLogs(prev => [...prev, item]);
         i++;
       } else {
@@ -143,7 +143,6 @@ function AuthBootloader() {
 
   return (
     <div className="h-screen w-full bg-[#000000] flex flex-col items-center justify-center relative overflow-hidden">
-      {/* Ambient background glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[50vw] h-[50vw] bg-indigo-600/10 blur-[150px] rounded-full mix-blend-screen pointer-events-none" />
       
       <motion.div 
@@ -158,7 +157,6 @@ function AuthBootloader() {
         <div className="w-80 h-32 flex flex-col items-start font-mono text-[11px] text-slate-500 space-y-2">
           {logs.map((log, index) => (
             <motion.div key={index} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}>
-              {/* Defensive checking added here: log && log.includes */}
               {log && log.includes("Ready") ? <span className="text-emerald-400 font-bold">{log}</span> : log}
             </motion.div>
           ))}
@@ -200,10 +198,10 @@ function AuthenticatedRoutes({ user, onLogout, onEloUpdate, sessionData, setSess
           <Route path="/setup" element={<Dashboard user={user} onLogout={onLogout} onGoBack={() => navigate("/")} onStart={(data) => { setSessionData(data); navigate("/preflight"); }} />} />
           <Route path="/preflight" element={<PreflightCheck onReady={() => navigate("/interview")} onSkip={() => navigate("/interview")} />} />
           <Route path="/interview" element={
-  <RequireSession sessionData={sessionData}>
-    <InterviewRoom sessionData={sessionData} onFinish={() => navigate("/replay")} onEloUpdate={onEloUpdate} />
-  </RequireSession>
-} />
+            <RequireSession sessionData={sessionData}>
+              <InterviewRoom sessionData={sessionData} onFinish={() => navigate("/replay")} onEloUpdate={onEloUpdate} />
+            </RequireSession>
+          } />
           <Route path="/coding" element={<CodingRoom sessionId={sessionData?.session_id} onFinish={() => navigate("/")} />} />
           <Route path="/replay" element={<ReplayViewer sessionId={sessionData?.session_id} onExit={() => navigate("/")} onSelectSession={(id) => navigate(`/replay/${id}`)} />} />
           <Route path="/replay/:id" element={<ReplayViewerWithParam onExit={() => navigate("/")} />} />
@@ -246,7 +244,6 @@ function UnauthenticatedRoutes({ onAuth }) {
 }
 
 function ReplayViewerWithParam({ onExit }) {
-  const { useParams } = require("react-router-dom");
   const { id } = useParams();
   return <ReplayViewer sessionId={parseInt(id, 10)} onExit={onExit} />;
 }
@@ -255,7 +252,6 @@ function AppContent({ user, checkingAuth, handleAuth, handleLogout, handleEloUpd
   const [cmdOpen, setCmdOpen] = useState(false);
   const navigate = useNavigate();
 
-  // Global Command Palette Listener (Cmd+K)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -280,8 +276,6 @@ function AppContent({ user, checkingAuth, handleAuth, handleLogout, handleEloUpd
           <UnauthenticatedRoutes onAuth={handleAuth} />
         )}
       </div>
-
-      {/* Global Command Palette Overlay */}
       <AnimatePresence>
         {cmdOpen && <CommandPalette isOpen={cmdOpen} onClose={() => setCmdOpen(false)} navigate={navigate} onLogout={handleLogout} />}
       </AnimatePresence>
@@ -300,7 +294,6 @@ function App() {
     if (savedUser && token) {
       setUser(JSON.parse(savedUser));
     }
-    // Artificial delay to show off the cool bootloader
     setTimeout(() => {
       setCheckingAuth(false);
     }, 1000);

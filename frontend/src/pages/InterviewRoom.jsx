@@ -424,7 +424,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                 <div className="flex-1 flex flex-col space-y-7">
                   <div>
                     <h4 className="text-[10px] font-bold tracking-widest text-slate-300 uppercase mb-2.5">Context</h4>
-                    <p className="text-sm md:text-[15px] text-slate-200 leading-[1.7] font-medium">{scenario}</p>
+                    <p className="text-sm text-slate-200 leading-[1.7] font-medium">{scenario}</p>
                   </div>
 
                   {constraints?.length > 0 && (
@@ -481,7 +481,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                   onChange={(e) => handleAnswerChange(e.target.value)}
                   disabled={timeLeft === 0}
                   spellCheck="false"
-                  className="w-full h-full bg-transparent text-slate-100 text-base md:text-[17px] font-mono leading-[1.8] p-8 pb-32 resize-none outline-none z-10 relative scrollbar-hide"
+                  className="w-full h-full bg-transparent text-slate-100 text-base font-mono leading-[1.8] p-8 pb-32 resize-none outline-none z-10 relative scrollbar-hide"
                 />
               </div>
 
