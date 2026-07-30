@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, useInView, useMotionValue, useTransform, animate } from 'framer-motion';
-import { ThemeToggle } from "../context/ThemeContext";
+import { ThemeToggle, useTheme } from "../context/ThemeContext";
 import {
   BrainCircuit, Code2, ArrowRight, Terminal,
   CheckCircle2, Mic
@@ -33,7 +33,7 @@ function GlassCard({ children, className = "", interactive = false, onClick, act
       }}
       onMouseLeave={() => setIsHovered(false)}
       whileTap={interactive ? { scale: 0.98 } : {}}
-      className={`relative rounded-2xl bg-[#050508] border overflow-hidden backdrop-blur-2xl transition-all duration-300 ${
+      className={`relative rounded-2xl bg-[var(--bg-surface)] border overflow-hidden backdrop-blur-2xl transition-all duration-300 ${
         active ? 'border-blue-500/50 shadow-[0_0_30px_rgba(59,130,246,0.15)]' : 'border-white/[0.08] hover:border-white/20'
       } ${
         interactive ? 'cursor-pointer hover:-translate-y-1 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.8)]' : ''
@@ -143,12 +143,13 @@ export default function Landing({ onGetStarted, onSignIn }) {
   const [activeTrack, setActiveTrack] = useState("system");
   const [activeTabIDE, setActiveTabIDE] = useState("Python");
   const [activeCompany, setActiveCompany] = useState("Google");
+  const { theme } = useTheme();
 
   const COMPANIES = ['Google', 'Meta', 'Amazon', 'Microsoft', 'Apple', 'Netflix', 'Startup'];
   const FAANG_LOGOS = ['Google', 'Meta', 'Amazon', 'Microsoft', 'Apple', 'Netflix', 'Stripe'];
 
   return (
-    <div className="relative min-h-screen w-full bg-[#000000] overflow-x-hidden font-sans text-slate-200 selection:bg-blue-500/30 flex flex-col">
+    <div className="relative min-h-screen w-full bg-[var(--bg-canvas)] overflow-x-hidden font-sans text-[var(--text-primary)] selection:bg-blue-500/30 flex flex-col">
       {/* --- INLINE CSS ANIMATIONS --- */}
       <style>{`
         @keyframes shimmer {
@@ -173,19 +174,21 @@ export default function Landing({ onGetStarted, onSignIn }) {
         }
       `}</style>
 
-      {/* --- LAYER 1: AMBIENT VOLUMETRIC LIGHTING --- */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute top-[-20%] left-[10%] w-[50vw] h-[50vw] bg-indigo-900/20 blur-[150px] rounded-full mix-blend-screen" />
-        <div className="absolute bottom-[-10%] right-[-5%] w-[40vw] h-[40vw] bg-blue-900/15 blur-[150px] rounded-full mix-blend-screen" />
-        <div className="absolute top-[40%] left-[-10%] w-[30vw] h-[40vh] bg-emerald-900/5 blur-[120px] rounded-full mix-blend-screen" />
-        <div 
-          className="absolute inset-0 opacity-[0.03] mix-blend-soft-light"
-          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
-        />
-      </div>
+      {/* --- LAYER 1: AMBIENT VOLUMETRIC LIGHTING (dark mode only) --- */}
+      {theme === 'dark' && (
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+          <div className="absolute top-[-20%] left-[10%] w-[50vw] h-[50vw] bg-indigo-900/20 blur-[150px] rounded-full mix-blend-screen" />
+          <div className="absolute bottom-[-10%] right-[-5%] w-[40vw] h-[40vw] bg-blue-900/15 blur-[150px] rounded-full mix-blend-screen" />
+          <div className="absolute top-[40%] left-[-10%] w-[30vw] h-[40vh] bg-emerald-900/5 blur-[120px] rounded-full mix-blend-screen" />
+          <div 
+            className="absolute inset-0 opacity-[0.03] mix-blend-soft-light"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
+          />
+        </div>
+      )}
 
       {/* --- LAYER 2: FLOATING NAVIGATION --- */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-black/50 backdrop-blur-xl border-b border-white/[0.06] transition-all duration-300">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-[var(--bg-canvas)]/50 backdrop-blur-xl border-b border-[var(--border-subtle)] transition-all duration-300">
         <div className="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-6 h-6 bg-white text-black flex items-center justify-center rounded-[4px] font-bold text-[10px]">IC</div>
@@ -195,7 +198,7 @@ export default function Landing({ onGetStarted, onSignIn }) {
           </div>
           
           <nav className="hidden md:flex items-center gap-8">
-            <a href="#system-design" className="text-xs font-semibold text-slate-300 hover:text-white transition-colors">System Design</a>
+            <a href="#system-design" className="text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">System Design</a>
             <a href="#live-coding" className="text-xs font-semibold text-slate-300 hover:text-white transition-colors">Live Coding</a>
             <a href="#engines" className="text-xs font-semibold text-slate-300 hover:text-white transition-colors">Engines</a>
             <a href="#architecture" className="text-xs font-semibold text-slate-300 hover:text-white transition-colors">Architecture</a>
@@ -222,7 +225,7 @@ export default function Landing({ onGetStarted, onSignIn }) {
             A real interview.<br />
             Not a practice quiz.
           </h1>
-          <p className="text-lg md:text-xl text-slate-400 font-medium leading-relaxed max-w-2xl mx-auto mb-16">
+          <p className="text-lg md:text-xl text-[var(--text-muted)] font-medium leading-relaxed max-w-2xl mx-auto mb-16">
             Adaptive ELO difficulty, real-time voice telemetry, and sandboxed code execution. Test drive the exact interview chamber before stepping inside.
           </p>
 
@@ -633,7 +636,7 @@ export default function Landing({ onGetStarted, onSignIn }) {
       </main>
 
       {/* RICH ENTERPRISE FOOTER */}
-      <footer className="relative z-20 pt-16 pb-8 border-t border-white/[0.05] bg-black">
+      <footer className="relative z-20 pt-16 pb-8 border-t border-[var(--border-subtle)] bg-[var(--bg-canvas)]">
         <div className="max-w-[1440px] mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-10 mb-16">
           
           <div className="md:col-span-1">
