@@ -9,6 +9,7 @@ import Signup from "./pages/Signup";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import Landing from "./pages/Landing";
+import { ThemeProvider, ThemeToggle } from "./context/ThemeContext";
 import Dashboard from "./pages/Dashboard";
 import UserDashboard from "./pages/UserDashboard";
 import PreflightCheck from "./pages/PreflightCheck";
@@ -28,6 +29,7 @@ import "./styles/Tokens.css";
 import "./styles/Glass.css";
 import "./styles/Noise.css";
 import "./App.css";
+import "./styles/Theme.css";
 
 function CommandPalette({ isOpen, onClose, navigate, onLogout }) {
   const [search, setSearch] = useState("");
@@ -323,20 +325,21 @@ function App() {
   }
 
   return (
-    // Z-00 Base Environment: Absolute Black Void
-    <div className="min-h-screen w-full bg-[#000000] text-slate-200 font-sans selection:bg-indigo-500/30 relative">
-      <BrowserRouter>
-        <AppContent 
-          user={user} 
-          checkingAuth={checkingAuth} 
-          handleAuth={handleAuth} 
-          handleLogout={handleLogout} 
-          handleEloUpdate={handleEloUpdate}
-          sessionData={sessionData}
-          setSessionData={setSessionData}
-        />
-      </BrowserRouter>
-    </div>
+    <ThemeProvider>
+      <div className="min-h-screen w-full bg-[#000000] text-slate-200 font-sans selection:bg-indigo-500/30 relative">
+        <BrowserRouter>
+          <AppContent 
+            user={user} 
+            checkingAuth={checkingAuth} 
+            handleAuth={handleAuth} 
+            handleLogout={handleLogout} 
+            handleEloUpdate={handleEloUpdate}
+            sessionData={sessionData}
+            setSessionData={setSessionData}
+          />
+        </BrowserRouter>
+      </div>
+    </ThemeProvider>
   );
 }
 

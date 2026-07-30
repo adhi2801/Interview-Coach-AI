@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, useInView, useMotionValue, useTransform, animate } from 'framer-motion';
+import { ThemeToggle } from "../context/ThemeContext";
 import {
   BrainCircuit, Code2, ArrowRight, Terminal,
   CheckCircle2, Mic
@@ -201,6 +202,7 @@ export default function Landing({ onGetStarted, onSignIn }) {
           </nav>
 
           <div className="flex items-center gap-6">
+            <ThemeToggle />
             <button onClick={onSignIn} className="text-xs font-semibold text-slate-300 hover:text-white transition-colors hidden sm:block">Sign In</button>
             <button onClick={onGetStarted} className="relative group overflow-hidden bg-white text-black px-5 py-2 rounded-full text-xs font-bold active:scale-95 transition-all flex items-center gap-2">
               <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-shimmer" />

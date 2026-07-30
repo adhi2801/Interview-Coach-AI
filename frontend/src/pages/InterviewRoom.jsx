@@ -319,7 +319,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   }
 
   const rawOverall = scores ? (scores.score_technical + scores.score_communication + scores.score_problem_solving + scores.score_cultural_fit + scores.score_confidence) / 5 : 0;
-  const scaledScore = Math.round(rawOverall * 10); // Scaled to 0-100
+  const scaledScore = Math.round(rawOverall * 10);
   const company = sessionData?.company_profile;
   const isPass = scaledScore >= 70;
   const verdictLabel = isPass ? "Strong Pass" : "Needs Revision";
@@ -345,19 +345,19 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
       <header className="h-14 border-b border-white/[0.08] bg-[#000000] flex items-center justify-between px-6 z-50 flex-shrink-0 sticky top-0">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-white flex items-center justify-center font-bold text-black text-[10px]">IC</div>
+            <div className="w-6 h-6 rounded bg-white flex items-center justify-center font-bold text-black text-xs">IC</div>
             <span className="text-white text-xs font-bold tracking-tight hidden sm:block">InterviewCoach</span>
           </div>
           <div className="w-px h-4 bg-white/10 hidden sm:block" />
           <div className="flex items-center gap-2">
-            <span className="text-white text-[10px] font-bold uppercase tracking-widest bg-white/5 border border-white/10 px-2 py-0.5 rounded flex items-center gap-1.5">
+            <span className="text-white text-xs font-bold uppercase tracking-widest bg-white/5 border border-white/10 px-2.5 py-1 rounded flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
               {company?.name || "Target"}
             </span>
-            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest hidden md:inline">
+            <span className="text-slate-300 text-xs font-bold uppercase tracking-widest hidden md:inline">
               &middot; {sessionData?.role || "SWE L4"}
             </span>
-            <span className="text-slate-300 text-[10px] font-bold uppercase tracking-widest bg-white/10 border border-white/10 px-2 py-0.5 rounded ml-1">
+            <span className="text-slate-200 text-xs font-bold uppercase tracking-widest bg-white/10 border border-white/10 px-2.5 py-1 rounded ml-1">
               {persona} persona
             </span>
           </div>
@@ -367,34 +367,34 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
           {phase === "answering" ? (
             <>
               <div className="flex items-center gap-3">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden sm:block">Time Remaining</span>
-                <span className={`text-sm font-bold tabular-nums font-mono ${timeLeft <= 20 ? "text-rose-400" : "text-white"}`}>
+                <span className="text-xs font-bold uppercase tracking-widest text-slate-300 hidden sm:block">Time Remaining</span>
+                <span className={`text-base font-bold tabular-nums font-mono ${timeLeft <= 20 ? "text-rose-400" : "text-white"}`}>
                   {formatTime(timeLeft)}
                 </span>
               </div>
               <div className="w-px h-4 bg-white/10" />
               <div className="flex items-center gap-2">
-                <span className="text-slate-500 text-[9px] font-bold uppercase tracking-widest">Node</span>
-                <span className="text-xs font-mono font-bold text-white">{questionNum}/5</span>
+                <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Node</span>
+                <span className="text-sm font-mono font-bold text-white">{questionNum}/5</span>
               </div>
               <div className="w-px h-4 bg-white/10 hidden sm:block" />
               <div className="flex items-center gap-2 hidden sm:flex">
-                <span className="text-slate-500 text-[9px] font-bold uppercase tracking-widest">ELO</span>
-                <span className="text-xs font-mono font-bold text-slate-200">{Math.round(currentElo)}</span>
+                <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">ELO</span>
+                <span className="text-sm font-mono font-bold text-slate-100">{Math.round(currentElo)}</span>
               </div>
               <div className="w-px h-4 bg-white/10" />
-              <button onClick={onFinish} className="text-[10px] font-mono text-slate-400 hover:text-white uppercase tracking-widest border border-white/10 px-2.5 py-1 rounded bg-white/5">
+              <button onClick={onFinish} className="text-xs font-mono font-bold text-slate-300 hover:text-white uppercase tracking-widest border border-white/10 px-3 py-1 rounded bg-white/5 transition-colors">
                 Abort
               </button>
             </>
           ) : (
             <>
               <div className="flex items-center gap-2 text-emerald-400">
-                <CheckCircle2 size={14} />
-                <span className="text-[10px] font-bold uppercase tracking-widest">Node Logged</span>
+                <CheckCircle2 size={16} />
+                <span className="text-xs font-bold uppercase tracking-widest">Node Logged</span>
               </div>
-              <button onClick={onFinish} className="text-slate-300 bg-white/[0.04] border border-white/10 px-3.5 py-1.5 rounded-lg hover:bg-white/[0.08] hover:text-white text-[10px] font-bold uppercase tracking-widest transition-colors flex items-center gap-1.5">
-                End Session <ChevronRight size={14} />
+              <button onClick={onFinish} className="text-slate-200 bg-white/[0.04] border border-white/10 px-4 py-1.5 rounded-lg hover:bg-white/[0.08] hover:text-white text-xs font-bold uppercase tracking-widest transition-colors flex items-center gap-1.5">
+                End Session <ChevronRight size={16} />
               </button>
             </>
           )}
@@ -410,30 +410,31 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
              ==================================================================== */
           <div className="w-full h-full flex flex-col md:flex-row transition-opacity duration-500" style={{ opacity: mounted ? 1 : 0 }}>
             
-            {/* LEFT PANE: PROMPT INSPECTOR */}
-            <div className="w-full md:w-[30%] h-[35vh] md:h-full overflow-y-auto border-b md:border-b-0 md:border-r border-white/[0.08] bg-[#020204] p-6 flex flex-col">
-              <div className="flex items-center gap-2 border-b border-white/[0.06] pb-3 mb-5">
-                <Terminal size={14} className="text-blue-400" />
-                <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">The Question</h3>
-                <span className="ml-auto bg-white/5 border border-white/10 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest text-slate-400">
+            {/* LEFT PANE: PROMPT INSPECTOR (Upgraded Typography & Contrast) */}
+            <div className="w-full md:w-[32%] h-[38vh] md:h-full overflow-y-auto border-b md:border-b-0 md:border-r border-white/[0.08] bg-[#020204] p-6 lg:p-8 flex flex-col">
+              <div className="flex items-center gap-2 border-b border-white/[0.08] pb-3.5 mb-6">
+                <Terminal size={16} className="text-blue-400 shrink-0" />
+                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-300">The Question</h3>
+                <span className="ml-auto bg-white/5 border border-white/10 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest text-slate-300">
                   {category ? category.replace(/_/g, " ") : "Technical"}
                 </span>
               </div>
 
               {scenario ? (
-                <div className="flex-1 flex flex-col space-y-6">
+                <div className="flex-1 flex flex-col space-y-7">
                   <div>
-                    <h4 className="text-[9px] font-bold tracking-widest text-slate-500 uppercase mb-2">Context</h4>
-                    <p className="text-xs text-slate-200 leading-relaxed font-medium">{scenario}</p>
+                    <h4 className="text-[10px] font-bold tracking-widest text-slate-300 uppercase mb-2.5">Context</h4>
+                    <p className="text-sm md:text-[15px] text-slate-200 leading-[1.7] font-medium">{scenario}</p>
                   </div>
 
                   {constraints?.length > 0 && (
                     <div>
-                      <h4 className="text-[9px] font-bold tracking-widest text-slate-500 uppercase mb-2">Constraints</h4>
-                      <ul className="space-y-2">
+                      <h4 className="text-[10px] font-bold tracking-widest text-slate-300 uppercase mb-2.5">Constraints</h4>
+                      <ul className="space-y-3">
                         {constraints.map((c, i) => (
-                          <li key={i} className="text-xs text-slate-300 font-medium flex items-start gap-2 leading-snug">
-                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1 flex-shrink-0" />{c}
+                          <li key={i} className="text-sm text-slate-200 font-medium flex items-start gap-2.5 leading-[1.6]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-2 flex-shrink-0" />
+                            <span>{c}</span>
                           </li>
                         ))}
                       </ul>
@@ -441,32 +442,32 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                   )}
 
                   {ask && (
-                    <div className="mt-auto pt-4 border-t border-white/5">
-                      <h4 className="text-[9px] font-bold tracking-widest text-blue-400 uppercase mb-1.5">The Ask</h4>
-                      <p className="text-xs font-bold text-white leading-relaxed">{ask}</p>
+                    <div className="mt-auto pt-5 border-t border-white/10">
+                      <h4 className="text-[10px] font-bold tracking-widest text-blue-400 uppercase mb-2">The Ask</h4>
+                      <p className="text-sm md:text-[15px] font-bold text-white leading-[1.7]">{ask}</p>
                     </div>
                   )}
                 </div>
               ) : (
-                <p className="text-xs text-slate-200 leading-relaxed font-medium">{question}</p>
+                <p className="text-sm md:text-[15px] text-slate-200 leading-[1.7] font-medium">{question}</p>
               )}
             </div>
 
-            {/* CENTER PANE: ZEN WRITING CANVAS (Clean OLED Black) */}
-            <div className="w-full md:w-[50%] h-[65vh] md:h-full relative bg-[#000000] flex flex-col border-r border-white/[0.08]">
+            {/* CENTER PANE: ZEN WRITING CANVAS (Clean OLED Black + Upgraded Textarea) */}
+            <div className="w-full md:w-[48%] h-[62vh] md:h-full relative bg-[#000000] flex flex-col border-r border-white/[0.08]">
               
               {/* Persona Header Banner */}
               <div className="h-12 border-b border-white/[0.05] bg-black/60 flex items-center px-6 gap-3 shrink-0">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs font-bold text-white tracking-wide capitalize">{persona} Evaluator</span>
-                <span className="text-[10px] font-mono text-slate-500 italic ml-2">"I'm listening. Walk me through it."</span>
+                <span className="text-sm font-bold text-white tracking-wide capitalize">{persona} Evaluator</span>
+                <span className="text-xs font-mono text-slate-400 italic ml-2">"I'm listening. Walk me through it."</span>
               </div>
 
-              {/* Text Area */}
+              {/* Text Area (Font size boosted to 16px/17px) */}
               <div className="flex-1 relative w-full h-full bg-[#000000]">
                 {!answer && (
                   <div className="absolute top-8 left-8 pointer-events-none select-none">
-                    <pre className="text-slate-600 text-xs font-mono font-medium leading-relaxed m-0">
+                    <pre className="text-slate-500 text-sm md:text-base font-mono font-medium leading-[1.8] m-0">
                       {isBehavioral ? (
                         <>// 1. Situation & Ownership...<br/><br/>// 2. Key Actions & Stakeholder Alignment...<br/><br/>// 3. Root Cause Analysis...</>
                       ) : (
@@ -480,81 +481,81 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                   onChange={(e) => handleAnswerChange(e.target.value)}
                   disabled={timeLeft === 0}
                   spellCheck="false"
-                  className="w-full h-full bg-transparent text-slate-200 text-sm font-mono leading-[1.8] p-8 pb-32 resize-none outline-none z-10 relative scrollbar-hide"
+                  className="w-full h-full bg-transparent text-slate-100 text-base md:text-[17px] font-mono leading-[1.8] p-8 pb-32 resize-none outline-none z-10 relative scrollbar-hide"
                 />
               </div>
 
               {/* Action Dock Attached Inside Center Pane */}
-              <div className="absolute bottom-5 left-5 right-5 flex items-center justify-between z-20 bg-[#08080C] border border-white/10 p-2.5 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.8)]">
+              <div className="absolute bottom-5 left-5 right-5 flex items-center justify-between z-20 bg-[#08080C] border border-white/10 p-3 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.8)]">
                 <div className="flex items-center gap-2">
                   <button
                     onClick={isRecording ? stopRecording : startRecording}
-                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all outline-none ${
-                      isRecording ? 'bg-red-500/10 text-red-400 border border-red-500/30' : 'bg-white/[0.04] border border-white/10 text-slate-300 hover:text-white'
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all outline-none ${
+                      isRecording ? 'bg-red-500/10 text-red-400 border border-red-500/30' : 'bg-white/[0.04] border border-white/10 text-slate-200 hover:text-white'
                     }`}
                   >
-                    {isRecording ? <Square fill="currentColor" size={12}/> : <Mic size={12}/>}
+                    {isRecording ? <Square fill="currentColor" size={14}/> : <Mic size={14}/>}
                     <span className="hidden sm:inline">{isRecording ? 'Stop Voice' : 'Hold to Speak'}</span>
                   </button>
-                  <button onClick={() => setShowHint(!showHint)} className="text-[10px] font-mono text-slate-400 hover:text-white transition-colors bg-white/5 border border-white/10 px-3 py-2 rounded-xl">
+                  <button onClick={() => setShowHint(!showHint)} className="text-xs font-mono font-bold text-slate-300 hover:text-white transition-colors bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl">
                     Hint <span className="opacity-50">-15 ELO</span>
                   </button>
                 </div>
                 
                 <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-mono text-slate-500 hidden xl:block">{answer.length} chars</span>
+                  <span className="text-xs font-mono text-slate-400 hidden xl:block">{answer.length} chars</span>
                   <button
                     onClick={() => submitAnswer()}
                     disabled={loading}
-                    className={`relative overflow-hidden px-5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-transform active:scale-95 outline-none ${
+                    className={`relative overflow-hidden px-6 py-2.5 rounded-xl text-xs md:text-sm font-bold flex items-center gap-2 transition-transform active:scale-95 outline-none ${
                       loading ? "bg-white/10 text-slate-500 cursor-wait" : "bg-white text-black hover:bg-slate-200 shadow-[0_0_20px_rgba(255,255,255,0.15)]"
                     }`}
                   >
                     {loading ? (
                       <><span className="w-3.5 h-3.5 border-2 border-slate-600 border-t-slate-400 rounded-full animate-spin inline-block" /> Evaluating...</>
                     ) : (
-                      <>Submit Answer <kbd className="font-mono text-[9px] bg-black/10 px-1.5 py-0.5 rounded ml-1 opacity-60">↵</kbd></>
+                      <>Submit Answer <kbd className="font-mono text-[10px] bg-black/10 px-1.5 py-0.5 rounded ml-1 opacity-60">↵</kbd></>
                     )}
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* RIGHT PANE: SESSION TELEMETRY */}
-            <div className="w-full md:w-[20%] min-w-[240px] bg-[#020204] p-5 flex flex-col hidden lg:flex">
-              <div className="flex items-center justify-between border-b border-white/[0.06] pb-3 mb-5">
-                <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Session Telemetry</h3>
-                <Activity size={14} className="text-emerald-400" />
+            {/* RIGHT PANE: SESSION TELEMETRY (Upgraded Micro-Labels to 11px Slate-300) */}
+            <div className="w-full md:w-[20%] min-w-[240px] bg-[#020204] p-6 flex flex-col hidden lg:flex">
+              <div className="flex items-center justify-between border-b border-white/[0.08] pb-3.5 mb-6">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-300">Session Telemetry</h3>
+                <Activity size={16} className="text-emerald-400" />
               </div>
 
-              <div className="space-y-5 flex-1">
+              <div className="space-y-6 flex-1">
                 {/* Confidence Widget */}
                 <div>
-                  <div className="flex justify-between items-end mb-1">
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Confidence</span>
-                    <span className="text-xs font-bold text-white tabular-nums">{liveCoaching?.confidence_score || '--'}/10</span>
+                  <div className="flex justify-between items-end mb-1.5">
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300">Confidence</span>
+                    <span className="text-sm font-bold text-white tabular-nums">{liveCoaching?.confidence_score || '--'}/10</span>
                   </div>
-                  <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                     <motion.div className="h-full bg-emerald-400" animate={{ width: `${(liveCoaching?.confidence_score || 0) * 10}%` }} transition={{ type: "spring", stiffness: 100 }} />
                   </div>
                 </div>
 
                 {/* Pace Widget */}
                 <div>
-                  <div className="flex justify-between items-end mb-1">
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Pace (WPM)</span>
-                    <span className="text-xs font-bold text-white tabular-nums">{liveCoaching?.words_per_minute || '--'}</span>
+                  <div className="flex justify-between items-end mb-1.5">
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300">Pace (WPM)</span>
+                    <span className="text-sm font-bold text-white tabular-nums">{liveCoaching?.words_per_minute || '--'}</span>
                   </div>
-                  <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                     <motion.div className="h-full bg-blue-400" animate={{ width: `${Math.min((liveCoaching?.words_per_minute || 0) / 2, 100)}%` }} transition={{ type: "spring", stiffness: 100 }} />
                   </div>
                 </div>
 
                 {/* Fillers Detected */}
                 <div>
-                  <div className="flex justify-between items-end mb-1">
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Fillers Detected</span>
-                    <span className={`text-xs font-bold tabular-nums ${(liveCoaching?.fillers_found || 0) > 3 ? 'text-amber-400' : 'text-white'}`}>{liveCoaching?.fillers_found || 0}</span>
+                  <div className="flex justify-between items-end mb-1.5">
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300">Fillers Detected</span>
+                    <span className={`text-sm font-bold tabular-nums ${(liveCoaching?.fillers_found || 0) > 3 ? 'text-amber-400' : 'text-white'}`}>{liveCoaching?.fillers_found || 0}</span>
                   </div>
                 </div>
 
@@ -563,27 +564,27 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                   {intervention && (
                     <motion.div 
                       initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                      className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20"
+                      className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20"
                     >
-                      <div className="flex items-center gap-2 mb-1">
-                        <AlertTriangle size={12} className="text-amber-500" />
-                        <span className="text-[9px] font-bold uppercase tracking-widest text-amber-500">Coach Probe</span>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <AlertTriangle size={14} className="text-amber-400" />
+                        <span className="text-[11px] font-bold uppercase tracking-widest text-amber-400">Coach Probe</span>
                       </div>
-                      <p className="text-xs font-medium text-amber-200/90 leading-snug">{intervention}</p>
+                      <p className="text-xs md:text-sm font-medium text-amber-200/90 leading-relaxed">{intervention}</p>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
 
               {/* Bottom Target ELO */}
-              <div className="mt-auto pt-4 border-t border-white/[0.06]">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Target Level</span>
-                  <span className="text-xs font-mono font-bold text-white">L{difficulty}</span>
+              <div className="mt-auto pt-5 border-t border-white/[0.08]">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300">Target Level</span>
+                  <span className="text-sm font-mono font-bold text-white">L{difficulty}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Threshold ELO</span>
-                  <span className="text-xs font-mono font-bold text-slate-300">{(difficulty * 100) + 800}</span>
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300">Threshold ELO</span>
+                  <span className="text-sm font-mono font-bold text-slate-200">{(difficulty * 100) + 800}</span>
                 </div>
               </div>
 
@@ -598,7 +599,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
               <div className="max-w-[1500px] mx-auto w-full px-6 py-8 flex flex-col gap-6">
                 
                 {/* TOP HEADER BREADCRUMB */}
-                <div className="flex justify-between items-center border-b border-white/[0.06] pb-3 text-[11px] font-mono text-slate-400">
+                <div className="flex justify-between items-center border-b border-white/[0.08] pb-3.5 text-xs font-mono text-slate-300">
                   <div className="flex items-center gap-2">
                     <span className="text-white font-bold">{company?.name || "Target"}</span> &gt; <span>{sessionData?.role || "SWE L4"}</span> &gt; <span className="text-blue-400">Node {questionNum} Debrief</span>
                   </div>
@@ -643,7 +644,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                             </span>
                           )}
                           {peer && peer.percentile != null && !hasProfanityFlag && (
-                            <span className="text-[10px] font-mono text-slate-400 bg-white/5 border border-white/10 px-2.5 py-1 rounded">
+                            <span className="text-xs font-mono text-slate-300 bg-white/5 border border-white/10 px-2.5 py-1 rounded">
                               Top {Math.max(1, 100 - peer.percentile)}% Globally
                             </span>
                           )}
@@ -660,7 +661,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
 
                       {/* Evaluator Commentary Quote */}
                       <div className="bg-black/50 border border-white/5 p-4 rounded-xl">
-                        <p className="text-xs text-slate-200 leading-relaxed font-medium italic">
+                        <p className="text-xs md:text-sm text-slate-200 leading-relaxed font-medium italic">
                           "{scores?.overall_summary || "Diagnostic review complete for this interview node."}"
                         </p>
                       </div>
@@ -669,7 +670,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                     {/* WHAT YOU COVERED WELL (Hidden if profanity detected) */}
                     {!hasProfanityFlag && (
                       <div className="space-y-3">
-                        <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">What You Covered Well</h4>
+                        <h4 className="text-xs font-bold uppercase tracking-widest text-slate-300">What You Covered Well</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <CoverageCard title="Blast Radius Triage" text="Correctly identified hard-blocked vs. inconvenienced teams before communicating." />
                           <CoverageCard title="Stakeholder Sequencing" text="Proposed war room before broad comms — correct prioritization under time pressure." />
@@ -679,13 +680,13 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
 
                     {/* CRITICAL GAP */}
                     <div className="space-y-3">
-                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-rose-400">Critical Gap — Fix This Next Time</h4>
+                      <h4 className="text-xs font-bold uppercase tracking-widest text-rose-400">Critical Gap — Fix This Next Time</h4>
                       {hasProfanityFlag ? (
                         <div className="bg-[#08080E] border border-rose-500/30 rounded-2xl p-5 space-y-2">
-                          <div className="flex items-center gap-2 text-rose-400 font-bold text-xs">
+                          <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
                             <XCircle size={16} /> Unprofessional Communication Boundary
                           </div>
-                          <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                          <p className="text-xs md:text-sm text-slate-200 leading-relaxed font-medium">
                             Responses containing vulgarity or casual dismissals automatically disqualify senior engineering candidates. Focus on structured, objective problem-solving language.
                           </p>
                         </div>
@@ -693,9 +694,9 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                         <div className="bg-[#08080E] border border-rose-500/20 rounded-2xl p-5 space-y-3">
                           <div className="flex items-center gap-2 text-rose-400">
                             <ShieldAlert size={16} />
-                            <h4 className="text-xs font-bold tracking-tight capitalize">{gaps[0].gap.replace(/_/g, " ")}</h4>
+                            <h4 className="text-sm font-bold tracking-tight capitalize">{gaps[0].gap.replace(/_/g, " ")}</h4>
                           </div>
-                          <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                          <p className="text-xs md:text-sm text-slate-200 leading-relaxed font-medium">
                             {gaps[0].prerequisites_to_study_first?.length > 0 
                               ? `Prerequisite dependencies detected: ${gaps[0].prerequisites_to_study_first.join(", ")}.`
                               : "Trade-off reasoning was underdeveloped — you named constraints but did not show rejected alternatives."
@@ -706,7 +707,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                           </button>
                         </div>
                       ) : (
-                        <div className="bg-[#050507] border border-white/[0.08] rounded-2xl p-5 text-xs text-slate-400">
+                        <div className="bg-[#050507] border border-white/[0.08] rounded-2xl p-5 text-xs text-slate-300">
                           No critical knowledge gaps detected for this response.
                         </div>
                       )}
@@ -714,21 +715,21 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
 
                     {/* ANNOTATED ANSWER TRANSCRIPT */}
                     <div className="space-y-3">
-                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Your Answer — Annotated</h4>
+                      <h4 className="text-xs font-bold uppercase tracking-widest text-slate-300">Your Answer — Annotated</h4>
                       <div className="bg-[#030305] border border-white/[0.08] p-5 rounded-2xl space-y-3">
-                        <p className="text-xs font-mono text-slate-200 leading-[1.8] whitespace-pre-wrap">
+                        <p className="text-xs md:text-sm font-mono text-slate-200 leading-[1.8] whitespace-pre-wrap">
                           {answer || "[No response recorded]"}
                         </p>
                         <div className="flex flex-wrap gap-2 pt-2 border-t border-white/5">
                           {hasProfanityFlag ? (
-                            <span className="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-1 rounded text-[10px] font-mono font-bold">
+                            <span className="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-1 rounded text-xs font-mono font-bold">
                               ❌ Disqualifying Language
                             </span>
                           ) : (
                             <>
-                              <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-mono">✓ Correct sequencing</span>
-                              <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-mono">✓ Impact triage</span>
-                              <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded text-[10px] font-mono">⚠️ Gap: rejected alternatives</span>
+                              <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded text-xs font-mono">✓ Correct sequencing</span>
+                              <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded text-xs font-mono">✓ Impact triage</span>
+                              <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded text-xs font-mono">⚠️ Gap: rejected alternatives</span>
                             </>
                           )}
                         </div>
@@ -742,7 +743,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                     
                     {/* 5D SCORE BREAKDOWN */}
                     <div className="bg-[#050507] border border-white/[0.08] rounded-2xl p-5 space-y-3">
-                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4">5D Score Breakdown</h4>
+                      <h4 className="text-xs font-bold uppercase tracking-widest text-slate-300 mb-4">5D Score Breakdown</h4>
                       <ConceptAScoreRow label="Situation Clarity" value={scores?.score_technical ? Math.round(scores.score_technical * 10) : 10} />
                       <ConceptAScoreRow label="Decision Quality" value={scores?.score_problem_solving ? Math.round(scores.score_problem_solving * 10) : 10} />
                       <ConceptAScoreRow label="Trade-off Reasoning" value={scores?.score_communication ? Math.round(scores.score_communication * 10) : 10} />
@@ -752,7 +753,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
 
                     {/* NEXT ACTION DECK */}
                     <div className="bg-[#050507] border border-white/[0.08] rounded-2xl p-5 space-y-3">
-                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Next Action</h4>
+                      <h4 className="text-xs font-bold uppercase tracking-widest text-slate-300 mb-2">Next Action</h4>
                       <button 
                         onClick={goNextQuestion}
                         className="w-full bg-white text-black py-3 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(255,255,255,0.15)] outline-none"
@@ -765,12 +766,12 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                         className="w-full bg-white/5 border border-white/10 hover:bg-white/10 text-white py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between px-4 outline-none"
                       >
                         <span>Drill Trade-off Reasoning</span>
-                        <span className="text-[10px] font-mono text-emerald-400">+34 ELO potential</span>
+                        <span className="text-xs font-mono font-bold text-emerald-400">+34 ELO potential</span>
                       </button>
 
                       <button 
                         onClick={() => { setPhase("answering"); setAnswer(""); }}
-                        className="w-full text-slate-500 hover:text-slate-300 py-2 text-xs font-mono transition-colors flex items-center justify-center gap-1.5"
+                        className="w-full text-slate-400 hover:text-slate-200 py-2 text-xs font-mono transition-colors flex items-center justify-center gap-1.5"
                       >
                         <RefreshCw size={12} /> Retry Node {questionNum}
                       </button>
@@ -778,15 +779,15 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
 
                     {/* PEER BENCHMARK */}
                     <div className="bg-[#050507] border border-white/[0.08] rounded-2xl p-5 space-y-2">
-                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Peer Benchmark</h4>
-                      <div className="flex justify-between items-center text-xs text-slate-300 font-bold mb-1">
+                      <h4 className="text-xs font-bold uppercase tracking-widest text-slate-300 mb-1">Peer Benchmark</h4>
+                      <div className="flex justify-between items-center text-xs text-slate-200 font-bold mb-1">
                         <span>Average Node Score</span>
                         <span className="font-mono">71</span>
                       </div>
                       <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                         <div className="h-full bg-blue-500 w-[71%]" />
                       </div>
-                      <span className="text-[10px] font-mono text-slate-500 block pt-1">
+                      <span className="text-xs font-mono text-slate-400 block pt-1">
                         {hasProfanityFlag ? "Score: 11/100 · Below Node Benchmark" : `You scored ${scaledScore} — top ${Math.max(1, 100 - (peer?.percentile || 50))}% on this scenario`}
                       </span>
                     </div>
@@ -830,7 +831,7 @@ function CoverageCard({ title, text }) {
       <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold">
         <CheckCircle2 size={14} /> {title}
       </div>
-      <p className="text-xs text-slate-400 leading-relaxed">{text}</p>
+      <p className="text-xs text-slate-300 leading-relaxed">{text}</p>
     </div>
   );
 }
