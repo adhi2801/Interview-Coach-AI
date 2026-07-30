@@ -26,7 +26,7 @@ function GoogleIcon(props) {
   );
 }
 
-export default function Login({ onAuth, onSwitchToSignup }) {
+export default function Login({ onAuth, onSwitchToSignup, onBackToHome }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -124,9 +124,16 @@ export default function Login({ onAuth, onSwitchToSignup }) {
           <div className={`w-full max-w-[420px] transition-all duration-700 ease-out transform ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-12'}`}>
             
             <GlassCard mousePos={mousePos}>
-              <div className="lg:hidden flex items-center gap-3 mb-8 pb-8 border-b border-white/10">
-                <div className="w-6 h-6 rounded bg-white flex items-center justify-center font-bold text-black text-[10px] shadow-[0_0_15px_rgba(255,255,255,0.3)]">IC</div>
-                <span className="font-semibold text-white tracking-tight">InterviewCoach</span>
+              <div className="flex items-center justify-between gap-3 mb-8 pb-8 border-b border-white/10">
+                <div className="flex items-center gap-3 lg:hidden">
+                  <div className="w-6 h-6 rounded bg-white flex items-center justify-center font-bold text-black text-[10px] shadow-[0_0_15px_rgba(255,255,255,0.3)]">IC</div>
+                  <span className="font-semibold text-white tracking-tight">InterviewCoach</span>
+                </div>
+                {onBackToHome && (
+                  <button onClick={onBackToHome} className="text-xs font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1.5 ml-auto">
+                    ← Back to Home
+                  </button>
+                )}
               </div>
 
               <div className="mb-8 relative z-10">

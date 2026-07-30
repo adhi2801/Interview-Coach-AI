@@ -232,8 +232,8 @@ function UnauthenticatedRoutes({ onAuth }) {
       >
         <Routes location={location}>
           <Route path="/" element={<Landing onGetStarted={() => navigate("/signup")} onSignIn={() => navigate("/login")} />} />
-          <Route path="/login" element={<Login onAuth={onAuth} onSwitchToSignup={() => navigate("/signup")} />} />
-          <Route path="/signup" element={<Signup onAuth={onAuth} onSwitchToLogin={() => navigate("/login")} />} />
+          <Route path="/login" element={<Login onAuth={onAuth} onSwitchToSignup={() => navigate("/signup")} onBackToHome={() => navigate("/")} />} />
+          <Route path="/signup" element={<Signup onAuth={onAuth} onSwitchToLogin={() => navigate("/login")} onBackToHome={() => navigate("/")} />} />
           <Route path="/privacy" element={<PrivacyPolicy onGoBack={() => navigate("/")} />} />
           <Route path="/terms" element={<TermsOfService onGoBack={() => navigate("/")} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
