@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, useInView, useMotionValue, useTransform, animate } from 'framer-motion';
-import { ThemeToggle, useTheme } from "../context/ThemeContext";
 import {
   BrainCircuit, Code2, ArrowRight, Terminal,
   CheckCircle2, Mic
@@ -143,7 +142,6 @@ export default function Landing({ onGetStarted, onSignIn }) {
   const [activeTrack, setActiveTrack] = useState("system");
   const [activeTabIDE, setActiveTabIDE] = useState("Python");
   const [activeCompany, setActiveCompany] = useState("Google");
-  const { theme } = useTheme();
 
   const COMPANIES = ['Google', 'Meta', 'Amazon', 'Microsoft', 'Apple', 'Netflix', 'Startup'];
   const FAANG_LOGOS = ['Google', 'Meta', 'Amazon', 'Microsoft', 'Apple', 'Netflix'];
@@ -175,17 +173,15 @@ export default function Landing({ onGetStarted, onSignIn }) {
       `}</style>
 
       {/* --- LAYER 1: AMBIENT VOLUMETRIC LIGHTING (dark mode only) --- */}
-      {theme === 'dark' && (
-        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-          <div className="absolute top-[-20%] left-[10%] w-[50vw] h-[50vw] bg-indigo-900/20 blur-[150px] rounded-full mix-blend-screen" />
-          <div className="absolute bottom-[-10%] right-[-5%] w-[40vw] h-[40vw] bg-blue-900/15 blur-[150px] rounded-full mix-blend-screen" />
-          <div className="absolute top-[40%] left-[-10%] w-[30vw] h-[40vh] bg-emerald-900/5 blur-[120px] rounded-full mix-blend-screen" />
-          <div 
-            className="absolute inset-0 opacity-[0.03] mix-blend-soft-light"
-            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
-          />
-        </div>
-      )}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute top-[-20%] left-[10%] w-[50vw] h-[50vw] bg-indigo-900/20 blur-[150px] rounded-full mix-blend-screen" />
+        <div className="absolute bottom-[-10%] right-[-5%] w-[40vw] h-[40vw] bg-blue-900/15 blur-[150px] rounded-full mix-blend-screen" />
+        <div className="absolute top-[40%] left-[-10%] w-[30vw] h-[40vh] bg-emerald-900/5 blur-[120px] rounded-full mix-blend-screen" />
+        <div 
+          className="absolute inset-0 opacity-[0.03] mix-blend-soft-light"
+          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
+        />
+      </div>
 
       {/* --- LAYER 2: FLOATING NAVIGATION --- */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-[var(--bg-canvas)]/50 backdrop-blur-xl border-b border-[var(--border-subtle)] transition-all duration-300">
@@ -205,8 +201,7 @@ export default function Landing({ onGetStarted, onSignIn }) {
           </nav>
 
           <div className="flex items-center gap-6">
-            <ThemeToggle />
-            <button onClick={onSignIn} className="text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors hidden sm:block">Sign In</button>
+            <button onClick={onSignIn} className="text-xs font-semibold text-slate-300 hover:text-white transition-colors hidden sm:block">Sign In</button>
             <button onClick={onGetStarted} className="relative group overflow-hidden bg-white text-black px-5 py-2 rounded-full text-xs font-bold active:scale-95 transition-all flex items-center gap-2">
               <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
               <span className="relative z-10">Start Free Demo</span>
