@@ -324,7 +324,7 @@ function App() {
 
   return (
     // Z-00 Base Environment: Absolute Black Void
-    <div className="min-h-screen w-full bg-[#000000] text-slate-200 font-sans selection:bg-indigo-500/30 overflow-hidden relative">
+    <div className="min-h-screen w-full bg-[#000000] text-slate-200 font-sans selection:bg-indigo-500/30 relative">
       <BrowserRouter>
         <AppContent 
           user={user} 
