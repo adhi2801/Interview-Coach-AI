@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { API_URL } from '../config';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   AreaChart, Area, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid,
@@ -124,12 +126,6 @@ const ELO_HISTORY = [
   { date: "Jul 13", elo: 1165 }, { date: "Jul 20", elo: 1188 },
 ];
 
-const FLIGHT_LEDGER = [
-  { id: 1, date: "Jul 26", type: "System Design", topic: "Rate Limiter", company: "Google L4", eloDelta: "+12", score: "78/100", persona: "Hostile", track: "system", radar: [{dim:"Algorithms",value:85},{dim:"Systems",value:78},{dim:"Behavioral",value:60},{dim:"Coding",value:88},{dim:"Comm",value:65}] },
-  { id: 2, date: "Jul 24", type: "Live Coding", topic: "BFS/DFS Trees", company: "Amazon L5", eloDelta: "+8", score: "71/100", persona: "Socratic", track: "coding", radar: [{dim:"Algorithms",value:92},{dim:"Systems",value:70},{dim:"Behavioral",value:55},{dim:"Coding",value:95},{dim:"Comm",value:50}] },
-  { id: 3, date: "Jul 22", type: "Behavioral", topic: "Leadership Ambiguity", company: "Google L4", eloDelta: "-3", score: "54/100", persona: "Hostile", track: "system", radar: [{dim:"Algorithms",value:75},{dim:"Systems",value:70},{dim:"Behavioral",value:45},{dim:"Coding",value:80},{dim:"Comm",value:48}] },
-  { id: 4, date: "Jul 20", type: "System Design", topic: "CDN Architecture", company: "Meta L4", eloDelta: "+5", score: "66/100", persona: "Exhausted", track: "system", radar: [{dim:"Algorithms",value:80},{dim:"Systems",value:82},{dim:"Behavioral",value:60},{dim:"Coding",value:85},{dim:"Comm",value:55}] },
-];
 
 const TARGET_COMPANIES = ["Google", "Amazon", "Meta", "Microsoft", "Apple"];
 
@@ -145,14 +141,63 @@ export default function UserDashboard({
   const [activeTarget, setActiveTarget] = useState("Google");
   const [hoveredSessionId, setHoveredSessionId] = useState(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [flightLedger, setFlightLedger] = useState([]);
+  const [eloHistory, setEloHistory] = useState([]);
+  const [loadingSessions, setLoadingSessions] = useState(true);
+
+  useEffect(() => {
+    async function fetchSessions() {
+      try {
+        const token = localStorage.getItem("access_token");
+        const res = await axios.get(`${API_URL}/user/sessions`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const sessions = res.data.sessions || [];
+
+        // Build the flight ledger from real sessions, most recent first
+        const ledger = sessions.map((s) => ({
+          id: s.id,
+          date: s.started_at
+            ? new Date(s.started_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+            : "—",
+          type: s.role || "Session",
+          topic: s.company_target || "—",
+          company: `${s.company_target || "—"}`,
+          eloDelta: s.elo_after ? `${s.elo_after >= (user?.elo_rating || 1200) ? "+" : ""}` : "",
+          score: s.question_count ? `${s.question_count} questions` : "—",
+          persona: "",
+          track: "system",
+          eloAfter: s.elo_after,
+        }));
+        setFlightLedger(ledger);
+
+        // Build ELO trend from real sessions, oldest first, using elo_after snapshots
+        const trend = sessions
+          .filter((s) => s.elo_after)
+          .slice()
+          .reverse()
+          .map((s) => ({
+            date: s.started_at
+              ? new Date(s.started_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+              : "",
+            elo: s.elo_after,
+          }));
+        setEloHistory(trend);
+      } catch (err) {
+        console.warn("Could not load session history:", err);
+      }
+      setLoadingSessions(false);
+    }
+    fetchSessions();
+  }, [user]);
 
   const currentElo = user?.elo_rating ? Math.round(user.elo_rating) : 1188;
   const currentCompanyData = COMPANY_TELEMETRY[activeTarget] || COMPANY_TELEMETRY.Google;
 
-  /* Temporal Scrubbing Effect: Hovering a ledger row updates the radar in real time */
-  const activeRadar = hoveredSessionId
-    ? (FLIGHT_LEDGER.find(s => s.id === hoveredSessionId)?.radar || currentCompanyData.radar)
-    : currentCompanyData.radar;
+  // Real sessions don't carry per-session radar breakdowns yet, so the radar
+  // always reflects the company average for now. (Hover-to-scrub disabled
+  // until the backend returns per-session skill vectors.)
+  const activeRadar = currentCompanyData.radar;
 
   /* Keyboard Navigation Listener */
   useEffect(() => {
@@ -335,7 +380,7 @@ export default function UserDashboard({
             
             <div className="h-[280px] w-full p-4 relative bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTE5LjUgMEwxOS41IDIwTTAgMTkuNUwyMCAxOS41IiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsMC4wMikiIGZpbGw9Im5vbmUiLz48L3N2Zz4=')]">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={ELO_HISTORY} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
+                <AreaChart data={eloHistory} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="eloGradient" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
@@ -396,13 +441,18 @@ export default function UserDashboard({
             <div className="p-6 border-b border-white/[0.05] flex justify-between items-center bg-[#030305]/50">
               <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Flight Ledger · Session History</h2>
               <div className="flex items-center gap-3">
-                 <span className="text-[10px] font-mono text-slate-400 bg-white/5 px-2 py-0.5 rounded border border-white/5">47 sessions</span>
+                 <span className="text-[10px] font-mono text-slate-400 bg-white/5 px-2 py-0.5 rounded border border-white/5">{flightLedger.length} sessions</span>
                  <button onClick={onNavigateHistory} className="text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-white flex items-center gap-1">Sort: Recent <ChevronRight size={12}/></button>
               </div>
             </div>
 
+            {flightLedger.length === 0 && !loadingSessions && (
+              <div className="p-10 text-center text-sm text-slate-400">
+                No sessions yet — launch your first drill to start building your Flight Ledger.
+              </div>
+            )}
             <div className="divide-y divide-white/[0.03]">
-              {FLIGHT_LEDGER.map((session) => (
+              {flightLedger.map((session) => (
                 <div 
                   key={session.id}
                   onMouseEnter={() => setHoveredSessionId(session.id)}

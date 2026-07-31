@@ -210,12 +210,12 @@ class AdaptiveDifficultyEngine:
             messages = [{"role": "user", "content": prompt}]
         else:
             messages = [{"role": "user", "content":
-                f"Base question: {base_question}\n\nMutation instruction: {mutation}\n\nRewrite as a scenario-based question.\n\n{json_instruction}"}]
+                f"Base question: {base_question}\n\nMutation instruction: {mutation}\n\nRewrite this as a scenario-based question specifically tailored for a {role} candidate — the scenario, constraints, and ask should reflect problems a {role} would realistically face in that role, not a generic backend/systems question.\n\n{json_instruction}"}]
 
         response = self.client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=500,
-            system=f"You are a {company} interviewer. Generate or mutate interview questions into scenario-based, trade-off testing questions. No markdown, no asterisks. {persona_instruction}",
+            system=f"You are a {company} interviewer hiring for a {role} position. Generate or mutate interview questions into scenario-based, trade-off testing questions that are realistic and specific to what a {role} actually works on. No markdown, no asterisks. {persona_instruction}",
             messages=messages
         )
         parsed = _parse_json_response(response.content[0].text)
