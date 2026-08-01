@@ -600,6 +600,7 @@ def get_user_sessions(user_id: int = Depends(get_current_user_id)):
                 "id": session.id,
                 "company_target": session.company_target,
                 "role": session.role,
+                "persona": session.persona,
                 "started_at": session.started_at.isoformat() if session.started_at else None,
                 "question_count": answer_count,
                 "elo_after": session.elo_after,

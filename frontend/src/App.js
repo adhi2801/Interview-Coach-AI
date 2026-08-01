@@ -269,7 +269,7 @@ function AppContent({ user, checkingAuth, handleAuth, handleLogout, handleEloUpd
 
   return (
     <>
-      <div className="w-full h-full relative z-10">
+      <div className="w-full min-h-screen relative z-10">
         {user ? (
           <AuthenticatedRoutes user={user} onLogout={handleLogout} onEloUpdate={handleEloUpdate} sessionData={sessionData} setSessionData={setSessionData} />
         ) : (

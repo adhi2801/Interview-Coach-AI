@@ -480,7 +480,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
 
       {/* COCKPIT WORKSPACE */}
       {}
-      <main className="relative z-20 flex-1 w-full max-w-[1600px] mx-auto p-6 lg:p-8 flex flex-col lg:flex-row gap-6 overflow-hidden">
+      <main className="relative z-20 flex-1 w-full max-w-[1600px] mx-auto p-6 lg:p-8 flex flex-col lg:flex-row gap-6 overflow-y-auto">
         
         {/* COLUMN 1: TARGET COMPANY & PERSONA SELECTOR (25% Width) */}
         <div className="w-full lg:w-[320px] flex flex-col gap-6 shrink-0">

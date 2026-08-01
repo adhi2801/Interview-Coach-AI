@@ -42,7 +42,7 @@ export default function Login({ onAuth, onSwitchToSignup, onBackToHome }) {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  const noiseSvg = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`;
+  const noiseSvg = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`;
 
   async function handleLogin(e) {
     if (e) e.preventDefault();
@@ -68,7 +68,7 @@ export default function Login({ onAuth, onSwitchToSignup, onBackToHome }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#000000] text-slate-200 font-sans selection:bg-indigo-500/30 overflow-hidden relative flex flex-col md:flex-row">
+    <div className="min-h-screen bg-[#000000] text-slate-100 font-sans selection:bg-blue-500/30 overflow-hidden relative flex flex-col md:flex-row">
       
       <style>{`
         @keyframes shimmer {
@@ -76,108 +76,176 @@ export default function Login({ onAuth, onSwitchToSignup, onBackToHome }) {
         }
       `}</style>
 
-      {/* LAYER 1: Ambient Spotlights + Film Grain */}
-      <div className="fixed top-[-10%] left-[-10%] w-[40vw] h-[50vh] bg-indigo-900/15 blur-[120px] pointer-events-none rounded-full mix-blend-screen z-0" />
-      <div className="fixed bottom-[-10%] right-1/4 w-[50vw] h-[60vh] bg-blue-900/10 blur-[150px] pointer-events-none rounded-full mix-blend-screen z-0" />
-      <div className="fixed inset-0 z-10 pointer-events-none opacity-[0.03] mix-blend-soft-light" style={{ backgroundImage: noiseSvg }} />
+      {/* LAYER 1: Ambient Spotlights (z-0) */}
+      <div className="fixed top-[-10%] left-[-10%] w-[45vw] h-[55vh] bg-indigo-900/20 blur-[140px] pointer-events-none rounded-full mix-blend-screen z-0" />
+      <div className="fixed bottom-[-10%] right-1/4 w-[50vw] h-[60vh] bg-blue-900/15 blur-[160px] pointer-events-none rounded-full mix-blend-screen z-0" />
 
-      {/* LAYER 2: The Core Workspace (z-20) */}
+      {/* LAYER 2: The Film Grain Overlay (z-10) */}
+      <div className="fixed inset-0 z-10 pointer-events-none opacity-[0.035] mix-blend-soft-light" style={{ backgroundImage: noiseSvg }} />
+
+      {/* LAYER 3: Main Layout Stream (z-20) */}
       <div className="relative z-20 flex flex-col md:flex-row w-full min-h-screen">
         
-        {/* LEFT DECK (Brand & High-Trust Anchor) */}
-        <div className="hidden lg:flex flex-col justify-between w-[45%] p-12 lg:p-16 border-r border-white/[0.05] relative bg-[#000000] overflow-hidden">
+        {/* ========================================================= */}
+        {/* LEFT COLUMN (Brand & Live Diagnostic Anchor)               */}
+        {/* ========================================================= */}
+        <div className="hidden lg:flex flex-col justify-between w-[45%] p-12 lg:p-16 border-r border-white/[0.06] relative bg-[#000000] overflow-hidden">
           
-          {/* Volumetric Ambient Light isolated specifically for the radar */}
-          <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-600/20 blur-[140px] rounded-full pointer-events-none" />
+          {/* Isolated Ambient Light */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-600/10 blur-[140px] rounded-full pointer-events-none" />
 
-          {/* Top Text Content */}
+          {/* Top Brand & Headline */}
           <div className={`transition-all duration-1000 ease-out transform z-10 relative max-w-md ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
             <div className="flex items-center gap-3 mb-16">
-              <div className="w-7 h-7 rounded bg-white flex items-center justify-center font-bold text-black text-xs shadow-[0_0_15px_rgba(255,255,255,0.3)]">IC</div>
-              <span className="font-semibold text-white tracking-tight text-lg">InterviewCoach</span>
+              <div className="w-7 h-7 rounded bg-white flex items-center justify-center font-bold text-black text-xs shadow-[0_0_20px_rgba(255,255,255,0.3)]">IC</div>
+              <span className="font-bold text-white tracking-tight text-lg">InterviewCoach</span>
             </div>
             
-            <h1 className="text-4xl lg:text-5xl font-extrabold tracking-[-0.035em] text-white leading-tight max-w-md mb-6 drop-shadow-lg">
-              Resume your training.<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-400 to-slate-600">Master the interview.</span>
+            <h1 className="text-4xl lg:text-5xl font-extrabold tracking-[-0.035em] text-white leading-[1.15] max-w-md mb-6 drop-shadow-lg">
+              Measure your depth.<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-slate-400">
+                Master the interview.
+              </span>
             </h1>
-            <p className="text-slate-300 text-sm md:text-base max-w-md leading-relaxed font-medium">
-              Log in to access your ELO progression, review your knowledge gaps, and initialize your next adaptive simulation.
+            <p className="text-slate-300 text-sm md:text-base max-w-md leading-relaxed font-normal mb-8">
+              Resume your adaptive technical simulations, review diagnostic skill gaps, and track your ELO trajectory in real time.
             </p>
           </div>
 
-          {/* Generative Radar Graphic (Shifted entirely to the right to PREVENT COLLISIONS) */}
-          <div className={`absolute top-1/2 -right-16 -translate-y-1/2 w-[500px] aspect-square transition-all duration-1000 delay-300 pointer-events-none ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <BreathingRadar />
+          {/* Structured Live Skill Assessment Card */}
+          <div className={`transition-all duration-1000 delay-200 z-10 w-full max-w-[420px] ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+            <div className="bg-[#050508] border border-white/[0.08] rounded-2xl p-6 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),_0_20px_40px_-10px_rgba(0,0,0,0.8)]">
+              
+              <div className="flex items-center justify-between mb-6 pb-3 border-b border-white/[0.06]">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-slate-400">Live Skill Assessment</span>
+                <span className="bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-3 py-1 rounded-full text-[10px] font-mono font-bold tracking-widest flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                  1188 ELO &middot; Level 4
+                </span>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <div className="flex justify-between items-end mb-1.5">
+                    <span className="text-xs font-bold text-slate-200">System Architecture</span>
+                    <span className="text-[10px] font-mono font-bold text-blue-400">84%</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 w-[84%]" />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-end mb-1.5">
+                    <span className="text-xs font-bold text-slate-200">Algorithms &amp; DSA</span>
+                    <span className="text-[10px] font-mono font-bold text-indigo-400">71%</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 w-[71%]" />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-end mb-1.5">
+                    <span className="text-xs font-bold text-slate-200">Communication &amp; Leadership</span>
+                    <span className="text-[10px] font-mono font-bold text-emerald-400">91%</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 w-[91%]" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-white/[0.06] flex items-center justify-between text-[10px] font-mono text-slate-400">
+                <span>CALIBRATED FROM 14 SESSIONS</span>
+                <span className="text-emerald-400 font-bold">TOP 15% GLOBALLY</span>
+              </div>
+
+            </div>
           </div>
 
           {/* Bottom Security Badges */}
           <div className={`transition-all duration-1000 delay-150 ease-out transform z-10 relative ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-            <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-emerald-500 mb-4">
-              <ShieldCheck size={14} className="text-emerald-500" />
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-emerald-400 mb-3">
+              <ShieldCheck size={14} className="text-emerald-400" />
               <span>Enterprise Grade Security</span>
             </div>
             <div className="grid grid-cols-2 gap-4 max-w-sm">
               <div className="border-l border-white/10 pl-3">
-                <span className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-1 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Authentication
+                <span className="block text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest mb-0.5 flex items-center gap-1.5">
+                  <span className="w-1 h-1 rounded-full bg-emerald-400" /> Authentication
                 </span>
-                <span className="text-sm font-semibold text-white">JWT + bcrypt Hashing</span>
+                <span className="text-xs font-semibold text-white">JWT + bcrypt Hashing</span>
               </div>
               <div className="border-l border-white/10 pl-3">
-                <span className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-1 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Data Privacy
+                <span className="block text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest mb-0.5 flex items-center gap-1.5">
+                  <span className="w-1 h-1 rounded-full bg-emerald-400" /> Data Privacy
                 </span>
-                <span className="text-sm font-semibold text-white">Zero 3rd-Party Training</span>
+                <span className="text-xs font-semibold text-white">Zero 3rd-Party Training</span>
               </div>
             </div>
           </div>
+
         </div>
 
-        {/* RIGHT DECK (Frictionless Glass Vault Card) */}
+        {/* ========================================================= */}
+        {/* RIGHT COLUMN (Frictionless Glass Vault Card)                */}
+        {/* ========================================================= */}
         <div className="w-full lg:w-[55%] flex items-center justify-center p-6 lg:p-16 relative">
+          
           <div className={`w-full max-w-[420px] transition-all duration-700 ease-out transform ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-12'}`}>
             
             <GlassCard mousePos={mousePos}>
               
-              <div className="flex items-center justify-between gap-3 mb-8 pb-8 border-b border-white/10">
+              <div className="flex items-center justify-between gap-3 mb-8 pb-6 border-b border-white/10">
                 <div className="flex items-center gap-3 lg:hidden">
                   <div className="w-6 h-6 rounded bg-white flex items-center justify-center font-bold text-black text-[10px] shadow-[0_0_15px_rgba(255,255,255,0.3)]">IC</div>
-                  <span className="font-semibold text-white tracking-tight">InterviewCoach</span>
+                  <span className="font-bold text-white tracking-tight">InterviewCoach</span>
                 </div>
                 {onBackToHome && (
-                  <button onClick={onBackToHome} className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors flex items-center gap-1.5 ml-auto outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 rounded">
+                  <button 
+                    onClick={onBackToHome} 
+                    className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors flex items-center gap-1.5 ml-auto outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 rounded"
+                  >
                     <ArrowLeft size={14} /> Back to Home
                   </button>
                 )}
               </div>
 
               <div className="mb-8 relative z-10">
-                <h2 className="text-2xl font-bold text-white tracking-tight mb-2">Welcome back</h2>
-                <p className="text-sm text-slate-400 font-medium">Log in to continue your interview prep.</p>
+                <h2 className="text-2xl font-extrabold text-white tracking-tight mb-2">Welcome back</h2>
+                <p className="text-xs text-slate-300 font-medium">Log in to resume your active training.</p>
               </div>
 
               {/* 1-Click Developer SSO Integration */}
               <div className="space-y-3 mb-6 relative z-10">
-                <motion.button whileTap={{ scale: 0.97 }} className="w-full flex items-center justify-center gap-3 py-2.5 rounded-lg text-sm font-bold bg-[#171717] hover:bg-[#202020] border border-white/10 text-white transition-all shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50">
-                  <GithubIcon size={18} /> Continue with GitHub
+                <motion.button 
+                  whileTap={{ scale: 0.97 }} 
+                  className="w-full flex items-center justify-center gap-3 py-2.5 rounded-xl text-xs font-bold bg-[#141418] hover:bg-[#1a1a20] border border-white/10 text-white transition-all shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
+                >
+                  <GithubIcon size={16} /> Continue with GitHub
                 </motion.button>
-                <motion.button whileTap={{ scale: 0.97 }} className="w-full flex items-center justify-center gap-3 py-2.5 rounded-lg text-sm font-bold bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 text-white transition-all shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50">
-                  <GoogleIcon size={18} /> Continue with Google
+                <motion.button 
+                  whileTap={{ scale: 0.97 }} 
+                  className="w-full flex items-center justify-center gap-3 py-2.5 rounded-xl text-xs font-bold bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 text-white transition-all shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
+                >
+                  <GoogleIcon size={16} /> Continue with Google
                 </motion.button>
               </div>
 
               <div className="flex items-center my-6 relative z-10">
-                <div className="flex-1 h-px bg-white/[0.06]" />
-                <span className="px-4 text-[10px] uppercase tracking-widest font-bold text-slate-600">Or use email</span>
-                <div className="flex-1 h-px bg-white/[0.06]" />
+                <div className="flex-1 h-px bg-white/[0.08]" />
+                <span className="px-4 text-[10px] uppercase tracking-widest font-mono font-bold text-slate-500">Or use email</span>
+                <div className="flex-1 h-px bg-white/[0.08]" />
               </div>
 
+              {/* Auth Form */}
               <form onSubmit={handleLogin} className="space-y-4 relative z-10">
+                
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 block ml-1">Work Email</label>
+                  <label className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400 block ml-1">Work Email</label>
                   <div className="relative group">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors">
                       <Mail size={16} />
                     </div>
                     <input 
@@ -185,7 +253,7 @@ export default function Login({ onAuth, onSwitchToSignup, onBackToHome }) {
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-[#0A0A0C] border border-white/10 rounded-xl py-3 pl-12 pr-4 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all shadow-inner"
+                      className="w-full bg-[#08080C] border border-white/10 rounded-xl py-3 pl-12 pr-4 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all shadow-inner font-medium"
                       placeholder="you@company.com"
                     />
                   </div>
@@ -193,11 +261,13 @@ export default function Login({ onAuth, onSwitchToSignup, onBackToHome }) {
 
                 <div className="space-y-1.5">
                   <div className="flex justify-between items-center ml-1">
-                    <label className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 block">Password</label>
-                    <button type="button" className="text-[10px] font-bold text-slate-500 hover:text-white transition-colors outline-none focus-visible:text-blue-400">Forgot?</button>
+                    <label className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400 block">Password</label>
+                    <button type="button" className="text-[10px] font-mono font-bold text-slate-400 hover:text-white transition-colors outline-none focus-visible:underline">
+                      Forgot?
+                    </button>
                   </div>
                   <div className="relative group">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors">
                       <Lock size={16} />
                     </div>
                     <input 
@@ -205,13 +275,13 @@ export default function Login({ onAuth, onSwitchToSignup, onBackToHome }) {
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full bg-[#0A0A0C] border border-white/10 rounded-xl py-3 pl-12 pr-12 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all shadow-inner"
+                      className="w-full bg-[#08080C] border border-white/10 rounded-xl py-3 pl-12 pr-12 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all shadow-inner font-medium"
                       placeholder="••••••••"
                     />
                     <button 
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors focus:outline-none focus-visible:text-blue-400"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors focus:outline-none"
                     >
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
@@ -221,19 +291,19 @@ export default function Login({ onAuth, onSwitchToSignup, onBackToHome }) {
                 <AnimatePresence>
                   {error && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
-                      <div className="p-3 mt-2 rounded-lg bg-red-500/10 border border-red-500/20 text-xs font-bold text-red-400 flex items-center gap-2">
+                      <div className="p-3 mt-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs font-bold text-rose-400 flex items-center gap-2">
                         <Activity size={14} className="flex-shrink-0" /> {error}
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
 
-                <div className="pt-2">
+                <div className="pt-3">
                   <motion.button
                     whileTap={{ scale: loading ? 1 : 0.97 }}
                     disabled={loading}
                     type="submit"
-                    className={`relative w-full flex items-center justify-center py-3 rounded-xl text-sm font-bold transition-all overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black focus:ring-blue-500 group ${
+                    className={`relative w-full flex items-center justify-center py-3 rounded-xl text-xs font-extrabold uppercase tracking-widest transition-all overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black focus:ring-blue-500 group ${
                       loading 
                         ? "bg-[#111111] border border-white/10 text-slate-500 cursor-wait" 
                         : "bg-white text-black hover:bg-slate-200 shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_30px_rgba(255,255,255,0.25)]"
@@ -241,8 +311,8 @@ export default function Login({ onAuth, onSwitchToSignup, onBackToHome }) {
                   >
                     {loading ? (
                       <>
-                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]" />
-                         <span className="w-4 h-4 rounded-full border-2 border-slate-600 border-t-black animate-spin mr-2" />
+                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]" />
+                         <span className="w-3.5 h-3.5 rounded-full border-2 border-slate-600 border-t-black animate-spin mr-2" />
                          Authenticating...
                       </>
                     ) : (
@@ -255,9 +325,15 @@ export default function Login({ onAuth, onSwitchToSignup, onBackToHome }) {
                 </div>
               </form>
 
-              <div className="mt-6 pt-6 border-t border-white/[0.06] relative z-10">
-                <p className="text-center text-xs font-medium text-slate-500">
-                  Don't have an account? <button onClick={onSwitchToSignup} className="text-white hover:text-blue-400 transition-colors font-bold ml-1 border-b border-transparent hover:border-blue-400 pb-0.5 outline-none focus-visible:text-blue-400">Sign up to initialize</button>
+              <div className="mt-6 pt-6 border-t border-white/[0.06] relative z-10 text-center">
+                <p className="text-xs font-medium text-slate-400">
+                  Don't have an account?{" "}
+                  <button 
+                    onClick={onSwitchToSignup} 
+                    className="text-white hover:text-blue-400 transition-colors font-bold ml-1 border-b border-white/20 hover:border-blue-400 pb-0.5 outline-none focus-visible:text-blue-400"
+                  >
+                    Sign up
+                  </button>
                 </p>
               </div>
 
@@ -269,48 +345,6 @@ export default function Login({ onAuth, onSwitchToSignup, onBackToHome }) {
   );
 }
 
-// Generative Breathing Radar Graphic
-function BreathingRadar() {
-  const points = [
-    { label: "Technical", x: 50, y: 10 },
-    { label: "Communication", x: 95, y: 40 },
-    { label: "Problem Solving", x: 80, y: 90 },
-    { label: "Cultural Fit", x: 20, y: 90 },
-    { label: "Confidence", x: 5, y: 40 },
-  ];
-
-  return (
-    <div className="relative w-full h-full flex items-center justify-center pointer-events-none select-none">
-      <svg viewBox="0 0 100 100" className="w-full h-full opacity-40 drop-shadow-[0_0_20px_rgba(79,70,229,0.3)] overflow-visible">
-        <polygon points="50,10 95,40 80,90 20,90 5,40" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" />
-        <polygon points="50,25 80,45 68,75 32,75 20,45" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
-        
-        <motion.polygon
-          initial={{ points: "50,50 50,50 50,50 50,50 50,50" }}
-          animate={{ points: "50,15 85,45 70,80 30,80 15,45" }}
-          transition={{ duration: 4, ease: "easeInOut", repeat: Infinity, repeatType: "mirror" }}
-          fill="rgba(79,70,229,0.15)"
-          stroke="rgba(79,70,229,0.8)"
-          strokeWidth="1"
-        />
-
-        {points.map((p, i) => (
-          <line key={i} x1="50" y1="50" x2={p.x} y2={p.y} stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" strokeDasharray="1,2" />
-        ))}
-      </svg>
-      
-      <div className="absolute inset-0">
-        <span className="absolute top-[0%] left-1/2 -translate-x-1/2 text-[9px] uppercase tracking-widest font-bold text-slate-500">Technical</span>
-        <span className="absolute top-[40%] right-[-10%] text-[9px] uppercase tracking-widest font-bold text-slate-500">Comm</span>
-        <span className="absolute bottom-[-5%] right-[10%] text-[9px] uppercase tracking-widest font-bold text-slate-500">Problem Solving</span>
-        <span className="absolute bottom-[-5%] left-[10%] text-[9px] uppercase tracking-widest font-bold text-slate-500">Culture</span>
-        <span className="absolute top-[40%] left-[-10%] text-[9px] uppercase tracking-widest font-bold text-slate-500">Confidence</span>
-      </div>
-    </div>
-  );
-}
-
-// Reusable Deep Glass Card
 function GlassCard({ children, className = "", mousePos }) {
   const [rect, setRect] = useState(null);
   const cardRef = useRef(null);
@@ -319,19 +353,19 @@ function GlassCard({ children, className = "", mousePos }) {
     if (cardRef.current) setRect(cardRef.current.getBoundingClientRect());
   }, []);
 
-  const isHovered = rect && 
+  const isHovered = rect && mousePos && 
     mousePos.x >= rect.left && mousePos.x <= rect.right &&
     mousePos.y >= rect.top && mousePos.y <= rect.bottom;
 
-  const cursorX = rect ? mousePos.x - rect.left : 0;
-  const cursorY = rect ? mousePos.y - rect.top : 0;
+  const cursorX = rect && mousePos ? mousePos.x - rect.left : 0;
+  const cursorY = rect && mousePos ? mousePos.y - rect.top : 0;
 
   return (
     <div 
       ref={cardRef}
-      className={`relative rounded-3xl bg-[#08080C]/90 border border-white/[0.08] p-8 md:p-10 overflow-hidden backdrop-blur-2xl transition-all duration-300 ${className}`}
+      className={`relative rounded-2xl bg-[#050508] border border-white/[0.08] p-8 md:p-10 overflow-hidden backdrop-blur-2xl transition-all duration-300 ${className}`}
       style={{
-        boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.12), 0 20px 40px -10px rgba(0,0,0,0.5)'
+        boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.12), 0 25px 50px -12px rgba(0,0,0,0.9)'
       }}
     >
       <div 
