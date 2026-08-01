@@ -26,6 +26,7 @@ class InterviewSession(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     company_target = Column(String)
     role = Column(String)
+    persona = Column(String, nullable=True)  # "standard" | "hostile" | "socratic" | "exhausted" — set once at session start
     difficulty_level = Column(Integer, default=5)
     audio_file_path = Column(String)
     elo_after = Column(Float, nullable=True)  # snapshot of user's ELO after the latest scored answer in this session — powers the Rating History chart with real data instead of always showing the current live ELO

@@ -20,6 +20,28 @@ function AnimatedNumber({ value }) {
 
   return <>{display}</>;
 }
+// Maps raw backend category codes to clean, human-readable labels
+const CATEGORY_LABELS = {
+  algorithms: "Algorithms",
+  data_structures: "Data Structures",
+  system_design: "System Design",
+  distributed_systems: "Distributed Systems",
+  databases: "Databases",
+  behavioral: "Behavioral",
+  leadership: "Leadership",
+  communication: "Communication",
+  machine_learning: "Machine Learning",
+  concurrency: "Concurrency",
+  security: "Security",
+  networking: "Networking",
+  oop: "OOP Design",
+  binary_search: "Algorithms",
+};
+
+function formatCategory(category) {
+  if (!category) return "Technical";
+  return CATEGORY_LABELS[category] || category.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   // 100% Logic Preservation
@@ -416,7 +438,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                 <Terminal size={16} className="text-blue-400 shrink-0" />
                 <h3 className="text-xs font-bold uppercase tracking-widest text-slate-300">The Question</h3>
                 <span className="ml-auto bg-white/5 border border-white/10 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest text-slate-300">
-                  {category ? category.replace(/_/g, " ") : "Technical"}
+                  {formatCategory(category)}
                 </span>
               </div>
 

@@ -164,8 +164,8 @@ export default function UserDashboard({
           topic: s.company_target || "—",
           company: `${s.company_target || "—"}`,
           eloDelta: s.elo_after ? `${s.elo_after >= (user?.elo_rating || 1200) ? "+" : ""}` : "",
-          score: s.question_count ? `${s.question_count} questions` : "—",
-          persona: "",
+          score: s.score != null ? `${s.score}/100` : "—",
+          persona: s.persona ? s.persona.charAt(0).toUpperCase() + s.persona.slice(1) : "—",
           track: "system",
           eloAfter: s.elo_after,
         }));

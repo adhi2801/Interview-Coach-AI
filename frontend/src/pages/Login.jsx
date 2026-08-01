@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { API_URL } from "../config";
-import { ChevronRight, Mail, Lock, Activity, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { ChevronRight, Mail, Lock, Activity, Eye, EyeOff, ShieldCheck, ArrowLeft } from "lucide-react";
 
-// Inline SVG for GitHub to avoid Lucide import errors
+// Inline SVG for GitHub
 function GithubIcon(props) {
   return (
     <svg viewBox="0 0 24 24" width={props.size || 16} height={props.size || 16} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -42,7 +42,7 @@ export default function Login({ onAuth, onSwitchToSignup, onBackToHome }) {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  const noiseSvg = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`;
+  const noiseSvg = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`;
 
   async function handleLogin(e) {
     if (e) e.preventDefault();
@@ -70,24 +70,34 @@ export default function Login({ onAuth, onSwitchToSignup, onBackToHome }) {
   return (
     <div className="min-h-screen bg-[#000000] text-slate-200 font-sans selection:bg-indigo-500/30 overflow-hidden relative flex flex-col md:flex-row">
       
-      {/* LAYER 1 & 2: Ambient Spotlights + Film Grain */}
+      <style>{`
+        @keyframes shimmer {
+          100% { transform: translateX(100%); }
+        }
+      `}</style>
+
+      {/* LAYER 1: Ambient Spotlights + Film Grain */}
       <div className="fixed top-[-10%] left-[-10%] w-[40vw] h-[50vh] bg-indigo-900/15 blur-[120px] pointer-events-none rounded-full mix-blend-screen z-0" />
       <div className="fixed bottom-[-10%] right-1/4 w-[50vw] h-[60vh] bg-blue-900/10 blur-[150px] pointer-events-none rounded-full mix-blend-screen z-0" />
       <div className="fixed inset-0 z-10 pointer-events-none opacity-[0.03] mix-blend-soft-light" style={{ backgroundImage: noiseSvg }} />
 
-      {/* LAYER 3: The Tailwind UI (z-20) */}
+      {/* LAYER 2: The Core Workspace (z-20) */}
       <div className="relative z-20 flex flex-col md:flex-row w-full min-h-screen">
         
-        {/* Left Column: Value Intro */}
-        <div className="hidden lg:flex flex-col justify-between w-[45%] p-12 lg:p-16 border-r border-white/[0.05] relative bg-black/20 backdrop-blur-3xl overflow-hidden">
+        {/* LEFT DECK (Brand & High-Trust Anchor) */}
+        <div className="hidden lg:flex flex-col justify-between w-[45%] p-12 lg:p-16 border-r border-white/[0.05] relative bg-[#000000] overflow-hidden">
           
-          <div className={`transition-all duration-1000 ease-out transform z-10 relative ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+          {/* Volumetric Ambient Light isolated specifically for the radar */}
+          <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-600/20 blur-[140px] rounded-full pointer-events-none" />
+
+          {/* Top Text Content */}
+          <div className={`transition-all duration-1000 ease-out transform z-10 relative max-w-md ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
             <div className="flex items-center gap-3 mb-16">
               <div className="w-7 h-7 rounded bg-white flex items-center justify-center font-bold text-black text-xs shadow-[0_0_15px_rgba(255,255,255,0.3)]">IC</div>
               <span className="font-semibold text-white tracking-tight text-lg">InterviewCoach</span>
             </div>
             
-            <h1 className="text-4xl lg:text-5xl font-extrabold tracking-tighter text-white leading-tight max-w-md mb-6 drop-shadow-lg">
+            <h1 className="text-4xl lg:text-5xl font-extrabold tracking-[-0.035em] text-white leading-tight max-w-md mb-6 drop-shadow-lg">
               Resume your training.<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-400 to-slate-600">Master the interview.</span>
             </h1>
@@ -96,10 +106,12 @@ export default function Login({ onAuth, onSwitchToSignup, onBackToHome }) {
             </p>
           </div>
 
-          <div className={`absolute top-1/2 -right-16 -translate-y-1/2 w-full max-w-[450px] aspect-square transition-all duration-1000 delay-300 pointer-events-none ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+          {/* Generative Radar Graphic (Shifted entirely to the right to PREVENT COLLISIONS) */}
+          <div className={`absolute top-1/2 -right-16 -translate-y-1/2 w-[500px] aspect-square transition-all duration-1000 delay-300 pointer-events-none ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
             <BreathingRadar />
           </div>
 
+          {/* Bottom Security Badges */}
           <div className={`transition-all duration-1000 delay-150 ease-out transform z-10 relative ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
             <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-emerald-500 mb-4">
               <ShieldCheck size={14} className="text-emerald-500" />
@@ -107,31 +119,35 @@ export default function Login({ onAuth, onSwitchToSignup, onBackToHome }) {
             </div>
             <div className="grid grid-cols-2 gap-4 max-w-sm">
               <div className="border-l border-white/10 pl-3">
-                <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Authentication</span>
+                <span className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Authentication
+                </span>
                 <span className="text-sm font-semibold text-white">JWT + bcrypt Hashing</span>
               </div>
               <div className="border-l border-white/10 pl-3">
-                <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Data Privacy</span>
-                <span className="text-sm font-semibold text-white">Zero Third-Party Training</span>
+                <span className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Data Privacy
+                </span>
+                <span className="text-sm font-semibold text-white">Zero 3rd-Party Training</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right Column: The Form Vault */}
+        {/* RIGHT DECK (Frictionless Glass Vault Card) */}
         <div className="w-full lg:w-[55%] flex items-center justify-center p-6 lg:p-16 relative">
-          
           <div className={`w-full max-w-[420px] transition-all duration-700 ease-out transform ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-12'}`}>
             
             <GlassCard mousePos={mousePos}>
+              
               <div className="flex items-center justify-between gap-3 mb-8 pb-8 border-b border-white/10">
                 <div className="flex items-center gap-3 lg:hidden">
                   <div className="w-6 h-6 rounded bg-white flex items-center justify-center font-bold text-black text-[10px] shadow-[0_0_15px_rgba(255,255,255,0.3)]">IC</div>
                   <span className="font-semibold text-white tracking-tight">InterviewCoach</span>
                 </div>
                 {onBackToHome && (
-                  <button onClick={onBackToHome} className="text-xs font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1.5 ml-auto">
-                    ← Back to Home
+                  <button onClick={onBackToHome} className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors flex items-center gap-1.5 ml-auto outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 rounded">
+                    <ArrowLeft size={14} /> Back to Home
                   </button>
                 )}
               </div>
@@ -141,11 +157,12 @@ export default function Login({ onAuth, onSwitchToSignup, onBackToHome }) {
                 <p className="text-sm text-slate-400 font-medium">Log in to continue your interview prep.</p>
               </div>
 
+              {/* 1-Click Developer SSO Integration */}
               <div className="space-y-3 mb-6 relative z-10">
-                <motion.button whileTap={{ scale: 0.98 }} className="w-full flex items-center justify-center gap-3 py-2.5 rounded-lg text-sm font-bold bg-[#171717] hover:bg-[#202020] border border-white/10 text-white transition-all shadow-sm">
+                <motion.button whileTap={{ scale: 0.97 }} className="w-full flex items-center justify-center gap-3 py-2.5 rounded-lg text-sm font-bold bg-[#171717] hover:bg-[#202020] border border-white/10 text-white transition-all shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50">
                   <GithubIcon size={18} /> Continue with GitHub
                 </motion.button>
-                <motion.button whileTap={{ scale: 0.98 }} className="w-full flex items-center justify-center gap-3 py-2.5 rounded-lg text-sm font-bold bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 text-white transition-all shadow-sm">
+                <motion.button whileTap={{ scale: 0.97 }} className="w-full flex items-center justify-center gap-3 py-2.5 rounded-lg text-sm font-bold bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 text-white transition-all shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50">
                   <GoogleIcon size={18} /> Continue with Google
                 </motion.button>
               </div>
@@ -157,9 +174,8 @@ export default function Login({ onAuth, onSwitchToSignup, onBackToHome }) {
               </div>
 
               <form onSubmit={handleLogin} className="space-y-4 relative z-10">
-                
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 block ml-1">Work Email</label>
+                  <label className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 block ml-1">Work Email</label>
                   <div className="relative group">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors">
                       <Mail size={16} />
@@ -177,8 +193,8 @@ export default function Login({ onAuth, onSwitchToSignup, onBackToHome }) {
 
                 <div className="space-y-1.5">
                   <div className="flex justify-between items-center ml-1">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 block">Password</label>
-                    <a href="#" className="text-[10px] font-bold text-slate-500 hover:text-white transition-colors">Forgot?</a>
+                    <label className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 block">Password</label>
+                    <button type="button" className="text-[10px] font-bold text-slate-500 hover:text-white transition-colors outline-none focus-visible:text-blue-400">Forgot?</button>
                   </div>
                   <div className="relative group">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors">
@@ -195,7 +211,7 @@ export default function Login({ onAuth, onSwitchToSignup, onBackToHome }) {
                     <button 
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors focus:outline-none"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors focus:outline-none focus-visible:text-blue-400"
                     >
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
@@ -217,7 +233,7 @@ export default function Login({ onAuth, onSwitchToSignup, onBackToHome }) {
                     whileTap={{ scale: loading ? 1 : 0.97 }}
                     disabled={loading}
                     type="submit"
-                    className={`relative w-full flex items-center justify-center py-3 rounded-xl text-sm font-bold transition-all overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black focus:ring-blue-500 ${
+                    className={`relative w-full flex items-center justify-center py-3 rounded-xl text-sm font-bold transition-all overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black focus:ring-blue-500 group ${
                       loading 
                         ? "bg-[#111111] border border-white/10 text-slate-500 cursor-wait" 
                         : "bg-white text-black hover:bg-slate-200 shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_30px_rgba(255,255,255,0.25)]"
@@ -225,13 +241,13 @@ export default function Login({ onAuth, onSwitchToSignup, onBackToHome }) {
                   >
                     {loading ? (
                       <>
-                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]" />
+                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]" />
                          <span className="w-4 h-4 rounded-full border-2 border-slate-600 border-t-black animate-spin mr-2" />
                          Authenticating...
                       </>
                     ) : (
                       <>
-                        <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
+                        <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
                         Log In <ChevronRight size={16} className="ml-1 relative z-10" />
                       </>
                     )}
@@ -241,7 +257,7 @@ export default function Login({ onAuth, onSwitchToSignup, onBackToHome }) {
 
               <div className="mt-6 pt-6 border-t border-white/[0.06] relative z-10">
                 <p className="text-center text-xs font-medium text-slate-500">
-                  Don't have an account? <span onClick={onSwitchToSignup} className="text-white hover:text-blue-400 transition-colors cursor-pointer font-bold ml-1">Sign up</span>
+                  Don't have an account? <button onClick={onSwitchToSignup} className="text-white hover:text-blue-400 transition-colors font-bold ml-1 border-b border-transparent hover:border-blue-400 pb-0.5 outline-none focus-visible:text-blue-400">Sign up to initialize</button>
                 </p>
               </div>
 
@@ -284,11 +300,11 @@ function BreathingRadar() {
       </svg>
       
       <div className="absolute inset-0">
-        <span className="absolute top-[0%] left-1/2 -translate-x-1/2 text-[9px] uppercase tracking-[0.2em] font-bold text-slate-500">Technical</span>
-        <span className="absolute top-[40%] right-[-10%] text-[9px] uppercase tracking-[0.2em] font-bold text-slate-500">Comm</span>
-        <span className="absolute bottom-[-5%] right-[10%] text-[9px] uppercase tracking-[0.2em] font-bold text-slate-500">Problem Solving</span>
-        <span className="absolute bottom-[-5%] left-[10%] text-[9px] uppercase tracking-[0.2em] font-bold text-slate-500">Culture</span>
-        <span className="absolute top-[40%] left-[-10%] text-[9px] uppercase tracking-[0.2em] font-bold text-slate-500">Confidence</span>
+        <span className="absolute top-[0%] left-1/2 -translate-x-1/2 text-[9px] uppercase tracking-widest font-bold text-slate-500">Technical</span>
+        <span className="absolute top-[40%] right-[-10%] text-[9px] uppercase tracking-widest font-bold text-slate-500">Comm</span>
+        <span className="absolute bottom-[-5%] right-[10%] text-[9px] uppercase tracking-widest font-bold text-slate-500">Problem Solving</span>
+        <span className="absolute bottom-[-5%] left-[10%] text-[9px] uppercase tracking-widest font-bold text-slate-500">Culture</span>
+        <span className="absolute top-[40%] left-[-10%] text-[9px] uppercase tracking-widest font-bold text-slate-500">Confidence</span>
       </div>
     </div>
   );
@@ -300,9 +316,7 @@ function GlassCard({ children, className = "", mousePos }) {
   const cardRef = useRef(null);
 
   useEffect(() => {
-    if (cardRef.current) {
-      setRect(cardRef.current.getBoundingClientRect());
-    }
+    if (cardRef.current) setRect(cardRef.current.getBoundingClientRect());
   }, []);
 
   const isHovered = rect && 
@@ -315,7 +329,10 @@ function GlassCard({ children, className = "", mousePos }) {
   return (
     <div 
       ref={cardRef}
-      className={`relative rounded-3xl bg-[#08080C] border border-white/[0.08] p-8 md:p-10 overflow-hidden backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),_0_30px_60px_rgba(0,0,0,0.8)] ${className}`}
+      className={`relative rounded-3xl bg-[#08080C]/90 border border-white/[0.08] p-8 md:p-10 overflow-hidden backdrop-blur-2xl transition-all duration-300 ${className}`}
+      style={{
+        boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.12), 0 20px 40px -10px rgba(0,0,0,0.5)'
+      }}
     >
       <div 
         className="absolute inset-0 pointer-events-none transition-opacity duration-300 z-0"
@@ -324,7 +341,9 @@ function GlassCard({ children, className = "", mousePos }) {
           opacity: isHovered ? 1 : 0
         }}
       />
-      {children}
+      <div className="relative z-10 w-full h-full">
+        {children}
+      </div>
     </div>
   );
 }

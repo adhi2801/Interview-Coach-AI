@@ -254,6 +254,7 @@ def start_session(payload: StartSessionRequest, request: Request, user_id: int =
             user_id=user_id,
             company_target=payload.company,
             role=payload.role,
+            persona=payload.persona,
             difficulty_level=min(10, max(1, int((payload.elo - 800) / 100)))
         )
         db.add(session_record)
@@ -576,7 +577,25 @@ def get_user_sessions(user_id: int = Depends(get_current_user_id)):
 
         result = []
         for session in sessions:
-            answer_count = db.query(Answer).filter(Answer.session_id == session.id).count()
+            answers = db.query(Answer).filter(Answer.session_id == session.id).all()
+            answer_count = len(answers)
+
+            # Average overall score across all answers in this session, out of 100
+            avg_score = None
+            if answers:
+                overalls = []
+                for a in answers:
+                    scores = [
+                        a.score_technical, a.score_communication,
+                        a.score_problem_solving, a.score_cultural_fit,
+                        a.score_confidence
+                    ]
+                    scores = [s for s in scores if s is not None]
+                    if scores:
+                        overalls.append(sum(scores) / len(scores))
+                if overalls:
+                    avg_score = round((sum(overalls) / len(overalls)) * 10)  # scale 0-10 to 0-100
+
             result.append({
                 "id": session.id,
                 "company_target": session.company_target,
@@ -584,6 +603,7 @@ def get_user_sessions(user_id: int = Depends(get_current_user_id)):
                 "started_at": session.started_at.isoformat() if session.started_at else None,
                 "question_count": answer_count,
                 "elo_after": session.elo_after,
+                "score": avg_score,
             })
         return {"sessions": result}
     finally:
