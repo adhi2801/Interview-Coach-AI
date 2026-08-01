@@ -202,15 +202,29 @@ class AdaptiveDifficultyEngine:
         mutation = COMPANY_MUTATIONS.get(company.lower(), "Make this a real-world scenario with concrete constraints.")
         persona_instruction = PERSONA_INSTRUCTIONS.get(persona, "")
 
+        DIFFICULTY_SCOPE = (
+            "Keep the scope tightly bounded to a single, well-defined component with modest scale — appropriate for an early-career engineer."
+            if difficulty <= 3 else
+            "Moderate scope with some ambiguity — the candidate should need to make a few reasonable assumptions and consider one or two trade-offs."
+            if difficulty <= 6 else
+            "Broad, ambiguous scope with significant scale, cross-system trade-offs, and organizational complexity — appropriate for a senior or staff-level candidate."
+        )
+
         json_instruction = f"""Return ONLY valid JSON, no markdown, no preamble, exactly this shape:
-        {{"scenario": "<2 sentences setting the scene>", "constraints": ["<constraint 1>", "<constraint 2>", "<constraint 3>"], "ask": "<one bolded-style sentence stating exactly what is expected>", "category": "<one of: {', '.join(VALID_CATEGORIES)}>", "sub_category": "<2-4 word specific topic>"}}"""
+        {{"scenario": "<2 sentences setting the scene>", "constraints": ["<constraint 1>", "<constraint 2>", "<constraint 3>"], "ask": "<one bolded-style sentence stating exactly what is expected>", "category": "<one of: {', '.join(VALID_CATEGORIES)}>", "sub_category": "<2-4 word specific topic>"}}
+
+        Category selection rule — classify by what skill is actually being evaluated, not the surface narrative:
+        - "behavioral" is ONLY for team conflict, interpersonal judgment, or leadership decisions between people.
+        - "communication" is for explaining technical concepts to a non-technical audience, writing docs, or presenting data/results — even if there's no conflict involved.
+        - If the ask is really about root-causing, architecture, testing strategy, or system design — even wrapped in an incident story — use a technical category instead (system_design, concurrency, oop, algorithms, etc.), NOT "behavioral".
+        - Do not default to "behavioral" just because the scenario mentions a bug, incident, or stakeholders. Pick the category that matches what the candidate is actually being asked to demonstrate."""
 
         if not base_question:
-            prompt = f"Generate a difficulty {difficulty}/10 real-world scenario interview question for a {role} targeting {company}. {mutation}\n\n{json_instruction}"
+            prompt = f"Generate a difficulty {difficulty}/10 real-world scenario interview question for a {role} targeting {company}. {mutation} {DIFFICULTY_SCOPE}\n\n{json_instruction}"
             messages = [{"role": "user", "content": prompt}]
         else:
             messages = [{"role": "user", "content":
-                f"Base question: {base_question}\n\nMutation instruction: {mutation}\n\nRewrite this as a scenario-based question specifically tailored for a {role} candidate — the scenario, constraints, and ask should reflect problems a {role} would realistically face in that role, not a generic backend/systems question.\n\n{json_instruction}"}]
+                f"Base question: {base_question}\n\nMutation instruction: {mutation}\n\n{DIFFICULTY_SCOPE}\n\nRewrite this as a scenario-based question specifically tailored for a {role} candidate — the scenario, constraints, and ask should reflect problems a {role} would realistically face in that role, not a generic backend/systems question.\n\n{json_instruction}"}]
 
         response = self.client.messages.create(
             model="claude-sonnet-4-6",
@@ -220,13 +234,17 @@ class AdaptiveDifficultyEngine:
         )
         parsed = _parse_json_response(response.content[0].text)
 
-        # Seeded metadata (real, human-curated) always wins over Claude's guess.
-        if seeded_topics:
+        # Prefer Claude's fresh classification of the FINAL mutated scenario over
+        # a stale seed tag — the seed question may have been rewritten so heavily
+        # (different role, different framing) that its original topic tag no longer
+        # describes what's actually being asked.
+        claude_category = parsed.get("category", "")
+        if claude_category in VALID_CATEGORIES:
+            category = claude_category
+        elif seeded_topics:
             category = self._pick_primary_category(seeded_topics)
         else:
-            category = parsed.get("category", "system_design")
-            if category not in VALID_CATEGORIES:
-                category = "system_design"
+            category = "system_design"
 
         return {
             "scenario": parsed.get("scenario", ""),

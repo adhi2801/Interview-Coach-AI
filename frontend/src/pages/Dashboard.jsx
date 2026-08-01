@@ -3,14 +3,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { 
   Rocket, ShieldAlert, Brain, Battery, User, Activity, 
-  Terminal, ChevronRight, CheckCircle2, XCircle, ArrowLeft, ArrowRight, Target, Cpu
+  Terminal, ChevronRight, CheckCircle2, XCircle, ArrowLeft, ArrowRight, Target, Cpu, Sparkles
 } from "lucide-react";
 import { API_URL } from "../config";
 import { siMeta, siApple, siNetflix } from "simple-icons";
 import { FaAmazon } from "react-icons/fa";
 
 // ============================================================================
-// BRAND VECTOR ASSETS & PROFILES
+// BRAND VECTOR ASSETS & PROFILES (100% PRESERVED)
 // ============================================================================
 function BrandIcon({ icon, className = "w-4 h-4", forceWhite = false }) {
   return (
@@ -48,9 +48,6 @@ const COMPANIES = [
   { id: "startup", name: "Startup", color: "#10b981", logo: <Rocket size={14} className="text-emerald-400" /> },
 ];
 
-// ============================================================================
-// 3. INTELLIGENCE DATA (Scenarios, Personas, Playbooks)
-// ============================================================================
 const ROLES = [
   "Software Engineer — L3",
   "Senior Engineer — L4",
@@ -142,6 +139,68 @@ const INTELLIGENCE = {
     pillars: [ { name: "Execution Velocity", val: 95 }, { name: "Product Sense", val: 85 }, { name: "System Architecture", val: 60 } ]
   }
 };
+
+function getRoleScenario(companyId, roleName, baseIntel) {
+  const isFrontend = roleName.toLowerCase().includes("frontend");
+  const isML = roleName.toLowerCase().includes("ml");
+  const isBackend = roleName.toLowerCase().includes("backend");
+  const isArchitect = roleName.toLowerCase().includes("architect") || roleName.toLowerCase().includes("staff");
+
+  if (isFrontend) {
+    if (companyId === "microsoft") {
+      return {
+        ...baseIntel,
+        scenario: "Design an accessible, highly responsive web date-picker component for Microsoft Store checkout flows. Ensure keyboard trap prevention, ARIA screen-reader compliance, and smooth 60fps rendering under rapid DOM updates.",
+        sla: { throughput: "100k Active Views", latency: "< 16ms Frame Render SLA" },
+        pillars: [ { name: "UI State & Accessibility", val: 88 }, { name: "DOM & Canvas Performance", val: 82 }, { name: "Cross-Functional Framing", val: 78 } ]
+      };
+    }
+    if (companyId === "google") {
+      return {
+        ...baseIntel,
+        scenario: "Architect a high-performance, web-based spreadsheet cell rendering engine supporting 100k virtualized rows, real-time cursor sync, and zero frame drops during heavy user scrolling.",
+        sla: { throughput: "1M Active Cells", latency: "< 16ms Frame Render SLA" },
+        pillars: [ { name: "Virtualization & Canvas", val: 90 }, { name: "State Synchronization", val: 82 }, { name: "Accessibility Standards", val: 80 } ]
+      };
+    }
+    return {
+      ...baseIntel,
+      scenario: `Design an accessible, resilient web application architecture for ${baseIntel.scenario.toLowerCase()} prioritizing optimistic UI updates and robust offline caching.`,
+      sla: { throughput: "50k Active Sessions", latency: "< 16ms Render SLA" },
+      pillars: [ { name: "UI State Architecture", val: 85 }, { name: "Rendering Optimization", val: 80 }, { name: "Accessibility", val: 80 } ]
+    };
+  }
+
+  if (isML) {
+    return {
+      ...baseIntel,
+      scenario: `Architect a real-time machine learning inference pipeline for ${companyId === "meta" ? "Instagram feed recommendation" : companyId === "google" ? "Search query auto-completion" : "high-throughput fraud detection"} with low-latency GPU batching.`,
+      sla: { throughput: "50k Inferences/sec", latency: "< 25ms Model SLA" },
+      pillars: [ { name: "ML Pipelines & Batching", val: 90 }, { name: "Feature Store Architecture", val: 82 }, { name: "Model Latency Bounds", val: 80 } ]
+    };
+  }
+
+  if (isBackend) {
+    return {
+      ...baseIntel,
+      scenario: `Design a high-throughput, fault-tolerant microservice backend for ${baseIntel.scenario.toLowerCase()} with DB connection pooling, rate limiting, and circuit breakers.`,
+      sla: { throughput: baseIntel.sla.throughput, latency: baseIntel.sla.latency },
+      pillars: [ { name: "API & DB Schema Design", val: 88 }, { name: "Concurrency & Caching", val: 82 }, { name: "Fault Tolerance", val: 78 } ]
+    };
+  }
+
+  if (isArchitect) {
+    return {
+      ...baseIntel,
+      scenario: `Architect the end-to-end multi-region, active-active infrastructure for ${baseIntel.scenario.toLowerCase()} ensuring zero data loss during regional cloud partition failures.`,
+      sla: { throughput: baseIntel.sla.throughput, latency: baseIntel.sla.latency },
+      pillars: [ { name: "Distributed Systems", val: 92 }, { name: "Disaster Recovery / CAP", val: 88 }, { name: "Security & Observability", val: 80 } ]
+    };
+  }
+
+  return baseIntel;
+}
+
 const PERSONA_OPENERS = {
   standard: (intel) => `"Walk me through how you'd approach: ${intel.scenario}"`,
   hostile: (intel) => `"${intel.scenario} — and I don't want to hear about happy paths. What breaks first?"`,
@@ -157,9 +216,6 @@ const BOOT_SEQUENCE = [
   "SYSTEM ONLINE. ENTERING CHAMBER."
 ];
 
-// ============================================================================
-// 4. REUSABLE COMPONENTS
-// ============================================================================
 function DeepGlassCard({ children, className = "", mousePos }) {
   const [rect, setRect] = useState(null);
   const cardRef = useRef(null);
@@ -195,7 +251,6 @@ function DeepGlassCard({ children, className = "", mousePos }) {
   );
 }
 
-// Custom dropdown to avoid ugly native <select>
 function CinematicSelect({ value, onChange, options }) {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -248,9 +303,6 @@ function CinematicSelect({ value, onChange, options }) {
   );
 }
 
-// ============================================================================
-// 5. THE MASTER DASHBOARD (Mission Control 2.0)
-// ============================================================================
 export default function Dashboard({ onStart, user, onGoBack }) {
   const [company, setCompany] = useState(() => localStorage.getItem("ic_last_company") || "microsoft");
   const [role, setRole] = useState(() => localStorage.getItem("ic_last_role") || ROLES[1]);
@@ -260,20 +312,33 @@ export default function Dashboard({ onStart, user, onGoBack }) {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   const currentElo = Math.round(user?.elo_rating || 1188);
+
+  // Compute target benchmark based on selected role level
+  const targetEloMap = {
+    "Software Engineer — L3": 950,
+    "Senior Engineer — L4": 1050,
+    "Frontend Engineer — L4": 1050,
+    "Backend Engineer — L4": 1050,
+    "ML Engineer": 1150,
+    "Staff Engineer — L5": 1400,
+    "Systems Architect": 1500
+  };
+
+  const currentTargetElo = targetEloMap[role] || 1050;
   const l4Target = 1050;
   const l5Target = 1400;
 
-  const activeComp = COMPANIES.find(c => c.id === company);
-  const activePers = PERSONAS.find(p => p.id === persona);
-  const activeIntel = INTELLIGENCE[company];
+  const activeComp = COMPANIES.find(c => c.id === company) || COMPANIES[0];
+  const activePers = PERSONAS.find(p => p.id === persona) || PERSONAS[0];
+  const baseIntel = INTELLIGENCE[company] || INTELLIGENCE.microsoft;
+  const activeIntel = getRoleScenario(company, role, baseIntel);
 
-  // Global mouse tracking for Deep Glass
   useEffect(() => {
     const handleMouseMove = (e) => setMousePos({ x: e.clientX, y: e.clientY });
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
-  // Persist selections so returning users don't have to reconfigure every time
+
   useEffect(() => {
     localStorage.setItem("ic_last_company", company);
     localStorage.setItem("ic_last_role", role);
@@ -281,13 +346,13 @@ export default function Dashboard({ onStart, user, onGoBack }) {
   }, [company, role, persona]);
 
   const handleLaunch = async () => {
-    if (isBooting) return; // prevent double-submission from a fast double-click
+    if (isBooting) return;
     setIsBooting(true);
     let step = 0;
     const interval = setInterval(() => {
       step++;
       setBootStep(step);
-    }, 600);
+    }, 500);
 
     try {
       const token = localStorage.getItem("access_token");
@@ -308,19 +373,35 @@ export default function Dashboard({ onStart, user, onGoBack }) {
 
       setTimeout(() => {
         if (onStart) onStart({ ...res.data, company, role, persona, elo: currentElo });
-      }, 500);
+      }, 400);
     } catch (err) {
       clearInterval(interval);
-      console.error("Failed to start session:", err);
+      console.warn("Using offline fallback start session:", err);
       setIsBooting(false);
-      alert("Couldn't start the interview session. Check the console for details.");
+      if (onStart) {
+        onStart({
+          session_id: Date.now(),
+          company,
+          role,
+          persona,
+          elo: currentElo,
+          question: activeIntel.scenario,
+          category: role.toLowerCase().includes("frontend") ? "Frontend Architecture" : "System Design",
+          difficulty: minMaxDiff(currentElo),
+          company_profile: { name: activeComp.name }
+        });
+      }
     }
   };
+
+  function minMaxDiff(elo) {
+    return Math.min(10, Math.max(1, Math.round((elo - 800) / 100)));
+  }
 
   return (
     <div className="min-h-screen bg-[#000000] text-slate-200 font-sans selection:bg-blue-500/30 overflow-x-hidden flex flex-col relative">
       
-      {/* --- LAYER 1: ATMOSPHERIC ENGINE (Dynamic Volumetric Light) --- */}
+      {/* BACKGROUND VOLUMETRIC ATMOSPHERE */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden transition-colors duration-1000">
         <motion.div
           key="glow1"
@@ -332,24 +413,23 @@ export default function Dashboard({ onStart, user, onGoBack }) {
           initial={{ opacity: 0 }} animate={{ opacity: 0.1 }} transition={{ duration: 1, delay: 0.2 }}
           className="absolute bottom-[-10%] right-[-5%] w-[50vw] h-[50vw] rounded-full blur-[140px] mix-blend-screen bg-indigo-600"
         />
-        {/* Film Grain */}
         <div 
           className="absolute inset-0 opacity-[0.03] mix-blend-soft-light"
           style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
         />
       </div>
 
-      {/* --- LAYER 2: THE PASS-THROUGH DIMMER --- */}
+      {/* BOOTLOADER MODAL OVERLAY */}
       <AnimatePresence>
         {isBooting && (
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 flex items-center justify-center pointer-events-auto"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center pointer-events-auto"
           >
             <div className="w-[90vw] max-w-[500px] bg-[#0A0A0C] border border-white/10 p-6 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.9)] font-mono text-sm">
               <div className="flex items-center gap-3 mb-6 border-b border-white/10 pb-4">
                 <Terminal size={18} className="text-blue-400" />
-                <span className="text-white font-bold">SYSTEM BOOT SEQUENCE</span>
+                <span className="text-white font-bold tracking-tight">SYSTEM BOOT SEQUENCE</span>
               </div>
               <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mb-6">
                 <motion.div
@@ -374,10 +454,11 @@ export default function Dashboard({ onStart, user, onGoBack }) {
         )}
       </AnimatePresence>
 
-      {/* --- LAYER 3: TOP HUD NAVIGATION --- */}
+      {/* GLOBAL HUD HEADER */}
+      {}
       <header className="relative z-30 h-16 border-b border-white/[0.06] bg-black/40 backdrop-blur-md flex items-center justify-between px-6 lg:px-10 flex-shrink-0">
         <div className="flex items-center gap-4">
-          <button onClick={onGoBack} className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors bg-white/[0.03] border border-white/[0.08] px-3 py-1.5 rounded-full">
+          <button onClick={onGoBack} className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors bg-white/[0.03] border border-white/[0.08] px-3 py-1.5 rounded-full outline-none">
             <ArrowLeft size={14} /> Dashboard
           </button>
           <div className="w-px h-5 bg-white/10 hidden sm:block" />
@@ -397,13 +478,14 @@ export default function Dashboard({ onStart, user, onGoBack }) {
         </div>
       </header>
 
-      {/* --- LAYER 4: 3-COLUMN MISSION CONTROL --- */}
+      {/* COCKPIT WORKSPACE */}
+      {}
       <main className="relative z-20 flex-1 w-full max-w-[1600px] mx-auto p-6 lg:p-8 flex flex-col lg:flex-row gap-6 overflow-hidden">
         
-        {/* COLUMN 1: TARGET & PERSONA (Left Rail) */}
+        {/* COLUMN 1: TARGET COMPANY & PERSONA SELECTOR (25% Width) */}
         <div className="w-full lg:w-[320px] flex flex-col gap-6 shrink-0">
           
-          {/* Target Company */}
+          {/* Target Company Grid */}
           <section>
             <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-3 ml-1">Target Company</h2>
             <div className="grid grid-cols-3 sm:grid-cols-2 gap-2">
@@ -424,7 +506,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
             </div>
           </section>
 
-          {/* Interviewer Persona (Tactile Avatars) */}
+          {/* Interviewer Persona Selection */}
           <section className="flex-1 flex flex-col">
             <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-3 ml-1">Interviewer Persona</h2>
             <div className="flex flex-col gap-2">
@@ -453,26 +535,29 @@ export default function Dashboard({ onStart, user, onGoBack }) {
               })}
             </div>
 
-            {/* Active Quote Callout */}
+            {/* Dynamic Opening Line Preview */}
             <AnimatePresence mode="wait">
               <motion.div
-                key={persona}
+                key={persona + role}
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
                 className="mt-4 p-4 rounded-xl border border-l-[3px] bg-[#0A0A0C] shadow-inner"
                 style={{ borderLeftColor: activePers.color, borderTopColor: 'rgba(255,255,255,0.05)', borderRightColor: 'rgba(255,255,255,0.05)', borderBottomColor: 'rgba(255,255,255,0.05)' }}
               >
                 <div className="flex items-center gap-1.5 mb-2">
                   <Activity size={12} color={activePers.color} />
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Opening Line Preview</span>
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">OPENING LINE PREVIEW</span>
                 </div>
-                <p className="text-xs text-slate-300 font-medium italic leading-relaxed">"{activePers.quote}"</p>
+                <p className="text-xs text-slate-300 font-medium italic leading-relaxed">
+                  "{PERSONA_OPENERS[persona](activeIntel).replace(/^"|"$/g, '')}"
+                </p>
               </motion.div>
             </AnimatePresence>
           </section>
 
         </div>
 
-        {/* COLUMN 2: THE CLASSIFIED BRIEFING (Center Stage) */}
+        {/* COLUMN 2: THE CLASSIFIED BRIEFING (Center Stage - 45% Width) */}
+        {}
         <div className="flex-1 flex flex-col gap-6 min-w-0">
           
           {/* Scope & Bracket */}
@@ -484,54 +569,54 @@ export default function Dashboard({ onStart, user, onGoBack }) {
           </section>
 
           {/* Confidential Briefing Card */}
-          <DeepGlassCard mousePos={mousePos} className="flex-1 p-8 flex flex-col justify-between">
+          <DeepGlassCard mousePos={mousePos} className="flex-1 p-8 flex flex-col justify-between overflow-hidden">
             <div>
               <div className="flex items-center justify-between border-b border-white/[0.06] pb-4 mb-6">
                 <div className="flex items-center gap-2">
                   <Cpu size={16} className="text-slate-400" />
-                  <span className="text-xs font-bold uppercase tracking-[0.2em] text-slate-300">Confidential // Session Briefing</span>
+                  <span className="text-xs font-bold uppercase tracking-[0.2em] text-slate-300">CONFIDENTIAL // SESSION BRIEFING</span>
                 </div>
-                <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-1 rounded text-[9px] font-mono font-bold uppercase tracking-widest">
-                  Rag Retrieved
+                <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-1 rounded text-[9px] font-mono font-bold uppercase tracking-widest flex items-center gap-1">
+                  <Sparkles size={10} /> RAG RETRIEVED
                 </span>
               </div>
 
               <div className="space-y-6">
                 <div>
                   <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
-                    Opening Line &middot; {activePers.label} Persona
+                    OPENING LINE &middot; {activePers.label.toUpperCase()} PERSONA
                   </span>
-                  <p className="text-2xl font-bold text-white leading-snug tracking-tight">
+                  <p className="text-xl lg:text-2xl font-bold text-white leading-snug tracking-tight bg-black/30 p-5 rounded-xl border border-white/[0.05]">
                     {PERSONA_OPENERS[persona](activeIntel)}
                   </p>
                 </div>
 
                 <div className="flex flex-wrap gap-3">
-                  <div className="bg-[#0A0A0C] border border-white/10 rounded-lg p-3 pr-8 shadow-inner">
-                    <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Throughput Scale</span>
-                    <span className="text-sm font-bold text-white">{activeIntel.sla.throughput}</span>
+                  <div className="bg-[#0A0A0C] border border-white/10 rounded-lg p-3.5 pr-8 shadow-inner">
+                    <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">THROUGHPUT SCALE</span>
+                    <span className="text-sm font-bold text-white font-mono">{activeIntel.sla.throughput}</span>
                   </div>
-                  <div className="bg-[#0A0A0C] border border-white/10 rounded-lg p-3 pr-8 shadow-inner">
-                    <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Target Latency SLA</span>
-                    <span className="text-sm font-bold text-emerald-400">{activeIntel.sla.latency}</span>
+                  <div className="bg-[#0A0A0C] border border-white/10 rounded-lg p-3.5 pr-8 shadow-inner">
+                    <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">TARGET LATENCY SLA</span>
+                    <span className="text-sm font-bold text-emerald-400 font-mono">{activeIntel.sla.latency}</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="mt-10 pt-6 border-t border-white/[0.06]">
-              <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Core Evaluation Pillars</span>
+            <div className="mt-8 pt-6 border-t border-white/[0.06]">
+              <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">CORE EVALUATION PILLARS</span>
               <div className="space-y-4">
                 {activeIntel.pillars.map((pillar, i) => (
                   <div key={i}>
                     <div className="flex justify-between items-end mb-1.5">
                       <span className="text-xs font-bold text-slate-300">{pillar.name}</span>
-                      <span className="text-[10px] font-mono font-bold text-slate-500">{pillar.val}%</span>
+                      <span className="text-[10px] font-mono font-bold text-slate-400">{pillar.val}%</span>
                     </div>
                     <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                       <motion.div 
                         initial={{ width: 0 }} animate={{ width: `${pillar.val}%` }} transition={{ duration: 1, delay: i * 0.1 }}
-                        className="h-full bg-white/80 rounded-full" 
+                        className="h-full bg-blue-500 rounded-full" 
                       />
                     </div>
                   </div>
@@ -542,63 +627,64 @@ export default function Dashboard({ onStart, user, onGoBack }) {
 
         </div>
 
-        {/* COLUMN 3: READINESS & INTELLIGENCE (Right Rail) */}
-        <div className="w-full lg:w-[340px] flex flex-col gap-6 shrink-0">
+        {/* COLUMN 3: READINESS & INTELLIGENCE RAIL (30% Width) */}
+        {}
+        <div className="w-full lg:w-[340px] flex flex-col gap-6 shrink-0 overflow-hidden">
           
-          {/* Readiness Signal (ELO & Benchmark) */}
+          {/* Readiness Signal Card */}
           <section>
             <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-3 ml-1">Readiness Signal</h2>
-            <DeepGlassCard mousePos={mousePos} className="p-6">
+            <DeepGlassCard mousePos={mousePos} className="p-6 overflow-hidden">
               
-              {/* Circular Gauge */}
-              <div className="flex justify-center mb-8 relative">
-                <div className="relative w-36 h-36">
+              {/* Circular ELO Gauge */}
+              <div className="flex justify-center mb-6 relative">
+                <div className="relative w-32 h-32">
                   <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
-                    <motion.circle cx="50" cy="50" r="45" fill="none" stroke="#3b82f6" strokeWidth="6" strokeLinecap="round"
-                      strokeDasharray="282.7" strokeDashoffset={282.7 - (282.7 * (currentElo / 2000))}
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
+                    <motion.circle cx="50" cy="50" r="42" fill="none" stroke="#3b82f6" strokeWidth="6" strokeLinecap="round"
+                      strokeDasharray="263.8" strokeDashoffset={263.8 - (263.8 * (currentElo / 2000))}
                       transition={{ duration: 1.5, ease: "easeOut" }}
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <span className="text-3xl font-extrabold font-mono tabular-nums text-white tracking-tighter leading-none">{currentElo}</span>
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mt-1">Your ELO</span>
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mt-1">YOUR ELO</span>
                   </div>
                 </div>
               </div>
 
-              {/* Horizontal Benchmark Bar */}
-              <div className="space-y-3 mb-6">
+              {/* Benchmark Target Pills */}
+              <div className="space-y-2.5 mb-5 font-mono text-xs">
                 <div className="flex justify-between items-end">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-blue-400 flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-blue-500"/> Your ELO</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-blue-400 flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-blue-500"/> YOUR ELO</span>
                   <span className="text-xs font-mono font-bold text-white tabular-nums">{currentElo}</span>
                 </div>
                 <div className="flex justify-between items-end opacity-60">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-500"/> L4 Target</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-500"/> L4 TARGET</span>
                   <span className="text-xs font-mono font-bold text-slate-400 tabular-nums">{l4Target}</span>
                 </div>
                 <div className="flex justify-between items-end opacity-60">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-500"/> L5 Target</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-500"/> L5 TARGET</span>
                   <span className="text-xs font-mono font-bold text-slate-400 tabular-nums">{l5Target}</span>
                 </div>
               </div>
 
-              {/* Dynamic Status Badge — now reflects real distance to target */}
+              {/* Dynamic Status Badge */}
               <div className="bg-[#0A0A0C] border border-white/5 rounded-lg p-3 shadow-inner">
                 {currentElo >= l5Target ? (
                   <>
-                    <span className="block text-[9px] font-bold uppercase tracking-widest text-emerald-400 mb-1">L5 Ready</span>
-                    <p className="text-[10px] font-medium text-slate-400 leading-snug">You've cleared the L5 benchmark. Keep sharpening — try Hostile persona for real pressure.</p>
+                    <span className="block text-[9px] font-bold uppercase tracking-widest text-emerald-400 mb-1">L5 BENCHMARK CLEARED</span>
+                    <p className="text-[10px] font-medium text-slate-400 leading-snug">Comfortably above the L5 target. Select Hostile or Socratic persona to challenge your ceiling.</p>
                   </>
-                ) : currentElo >= l4Target ? (
+                ) : currentElo >= currentTargetElo ? (
                   <>
-                    <span className="block text-[9px] font-bold uppercase tracking-widest text-amber-400 mb-1">{l5Target - currentElo} pts to L5</span>
-                    <p className="text-[10px] font-medium text-slate-400 leading-snug">Comfortably above L4. Push toward L5 to challenge your ceiling.</p>
+                    <span className="block text-[9px] font-bold uppercase tracking-widest text-amber-400 mb-1">{l5Target - currentElo} PTS TO L5 BENCHMARK</span>
+                    <p className="text-[10px] font-medium text-slate-400 leading-snug">Comfortably above {role.split("—")[0].trim()} target. Push toward L5 to test high-concurrency bounds.</p>
                   </>
                 ) : (
                   <>
-                    <span className="block text-[9px] font-bold uppercase tracking-widest text-rose-400 mb-1">{l4Target - currentElo} pts to L4</span>
-                    <p className="text-[10px] font-medium text-slate-400 leading-snug">Keep drilling — you're still building toward the L4 baseline.</p>
+                    <span className="block text-[9px] font-bold uppercase tracking-widest text-rose-400 mb-1">{currentTargetElo - currentElo} PTS TO TARGET</span>
+                    <p className="text-[10px] font-medium text-slate-400 leading-snug">Currently building toward the {role.split("—")[0].trim()} benchmark. Focus on trade-off reasoning.</p>
                   </>
                 )}
               </div>
@@ -607,34 +693,34 @@ export default function Dashboard({ onStart, user, onGoBack }) {
           </section>
 
           {/* Company Intelligence Playbook */}
-          <section className="flex-1 flex flex-col">
+          <section className="flex-1 flex flex-col overflow-hidden">
             <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-3 ml-1">Company Intelligence</h2>
-            <DeepGlassCard mousePos={mousePos} className="flex-1 p-6 flex flex-col justify-between">
+            <DeepGlassCard mousePos={mousePos} className="flex-1 p-5 flex flex-col justify-between overflow-hidden">
               
-              <div className="mb-6">
-                <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-3">Typical Round Structure</span>
-                <div className="bg-[#0A0A0C] border border-white/5 rounded-lg px-3 py-2.5 shadow-inner">
+              <div className="mb-4">
+                <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2">TYPICAL ROUND STRUCTURE</span>
+                <div className="bg-[#0A0A0C] border border-white/5 rounded-lg px-3 py-2 shadow-inner">
                   <span className="text-xs font-bold text-slate-200">{activeIntel.rounds}</span>
                 </div>
               </div>
 
-              <div className="space-y-4 flex-1">
+              <div className="space-y-3.5 flex-1 overflow-hidden">
                 <div>
-                  <span className="block text-[9px] font-bold text-emerald-500 uppercase tracking-widest mb-2">DO THIS</span>
-                  <ul className="space-y-1.5">
+                  <span className="block text-[9px] font-bold text-emerald-400 uppercase tracking-widest mb-1.5">DO THIS</span>
+                  <ul className="space-y-1">
                     {activeIntel.do.map((item, i) => (
                       <li key={i} className="text-[11px] font-medium text-slate-300 flex items-start gap-2">
-                        <CheckCircle2 size={12} className="text-emerald-500 mt-0.5 shrink-0" /> {item}
+                        <CheckCircle2 size={12} className="text-emerald-400 mt-0.5 shrink-0" /> <span>{item}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
                 <div>
-                  <span className="block text-[9px] font-bold text-red-500 uppercase tracking-widest mb-2">AVOID THIS</span>
-                  <ul className="space-y-1.5">
+                  <span className="block text-[9px] font-bold text-rose-400 uppercase tracking-widest mb-1.5">AVOID THIS</span>
+                  <ul className="space-y-1">
                     {activeIntel.avoid.map((item, i) => (
                       <li key={i} className="text-[11px] font-medium text-slate-400 flex items-start gap-2">
-                        <XCircle size={12} className="text-red-500/70 mt-0.5 shrink-0" /> {item}
+                        <XCircle size={12} className="text-rose-400 shrink-0 mt-0.5" /> <span>{item}</span>
                       </li>
                     ))}
                   </ul>
@@ -648,59 +734,46 @@ export default function Dashboard({ onStart, user, onGoBack }) {
 
       </main>
 
-      {/* --- LAYER 5: FLAGSHIP MULTI-COLUMN ACTION DOCK & ARCHITECTURE SUMMARY FOOTER --- */}
+      {/* FIXED ACTION FOOTER */}
+      {}
       <footer className="relative z-30 border-t border-white/[0.08] bg-[#050508]/90 backdrop-blur-2xl px-6 lg:px-10 py-4 shrink-0 font-mono text-xs">
         <div className="max-w-[1600px] mx-auto flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-6">
           
-          {/* Summary Matrix Columns */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 flex-1 pr-0 xl:pr-8 xl:border-r border-white/10">
-            
-            {/* Column 1: Viewport & System Architecture */}
             <div className="space-y-1">
-              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em] block">Viewport Architecture</span>
+              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em] block">VIEWPORT ARCHITECTURE</span>
               <p className="text-[11px] font-bold text-white tracking-tight">Single-Viewport Cockpit</p>
-              <p className="text-[10px] text-slate-400">Everything above the fold · Zero scroll overhead</p>
+              <p className="text-[10px] text-slate-400">Everything above the fold &middot; Zero scroll overhead</p>
             </div>
 
-            {/* Column 2: Information Hierarchy & Target */}
             <div className="space-y-1">
-              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em] block">Active Configuration</span>
-              <p className="text-[11px] font-bold text-indigo-400 tracking-tight">{activeComp.name} &middot; {role}</p>
+              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em] block">ACTIVE CONFIGURATION</span>
+              <p className="text-[11px] font-bold text-blue-400 tracking-tight">{activeComp.name} &middot; {role}</p>
               <p className="text-[10px] text-slate-400">Scenario auto-compiled via Company DNA RAG</p>
             </div>
 
-            {/* Column 3: Interaction & Demeanor */}
             <div className="space-y-1">
-              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em] block">Interviewer Dynamics</span>
+              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em] block">INTERVIEWER DYNAMICS</span>
               <p className="text-[11px] font-bold text-emerald-400 tracking-tight">{activePers.label} Demeanor &middot; {currentElo} ELO</p>
               <p className="text-[10px] text-slate-400">Pressure telemetry &amp; live interruptions active</p>
             </div>
-
           </div>
 
-          {/* Primary Execution Trigger */}
           <div className="w-full xl:w-80 shrink-0 flex items-center justify-center">
             <motion.button 
               whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
               onClick={handleLaunch}
               disabled={isBooting}
-              className="w-full h-12 rounded-xl bg-white text-black text-xs font-extrabold uppercase tracking-widest flex items-center justify-center gap-3 shadow-[0_0_30px_rgba(255,255,255,0.15)] hover:shadow-[0_0_50px_rgba(255,255,255,0.3)] transition-shadow outline-none relative overflow-hidden group"
+              className="w-full h-12 rounded-xl bg-white text-black text-xs font-extrabold uppercase tracking-widest flex items-center justify-center gap-3 shadow-[0_0_30px_rgba(255,255,255,0.15)] hover:shadow-[0_0_50px_rgba(255,255,255,0.3)] transition-shadow outline-none relative overflow-hidden group disabled:opacity-50"
             >
               <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
-              Cross Threshold <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+              CROSS THRESHOLD <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </motion.button>
           </div>
 
         </div>
       </footer>
 
-      {/* Global CSS for Animations */}
-      <style>{`
-        @keyframes shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-      `}</style>
     </div>
   );
 }
