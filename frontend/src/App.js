@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate as useNav } from "react-router-dom";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Terminal, LayoutGrid, Code2, LogOut, Settings as SettingsIcon, Play, Database } from "lucide-react";
