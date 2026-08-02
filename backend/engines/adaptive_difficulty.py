@@ -102,9 +102,9 @@ class AdaptiveDifficultyEngine:
             constraint_type = "clarify"
 
         CONSTRAINT_PROMPTS = {
-            "clarify": "Add a constraint asking the candidate to clarify the time and space complexity of their solution.",
-            "tradeoff": "Add a constraint: the system now has a strict 50ms latency budget. How does their design change?",
-            "scale": "Add a hostile constraint: the dataset is now 50TB distributed across three data centers with potential network partitions. How does their logic change?"
+            "clarify": f"Add a constraint that pushes the candidate to be more precise and rigorous — appropriate to a {role}'s actual domain (e.g. algorithmic complexity for engineering roles, statistical rigor or evaluation methodology for ML roles, measurable business impact for behavioral/communication scenarios). Do not force a complexity-analysis framing onto a role or scenario where it doesn't naturally fit.",
+            "tradeoff": f"Add a realistic operational constraint relevant to a {role} (e.g. a latency budget for engineering roles, a model accuracy/fairness tradeoff for ML roles, a stakeholder buy-in constraint for communication scenarios). How does their approach change?",
+            "scale": f"Add a hostile constraint that scales up the hardest real-world pressure a {role} would face in this exact scenario — not a generic 'more data, more servers' constraint unless that's genuinely what a {role} would encounter. How does their approach change?"
         }
 
         persona_instruction = PERSONA_INSTRUCTIONS.get(persona, "")
@@ -112,8 +112,8 @@ class AdaptiveDifficultyEngine:
         response = self.client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=400,
-            system=f"""You are a senior {company} interviewer. The candidate just answered a question.
-            Your job is to push back with a harder follow-up constraint.
+            system=f"""You are a senior {company} interviewer hiring for a {role} position. The candidate just answered a question.
+            Your job is to push back with a harder follow-up constraint that stays relevant to what a {role} actually works on.
             {CONSTRAINT_PROMPTS[constraint_type]}
             {persona_instruction}
 

@@ -231,6 +231,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
           difficulty,
           elo: currentElo,
           company: sessionData?.company_profile?.name?.toLowerCase(),
+          role: sessionData?.role,
           category,
           persona,
         },

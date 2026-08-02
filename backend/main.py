@@ -130,6 +130,7 @@ class SubmitAnswerRequest(BaseModel):
     difficulty: int
     elo: float
     company: str = None
+    role: str = "Software Engineer"
     failed_topic: str = None
     category: str = None
     persona: str = "standard"
@@ -378,7 +379,7 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
                 previous_answer=clean_answer,
                 elo=new_elo,
                 company=payload.company or "google",
-                role="Software Engineer",
+                role=payload.role,
                 previous_category=payload.category if hasattr(payload, "category") else None,
                 persona=payload.persona
             )
@@ -386,7 +387,7 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
             next_question_data = difficulty_engine.select_question(
                 elo=new_elo,
                 company=payload.company or "google",
-                role="Software Engineer",
+                role=payload.role,
                 failed_topic=failed_topic,
                 persona=payload.persona
             )

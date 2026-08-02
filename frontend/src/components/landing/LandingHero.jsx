@@ -1,9 +1,9 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { motion, useInView, useMotionValue, useTransform, animate } from 'framer-motion';
+import { motion, useInView, useMotionValue, useTransform, animate, AnimatePresence } from 'framer-motion';
 import { BrainCircuit, Code2, ArrowRight, Layers, Terminal, BarChart3 } from 'lucide-react';
 
 // --- Tabular Slot-Machine Number Animation ---
-function AnimatedNumber({ to, decimals = 0, suffix = "" }) {
+export function AnimatedNumber({ to, decimals = 0, suffix = "" }) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-40px" });
   const count = useMotionValue(0);
@@ -54,13 +54,14 @@ function GlassCard({ children, className = "", onClick, active = false }) {
       onMouseMove={handleMouseMove}
       onMouseEnter={() => { updateRect(); setIsHovered(true); }}
       onMouseLeave={() => setIsHovered(false)}
-      whileHover={{ y: -2 }}
-      className={`relative rounded-2xl bg-[#08080C]/90 border overflow-hidden backdrop-blur-2xl transition-all duration-300 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),_0_20px_40px_-10px_rgba(0,0,0,0.6)] ${active ? 'border-blue-500/50' : 'border-white/[0.08] opacity-70 hover:opacity-100'} ${className}`}
+      whileHover={{ y: -4 }}
+      whileTap={{ scale: 0.98 }}
+      className={`relative rounded-2xl bg-[#08080C]/90 border overflow-hidden backdrop-blur-2xl transition-all duration-300 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),_0_20px_40px_-10px_rgba(0,0,0,0.6)] ${active ? 'border-blue-500/50 ring-1 ring-blue-500/20' : 'border-white/[0.08] opacity-70 hover:opacity-100'} ${className}`}
     >
       <div 
         className="absolute inset-0 pointer-events-none transition-opacity duration-300 z-0"
         style={{
-          background: `radial-gradient(400px circle at ${mousePos.x}px ${mousePos.y}px, rgba(255,255,255,0.05), transparent 40%)`,
+          background: `radial-gradient(400px circle at ${mousePos.x}px ${mousePos.y}px, rgba(255,255,255,0.06), transparent 40%)`,
           opacity: isHovered ? 1 : 0
         }}
       />
@@ -72,11 +73,10 @@ function GlassCard({ children, className = "", onClick, active = false }) {
 }
 
 export default function LandingHero({ activeTrack, setActiveTrack, onGetStarted }) {
-  const logos = ["Google", "Meta", "Amazon", "Microsoft", "Apple", "Netflix"];
+  const logos = ["Google", "Meta", "Amazon", "Microsoft", "Apple", "Netflix", "Stripe"];
 
   return (
     <>
-      {/* 1. HERO FOLD (FRAME 0) */}
       <section className="relative pt-40 pb-16 w-full z-10 flex flex-col items-center text-center px-6">
         
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-mono font-bold uppercase tracking-widest mb-6 shadow-sm">
@@ -84,18 +84,32 @@ export default function LandingHero({ activeTrack, setActiveTrack, onGetStarted 
           Autonomous Technical Interview Flight Simulator
         </div>
 
-        <h1 className="text-5xl md:text-7xl lg:text-[80px] font-extrabold tracking-tighter text-white leading-[1.05] max-w-5xl mb-6">
-          A real interview.<br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-emerald-400">
-            Not a practice quiz.
-          </span>
-        </h1>
+        {/* SMOOTH MORPHING HEADLINE */}
+        <div className="h-[140px] md:h-[180px] lg:h-[190px] flex items-center justify-center w-full relative">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTrack}
+              initial={{ opacity: 0, y: 20, filter: "blur(8px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, y: -20, filter: "blur(8px)" }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              className="absolute w-full"
+            >
+              <h1 className="text-5xl md:text-7xl lg:text-[80px] font-extrabold tracking-tighter text-white leading-[1.05] max-w-5xl mx-auto mb-6">
+                {activeTrack === 'system' ? 'A real interview.' : 'Live execution.'}<br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-emerald-400">
+                  {activeTrack === 'system' ? 'Not a practice quiz.' : 'Not a static text box.'}
+                </span>
+              </h1>
+            </motion.div>
+          </AnimatePresence>
+        </div>
 
-        <p className="text-base md:text-xl text-slate-300 max-w-2xl leading-relaxed mb-12 font-medium">
+        <p className="text-base md:text-xl text-slate-300 max-w-2xl leading-relaxed mb-12 font-medium z-10">
           Adaptive ELO difficulty, real-time speech telemetry, and sandboxed execution. Test drive the exact interview chamber before stepping inside.
         </p>
 
-        {/* Concept B: Dual Track Launch Selector Cards */}
+        {/* Dual Track Launch Selector Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full max-w-2xl mb-12 relative z-20">
           <GlassCard 
             onClick={() => setActiveTrack("system")}
@@ -108,9 +122,6 @@ export default function LandingHero({ activeTrack, setActiveTrack, onGetStarted 
             </div>
             <h3 className="text-base font-bold text-white mb-1">System Design & Architecture</h3>
             <p className="text-xs text-slate-400 font-medium leading-relaxed mb-5">High-throughput scenario prompts, voice streaming VAD, and STAR behavioral rubrics.</p>
-            <button onClick={onGetStarted} className="w-full py-2.5 rounded-xl bg-white text-black text-xs font-extrabold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-200 transition-colors">
-              Start System Design <ArrowRight size={14} />
-            </button>
           </GlassCard>
 
           <GlassCard 
@@ -124,21 +135,21 @@ export default function LandingHero({ activeTrack, setActiveTrack, onGetStarted 
             </div>
             <h3 className="text-base font-bold text-white mb-1">Live Coding IDE Sandbox</h3>
             <p className="text-xs text-slate-400 font-medium leading-relaxed mb-5">Monaco editor, 4 multi-language runtimes, test case execution pipelines, and Socratic hints.</p>
-            <button onClick={onGetStarted} className="w-full py-2.5 rounded-xl bg-white text-black text-xs font-extrabold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-200 transition-colors">
-              Start Live Coding <ArrowRight size={14} />
-            </button>
           </GlassCard>
         </div>
       </section>
 
-      {/* 2. METRIC TICKER & INFINITE MARQUEE */}
-      <section className="relative z-20 py-12 border-y border-white/[0.08] bg-[#020203]">
+      {/* METRIC TICKER & INFINITE MARQUEE */}
+      <section className="relative z-20 py-12 bg-transparent">
         <div className="max-w-7xl mx-auto px-6">
           <p className="text-[10px] font-mono font-bold uppercase tracking-[0.25em] text-slate-400 text-center mb-8">
             Engineered for FAANG-level technical evaluation standards
           </p>
 
-          <div className="overflow-hidden mask-edges w-full max-w-5xl mx-auto mb-12 marquee-container">
+          <div 
+            className="overflow-hidden w-full max-w-5xl mx-auto mb-16 marquee-container"
+            style={{ WebkitMaskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)' }}
+          >
             <div className="flex gap-16 w-max animate-marquee opacity-60">
               {[...logos, ...logos, ...logos].map((logo, i) => (
                 <span key={`${logo}-${i}`} className="text-xl font-extrabold text-slate-300 uppercase tracking-tighter cursor-default">{logo}</span>
@@ -162,7 +173,7 @@ function MetricColumn({ value, label, icon: Icon, color }) {
   return (
     <div className="flex flex-col items-center">
       <div className="text-4xl md:text-5xl font-extrabold text-white tracking-tighter mb-2">{value}</div>
-      <div className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400 flex items-center justify-center gap-1.5">
+      <div className="text-[11px] font-mono font-bold uppercase tracking-widest text-slate-400 flex items-center justify-center gap-1.5">
         <Icon size={12} className={color} /> {label}
       </div>
     </div>
