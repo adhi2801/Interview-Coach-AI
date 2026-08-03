@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { motion, useMotionValue, useTransform, animate, AnimatePresence } from "framer-motion";
 import { 
   ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
-  LineChart, Line, XAxis, YAxis, Tooltip
+  LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid
 } from "recharts";
 import { 
   ChevronLeft, ChevronRight, AlertTriangle, Terminal, Activity, 
   Target, ArrowRight, MessageSquare, ListVideo, 
-  Sparkles, CheckCircle2, XCircle, Code2, Cpu, ShieldCheck
+  Sparkles, CheckCircle2, XCircle, Code2, Cpu, ShieldAlert,
+  Network, Search, Filter
 } from "lucide-react";
 import { API_URL } from "../config";
 import StudyPlan from "./StudyPlan";
@@ -121,6 +122,8 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(0);
   const [studyPlanTopic, setStudyPlanTopic] = useState(null);
+  const [filterQuery, setFilterQuery] = useState("");
+  const [activeFilterTab, setActiveFilterTab] = useState("All");
 
   useEffect(() => {
     async function fetchSessionList() {
@@ -163,11 +166,13 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [replay]);
 
+  const noiseSvg = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`;
+
   if (loading) {
     return (
-      <div className="h-screen w-full bg-[#000000] flex items-center justify-center font-sans">
+      <div className="h-screen w-full bg-[#050508] flex items-center justify-center font-sans">
         <div className="flex flex-col items-center gap-4 text-slate-500">
-          <span className="w-8 h-8 border-2 border-slate-700 border-t-blue-500 rounded-full animate-spin" />
+          <span className="w-8 h-8 border-2 border-slate-700 border-t-indigo-500 rounded-full animate-spin" />
           <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400">Decrypting Telemetry Ledger...</span>
         </div>
       </div>
@@ -175,61 +180,156 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
   }
 
   if (!sessionId) {
+    const filteredSessions = (sessionList || []).filter((s) => {
+      const q = filterQuery.toLowerCase();
+      const matchQuery = !q || (s.company_target || "").toLowerCase().includes(q) || (s.role || "").toLowerCase().includes(q);
+      const matchTab = activeFilterTab === "All" || 
+        (activeFilterTab === "FAANG" && ["google", "meta", "amazon", "apple", "netflix"].includes((s.company_target || "").toLowerCase())) ||
+        (activeFilterTab === "Startup" && (s.company_target || "").toLowerCase() === "startup");
+      return matchQuery && matchTab;
+    });
+
+    const netElo = filteredSessions.reduce((acc, s) => {
+      const delta = s.elo_after ? Math.round(s.elo_after - 1200) : 0;
+      return acc + delta;
+    }, 0);
+
     return (
-      <div className="h-screen w-full bg-[#000000] flex flex-col font-sans selection:bg-blue-500/30">
-        <header className="h-14 border-b border-white/[0.08] bg-[#030305] flex items-center justify-between px-8 shrink-0">
+      <div className="min-h-screen w-full bg-[#050508] text-slate-200 font-sans flex flex-col relative overflow-hidden">
+        {/* Ambient Lights */}
+        <div className="fixed top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-indigo-900/10 blur-[150px] pointer-events-none rounded-full z-0" />
+        <div className="fixed bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-blue-900/10 blur-[120px] pointer-events-none rounded-full z-0" />
+        <div className="fixed inset-0 z-10 pointer-events-none opacity-[0.03] mix-blend-soft-light" style={{ backgroundImage: noiseSvg }} />
+
+        {/* Global Header */}
+        <header className="h-16 border-b border-white/[0.06] bg-[#050508]/80 backdrop-blur-2xl flex items-center justify-between px-6 lg:px-10 z-30">
           <div className="flex items-center gap-3">
-            <div className="w-6 h-6 rounded bg-white flex items-center justify-center font-bold text-black text-[10px]">IC</div>
-            <span className="text-white text-sm font-bold tracking-tight">Session Replay Studio</span>
+            <div className="w-6 h-6 rounded bg-indigo-500 text-white flex items-center justify-center font-bold text-[10px] shadow-[0_0_15px_rgba(99,102,241,0.4)]">IC</div>
+            <span className="font-semibold text-white tracking-tight text-sm flex items-center gap-2">
+              InterviewCoach <span className="text-slate-600 font-normal">/</span> <span className="text-slate-400">Flight Ledger</span>
+            </span>
           </div>
           {onExit && (
-            <button onClick={onExit} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors bg-white/[0.03] border border-white/10 px-3.5 py-1.5 rounded-lg">
-              <ChevronLeft size={16} /> Exit Studio
+            <button onClick={onExit} className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors bg-white/[0.02] border border-white/[0.06] px-3.5 py-1.5 rounded-lg hover:bg-white/[0.05]">
+              <ChevronLeft size={14} /> Dashboard
             </button>
           )}
         </header>
 
-        <div className="flex-1 overflow-y-auto p-8 lg:p-12 max-w-5xl mx-auto w-full">
-          <div className="flex items-center gap-3 mb-8">
-            <ListVideo className="text-blue-500" size={24} />
-            <h2 className="text-2xl font-bold text-white tracking-tight">Select a Flight Ledger to Audit</h2>
-          </div>
+        <main className="flex-1 w-full max-w-[1400px] mx-auto p-6 lg:p-10 relative z-20 overflow-y-auto">
           
-          {!sessionList || sessionList.length === 0 ? (
-            <div className="p-12 border border-white/10 border-dashed rounded-2xl text-center text-slate-500 text-sm font-medium">No historical telemetry found in user record.</div>
+          {/* Action & Filter Bar */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
+                <ListVideo className="text-indigo-400" size={24} />
+                <h1 className="text-3xl font-extrabold text-white tracking-tight">Flight Ledger</h1>
+              </div>
+              <span className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-mono text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                {filteredSessions.length} Sessions
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg">
+                <Activity size={14} /> Net ELO {netElo >= 0 ? `+${netElo}` : netElo}
+              </div>
+
+              <div className="relative group w-48 sm:w-64">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input 
+                  type="text" 
+                  placeholder="Search company, role..."
+                  value={filterQuery}
+                  onChange={(e) => setFilterQuery(e.target.value)}
+                  className="w-full bg-[#0A0A0E] border border-white/[0.06] rounded-lg py-1.5 pl-9 pr-4 text-xs font-medium text-white focus:outline-none focus:border-indigo-500 transition-colors placeholder-slate-600 shadow-inner"
+                />
+              </div>
+
+              <div className="flex items-center bg-[#0A0A0E] border border-white/[0.06] p-1 rounded-lg">
+                {["All", "FAANG", "Startup"].map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setActiveFilterTab(f)}
+                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all outline-none ${
+                      activeFilterTab === f ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-300"
+                    }`}
+                  >
+                    {f === "All" && <Filter size={12} className="inline-block mr-1.5 -mt-0.5" />}
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <p className="text-sm font-medium text-slate-400 mb-8">Select a session to open the full audit trail and telemetry replay.</p>
+
+          {!filteredSessions || filteredSessions.length === 0 ? (
+            <div className="p-16 border border-white/10 border-dashed rounded-2xl text-center text-slate-500 text-sm font-medium bg-[#0A0A0E]/50">
+              No flight ledgers found matching criteria.
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {sessionList.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => onSelectSession?.(s.id)}
-                  className="text-left p-5 rounded-2xl bg-[#050508] border border-white/[0.06] hover:bg-white/[0.04] hover:border-white/20 transition-all group flex flex-col justify-between h-36 shadow-lg outline-none"
-                >
-                  <div className="flex justify-between items-start w-full mb-4">
-                    <div>
-                      <span className="text-sm font-bold text-white tracking-tight block">{s.company_target}</span>
-                      <span className="text-xs text-slate-400 font-medium">{s.role}</span>
+              {filteredSessions.map((s) => {
+                const eloDelta = s.elo_after ? Math.round(s.elo_after - 1200) : 14; 
+                const companyName = s.company_target ? s.company_target.charAt(0).toUpperCase() + s.company_target.slice(1) : "Google";
+                const roleName = s.role || "Staff Engineer — L6";
+                const init = companyName.charAt(0);
+                
+                const bgColors = { 'G': 'bg-blue-600', 'M': 'bg-blue-600', 'A': 'bg-amber-600', 'S': 'bg-indigo-600' };
+                const iconBg = bgColors[init] || 'bg-slate-600';
+
+                return (
+                  <GlassCard
+                    key={s.id}
+                    onClick={() => onSelectSession?.(s.id)}
+                    className="p-5 flex flex-col justify-between h-36 group cursor-pointer hover:border-indigo-500/30"
+                  >
+                    <div className="flex justify-between items-start w-full">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-white text-lg shadow-inner ${iconBg}`}>
+                          {init}
+                        </div>
+                        <div>
+                          <h3 className="text-base font-bold text-white tracking-tight mb-0.5">{companyName}</h3>
+                          <p className="text-xs font-medium text-slate-400">{roleName}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col items-end gap-1.5">
+                        <span className="text-[10px] font-mono font-bold text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 flex items-center gap-1.5">
+                          <Network size={10} /> {s.question_count || 4} Nodes
+                        </span>
+                        <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border flex items-center gap-1 ${
+                          eloDelta >= 0 ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" : "text-rose-400 bg-rose-500/10 border-rose-500/20"
+                        }`}>
+                          {eloDelta >= 0 ? '↑' : '↓'} {Math.abs(eloDelta)} ELO
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-[10px] font-mono text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded border border-blue-500/20 font-bold">{s.question_count} Nodes</span>
-                  </div>
-                  <div className="flex justify-between items-end w-full pt-3 border-t border-white/[0.04]">
-                    <span className="text-[10px] uppercase tracking-widest text-slate-500 font-mono font-bold">Session #{s.id}</span>
-                    <div className="flex items-center gap-1 text-xs font-bold text-blue-400 group-hover:text-white transition-colors">
-                      Audit Ledger <ChevronRight size={14} />
+
+                    <div className="flex justify-between items-end w-full pt-4 mt-auto border-t border-white/[0.04]">
+                      <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                        SESSION #{s.id} <span className="w-1 h-1 bg-slate-600 rounded-full" /> {s.started_at ? new Date(s.started_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Jul 14"}
+                      </span>
+                      <button className="text-[10px] font-bold text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 px-3 py-1.5 rounded uppercase tracking-wider transition-colors flex items-center gap-1">
+                        Audit Ledger <ArrowRight size={12} />
+                      </button>
                     </div>
-                  </div>
-                </button>
-              ))}
+                  </GlassCard>
+                );
+              })}
             </div>
           )}
-        </div>
+        </main>
       </div>
     );
   }
 
   if (!replay || replay.error || !replay.questions?.length) {
     return (
-      <div className="h-screen w-full bg-[#000000] flex items-center justify-center font-sans">
+      <div className="h-screen w-full bg-[#050508] flex items-center justify-center font-sans">
         <div className="text-center space-y-4 max-w-md px-6">
           <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 mx-auto">
             <AlertTriangle size={24} />
@@ -250,11 +350,11 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
   const overall = q?.scores ? ((q.scores.score_technical + q.scores.score_communication + q.scores.score_problem_solving + q.scores.score_cultural_fit + q.scores.score_confidence) / 5).toFixed(1) : 0;
   const ovNum = parseFloat(overall || 0);
   const theme = ovNum >= 7.5 ? "emerald" : ovNum >= 5.0 ? "amber" : "rose";
+  const themeHex = theme === "emerald" ? "#10b981" : theme === "amber" ? "#f59e0b" : "#f43f5e";
   const statusLabel = ovNum >= 7.5 ? "STRONG SIGNAL" : ovNum >= 5.0 ? "MODERATE SIGNAL" : "CRITICAL GAP";
   const totalNodes = replay.questions.length;
   const parsedPrompt = parsePromptFallback(q.question, q.scenario, q.constraints, q.ask, replay.role || "", q.category || "");
 
-  /* Filtering attempted nodes so unattempted (N/A) nodes do not distort the ELO trajectory or average */
   const attemptedNodes = replay.questions.filter(qn => qn.scores);
   const trajectoryData = attemptedNodes.map((qn, idx) => {
     const nodeScore = ((qn.scores.score_technical + qn.scores.score_communication + qn.scores.score_problem_solving + qn.scores.score_cultural_fit + qn.scores.score_confidence) / 5).toFixed(1);
@@ -289,26 +389,25 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
   ];
 
   return (
-    <div className="h-screen w-full bg-[#000000] text-slate-100 font-sans flex flex-col overflow-hidden selection:bg-blue-500/30">
+    <div className="h-screen w-full bg-[#050508] text-slate-100 font-sans flex flex-col overflow-hidden selection:bg-indigo-500/30">
       
       {/* GLOBAL HUD HEADER */}
-      {}
-      <header className="h-12 border-b border-white/[0.08] bg-[#030305] flex items-center justify-between px-6 shrink-0 z-50">
+      <header className="h-14 border-b border-white/[0.06] bg-[#050508]/90 backdrop-blur-2xl flex items-center justify-between px-6 z-50 flex-shrink-0 sticky top-0 shadow-md">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-5 h-5 rounded bg-white flex items-center justify-center font-extrabold text-black text-[9px]">IC</div>
-            <span className="text-white text-xs font-bold tracking-tight">InterviewCoach</span>
+            <div className="w-6 h-6 rounded bg-indigo-500 flex items-center justify-center font-bold text-white text-[10px] shadow-[0_0_15px_rgba(99,102,241,0.4)]">IC</div>
+            <span className="text-white text-sm font-semibold tracking-tight hidden sm:block">InterviewCoach</span>
           </div>
 
-          <div className="w-px h-4 bg-white/10" />
+          <div className="w-px h-4 bg-white/10 hidden sm:block" />
 
           <div className="flex items-center gap-2 font-mono text-xs">
-            <span className="text-slate-400 font-bold uppercase">{replay.company || "Microsoft"}</span>
+            <span className="text-slate-200 font-bold uppercase">{replay.company || "Microsoft"}</span>
             <span className="text-slate-600">&gt;</span>
             <span className="text-slate-400 font-medium">{replay.role || "Frontend Engineer - L4"}</span>
             <span className="text-slate-600">&gt;</span>
-            <span className="text-blue-400 font-bold bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded text-[10px] tracking-widest uppercase">
-              REPLAY AUDIT
+            <span className="text-indigo-400 font-bold bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded text-[10px] tracking-widest uppercase shadow-sm">
+              REPLAY STUDIO
             </span>
           </div>
         </div>
@@ -321,7 +420,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                 <button
                   key={idx}
                   onClick={() => setSelected(idx)}
-                  className={`w-5 h-5 rounded text-[10px] font-bold transition-all ${selected === idx ? 'bg-blue-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
+                  className={`w-5 h-5 rounded text-[10px] font-bold transition-all outline-none ${selected === idx ? 'bg-indigo-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
                 >
                   {idx + 1}
                 </button>
@@ -331,16 +430,15 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
 
           <div className="w-px h-4 bg-white/10" />
 
-          <button onClick={onExit} className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors bg-white/5 border border-white/10 px-3 py-1.5 rounded-md">
-            <ChevronLeft size={12} /> Exit Replay
+          <button onClick={onExit} className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors bg-white/[0.04] border border-white/10 px-3.5 py-1.5 rounded-lg hover:bg-white/[0.08] outline-none">
+            <ChevronLeft size={14} /> Exit Replay
           </button>
         </div>
       </header>
 
       {/* WORKSPACE STREAM (65/35 ASYMMETRICAL LAYOUT) */}
-      {}
-      <main className="flex-1 w-full flex justify-center overflow-y-auto scrollbar-hide relative z-10 bg-[#000000]">
-        <div className="max-w-[1500px] w-full px-6 lg:px-10 py-5 flex flex-col lg:flex-row items-start gap-6">
+      <main className="flex-1 w-full flex justify-center overflow-y-auto scrollbar-hide relative z-20 bg-transparent">
+        <div className="max-w-[1500px] w-full px-6 lg:px-10 py-6 flex flex-col lg:flex-row items-start gap-6">
           
           {/* ========================================================= */}
           {/* LEFT STREAM (65% Width) - Diagnostic Narrative           */}
@@ -348,9 +446,8 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
           <div className="w-full lg:w-[65%] flex flex-col gap-5 shrink-0 pb-32">
             
             {/* TOP NODE SELECTOR PILLS */}
-            {}
-            <div className="flex items-center justify-between bg-[#050508] border border-white/[0.08] p-2 rounded-2xl">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between bg-[#0A0A0E] border border-white/[0.06] p-2 rounded-2xl shadow-sm">
+              <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
                 {replay.questions.map((qn, i) => {
                   const nodeScore = qn.scores ? ((qn.scores.score_technical + qn.scores.score_communication + qn.scores.score_problem_solving + qn.scores.score_cultural_fit + qn.scores.score_confidence) / 5).toFixed(1) : "N/A";
                   const isSelected = selected === i;
@@ -358,9 +455,9 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                     <button
                       key={i}
                       onClick={() => setSelected(i)}
-                      className={`flex items-center gap-3 px-3.5 py-1.5 rounded-xl border font-mono transition-all outline-none ${
+                      className={`flex items-center gap-3 px-3.5 py-1.5 rounded-xl border font-mono transition-all outline-none whitespace-nowrap ${
                         isSelected 
-                          ? "bg-blue-500/15 border-blue-500/30 text-white shadow-inner" 
+                          ? "bg-indigo-500/15 border-indigo-500/30 text-white shadow-inner" 
                           : "bg-transparent border-transparent text-slate-500 hover:bg-white/[0.03]"
                       }`}
                     >
@@ -373,9 +470,9 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                 })}
               </div>
 
-              <div className="flex items-center gap-2 pr-3 font-mono text-[10px] text-slate-500">
-                <span>AVG SCORE:</span>
-                <span className="text-white font-bold">{avgScore}</span>
+              <div className="flex items-center gap-2 pr-4 font-mono text-[10px] text-slate-500 shrink-0 border-l border-white/10 pl-4 ml-2">
+                <span>AVG SCORE</span>
+                <span className="text-white font-bold text-sm">{avgScore}</span>
               </div>
             </div>
 
@@ -383,8 +480,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
               <motion.div key={selected} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} className="space-y-5">
                 
                 {/* HERO VERDICT DECK */}
-                {}
-                <div className="bg-[#050508] border border-white/[0.08] rounded-2xl p-5 relative overflow-hidden shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]">
+                <GlassCard className="p-6 md:p-8">
                   <div className={`absolute -top-20 -right-20 w-64 h-64 bg-${theme}-500/10 blur-[100px] pointer-events-none rounded-full`} />
                   
                   <div className="flex flex-col md:flex-row items-center gap-5 relative z-10">
@@ -400,7 +496,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                         <span className={`inline-block text-[10px] font-mono font-bold px-2.5 py-0.5 rounded border uppercase tracking-widest bg-${theme}-500/10 text-${theme}-400 border-${theme}-500/20`}>
                           {statusLabel}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-500 bg-white/5 border border-white/10 px-2 py-0.5 rounded uppercase">
+                        <span className="text-[10px] font-mono text-slate-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded uppercase">
                           NODE {selected + 1} LOGGED
                         </span>
                       </div>
@@ -409,35 +505,34 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                       </h2>
                     </div>
                   </div>
-                </div>
+                </GlassCard>
 
                 {/* STAR DECOMPILED PROMPT */}
-                {}
-                <div className="bg-[#050508] border border-white/[0.08] rounded-2xl p-5 space-y-4">
+                <GlassCard className="p-6 md:p-8 space-y-5">
                   <div className="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
                     <div className="flex items-center gap-2">
-                      <Terminal size={15} className="text-blue-400" />
+                      <Terminal size={15} className="text-indigo-400" />
                       <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-300">STAR Prompt Specification</h3>
                     </div>
-                    <span className="text-[9px] font-mono bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded font-bold uppercase">
+                    <span className="text-[9px] font-mono bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded font-bold uppercase">
                       STAR DECOMPOSED
                     </span>
                   </div>
 
                   {parsedPrompt.scenario && (
                     <div className="space-y-1">
-                      <span className="text-[10px] font-bold font-mono text-blue-400 uppercase tracking-widest block">S &middot; SITUATION</span>
+                      <span className="text-[10px] font-bold font-mono text-indigo-400 uppercase tracking-widest block">S &middot; SITUATION</span>
                       <p className="text-xs text-slate-300 leading-relaxed font-medium">{parsedPrompt.scenario}</p>
                     </div>
                   )}
 
                   {parsedPrompt.constraints?.length > 0 && (
                     <div className="space-y-1.5 pt-2 border-t border-white/[0.04]">
-                      <span className="text-[10px] font-bold font-mono text-indigo-400 uppercase tracking-widest block">T &middot; TASK / CONSTRAINTS</span>
+                      <span className="text-[10px] font-bold font-mono text-blue-400 uppercase tracking-widest block">T &middot; TASK / CONSTRAINTS</span>
                       <ul className="space-y-1">
                         {parsedPrompt.constraints.map((c, idx) => (
                           <li key={idx} className="text-xs text-slate-300 font-medium flex items-start gap-2">
-                            <span className="text-indigo-500 font-mono mt-0.5">&gt;</span> {c}
+                            <span className="text-blue-500 font-mono mt-0.5">&gt;</span> {c}
                           </li>
                         ))}
                       </ul>
@@ -454,11 +549,10 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                       ))}
                     </div>
                   </div>
-                </div>
+                </GlassCard>
 
                 {/* CANDIDATE SUBMITTED RESPONSE */}
-                {}
-                <div className="bg-[#050508] border border-white/[0.08] rounded-2xl p-5 space-y-3">
+                <GlassCard className="p-6 md:p-8 space-y-3">
                   <div className="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
                     <div className="flex items-center gap-2">
                       <MessageSquare size={15} className="text-indigo-400" />
@@ -472,14 +566,13 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                   <div className="bg-[#020204] border border-white/[0.05] p-4 rounded-xl font-mono text-xs text-slate-200 leading-[1.8] whitespace-pre-wrap">
                     {q.answer || "[No candidate response recorded for this node]"}
                   </div>
-                </div>
+                </GlassCard>
 
                 {/* ANNOTATED FEEDBACK — ITEMIZED MISSING SIGNALS & MODEL SCAFFOLD */}
-                {}
-                <div className="bg-[#050508] border border-white/[0.08] rounded-2xl p-5 space-y-4">
+                <GlassCard className="p-6 md:p-8 space-y-4">
                   <div className="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
                     <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-300 flex items-center gap-2">
-                      <Sparkles size={14} className="text-blue-400" /> AI Annotation Breakdown
+                      <Sparkles size={14} className="text-indigo-400" /> AI Annotation Breakdown
                     </h3>
                     <span className="text-[9px] font-mono text-amber-400 font-bold">{missingAnnotations.length} DIAGNOSED POINTS</span>
                   </div>
@@ -507,7 +600,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                       {missingAnnotations[0]?.solution || `"Propose a structured, two-phase release plan: deploy the keyboard navigation hotfix immediately, followed by automated integration tests in CI/CD."`}
                     </p>
                   </div>
-                </div>
+                </GlassCard>
 
               </motion.div>
             </AnimatePresence>
@@ -517,12 +610,10 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
           {/* ========================================================= */}
           {/* RIGHT STICKY RAIL (35% Width) - Telemetry & Next Steps    */}
           {/* ========================================================= */}
-          {}
           <div className="w-full lg:w-[35%] flex flex-col gap-5 lg:sticky lg:top-5 pb-32 overflow-hidden">
             
             {/* SESSION ELO TRAJECTORY CHART */}
-            {}
-            <div className="bg-[#050508] border border-white/[0.08] rounded-2xl p-4 space-y-2 overflow-hidden">
+            <GlassCard className="p-4 space-y-2 overflow-hidden">
               <div className="flex items-center justify-between mb-1">
                 <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Session ELO Trajectory</h3>
                 <span className="text-[10px] font-mono text-white font-bold bg-white/5 border border-white/10 px-2 py-0.5 rounded">AVG {avgScore}</span>
@@ -532,20 +623,19 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                   <LineChart data={trajectoryData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                     <XAxis dataKey="node" tick={{ fill: "#64748b", fontSize: 10, fontFamily: "monospace" }} axisLine={false} tickLine={false} />
                     <YAxis domain={[0, 10]} tick={{ fill: "#64748b", fontSize: 10, fontFamily: "monospace" }} axisLine={false} tickLine={false} />
-                    <Tooltip contentStyle={{ backgroundColor: "#08080C", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", fontSize: "11px" }} />
-                    <Line type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={2} dot={{ fill: "#3b82f6", r: 4 }} />
+                    <Tooltip contentStyle={{ backgroundColor: "#0A0A0E", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", fontSize: "11px" }} />
+                    <Line type="monotone" dataKey="score" stroke="#6366f1" strokeWidth={2} dot={{ fill: "#6366f1", r: 4 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-            </div>
+            </GlassCard>
 
             {/* 5D SKILL MORPHOLOGY RADAR */}
-            {}
             {q?.scores && (
-              <div className="bg-[#050508] border border-white/[0.08] rounded-2xl p-4 space-y-2 overflow-hidden">
+              <GlassCard className="p-4 space-y-2 overflow-hidden">
                 <div className="flex items-center justify-between mb-1">
                   <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">5D Skill Morphology</h3>
-                  <span className="text-[9px] font-mono bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded">NODE {selected + 1}</span>
+                  <span className="text-[9px] font-mono bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded">NODE {selected + 1}</span>
                 </div>
                 <div className="w-full h-44">
                   <ResponsiveContainer width="100%" height="100%">
@@ -559,18 +649,17 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                       <PolarGrid stroke="#27272a" />
                       <PolarAngleAxis dataKey="dim" tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: "bold" }} />
                       <PolarRadiusAxis domain={[0, 10]} tick={false} axisLine={false} />
-                      <Radar dataKey="value" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.25} strokeWidth={2} />
+                      <Radar dataKey="value" stroke="#6366f1" fill="#6366f1" fillOpacity={0.25} strokeWidth={2} />
                     </RadarChart>
                   </ResponsiveContainer>
                 </div>
-              </div>
+              </GlassCard>
             )}
 
             {/* VOICE TELEMETRY METERS */}
-            {}
-            <div className="bg-[#050508] border border-white/[0.08] rounded-2xl p-4 space-y-2 font-mono text-xs overflow-hidden">
+            <GlassCard className="p-4 space-y-2 font-mono text-xs overflow-hidden">
               <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2 mb-2">
-                <Activity size={13} className="text-blue-400" /> Voice Telemetry Log
+                <Activity size={13} className="text-indigo-400" /> Voice Telemetry Log
               </h3>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
@@ -586,11 +675,10 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                   <span className="text-amber-400 font-bold">31 WPM</span>
                 </div>
               </div>
-            </div>
+            </GlassCard>
 
             {/* RANKED GAP FIX QUEUE */}
-            {}
-            <div className="bg-[#050508] border border-white/[0.08] rounded-2xl p-4 space-y-3 overflow-hidden">
+            <GlassCard className="p-4 space-y-3 overflow-hidden">
               <div className="flex items-center justify-between mb-1">
                 <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 flex items-center gap-1.5">
                   <Target size={13} className="text-amber-500" /> Ranked Gap Fix Queue
@@ -609,20 +697,19 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                       <span className="text-xs font-bold text-slate-200 group-hover:text-white capitalize transition-colors">{gap.gap.replace(/_/g, " ")}</span>
                       <span className="text-[10px] font-mono font-bold text-emerald-400">{gap.elo || "+12"} ELO</span>
                     </div>
-                    <div className="text-[9px] font-bold text-blue-400 uppercase tracking-widest flex items-center gap-1 mt-1.5">
+                    <div className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1 mt-1.5">
                       Launch Study Path <ArrowRight size={10} />
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
+            </GlassCard>
 
           </div>
         </div>
       </main>
 
       {/* ANCHORED KEYBOARD DOCK */}
-      {}
       <div className="fixed bottom-0 left-0 right-0 h-12 bg-[#050508] border-t border-white/[0.08] flex items-center justify-between px-6 z-50 shadow-2xl font-mono text-xs">
         <div className="flex items-center gap-3">
           <span className="text-slate-500 text-[10px] uppercase font-bold">Node</span>
@@ -650,10 +737,23 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
       </div>
 
       {/* OVERLAY MODALS */}
-      {}
-      {studyPlanTopic && (
-        <StudyPlan topicName={studyPlanTopic} company={replay.company?.toLowerCase()} onClose={() => setStudyPlanTopic(null)} />
-      )}
+      <AnimatePresence>
+        {studyPlanTopic && (
+          <StudyPlan topicName={studyPlanTopic} company={replay.company?.toLowerCase()} onClose={() => setStudyPlanTopic(null)} />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function GlassCard({ children, className = "" }) {
+  return (
+    <div 
+      className={`relative rounded-2xl bg-[#0A0A0F]/80 border border-white/[0.06] overflow-hidden backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_20px_40px_-10px_rgba(0,0,0,0.5)] ${className}`}
+    >
+      <div className="relative z-10 w-full h-full flex flex-col">
+        {children}
+      </div>
     </div>
   );
 }

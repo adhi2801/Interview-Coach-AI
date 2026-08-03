@@ -1,14 +1,13 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { API_URL } from "../config";
 import { motion, AnimatePresence } from "framer-motion";
-import { Network, X, ChevronRight, Activity, Terminal, AlertTriangle, Play } from "lucide-react";
+import { Network, X, ChevronRight, Activity, AlertTriangle } from "lucide-react";
 
 export default function StudyPlan({ topicName, company, onClose }) {
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Close modal on Escape key
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Escape") onClose();
@@ -25,7 +24,7 @@ export default function StudyPlan({ topicName, company, onClose }) {
         });
         setPlan(res.data);
       } catch (err) {
-        console.error(err);
+        console.error("Failed to load study plan:", err);
       }
       setLoading(false);
     }

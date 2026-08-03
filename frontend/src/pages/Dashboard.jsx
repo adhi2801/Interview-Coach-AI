@@ -1,17 +1,16 @@
+import { API_URL } from "../config";
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import axios from "axios";
 import { 
-  Rocket, ShieldAlert, Brain, Battery, User, Activity, 
-  Terminal, ChevronRight, CheckCircle2, XCircle, ArrowLeft, ArrowRight, Target, Cpu, Sparkles
+  Terminal, BrainCircuit, ChevronRight, Activity, ArrowLeft, ArrowRight, Target, 
+  Cpu, Sparkles, CheckCircle2, XCircle, User, ShieldAlert, Brain, Battery, Rocket, 
+  ChevronDown, Check 
 } from "lucide-react";
-import { API_URL } from "../config";
+import axios from "axios";
+import * as SelectPrimitive from "@radix-ui/react-select";
 import { siMeta, siApple, siNetflix } from "simple-icons";
 import { FaAmazon } from "react-icons/fa";
 
-// ============================================================================
-// BRAND VECTOR ASSETS & PROFILES (100% PRESERVED)
-// ============================================================================
 function BrandIcon({ icon, className = "w-4 h-4", forceWhite = false }) {
   return (
     <svg role="img" viewBox="0 0 24 24" className={className} fill={forceWhite ? "#ffffff" : `#${icon.hex}`}>
@@ -83,7 +82,7 @@ const PERSONAS = [
 
 const INTELLIGENCE = {
   google: {
-    scenario: "Design a globally distributed rate limiter capable of handling 100 million RPS burst traffic.",
+    scenario: "Design a globally distributed rate limiter capable of handling 100 million RPS burst traffic across Spanner and Bigtable.",
     sla: { throughput: "100k RPS Global Spike", latency: "< 10ms P99 Latency SLA" },
     rounds: "2x Coding · 1x System Design · 1x Googley",
     do: ["Think out loud constantly", "State time/space complexity explicitly", "Handle edge cases first"],
@@ -91,48 +90,48 @@ const INTELLIGENCE = {
     pillars: [ { name: "Algorithms & Data Structures", val: 85 }, { name: "System Architecture", val: 70 }, { name: "Communication", val: 60 } ]
   },
   amazon: {
-    scenario: "Architect a shopping cart service that prioritizes high availability over strict consistency during Prime Day.",
-    sla: { throughput: "500k RPS Peak", latency: "< 15ms Response Time" },
+    scenario: "Architect a high-availability shopping cart & checkout service during Prime Day prioritizing availability over strict consistency.",
+    sla: { throughput: "500k RPS Peak", latency: "< 15ms Response SLA" },
     rounds: "1x System Design · 3x Leadership Principles",
     do: ["Use STAR method strictly", "Emphasize Bias for Action", "Focus on customer obsession"],
     avoid: ["Saying 'We' instead of 'I'", "Overcomplicating the MVP"],
     pillars: [ { name: "Leadership Principles", val: 95 }, { name: "System Scalability", val: 80 }, { name: "Data Structures", val: 50 } ]
   },
   meta: {
-    scenario: "Design the real-time fanout infrastructure for Instagram Live Video supporting 2B concurrent users.",
-    sla: { throughput: "2B Concurrent Conns", latency: "< 50ms Global Sync" },
+    scenario: "Design the real-time fanout infrastructure for Instagram Live Video supporting 2B concurrent connections.",
+    sla: { throughput: "2B Concurrent Conns", latency: "< 50ms Global Sync SLA" },
     rounds: "2x Coding · 1x System Design · 1x Behavioral",
     do: ["Move fast and prototype", "Discuss high-fanout bottlenecks", "Optimize for speed over perfection"],
     avoid: ["Over-engineering edge cases", "Ignoring product sense"],
     pillars: [ { name: "Execution Speed", val: 90 }, { name: "System Architecture", val: 85 }, { name: "Product Sense", val: 75 } ]
   },
   microsoft: {
-    scenario: "Design a real-time collaborative document editor like Word Online using Operational Transformation.",
-    sla: { throughput: "10M Active Docs", latency: "< 30ms Operational Sync" },
+    scenario: "Design a real-time collaborative document editor like Word Online using Operational Transformation (OT).",
+    sla: { throughput: "10M Active Docs", latency: "< 30ms Operational Sync SLA" },
     rounds: "2x Coding · 2x System Design · 1x Hiring Manager",
     do: ["Focus on enterprise compliance", "Discuss cross-team collaboration", "Prioritize API design hygiene"],
     avoid: ["Ignoring backward compatibility", "Rushing requirements gathering"],
     pillars: [ { name: "System Architecture", val: 85 }, { name: "Algorithms & DS", val: 75 }, { name: "Communication", val: 80 } ]
   },
   apple: {
-    scenario: "Explain how you would architect secure, zero-trust telemetry sync across millions of on-device enclaves.",
-    sla: { throughput: "1B+ Device Syncs", latency: "Zero Latency Jitter" },
+    scenario: "Architect secure, zero-trust telemetry and device state sync across millions of on-device Apple Secure Enclaves.",
+    sla: { throughput: "1B+ Device Syncs", latency: "Zero Latency Jitter SLA" },
     rounds: "3x Technical Deep Dive · 1x Behavioral",
     do: ["Prioritize user privacy above all", "Discuss hardware-level constraints", "Show extreme attention to detail"],
     avoid: ["Relying heavily on cloud processing", "Sloppy memory management"],
     pillars: [ { name: "Low-level Optimization", val: 95 }, { name: "System Architecture", val: 80 }, { name: "Product Craft", val: 85 } ]
   },
   netflix: {
-    scenario: "Architect Netflix's multi-region video streaming CDN topology with active-active chaos resiliency.",
-    sla: { throughput: "Tbps Global Streaming", latency: "< 5ms CDN Edge" },
+    scenario: "Architect Netflix's multi-region video streaming CDN topology with active-active chaos resiliency and Open Connect edge caches.",
+    sla: { throughput: "Tbps Global Streaming", latency: "< 5ms CDN Edge SLA" },
     rounds: "1x Core Tech · 2x System Design · 1x Culture",
     do: ["Embrace Chaos Engineering", "Discuss active-active regional failover", "Show extreme autonomy"],
     avoid: ["Requiring micro-management", "Ignoring edge caching strategies"],
     pillars: [ { name: "System Reliability", val: 95 }, { name: "Culture Fit", val: 90 }, { name: "Algorithms", val: 60 } ]
   },
   startup: {
-    scenario: "Build a multi-currency payment gateway MVP from scratch in 2 weeks. Justify your technical debt.",
-    sla: { throughput: "1k RPS (MVP Scale)", latency: "< 100ms API Response" },
+    scenario: "Build a multi-currency payment gateway MVP from scratch in 2 weeks. Justify your pragmatic technical debt.",
+    sla: { throughput: "5k RPS (MVP Scale)", latency: "< 80ms API Response SLA" },
     rounds: "1x Pairing · 1x Architecture · 1x Founder Fit",
     do: ["Show bias for shipping", "Justify pragmatic technical debt", "Demonstrate product ownership"],
     avoid: ["Over-engineering for 10M users", "Needing rigid specifications"],
@@ -150,31 +149,63 @@ function getRoleScenario(companyId, roleName, baseIntel) {
     if (companyId === "microsoft") {
       return {
         ...baseIntel,
-        scenario: "Design an accessible, highly responsive web date-picker component for Microsoft Store checkout flows. Ensure keyboard trap prevention, ARIA screen-reader compliance, and smooth 60fps rendering under rapid DOM updates.",
+        scenario: "Design an accessible, highly responsive web date-picker and scheduler component for Office 365 / Outlook Web checkout flows. Ensure keyboard focus trap prevention, ARIA screen-reader compliance, and smooth 60fps rendering under rapid DOM updates.",
         sla: { throughput: "100k Active Views", latency: "< 16ms Frame Render SLA" },
-        pillars: [ { name: "UI State & Accessibility", val: 88 }, { name: "DOM & Canvas Performance", val: 82 }, { name: "Cross-Functional Framing", val: 78 } ]
+        pillars: [ { name: "UI State & Accessibility", val: 88 }, { name: "DOM & Canvas Performance", val: 82 }, { name: "Cross-Functional Alignment", val: 78 } ]
       };
     }
     if (companyId === "google") {
       return {
         ...baseIntel,
-        scenario: "Architect a high-performance, web-based spreadsheet cell rendering engine supporting 100k virtualized rows, real-time cursor sync, and zero frame drops during heavy user scrolling.",
+        scenario: "Architect a high-performance, web-based spreadsheet cell rendering engine for Google Sheets supporting 100k virtualized rows, real-time cursor sync, and zero frame drops during heavy user scrolling.",
         sla: { throughput: "1M Active Cells", latency: "< 16ms Frame Render SLA" },
         pillars: [ { name: "Virtualization & Canvas", val: 90 }, { name: "State Synchronization", val: 82 }, { name: "Accessibility Standards", val: 80 } ]
       };
     }
+    if (companyId === "meta") {
+      return {
+        ...baseIntel,
+        scenario: "Design Meta's infinite newsfeed & Instagram Reels web virtualization engine with optimistic UI updates, GraphQL query batching, and zero frame drops during heavy media playback.",
+        sla: { throughput: "100k Active Views", latency: "< 16ms Render SLA" },
+        pillars: [ { name: "UI State Architecture", val: 90 }, { name: "Rendering Optimization", val: 85 }, { name: "GraphQL & Caching", val: 80 } ]
+      };
+    }
     return {
       ...baseIntel,
-      scenario: `Design an accessible, resilient web application architecture for ${baseIntel.scenario.toLowerCase()} prioritizing optimistic UI updates and robust offline caching.`,
+      scenario: `Design an accessible, resilient web application architecture for ${baseIntel.scenario.toLowerCase()} prioritizing optimistic UI updates and robust offline local caching.`,
       sla: { throughput: "50k Active Sessions", latency: "< 16ms Render SLA" },
       pillars: [ { name: "UI State Architecture", val: 85 }, { name: "Rendering Optimization", val: 80 }, { name: "Accessibility", val: 80 } ]
     };
   }
 
   if (isML) {
+    if (companyId === "google") {
+      return {
+        ...baseIntel,
+        scenario: "Design the real-time Google Search query auto-completion and embedding retrieval ML pipeline running on TPU v5 pods with sub-10ms model inference latency bounds.",
+        sla: { throughput: "50k Inferences/sec", latency: "< 10ms TPU Model SLA" },
+        pillars: [ { name: "TPU Pipelines & Batching", val: 92 }, { name: "Feature Store Architecture", val: 85 }, { name: "Low-Latency Search SLA", val: 80 } ]
+      };
+    }
+    if (companyId === "amazon") {
+      return {
+        ...baseIntel,
+        scenario: "Architect Amazon's Prime Day real-time transaction fraud detection & Lightning Deal recommendation model with low-latency GPU feature store batching.",
+        sla: { throughput: "500k Inferences/sec", latency: "< 20ms GPU Model SLA" },
+        pillars: [ { name: "Feature Store Architecture", val: 90 }, { name: "Model Latency & Throughput", val: 88 }, { name: "Fraud Detection SLA", val: 82 } ]
+      };
+    }
+    if (companyId === "meta") {
+      return {
+        ...baseIntel,
+        scenario: "Architect the Instagram Reels short-video recommendation deep learning inference pipeline with real-time user embedding updates and low-latency GPU batching.",
+        sla: { throughput: "200k Inferences/sec", latency: "< 25ms Model SLA" },
+        pillars: [ { name: "ML Pipelines & Batching", val: 90 }, { name: "Feature Store Architecture", val: 85 }, { name: "Model Latency Bounds", val: 80 } ]
+      };
+    }
     return {
       ...baseIntel,
-      scenario: `Architect a real-time machine learning inference pipeline for ${companyId === "meta" ? "Instagram feed recommendation" : companyId === "google" ? "Search query auto-completion" : "high-throughput fraud detection"} with low-latency GPU batching.`,
+      scenario: `Architect a real-time machine learning inference pipeline for ${companyId === "apple" ? "on-device Siri voice embedding recognition" : companyId === "netflix" ? "personalized artwork thumbnail recommendation" : "high-throughput fraud detection"} with low-latency batching.`,
       sla: { throughput: "50k Inferences/sec", latency: "< 25ms Model SLA" },
       pillars: [ { name: "ML Pipelines & Batching", val: 90 }, { name: "Feature Store Architecture", val: 82 }, { name: "Model Latency Bounds", val: 80 } ]
     };
@@ -202,10 +233,10 @@ function getRoleScenario(companyId, roleName, baseIntel) {
 }
 
 const PERSONA_OPENERS = {
-  standard: (intel) => `"Walk me through how you'd approach: ${intel.scenario}"`,
-  hostile: (intel) => `"${intel.scenario} — and I don't want to hear about happy paths. What breaks first?"`,
-  socratic: (intel) => `"Before you answer — why do you think this problem exists in the first place? ${intel.scenario}"`,
-  exhausted: (intel) => `"Okay so... ${intel.scenario.charAt(0).toLowerCase() + intel.scenario.slice(1)} Just talk me through it."`
+  standard: (intel) => `"Let me give you our core scenario: ${intel.scenario} How would you structure your approach?"`,
+  hostile: (intel) => `"I've seen ten candidates fail this exact problem today. ${intel.scenario} — and don't give me textbook answers. What breaks at 10x load?"`,
+  socratic: (intel) => `"Before we draw any blocks or write code — why do you think this problem exists in the first place? ${intel.scenario}"`,
+  exhausted: (intel) => `"Look, it's been a long interview loop. ${intel.scenario.charAt(0).toLowerCase() + intel.scenario.slice(1)} Just cut to the chase and walk me through your SLA bounds."`
 };
 
 const BOOT_SEQUENCE = [
@@ -234,7 +265,7 @@ function DeepGlassCard({ children, className = "", mousePos }) {
   return (
     <div 
       ref={cardRef}
-      className={`relative rounded-2xl bg-white/[0.02] border border-white/[0.08] overflow-hidden backdrop-blur-2xl transition-all duration-300 ${className}`}
+      className={`relative rounded-2xl bg-[#0A0A0F]/80 border border-white/[0.08] overflow-hidden backdrop-blur-2xl transition-all duration-300 ${className}`}
       style={{ boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.12), 0 20px 40px -10px rgba(0,0,0,0.5)' }}
     >
       <div 
@@ -252,54 +283,40 @@ function DeepGlassCard({ children, className = "", mousePos }) {
 }
 
 function CinematicSelect({ value, onChange, options }) {
-  const [open, setOpen] = useState(false);
-  const dropdownRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   return (
-    <div className="relative w-full" ref={dropdownRef}>
-      <button
-        onClick={() => setOpen(!open)}
+    <SelectPrimitive.Root value={value} onValueChange={onChange}>
+      <SelectPrimitive.Trigger
         className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#08080C] border border-white/10 text-sm font-semibold text-white tracking-wide shadow-inner outline-none hover:border-white/20 transition-colors"
       >
-        <span className="truncate">{value}</span>
-        <ChevronRight size={14} className={`text-slate-400 transition-transform duration-300 ${open ? "rotate-90" : ""}`} />
-      </button>
+        <SelectPrimitive.Value />
+        <SelectPrimitive.Icon>
+          <ChevronDown size={14} className="text-slate-400" />
+        </SelectPrimitive.Icon>
+      </SelectPrimitive.Trigger>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className="absolute top-full left-0 w-full mt-2 p-1.5 bg-[#0A0A0C]/95 backdrop-blur-3xl border border-white/10 rounded-xl shadow-[0_40px_80px_rgba(0,0,0,0.8)] z-50 overflow-hidden"
-          >
+      <SelectPrimitive.Portal>
+        <SelectPrimitive.Content
+          className="overflow-hidden bg-[#0A0A0C]/95 backdrop-blur-3xl border border-white/10 rounded-xl shadow-[0_40px_80px_rgba(0,0,0,0.8)] z-[9999]"
+          position="popper"
+          sideOffset={6}
+        >
+          <SelectPrimitive.Viewport className="p-1.5">
             {options.map((opt) => (
-              <button
+              <SelectPrimitive.Item
                 key={opt}
-                onClick={() => { onChange(opt); setOpen(false); }}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all outline-none ${
-                  value === opt 
-                    ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" 
-                    : "text-slate-300 hover:bg-white/[0.05] hover:text-white border border-transparent"
-                }`}
+                value={opt}
+                className="relative flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all outline-none text-slate-300 hover:bg-white/[0.05] hover:text-white cursor-pointer data-[highlighted]:bg-blue-500/10 data-[highlighted]:text-blue-400"
               >
-                {opt}
-                {value === opt && <CheckCircle2 size={14} className="text-blue-400" />}
-              </button>
+                <SelectPrimitive.ItemText>{opt}</SelectPrimitive.ItemText>
+                <SelectPrimitive.ItemIndicator>
+                  <Check size={14} className="text-blue-400" />
+                </SelectPrimitive.ItemIndicator>
+              </SelectPrimitive.Item>
             ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+          </SelectPrimitive.Viewport>
+        </SelectPrimitive.Content>
+      </SelectPrimitive.Portal>
+    </SelectPrimitive.Root>
   );
 }
 
@@ -313,7 +330,6 @@ export default function Dashboard({ onStart, user, onGoBack }) {
 
   const currentElo = Math.round(user?.elo_rating || 1188);
 
-  // Compute target benchmark based on selected role level
   const targetEloMap = {
     "Software Engineer — L3": 950,
     "Senior Engineer — L4": 1050,
@@ -398,6 +414,13 @@ export default function Dashboard({ onStart, user, onGoBack }) {
     return Math.min(10, Math.max(1, Math.round((elo - 800) / 100)));
   }
 
+  // Crossfade Animation Variants for Briefing Content
+  const fadeVariants = {
+    initial: { opacity: 0, filter: 'blur(8px)', y: 10 },
+    animate: { opacity: 1, filter: 'blur(0px)', y: 0 },
+    exit: { opacity: 0, filter: 'blur(8px)', y: -10 }
+  };
+
   return (
     <div className="min-h-screen bg-[#000000] text-slate-200 font-sans selection:bg-blue-500/30 overflow-x-hidden flex flex-col relative">
       
@@ -455,7 +478,6 @@ export default function Dashboard({ onStart, user, onGoBack }) {
       </AnimatePresence>
 
       {/* GLOBAL HUD HEADER */}
-      {}
       <header className="relative z-30 h-16 border-b border-white/[0.06] bg-black/40 backdrop-blur-md flex items-center justify-between px-6 lg:px-10 flex-shrink-0">
         <div className="flex items-center gap-4">
           <button onClick={onGoBack} className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors bg-white/[0.03] border border-white/[0.08] px-3 py-1.5 rounded-full outline-none">
@@ -479,8 +501,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
       </header>
 
       {/* COCKPIT WORKSPACE */}
-      {}
-      <main className="relative z-20 flex-1 w-full max-w-[1600px] mx-auto p-6 lg:p-8 flex flex-col lg:flex-row gap-6 overflow-y-auto">
+      <main className="relative z-20 flex-1 w-full max-w-[1600px] mx-auto p-6 lg:p-8 flex flex-col lg:flex-row gap-6 overflow-hidden">
         
         {/* COLUMN 1: TARGET COMPANY & PERSONA SELECTOR (25% Width) */}
         <div className="w-full lg:w-[320px] flex flex-col gap-6 shrink-0">
@@ -538,7 +559,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
             {/* Dynamic Opening Line Preview */}
             <AnimatePresence mode="wait">
               <motion.div
-                key={persona + role}
+                key={persona + role + company}
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
                 className="mt-4 p-4 rounded-xl border border-l-[3px] bg-[#0A0A0C] shadow-inner"
                 style={{ borderLeftColor: activePers.color, borderTopColor: 'rgba(255,255,255,0.05)', borderRightColor: 'rgba(255,255,255,0.05)', borderBottomColor: 'rgba(255,255,255,0.05)' }}
@@ -557,7 +578,6 @@ export default function Dashboard({ onStart, user, onGoBack }) {
         </div>
 
         {/* COLUMN 2: THE CLASSIFIED BRIEFING (Center Stage - 45% Width) */}
-        {}
         <div className="flex-1 flex flex-col gap-6 min-w-0">
           
           {/* Scope & Bracket */}
@@ -581,54 +601,68 @@ export default function Dashboard({ onStart, user, onGoBack }) {
                 </span>
               </div>
 
-              <div className="space-y-6">
-                <div>
-                  <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
-                    OPENING LINE &middot; {activePers.label.toUpperCase()} PERSONA
-                  </span>
-                  <p className="text-xl lg:text-2xl font-bold text-white leading-snug tracking-tight bg-black/30 p-5 rounded-xl border border-white/[0.05]">
-                    {PERSONA_OPENERS[persona](activeIntel)}
-                  </p>
-                </div>
+              {/* SMOOTH MORPHING CONTENT FOR BRIEFING */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={`${company}-${role}-${persona}`}
+                  variants={fadeVariants}
+                  initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3 }}
+                  className="space-y-6"
+                >
+                  <div>
+                    <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
+                      OPENING LINE &middot; {activePers.label.toUpperCase()} PERSONA &middot; {activeComp.name.toUpperCase()}
+                    </span>
+                    <p className="text-xl lg:text-2xl font-bold text-white leading-snug tracking-tight bg-black/30 p-5 rounded-xl border border-white/[0.05]">
+                      {PERSONA_OPENERS[persona](activeIntel)}
+                    </p>
+                  </div>
 
-                <div className="flex flex-wrap gap-3">
-                  <div className="bg-[#0A0A0C] border border-white/10 rounded-lg p-3.5 pr-8 shadow-inner">
-                    <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">THROUGHPUT SCALE</span>
-                    <span className="text-sm font-bold text-white font-mono">{activeIntel.sla.throughput}</span>
+                  <div className="flex flex-wrap gap-3">
+                    <div className="bg-[#0A0A0C] border border-white/10 rounded-lg p-3.5 pr-8 shadow-inner">
+                      <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">THROUGHPUT SCALE</span>
+                      <span className="text-sm font-bold text-white font-mono">{activeIntel.sla.throughput}</span>
+                    </div>
+                    <div className="bg-[#0A0A0C] border border-white/10 rounded-lg p-3.5 pr-8 shadow-inner">
+                      <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">TARGET LATENCY SLA</span>
+                      <span className="text-sm font-bold text-emerald-400 font-mono">{activeIntel.sla.latency}</span>
+                    </div>
                   </div>
-                  <div className="bg-[#0A0A0C] border border-white/10 rounded-lg p-3.5 pr-8 shadow-inner">
-                    <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">TARGET LATENCY SLA</span>
-                    <span className="text-sm font-bold text-emerald-400 font-mono">{activeIntel.sla.latency}</span>
-                  </div>
-                </div>
-              </div>
+                </motion.div>
+              </AnimatePresence>
             </div>
 
             <div className="mt-8 pt-6 border-t border-white/[0.06]">
               <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">CORE EVALUATION PILLARS</span>
-              <div className="space-y-4">
-                {activeIntel.pillars.map((pillar, i) => (
-                  <div key={i}>
-                    <div className="flex justify-between items-end mb-1.5">
-                      <span className="text-xs font-bold text-slate-300">{pillar.name}</span>
-                      <span className="text-[10px] font-mono font-bold text-slate-400">{pillar.val}%</span>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={`${company}-${role}-pillars`}
+                  variants={fadeVariants}
+                  initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3 }}
+                  className="space-y-4"
+                >
+                  {activeIntel.pillars.map((pillar, i) => (
+                    <div key={i}>
+                      <div className="flex justify-between items-end mb-1.5">
+                        <span className="text-xs font-bold text-slate-300">{pillar.name}</span>
+                        <span className="text-[10px] font-mono font-bold text-slate-400">{pillar.val}%</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                        <motion.div 
+                          initial={{ width: 0 }} animate={{ width: `${pillar.val}%` }} transition={{ duration: 1, delay: i * 0.1 }}
+                          className="h-full bg-blue-500 rounded-full" 
+                        />
+                      </div>
                     </div>
-                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                      <motion.div 
-                        initial={{ width: 0 }} animate={{ width: `${pillar.val}%` }} transition={{ duration: 1, delay: i * 0.1 }}
-                        className="h-full bg-blue-500 rounded-full" 
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </motion.div>
+              </AnimatePresence>
             </div>
           </DeepGlassCard>
 
         </div>
 
         {/* COLUMN 3: READINESS & INTELLIGENCE RAIL (30% Width) */}
-        {}
         <div className="w-full lg:w-[340px] flex flex-col gap-6 shrink-0 overflow-hidden">
           
           {/* Readiness Signal Card */}
@@ -636,58 +670,66 @@ export default function Dashboard({ onStart, user, onGoBack }) {
             <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-3 ml-1">Readiness Signal</h2>
             <DeepGlassCard mousePos={mousePos} className="p-6 overflow-hidden">
               
-              {/* Circular ELO Gauge */}
-              <div className="flex justify-center mb-6 relative">
-                <div className="relative w-32 h-32">
-                  <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
-                    <motion.circle cx="50" cy="50" r="42" fill="none" stroke="#3b82f6" strokeWidth="6" strokeLinecap="round"
-                      strokeDasharray="263.8" strokeDashoffset={263.8 - (263.8 * (currentElo / 2000))}
-                      transition={{ duration: 1.5, ease: "easeOut" }}
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-3xl font-extrabold font-mono tabular-nums text-white tracking-tighter leading-none">{currentElo}</span>
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mt-1">YOUR ELO</span>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={`${company}-${role}-readiness`}
+                  variants={fadeVariants}
+                  initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3 }}
+                >
+                  {/* Circular ELO Gauge */}
+                  <div className="flex justify-center mb-6 relative">
+                    <div className="relative w-32 h-32">
+                      <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
+                        <motion.circle cx="50" cy="50" r="42" fill="none" stroke="#3b82f6" strokeWidth="6" strokeLinecap="round"
+                          strokeDasharray="263.8" strokeDashoffset={263.8 - (263.8 * (currentElo / 2000))}
+                          transition={{ duration: 1.5, ease: "easeOut" }}
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-3xl font-extrabold font-mono tabular-nums text-white tracking-tighter leading-none">{currentElo}</span>
+                        <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mt-1">YOUR ELO</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Benchmark Target Pills */}
-              <div className="space-y-2.5 mb-5 font-mono text-xs">
-                <div className="flex justify-between items-end">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-blue-400 flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-blue-500"/> YOUR ELO</span>
-                  <span className="text-xs font-mono font-bold text-white tabular-nums">{currentElo}</span>
-                </div>
-                <div className="flex justify-between items-end opacity-60">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-500"/> L4 TARGET</span>
-                  <span className="text-xs font-mono font-bold text-slate-400 tabular-nums">{l4Target}</span>
-                </div>
-                <div className="flex justify-between items-end opacity-60">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-500"/> L5 TARGET</span>
-                  <span className="text-xs font-mono font-bold text-slate-400 tabular-nums">{l5Target}</span>
-                </div>
-              </div>
+                  {/* Benchmark Target Pills */}
+                  <div className="space-y-2.5 mb-5 font-mono text-xs">
+                    <div className="flex justify-between items-end">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-blue-400 flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-blue-500"/> YOUR ELO</span>
+                      <span className="text-xs font-mono font-bold text-white tabular-nums">{currentElo}</span>
+                    </div>
+                    <div className="flex justify-between items-end opacity-60">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-500"/> L4 TARGET</span>
+                      <span className="text-xs font-mono font-bold text-slate-400 tabular-nums">{l4Target}</span>
+                    </div>
+                    <div className="flex justify-between items-end opacity-60">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-500"/> L5 TARGET</span>
+                      <span className="text-xs font-mono font-bold text-slate-400 tabular-nums">{l5Target}</span>
+                    </div>
+                  </div>
 
-              {/* Dynamic Status Badge */}
-              <div className="bg-[#0A0A0C] border border-white/5 rounded-lg p-3 shadow-inner">
-                {currentElo >= l5Target ? (
-                  <>
-                    <span className="block text-[9px] font-bold uppercase tracking-widest text-emerald-400 mb-1">L5 BENCHMARK CLEARED</span>
-                    <p className="text-[10px] font-medium text-slate-400 leading-snug">Comfortably above the L5 target. Select Hostile or Socratic persona to challenge your ceiling.</p>
-                  </>
-                ) : currentElo >= currentTargetElo ? (
-                  <>
-                    <span className="block text-[9px] font-bold uppercase tracking-widest text-amber-400 mb-1">{l5Target - currentElo} PTS TO L5 BENCHMARK</span>
-                    <p className="text-[10px] font-medium text-slate-400 leading-snug">Comfortably above {role.split("—")[0].trim()} target. Push toward L5 to test high-concurrency bounds.</p>
-                  </>
-                ) : (
-                  <>
-                    <span className="block text-[9px] font-bold uppercase tracking-widest text-rose-400 mb-1">{currentTargetElo - currentElo} PTS TO TARGET</span>
-                    <p className="text-[10px] font-medium text-slate-400 leading-snug">Currently building toward the {role.split("—")[0].trim()} benchmark. Focus on trade-off reasoning.</p>
-                  </>
-                )}
-              </div>
+                  {/* Dynamic Status Badge */}
+                  <div className="bg-[#0A0A0C] border border-white/5 rounded-lg p-3 shadow-inner">
+                    {currentElo >= l5Target ? (
+                      <>
+                        <span className="block text-[9px] font-bold uppercase tracking-widest text-emerald-400 mb-1">L5 BENCHMARK CLEARED</span>
+                        <p className="text-[10px] font-medium text-slate-400 leading-snug">Comfortably above the L5 target. Select Hostile or Socratic persona to challenge your ceiling.</p>
+                      </>
+                    ) : currentElo >= currentTargetElo ? (
+                      <>
+                        <span className="block text-[9px] font-bold uppercase tracking-widest text-amber-400 mb-1">{l5Target - currentElo} PTS TO L5 BENCHMARK</span>
+                        <p className="text-[10px] font-medium text-slate-400 leading-snug">Comfortably above {role.split("—")[0].trim()} target. Push toward L5 to test high-concurrency bounds.</p>
+                      </>
+                    ) : (
+                      <>
+                        <span className="block text-[9px] font-bold uppercase tracking-widest text-rose-400 mb-1">{currentTargetElo - currentElo} PTS TO TARGET</span>
+                        <p className="text-[10px] font-medium text-slate-400 leading-snug">Currently building toward the {role.split("—")[0].trim()} benchmark. Focus on trade-off reasoning.</p>
+                      </>
+                    )}
+                  </div>
+                </motion.div>
+              </AnimatePresence>
 
             </DeepGlassCard>
           </section>
@@ -697,35 +739,44 @@ export default function Dashboard({ onStart, user, onGoBack }) {
             <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-3 ml-1">Company Intelligence</h2>
             <DeepGlassCard mousePos={mousePos} className="flex-1 p-5 flex flex-col justify-between overflow-hidden">
               
-              <div className="mb-4">
-                <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2">TYPICAL ROUND STRUCTURE</span>
-                <div className="bg-[#0A0A0C] border border-white/5 rounded-lg px-3 py-2 shadow-inner">
-                  <span className="text-xs font-bold text-slate-200">{activeIntel.rounds}</span>
-                </div>
-              </div>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={`${company}-intel`}
+                  variants={fadeVariants}
+                  initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3 }}
+                  className="flex-1 flex flex-col overflow-hidden"
+                >
+                  <div className="mb-4">
+                    <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2">TYPICAL ROUND STRUCTURE</span>
+                    <div className="bg-[#0A0A0C] border border-white/5 rounded-lg px-3 py-2 shadow-inner">
+                      <span className="text-xs font-bold text-slate-200">{activeIntel.rounds}</span>
+                    </div>
+                  </div>
 
-              <div className="space-y-3.5 flex-1 overflow-hidden">
-                <div>
-                  <span className="block text-[9px] font-bold text-emerald-400 uppercase tracking-widest mb-1.5">DO THIS</span>
-                  <ul className="space-y-1">
-                    {activeIntel.do.map((item, i) => (
-                      <li key={i} className="text-[11px] font-medium text-slate-300 flex items-start gap-2">
-                        <CheckCircle2 size={12} className="text-emerald-400 mt-0.5 shrink-0" /> <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <span className="block text-[9px] font-bold text-rose-400 uppercase tracking-widest mb-1.5">AVOID THIS</span>
-                  <ul className="space-y-1">
-                    {activeIntel.avoid.map((item, i) => (
-                      <li key={i} className="text-[11px] font-medium text-slate-400 flex items-start gap-2">
-                        <XCircle size={12} className="text-rose-400 shrink-0 mt-0.5" /> <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
+                  <div className="space-y-3.5 flex-1 overflow-hidden">
+                    <div>
+                      <span className="block text-[9px] font-bold text-emerald-400 uppercase tracking-widest mb-1.5">DO THIS</span>
+                      <ul className="space-y-1">
+                        {activeIntel.do.map((item, i) => (
+                          <li key={i} className="text-[11px] font-medium text-slate-300 flex items-start gap-2">
+                            <CheckCircle2 size={12} className="text-emerald-400 mt-0.5 shrink-0" /> <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <span className="block text-[9px] font-bold text-rose-400 uppercase tracking-widest mb-1.5">AVOID THIS</span>
+                      <ul className="space-y-1">
+                        {activeIntel.avoid.map((item, i) => (
+                          <li key={i} className="text-[11px] font-medium text-slate-400 flex items-start gap-2">
+                            <XCircle size={12} className="text-rose-400 shrink-0 mt-0.5" /> <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
 
             </DeepGlassCard>
           </section>
@@ -735,7 +786,6 @@ export default function Dashboard({ onStart, user, onGoBack }) {
       </main>
 
       {/* FIXED ACTION FOOTER */}
-      {}
       <footer className="relative z-30 border-t border-white/[0.08] bg-[#050508]/90 backdrop-blur-2xl px-6 lg:px-10 py-4 shrink-0 font-mono text-xs">
         <div className="max-w-[1600px] mx-auto flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-6">
           
