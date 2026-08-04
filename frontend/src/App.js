@@ -60,14 +60,12 @@ function CommandPalette({ isOpen, onClose, navigate, onLogout }) {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[15vh]">
-      {/* Backdrop */}
       <motion.div 
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
       
-      {/* Modal */}
       <motion.div 
         initial={{ opacity: 0, scale: 0.95, y: -20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: -20 }}
         transition={{ type: "spring", stiffness: 400, damping: 30 }}
@@ -230,7 +228,14 @@ function UnauthenticatedRoutes({ onAuth }) {
         className="w-full h-full"
       >
         <Routes location={location}>
-          <Route path="/" element={<Landing onGetStarted={() => navigate("/signup")} onSignIn={() => navigate("/login")} />} />
+          <Route path="/" element={
+            <Landing 
+              onGetStarted={() => navigate("/signup")} 
+              onSignIn={() => navigate("/login")} 
+              onNavigatePrivacy={() => navigate("/privacy")}
+              onNavigateTerms={() => navigate("/terms")}
+            />
+          } />
           <Route path="/login" element={<Login onAuth={onAuth} onSwitchToSignup={() => navigate("/signup")} onBackToHome={() => navigate("/")} />} />
           <Route path="/signup" element={<Signup onAuth={onAuth} onSwitchToLogin={() => navigate("/login")} onBackToHome={() => navigate("/")} />} />
           <Route path="/privacy" element={<PrivacyPolicy onGoBack={() => navigate("/")} />} />

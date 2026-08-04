@@ -246,11 +246,10 @@ const PERSONA_QUOTES = {
   exhausted: "Right. Keep going. Tell me what the P99 latency SLA looks like."
 };
 
-export default function Landing({ onGetStarted, onSignIn }) {
+export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onNavigateTerms }) {
   const [activeTrack, setActiveTrack] = useState("system");
   const [activeTabIDE, setActiveTabIDE] = useState("Python");
   const [activeCompany, setActiveCompany] = useState("Amazon");
-  const [activePersona, setActivePersona] = useState("hostile");
   const [isSimulatingRun, setIsSimulatingRun] = useState(false);
 
   const COMPANIES = ['Google', 'Meta', 'Amazon', 'Microsoft', 'Apple', 'Netflix', 'Startup'];
@@ -261,10 +260,18 @@ export default function Landing({ onGetStarted, onSignIn }) {
     setTimeout(() => setIsSimulatingRun(false), 1400);
   };
 
+  const handleScrollTo = (e, id) => {
+    e.preventDefault();
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <div className="relative min-h-screen w-full bg-[#000000] overflow-x-hidden font-sans text-slate-200 selection:bg-blue-500/30 flex flex-col">
       
-      {/* --- INLINE STYLES FOR MARQUEE & SHIMMER --- */}
+      {/* CSS Overrides */}
       <style>{`
         @keyframes shimmer {
           0% { transform: translateX(-100%); }
@@ -288,14 +295,14 @@ export default function Landing({ onGetStarted, onSignIn }) {
         }
       `}</style>
 
-      {/* --- LAYER 1: AMBIENT VOLUMETRIC LIGHTING (NO SEAMS) --- */}
+      {/* AMBIENT LIGHTING */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <div className="absolute top-[-20%] left-[10%] w-[50vw] h-[50vw] bg-indigo-900/20 blur-[150px] rounded-full mix-blend-screen" />
         <div className="absolute bottom-[-10%] right-[-5%] w-[40vw] h-[40vw] bg-blue-900/15 blur-[150px] rounded-full mix-blend-screen" />
         <div className="absolute top-[40%] left-[-10%] w-[30vw] h-[40vh] bg-emerald-900/5 blur-[120px] rounded-full mix-blend-screen" />
       </div>
 
-      {/* --- LAYER 2: FLOATING NAVIGATION --- */}
+      {/* FLOATING NAVIGATION */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-black/60 backdrop-blur-xl border-b border-white/[0.06] transition-all duration-300">
         <div className="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -306,10 +313,10 @@ export default function Landing({ onGetStarted, onSignIn }) {
           </div>
           
           <nav className="hidden md:flex items-center gap-8">
-            <a href="#system-design" className="text-xs font-semibold text-slate-300 hover:text-white transition-colors">System Design</a>
-            <a href="#live-coding" className="text-xs font-semibold text-slate-300 hover:text-white transition-colors">Live Coding</a>
-            <a href="#engines" className="text-xs font-semibold text-slate-300 hover:text-white transition-colors">Engines</a>
-            <a href="#architecture" className="text-xs font-semibold text-slate-300 hover:text-white transition-colors">Architecture</a>
+            <a href="#system-design" onClick={(e) => handleScrollTo(e, 'system-design')} className="text-xs font-semibold text-slate-300 hover:text-white transition-colors">System Design</a>
+            <a href="#live-coding" onClick={(e) => handleScrollTo(e, 'live-coding')} className="text-xs font-semibold text-slate-300 hover:text-white transition-colors">Live Coding</a>
+            <a href="#engines" onClick={(e) => handleScrollTo(e, 'engines')} className="text-xs font-semibold text-slate-300 hover:text-white transition-colors">Engines</a>
+            <a href="#architecture" onClick={(e) => handleScrollTo(e, 'architecture')} className="text-xs font-semibold text-slate-300 hover:text-white transition-colors">Architecture</a>
           </nav>
 
           <div className="flex items-center gap-6">
@@ -323,7 +330,7 @@ export default function Landing({ onGetStarted, onSignIn }) {
         </div>
       </header>
 
-      {/* --- LAYER 3: MAIN CONTENT STACK --- */}
+      {}
       <main className="relative z-20 flex-1 w-full pt-32 pb-24">
         
         {/* HERO SECTION */}
@@ -378,7 +385,6 @@ export default function Landing({ onGetStarted, onSignIn }) {
             </GlassCard>
           </div>
 
-          {/* Animated Metrics Banner */}
           <div className="w-full grid grid-cols-2 md:grid-cols-4 gap-6 text-center pt-8 border-t border-white/[0.08]">
             <MetricColumn value={<AnimatedNumber to={93} />} label="CS Graph Nodes" icon={Layers} color="text-indigo-400" />
             <MetricColumn value={<AnimatedNumber to={4} />} label="IDE Languages" icon={Code2} color="text-amber-400" />
@@ -387,7 +393,7 @@ export default function Landing({ onGetStarted, onSignIn }) {
           </div>
         </section>
 
-        {/* INFINITE LOGO MARQUEE */}
+        {/* LOGO MARQUEE */}
         <section className="w-full overflow-hidden mask-edges mb-32 max-w-6xl mx-auto">
           <div className="animate-marquee flex gap-16 md:gap-32 items-center opacity-60">
             {[...COMPANY_LOGOS, ...COMPANY_LOGOS, ...COMPANY_LOGOS].map((logo, idx) => (
@@ -398,7 +404,7 @@ export default function Landing({ onGetStarted, onSignIn }) {
           </div>
         </section>
 
-        {/* SECTION 2: THE INTERVIEW ROOM PREVIEW (ENGINE 01 - DYNAMIC FADE ON COMPANY CLICK) */}
+        {}
         <section id="system-design" className="px-6 max-w-[1400px] mx-auto mb-32">
           <div className="flex flex-col xl:flex-row items-start xl:items-end justify-between mb-8 gap-6">
             <div>
@@ -410,7 +416,6 @@ export default function Landing({ onGetStarted, onSignIn }) {
               </h2>
             </div>
             
-            {/* Dynamic Company DNA Pills */}
             <div className="flex flex-wrap items-center gap-2 bg-[#050508] border border-white/10 p-1.5 rounded-xl xl:rounded-full">
               {COMPANIES.map(comp => (
                 <button 
@@ -433,9 +438,7 @@ export default function Landing({ onGetStarted, onSignIn }) {
             </div>
           </div>
 
-          {/* REAL INTERVIEWROOM REPLICA CONTAINER */}
           <GlassCard className="p-0 overflow-hidden border-white/10 shadow-2xl">
-            {/* Top HUD Bar */}
             <div className="h-12 border-b border-white/[0.08] bg-[#030305] flex items-center justify-between px-6 font-mono text-xs">
               <div className="flex items-center gap-3">
                 <div className="w-5 h-5 rounded bg-white flex items-center justify-center font-extrabold text-black text-[9px]">IC</div>
@@ -466,10 +469,7 @@ export default function Landing({ onGetStarted, onSignIn }) {
               </div>
             </div>
 
-            {/* 3-Pane Split-Screen Body with AnimatePresence for Smooth Crossfading */}
             <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[480px] bg-[#000000]">
-              
-              {/* Left Pane: Question / Case Study (30% Width) */}
               <div className="lg:col-span-4 border-b lg:border-b-0 lg:border-r border-white/[0.08] bg-[#020204] p-6 flex flex-col justify-between space-y-6">
                 <AnimatePresence mode="wait">
                   <motion.div 
@@ -524,7 +524,6 @@ export default function Landing({ onGetStarted, onSignIn }) {
                 </AnimatePresence>
               </div>
 
-              {/* Center Pane: Zen Writing Canvas (50% Width) */}
               <div className="lg:col-span-5 p-6 flex flex-col justify-between relative bg-[#000000] border-b lg:border-b-0 lg:border-r border-white/[0.08]">
                 <AnimatePresence mode="wait">
                   <motion.div
@@ -549,7 +548,6 @@ export default function Landing({ onGetStarted, onSignIn }) {
                 </AnimatePresence>
               </div>
 
-              {/* Right Telemetry Rail (20% Width) */}
               <div className="lg:col-span-3 bg-[#020204] p-6 flex flex-col justify-between font-mono text-xs">
                 <div>
                   <div className="flex items-center justify-between border-b border-white/[0.06] pb-3 mb-6">
@@ -601,7 +599,7 @@ export default function Landing({ onGetStarted, onSignIn }) {
           </GlassCard>
         </section>
 
-        {/* SECTION 3: LIVE CODING IDE (ENGINE 02 - DYNAMIC RUN & CODE CROSSFADE) */}
+        {}
         <section id="live-coding" className="px-6 max-w-[1400px] mx-auto mb-32">
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-8 gap-4">
             <div>
@@ -639,7 +637,6 @@ export default function Landing({ onGetStarted, onSignIn }) {
 
           <GlassCard className="p-0 overflow-hidden">
             <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[500px]">
-              
               <div className="lg:col-span-3 bg-[#050508] border-r border-white/10 p-6 flex flex-col justify-between">
                 <div>
                   <span className="bg-white/10 text-white text-[9px] font-bold px-2 py-1 rounded inline-block w-max mb-4 uppercase tracking-widest">Medium</span>
@@ -743,7 +740,7 @@ export default function Landing({ onGetStarted, onSignIn }) {
           </GlassCard>
         </section>
 
-        {/* SECTION 4: TELEMETRY & KNOWLEDGE GRAPH (ENGINES 03 & 04 - LIVING ANIMATED EQUALIZER) */}
+        {}
         <section id="engines" className="px-6 max-w-[1400px] mx-auto mb-32">
           <div className="text-center mb-16">
             <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20 mb-2 inline-block">
@@ -755,8 +752,6 @@ export default function Landing({ onGetStarted, onSignIn }) {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            
-            {/* LIVE AUDIO EQUALIZER (LIVELY BREATHING BARS) */}
             <GlassCard className="p-8 h-[380px] flex flex-col justify-between">
               <div>
                 <div className="flex justify-between items-center mb-6">
@@ -804,7 +799,6 @@ export default function Landing({ onGetStarted, onSignIn }) {
               </div>
             </GlassCard>
 
-            {/* REAL NODE-SPINE KNOWLEDGE GRAPH PREVIEW */}
             <GlassCard className="p-8 h-[380px] flex flex-col justify-between">
               <div>
                 <div className="flex justify-between items-start mb-6">
@@ -849,14 +843,12 @@ export default function Landing({ onGetStarted, onSignIn }) {
                 <span className="text-blue-400 font-bold">DISCOVERABLE VIA STUDY PLAN</span>
               </div>
             </GlassCard>
-
           </div>
         </section>
 
-        {/* SECTION 5: PAYOFF REPORT & ARCHITECTURE */}
+        {}
         <section id="architecture" className="px-6 max-w-[1400px] mx-auto mb-32">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-            
             <div className="space-y-6">
               <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
                 Engine 05 // Peer Benchmarking &amp; 5D Payoff
@@ -879,7 +871,6 @@ export default function Landing({ onGetStarted, onSignIn }) {
               </div>
             </div>
 
-            {/* 5D Skill Radar Visualizer (ANIMATED BARS & RADAR POLYGON) */}
             <GlassCard className="p-6">
               <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-5">
                 <span className="text-xs font-mono font-bold uppercase tracking-widest text-slate-300">5D Executive Report</span>
@@ -920,11 +911,10 @@ export default function Landing({ onGetStarted, onSignIn }) {
                 </svg>
               </div>
             </GlassCard>
-
           </div>
         </section>
 
-        {/* SECTION 6: CLOSING CONVERSION CTA */}
+        {/* CLOSING CONVERSION CTA */}
         <section className="px-6 text-center max-w-3xl mx-auto pt-16 pb-12 border-t border-white/10">
           <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400 mb-4 block">Ready to test your skill?</span>
           <h2 className="text-5xl md:text-6xl font-extrabold tracking-tighter text-white mb-6">Stop reading.</h2>
@@ -938,7 +928,7 @@ export default function Landing({ onGetStarted, onSignIn }) {
 
       </main>
 
-      {/* RICH ENTERPRISE FOOTER */}
+      {}
       <footer className="relative z-20 pt-16 pb-8 border-t border-white/[0.05] bg-black">
         <div className="max-w-[1440px] mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-10 mb-16">
           
@@ -953,20 +943,20 @@ export default function Landing({ onGetStarted, onSignIn }) {
           <div>
             <h4 className="text-white font-bold mb-4 text-xs tracking-wider uppercase">Product</h4>
             <ul className="space-y-3 text-sm text-slate-400 font-medium">
-              <li><a href="#system-design" className="hover:text-white transition-colors">System Design Tracker</a></li>
-              <li><a href="#live-coding" className="hover:text-white transition-colors">Live Coding Sandbox</a></li>
-              <li><a href="#engines" className="hover:text-white transition-colors">93-Node Knowledge Graph</a></li>
-              <li><a href="#engines" className="hover:text-white transition-colors">5D Adaptive Scorer</a></li>
+              <li><a href="#system-design" onClick={(e) => handleScrollTo(e, 'system-design')} className="hover:text-white transition-colors">System Design Tracker</a></li>
+              <li><a href="#live-coding" onClick={(e) => handleScrollTo(e, 'live-coding')} className="hover:text-white transition-colors">Live Coding Sandbox</a></li>
+              <li><a href="#engines" onClick={(e) => handleScrollTo(e, 'engines')} className="hover:text-white transition-colors">93-Node Knowledge Graph</a></li>
+              <li><a href="#architecture" onClick={(e) => handleScrollTo(e, 'architecture')} className="hover:text-white transition-colors">5D Adaptive Scorer</a></li>
             </ul>
           </div>
 
           <div>
             <h4 className="text-white font-bold mb-4 text-xs tracking-wider uppercase">Infrastructure &amp; Legal</h4>
             <ul className="space-y-3 text-sm text-slate-400 font-medium">
-              <li><span className="hover:text-white transition-colors cursor-default">FastAPI / Python 3.11</span></li>
-              <li><span className="hover:text-white transition-colors cursor-default">PostgreSQL + JWT Security</span></li>
-              <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
+              <li><a href="#architecture" onClick={(e) => handleScrollTo(e, 'architecture')} className="hover:text-white transition-colors">FastAPI / Python 3.11</a></li>
+              <li><a href="#architecture" onClick={(e) => handleScrollTo(e, 'architecture')} className="hover:text-white transition-colors">PostgreSQL + JWT Security</a></li>
+              <li><a href="/privacy" onClick={(e) => { e.preventDefault(); if (onNavigatePrivacy) onNavigatePrivacy(); else window.location.href = '/privacy'; }} className="hover:text-white transition-colors">Privacy Policy</a></li>
+              <li><a href="/terms" onClick={(e) => { e.preventDefault(); if (onNavigateTerms) onNavigateTerms(); else window.location.href = '/terms'; }} className="hover:text-white transition-colors">Terms of Service</a></li>
             </ul>
           </div>
 
@@ -974,8 +964,8 @@ export default function Landing({ onGetStarted, onSignIn }) {
             <h4 className="text-white font-bold mb-4 text-xs tracking-wider uppercase">Creator</h4>
             <p className="text-xs text-slate-400 font-medium mb-3">Designed &amp; Engineered by <strong className="text-white">Adhiswauran</strong></p>
             <ul className="space-y-3 text-sm text-slate-400 font-medium">
-              <li><a href="https://github.com" target="_blank" rel="noreferrer" className="hover:text-white transition-colors flex items-center gap-1">GitHub Source <ArrowRight size={12}/></a></li>
-              <li><a href="#" className="hover:text-white transition-colors flex items-center gap-1">System Audit Log <ArrowRight size={12}/></a></li>
+              <li><a href="https://github.com" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors flex items-center gap-1">GitHub Source <ArrowRight size={12}/></a></li>
+              <li><a href="#architecture" onClick={(e) => handleScrollTo(e, 'architecture')} className="hover:text-white transition-colors flex items-center gap-1">System Audit Log <ArrowRight size={12}/></a></li>
             </ul>
           </div>
 

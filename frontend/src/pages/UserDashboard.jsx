@@ -121,7 +121,28 @@ const COMPANY_TELEMETRY = {
 
 const TARGET_COMPANIES = ["Google", "Amazon", "Meta", "Microsoft", "Apple"];
 
-// --- ANIMATED NUMBER TICKER ---
+const ELO_HISTORY = [
+  { date: "Jul 10", elo: 1050 }, { date: "Jul 11", elo: 1080 },
+  { date: "Jul 15", elo: 1075 }, { date: "Jul 22", elo: 1110 },
+  { date: "Jul 29", elo: 1145 }, { date: "Aug 2", elo: 1170 },
+  { date: "Aug 8", elo: 1195 },
+];
+
+const MOCK_LEDGER = [
+  { id: 1, date: "Aug 2", type: "ML Engineer", company: "amazon", eloDelta: "", score: "—", persona: "Standard" },
+  { id: 2, date: "Aug 2", type: "ML Engineer", company: "amazon", eloDelta: "▲", score: "71/100", persona: "Standard" },
+  { id: 3, date: "Aug 2", type: "Frontend Engineer — L4", company: "amazon", eloDelta: "", score: "—", persona: "Hostile" },
+  { id: 4, date: "Aug 2", type: "Frontend Engineer — L4", company: "startup", eloDelta: "▲", score: "2/100", persona: "Hostile" },
+  { id: 5, date: "Aug 1", type: "Senior Engineer — L4", company: "apple", eloDelta: "", score: "—", persona: "Hostile" },
+  { id: 6, date: "Aug 1", type: "Frontend Engineer — L4", company: "startup", eloDelta: "", score: "—", persona: "Hostile" },
+  { id: 7, date: "Aug 1", type: "Frontend Engineer — L4", company: "startup", eloDelta: "", score: "—", persona: "—" },
+  { id: 8, date: "Aug 1", type: "Frontend Engineer — L4", company: "startup", eloDelta: "", score: "—", persona: "—" },
+  { id: 9, date: "Jul 31", type: "Frontend Engineer — L4", company: "microsoft", eloDelta: "▲", score: "88/100", persona: "—" },
+  { id: 10, date: "Jul 31", type: "Frontend Engineer — L4", company: "google", eloDelta: "", score: "—", persona: "—" },
+  { id: 11, date: "Jul 31", type: "Frontend Engineer — L4", company: "google", eloDelta: "", score: "—", persona: "—" },
+  { id: 12, date: "Jul 31", type: "Backend Engineer — L4", company: "google", eloDelta: "", score: "—", persona: "—" },
+];
+
 function AnimatedScore({ value, prefix = "", suffix = "" }) {
   const count = useMotionValue(0);
   const rounded = useTransform(count, (v) => Math.round(v));
@@ -161,7 +182,6 @@ export default function UserDashboard({
         });
         const sessions = res.data.sessions || [];
 
-        // Build the flight ledger from real sessions, most recent first
         const ledger = sessions.map((s) => ({
           id: s.id,
           date: s.started_at
@@ -178,7 +198,6 @@ export default function UserDashboard({
         }));
         setFlightLedger(ledger);
 
-        // Build ELO trend from real sessions, oldest first, using elo_after snapshots
         const trend = sessions
           .filter((s) => s.elo_after)
           .slice()
@@ -201,8 +220,6 @@ export default function UserDashboard({
   const currentElo = user?.elo_rating ? Math.round(user.elo_rating) : 1170;
   const currentCompanyData = COMPANY_TELEMETRY[activeTarget] || COMPANY_TELEMETRY.Meta;
 
-  // Temporal Scrubbing Effect: Hovering a ledger row updates the radar in real time
-  // Reverting to currentCompanyData if no hover
   const activeRadar = hoveredSessionId
     ? (flightLedger.find(s => s.id === hoveredSessionId)?.radar || currentCompanyData.radar)
     : currentCompanyData.radar;
@@ -229,7 +246,7 @@ export default function UserDashboard({
   }, [currentCompanyData, onStartNew, onStartCoding]);
 
   return (
-    <div className="min-h-screen bg-[#000000] text-slate-200 font-sans selection:bg-blue-500/30">
+    <div className="min-h-screen bg-[#000000] text-slate-200 font-sans selection:bg-blue-500/30 overflow-x-hidden">
       
       {/* CSS Overrides for animations and scrollbars */}
       <style>{`
@@ -250,6 +267,7 @@ export default function UserDashboard({
       </div>
 
       {/* HEADER HUD */}
+      {}
       <header className="fixed top-0 left-0 right-0 h-16 bg-[#030305]/95 backdrop-blur-2xl border-b border-white/[0.06] z-50 flex items-center justify-between px-6">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => setActiveTarget("Meta")}>
@@ -294,313 +312,376 @@ export default function UserDashboard({
           <div className="hidden sm:flex items-center gap-2 bg-white/[0.03] border border-white/[0.08] hover:border-white/20 transition-colors px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 cursor-pointer">
             <Search size={14} /> Search command or drill...
             <kbd className="ml-4 font-mono text-[10px] bg-black/40 border border-white/10 px-1.5 py-0.5 rounded text-slate-400">⌘K</kbd>
-            <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-500 to-blue-500 flex items-center justify-center font-bold text-white text-[10px] ml-2">T</div>
+          </div>
+
+          {/* USER AVATAR & DROPDOWN MENU */}
+          <div className="relative">
+            <button 
+              onClick={() => setUserMenuOpen(!userMenuOpen)}
+              className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-blue-500 border border-white/20 flex items-center justify-center shadow-inner cursor-pointer hover:border-white/40 transition-all outline-none"
+              title="User Menu"
+            >
+              <span className="text-white text-xs font-bold">{user?.name?.charAt(0) || "T"}</span>
+            </button>
+
+            <AnimatePresence>
+              {userMenuOpen && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute right-0 top-full mt-3 w-56 bg-[#0A0A0C] border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] p-2 z-50 space-y-1"
+                >
+                  <div className="p-3 border-b border-white/5">
+                    <p className="text-xs font-bold text-white truncate">{user?.name || "Candidate"}</p>
+                    <p className="text-[10px] font-mono text-slate-400 truncate">{user?.email || "candidate@interviewcoach.ai"}</p>
+                  </div>
+                  <button onClick={() => { setUserMenuOpen(false); onNavigateStudyPlan?.(); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors text-left">
+                    <BookOpen size={14} /> Knowledge Graph
+                  </button>
+                  <button onClick={() => { setUserMenuOpen(false); onStartCoding?.(); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors text-left">
+                    <Code2 size={14} className="text-amber-400" /> Coding Sandbox IDE
+                  </button>
+                  <button onClick={() => { setUserMenuOpen(false); onNavigateSettings?.(); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors text-left">
+                    <Settings size={14} /> Settings
+                  </button>
+                  <div className="border-t border-white/5 pt-1">
+                    <button onClick={() => { setUserMenuOpen(false); onLogout?.(); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors text-left">
+                      <LogOut size={14} /> Log Out
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </header>
 
       {/* MAIN CONTENT STACK */}
-      <main className="relative z-20 pt-24 pb-20 px-6 max-w-[1600px] mx-auto w-full flex flex-col lg:flex-row gap-8 items-start">
-        
-        {/* ========================================================================= */}
-        {/* LEFT COLUMN (65%) — RICH NARRATIVE TIMELINE                               */}
-        {/* ========================================================================= */}
-        <div className="w-full lg:w-[65%] flex flex-col gap-8">
+      {}
+      <main className="relative z-20 pt-24 pb-12 px-6 max-w-[1600px] mx-auto w-full">
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
           
-          <AnimatePresence mode="wait">
-            <motion.div 
-              key={activeTarget}
-              initial={{ opacity: 0, y: 10, filter: 'blur(8px)' }}
-              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, y: -10, filter: 'blur(8px)' }}
-              transition={{ duration: 0.3 }}
-              className="w-full"
-            >
-              {/* MISSION BRIEFING CARD */}
-              <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-[#050508] border border-white/[0.08] rounded-2xl p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] relative overflow-hidden">
-                  <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Current ELO</span>
-                  <div className="flex items-end gap-3 mb-1">
-                    <span className="text-5xl font-extrabold text-white tracking-tighter tabular-nums leading-none"><AnimatedScore value={currentElo} /></span>
-                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded flex items-center gap-1 mb-1.5 uppercase tracking-widest">
-                      ▲ +47 <span className="text-emerald-500/50">/ 30d</span>
-                    </span>
-                  </div>
-                  <p className="text-[11px] font-medium text-slate-400 mt-2">Top 18% · Senior Bracket</p>
-                </div>
-
-                <div className="bg-[#050508] border border-white/[0.08] border-l-[3px] border-l-amber-500 rounded-2xl p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] relative overflow-hidden flex flex-col justify-center">
-                  <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Critical Gap</span>
-                  <div className="flex items-center gap-2 mb-1">
-                    <AlertTriangle size={20} className="text-amber-500 shrink-0" />
-                    <span className="text-2xl font-bold text-white tracking-tight leading-none truncate">{currentCompanyData.criticalGap}</span>
-                  </div>
-                  <p className="text-[11px] font-medium text-amber-500/80 mt-2">{activeTarget} L4 · {currentCompanyData.gapDelta}</p>
-                </div>
-
-                <div className="bg-blue-600/10 border border-blue-500/30 rounded-2xl p-6 shadow-[inset_0_1px_0_0_rgba(59,130,246,0.2)] relative overflow-hidden flex flex-col justify-center">
-                  <span className="block text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-2">Directive</span>
-                  <h3 className="text-sm font-bold text-white leading-snug mb-3 truncate">{currentCompanyData.recommendedDrill}</h3>
-                  <button 
-                    onClick={() => currentCompanyData.drillType === 'coding' ? onStartCoding?.() : onStartNew?.()} 
-                    className="w-full bg-white text-black px-4 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-[0_0_15px_rgba(255,255,255,0.2)]"
-                  >
-                    <Play size={12} className="fill-current" /> Launch Now <kbd className="font-mono text-[9px] bg-black/10 px-1 py-0.5 rounded text-black/70">↵</kbd>
-                  </button>
-                </div>
-              </section>
-            </motion.div>
-          </AnimatePresence>
-
-          {/* ELO TRAJECTORY CHART */}
-          <section className="bg-[#050508] border border-white/[0.08] rounded-2xl p-0 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] overflow-hidden flex flex-col">
-            <div className="p-6 border-b border-white/[0.05] flex justify-between items-end">
-              <div>
-                <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1">
-                  ELO Trajectory · <AnimatePresence mode="wait"><motion.span key={activeTarget} initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>{currentCompanyData.targetName}</motion.span></AnimatePresence>
-                </h2>
-                <p className="text-xs font-medium text-slate-400">47 sessions over 90 days · Avg. +12 ELO per session</p>
-              </div>
-              <div className="flex gap-1 bg-black/50 border border-white/5 p-1 rounded-lg">
-                <button className="px-3 py-1 rounded text-[10px] font-bold text-slate-400 hover:text-white">7d</button>
-                <button className="px-3 py-1 rounded text-[10px] font-bold bg-white/10 text-white shadow-sm">30d</button>
-                <button className="px-3 py-1 rounded text-[10px] font-bold text-slate-400 hover:text-white">90d</button>
-              </div>
-            </div>
+          {/* ========================================================= */}
+          {/* LEFT COLUMN (65%) — RICH NARRATIVE TIMELINE               */}
+          {/* ========================================================= */}
+          {}
+          <div className="w-full lg:w-[65%] flex flex-col gap-8">
             
-            <div className="h-[280px] w-full p-4 relative bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTE5LjUgMEwxOS41IDIwTTAgMTkuNUwyMCAxOS41IiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsMC4wMikiIGZpbGw9Im5vbmUiLz48L3N2Zz4=')]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={eloHistory.length > 0 ? eloHistory : ELO_HISTORY} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="eloGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <YAxis domain={['dataMin - 20', 'dataMax + 20']} hide />
-                  <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 10, fontFamily: "monospace" }} axisLine={false} tickLine={false} dy={10} />
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.04)" />
-                  <RechartsTooltip 
-                    contentStyle={{ backgroundColor: "#08080C", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", boxShadow: "0 10px 30px rgba(0,0,0,0.8)" }}
-                    labelStyle={{ color: "#94A3B8", fontSize: "10px", textTransform: "uppercase", fontWeight: 700 }}
-                    itemStyle={{ color: "#fff", fontWeight: "bold", fontSize: "14px", fontFamily: "monospace" }}
-                    cursor={{ stroke: 'rgba(255,255,255,0.15)', strokeWidth: 1, strokeDasharray: '4 4' }}
-                  />
-                  <Area 
-                    type="monotone" dataKey="elo" stroke="#3b82f6" strokeWidth={3} fill="url(#eloGradient)"
-                    activeDot={{ r: 6, fill: "#fff", stroke: "#3b82f6", strokeWidth: 3, style: { filter: "drop-shadow(0 0 8px rgba(59,130,246,0.8))" } }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-              <div className="absolute top-4 right-4 text-[10px] font-mono text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded border border-indigo-500/20">
-                Target Benchmark: {currentCompanyData.thresholdElo} ELO
-              </div>
-            </div>
-          </section>
-
-          {/* SKILL VECTOR MATRIX */}
-          <section className="bg-[#050508] border border-white/[0.08] rounded-2xl p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]">
-             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Skill Vector Matrix · Knowledge Graph Coverage</h2>
-                <button onClick={onNavigateStudyPlan} className="text-[10px] font-mono font-bold text-indigo-400 hover:text-white bg-indigo-500/10 px-2.5 py-1 rounded border border-indigo-500/20 transition-colors">
-                  51 of 93 Tested →
-                </button>
-             </div>
-             
-             <div className="space-y-3">
-               <MatrixRow label="Algorithms" activeCount={2} totalCount={12} theme="blue" />
-               <MatrixRow label="Systems" activeCount={5} totalCount={10} theme="emerald" />
-               <MatrixRow label="Behavioral" activeCount={2} totalCount={8} theme="amber" warning />
-               <MatrixRow label="Live Coding" activeCount={4} totalCount={9} theme="purple" />
-             </div>
-
-             <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between text-[10px] font-medium text-slate-400">
-               <div className="flex items-center gap-4">
-                 <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-[2px] bg-white/30" /> Mastered</div>
-                 <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-[2px] bg-white/10" /> Partial</div>
-                 <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-[2px] bg-black border border-white/10" /> Untested</div>
-               </div>
-               <button onClick={onNavigateStudyPlan} className="text-slate-300 hover:text-white transition-colors font-bold">Explore Knowledge Graph (93 Nodes) →</button>
-             </div>
-          </section>
-
-          {/* FLIGHT LEDGER (SESSION HISTORY) */}
-          <section className="bg-[#050508] border border-white/[0.08] rounded-2xl p-0 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] overflow-hidden">
-            <div className="p-6 border-b border-white/[0.05] flex justify-between items-center bg-[#030305]/50">
-              <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Flight Ledger · Session History</h2>
-              <div className="flex items-center gap-3">
-                 <span className="text-[10px] font-mono text-slate-400 bg-white/5 px-2 py-0.5 rounded border border-white/5">28 sessions</span>
-                 <button onClick={onNavigateHistory} className="text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-white flex items-center gap-1">Sort: Recent <ChevronRight size={12}/></button>
-              </div>
-            </div>
-
-            <div className="divide-y divide-white/[0.03]">
-              {(flightLedger.length > 0 ? flightLedger : MOCK_LEDGER).map((session, idx) => (
-                <div 
-                  key={session.id || idx}
-                  onMouseEnter={() => setHoveredSessionId(session.id || idx)}
-                  onMouseLeave={() => setHoveredSessionId(null)}
-                  onClick={() => session.track === 'coding' ? onStartCoding?.() : onNavigateHistory?.(session.id)}
-                  className="flex items-center justify-between p-5 hover:bg-white/[0.02] transition-colors cursor-pointer group"
-                >
-                  <div className="flex items-center gap-6">
-                    <div className="w-12 text-center shrink-0">
-                      <span className="block text-[11px] font-bold text-slate-400 uppercase">{session.date.split(" ")[0]}</span>
-                      <span className="block text-sm font-mono font-bold text-slate-200">{session.date.split(" ")[1]}</span>
+            <AnimatePresence mode="wait">
+              <motion.div 
+                key={activeTarget}
+                initial={{ opacity: 0, y: 10, filter: 'blur(8px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: -10, filter: 'blur(8px)' }}
+                transition={{ duration: 0.3 }}
+                className="w-full"
+              >
+                {/* MISSION BRIEFING CARD */}
+                <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-[#050508] border border-white/[0.08] rounded-2xl p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] relative overflow-hidden">
+                    <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Current ELO</span>
+                    <div className="flex items-end gap-3 mb-1">
+                      <span className="text-5xl font-extrabold text-white tracking-tighter tabular-nums leading-none"><AnimatedScore value={currentElo} /></span>
+                      <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded flex items-center gap-1 mb-1.5 uppercase tracking-widest">
+                        ▲ +47 <span className="text-emerald-500/50">/ 30d</span>
+                      </span>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors flex items-center gap-2">
-                        {session.type} <span className="text-slate-600 font-normal">·</span> {session.company}
-                      </h4>
-                      <div className="flex items-center gap-3 mt-1 text-[11px] font-medium text-slate-400">
-                        <span className="flex items-center gap-1 text-slate-500"><Target size={10} /> {session.company}</span>
-                        <span className="flex items-center gap-1 text-slate-500"><Activity size={10} /> 47 min</span>
+                    <p className="text-[11px] font-medium text-slate-400 mt-2">Top 18% · Senior Bracket</p>
+                  </div>
+
+                  <div className="bg-[#050508] border border-white/[0.08] border-l-[3px] border-l-amber-500 rounded-2xl p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] relative overflow-hidden flex flex-col justify-center">
+                    <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Critical Gap</span>
+                    <div className="flex items-center gap-2 mb-1">
+                      <AlertTriangle size={20} className="text-amber-500 shrink-0" />
+                      <span className="text-2xl font-bold text-white tracking-tight leading-none truncate">{currentCompanyData.criticalGap}</span>
+                    </div>
+                    <p className="text-[11px] font-medium text-amber-500/80 mt-2">{activeTarget} L4 · {currentCompanyData.gapDelta}</p>
+                  </div>
+
+                  <div className="bg-blue-600/10 border border-blue-500/30 rounded-2xl p-6 shadow-[inset_0_1px_0_0_rgba(59,130,246,0.2)] relative overflow-hidden flex flex-col justify-center">
+                    <span className="block text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-2">Directive</span>
+                    <h3 className="text-sm font-bold text-white leading-snug mb-3 truncate">{currentCompanyData.recommendedDrill}</h3>
+                    <button 
+                      onClick={() => currentCompanyData.drillType === 'coding' ? onStartCoding?.() : onStartNew?.()} 
+                      className="w-full bg-white text-black px-4 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+                    >
+                      <Play size={12} className="fill-current" /> Launch Now <kbd className="font-mono text-[9px] bg-black/10 px-1 py-0.5 rounded text-black/70">↵</kbd>
+                    </button>
+                  </div>
+                </section>
+              </motion.div>
+            </AnimatePresence>
+
+            {/* ELO TRAJECTORY CHART */}
+            <section className="bg-[#050508] border border-white/[0.08] rounded-2xl p-0 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] overflow-hidden flex flex-col">
+              <div className="p-6 border-b border-white/[0.05] flex justify-between items-end">
+                <div>
+                  <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1">
+                    ELO Trajectory · <AnimatePresence mode="wait"><motion.span key={activeTarget} initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>{currentCompanyData.targetName}</motion.span></AnimatePresence>
+                  </h2>
+                  <p className="text-xs font-medium text-slate-400">47 sessions over 90 days · Avg. +12 ELO per session</p>
+                </div>
+                <div className="flex gap-1 bg-black/50 border border-white/5 p-1 rounded-lg">
+                  <button className="px-3 py-1 rounded text-[10px] font-bold text-slate-400 hover:text-white">7d</button>
+                  <button className="px-3 py-1 rounded text-[10px] font-bold bg-white/10 text-white shadow-sm">30d</button>
+                  <button className="px-3 py-1 rounded text-[10px] font-bold text-slate-400 hover:text-white">90d</button>
+                </div>
+              </div>
+              
+              <div className="h-[280px] w-full p-4 relative bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTE5LjUgMEwxOS41IDIwTTAgMTkuNUwyMCAxOS41IiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsMC4wMikiIGZpbGw9Im5vbmUiLz48L3N2Zz4=')]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={eloHistory.length > 0 ? eloHistory : ELO_HISTORY} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="eloGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <YAxis domain={['dataMin - 20', 'dataMax + 20']} hide />
+                    <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 10, fontFamily: "monospace" }} axisLine={false} tickLine={false} dy={10} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.04)" />
+                    <RechartsTooltip 
+                      contentStyle={{ backgroundColor: "#08080C", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", boxShadow: "0 10px 30px rgba(0,0,0,0.8)" }}
+                      labelStyle={{ color: "#94A3B8", fontSize: "10px", textTransform: "uppercase", fontWeight: 700 }}
+                      itemStyle={{ color: "#fff", fontWeight: "bold", fontSize: "14px", fontFamily: "monospace" }}
+                      cursor={{ stroke: 'rgba(255,255,255,0.15)', strokeWidth: 1, strokeDasharray: '4 4' }}
+                    />
+                    <Area 
+                      type="monotone" dataKey="elo" stroke="#3b82f6" strokeWidth={3} fill="url(#eloGradient)"
+                      activeDot={{ r: 6, fill: "#fff", stroke: "#3b82f6", strokeWidth: 3, style: { filter: "drop-shadow(0 0 8px rgba(59,130,246,0.8))" } }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+                <div className="absolute top-4 right-4 text-[10px] font-mono text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded border border-indigo-500/20">
+                  Target Benchmark: {currentCompanyData.thresholdElo} ELO
+                </div>
+              </div>
+            </section>
+
+            {/* SKILL VECTOR MATRIX */}
+            <section className="bg-[#050508] border border-white/[0.08] rounded-2xl p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]">
+               <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Skill Vector Matrix · Knowledge Graph Coverage</h2>
+                  <button onClick={onNavigateStudyPlan} className="text-[10px] font-mono font-bold text-indigo-400 hover:text-white bg-indigo-500/10 px-2.5 py-1 rounded border border-indigo-500/20 transition-colors">
+                    51 of 93 Tested →
+                  </button>
+               </div>
+               
+               <div className="space-y-3">
+                 <MatrixRow label="Algorithms" activeCount={2} totalCount={12} theme="blue" />
+                 <MatrixRow label="Systems" activeCount={5} totalCount={10} theme="emerald" />
+                 <MatrixRow label="Behavioral" activeCount={2} totalCount={8} theme="amber" warning />
+                 <MatrixRow label="Live Coding" activeCount={4} totalCount={9} theme="purple" />
+               </div>
+
+               <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between text-[10px] font-medium text-slate-400">
+                 <div className="flex items-center gap-4">
+                   <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-[2px] bg-white/30" /> Mastered</div>
+                   <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-[2px] bg-white/10" /> Partial</div>
+                   <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-[2px] bg-black border border-white/10" /> Untested</div>
+                 </div>
+                 <button onClick={onNavigateStudyPlan} className="text-slate-300 hover:text-white transition-colors font-bold">Explore Knowledge Graph (93 Nodes) →</button>
+               </div>
+            </section>
+
+            {/* FLIGHT LEDGER (SESSION HISTORY) */}
+            <section className="bg-[#050508] border border-white/[0.08] rounded-2xl p-0 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] overflow-hidden">
+              <div className="p-6 border-b border-white/[0.05] flex justify-between items-center bg-[#030305]/50">
+                <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Flight Ledger · Session History</h2>
+                <div className="flex items-center gap-3">
+                   <span className="text-[10px] font-mono text-slate-400 bg-white/5 px-2 py-0.5 rounded border border-white/5">28 sessions</span>
+                   <button onClick={onNavigateHistory} className="text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-white flex items-center gap-1">Sort: Recent <ChevronRight size={12}/></button>
+                </div>
+              </div>
+
+              <div className="divide-y divide-white/[0.03]">
+                {(flightLedger.length > 0 ? flightLedger : MOCK_LEDGER).map((session, idx) => (
+                  <div 
+                    key={session.id || idx}
+                    onMouseEnter={() => setHoveredSessionId(session.id || idx)}
+                    onMouseLeave={() => setHoveredSessionId(null)}
+                    onClick={() => session.track === 'coding' ? onStartCoding?.() : onNavigateHistory?.(session.id)}
+                    className="flex items-center justify-between p-5 hover:bg-white/[0.02] transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-6">
+                      <div className="w-12 text-center shrink-0">
+                        <span className="block text-[11px] font-bold text-slate-400 uppercase">{session.date.split(" ")[0]}</span>
+                        <span className="block text-sm font-mono font-bold text-slate-200">{session.date.split(" ")[1]}</span>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors flex items-center gap-2">
+                          {session.type} <span className="text-slate-600 font-normal">·</span> {session.company}
+                        </h4>
+                        <div className="flex items-center gap-3 mt-1 text-[11px] font-medium text-slate-400">
+                          <span className="flex items-center gap-1 text-slate-500"><Target size={10} /> {session.company}</span>
+                          <span className="flex items-center gap-1 text-slate-500"><Activity size={10} /> 47 min</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-8 text-right">
+                      <div className="hidden sm:block">
+                        <span className="block text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">ELO Δ</span>
+                        <span className={`text-xs font-mono font-bold ${session.eloDelta && session.eloDelta.includes('+') ? 'text-emerald-400' : session.eloDelta && session.eloDelta.includes('-') ? 'text-rose-400' : 'text-slate-400'}`}>{session.eloDelta || "—"}</span>
+                      </div>
+                      <div className="hidden sm:block">
+                        <span className="block text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Score</span>
+                        <span className="text-xs font-mono font-bold text-white">{session.score}</span>
+                      </div>
+                      <div className="w-24 text-left hidden lg:block">
+                        <span className="block text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Persona</span>
+                        <span className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
+                          <ShieldAlert size={10} className={session.persona?.toLowerCase().includes('hostile') ? 'text-rose-400' : 'text-slate-500'} /> {session.persona}
+                        </span>
+                      </div>
+                      <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 group-hover:bg-white group-hover:text-black group-hover:shadow-[0_0_15px_rgba(255,255,255,0.3)] transition-all shrink-0">
+                        <Play size={12} className="fill-current ml-0.5" />
                       </div>
                     </div>
                   </div>
+                ))}
+              </div>
+              
+              <div className="p-4 border-t border-white/[0.04] bg-[#030305]/50 text-center">
+                <button onClick={onNavigateHistory} className="text-[10px] font-mono text-slate-400 hover:text-white uppercase tracking-widest font-bold">Load 43 previous sessions ↓</button>
+              </div>
+            </section>
 
-                  <div className="flex items-center gap-8 text-right">
-                    <div className="hidden sm:block">
-                      <span className="block text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">ELO Δ</span>
-                      <span className={`text-xs font-mono font-bold ${session.eloDelta && session.eloDelta.includes('+') ? 'text-emerald-400' : session.eloDelta && session.eloDelta.includes('-') ? 'text-rose-400' : 'text-slate-400'}`}>{session.eloDelta || "—"}</span>
-                    </div>
-                    <div className="hidden sm:block">
-                      <span className="block text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Score</span>
-                      <span className="text-xs font-mono font-bold text-white">{session.score}</span>
-                    </div>
-                    <div className="w-24 text-left hidden lg:block">
-                      <span className="block text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Persona</span>
-                      <span className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
-                        <ShieldAlert size={10} className={session.persona?.toLowerCase().includes('hostile') ? 'text-rose-400' : 'text-slate-500'} /> {session.persona}
-                      </span>
-                    </div>
-                    <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 group-hover:bg-white group-hover:text-black group-hover:shadow-[0_0_15px_rgba(255,255,255,0.3)] transition-all shrink-0">
-                      <Play size={12} className="fill-current ml-0.5" />
-                    </div>
-                  </div>
-                </div>
-              ))}
+            {/* TEMPORAL SCRUBBING HINT */}
+            <div className="text-[10px] font-medium text-slate-400 border border-white/5 bg-black/40 p-3 rounded-lg text-center flex items-center justify-center gap-2">
+              <Activity size={12} className="text-blue-500/80" />
+              Interaction: Hovering over any past session row scrubs the radar chart in real time.
             </div>
-            
-            <div className="p-4 border-t border-white/[0.04] bg-[#030305]/50 text-center">
-              <button onClick={onNavigateHistory} className="text-[10px] font-mono text-slate-400 hover:text-white uppercase tracking-widest font-bold">Load 43 previous sessions ↓</button>
-            </div>
-          </section>
 
-          {/* TEMPORAL SCRUBBING HINT */}
-          <div className="text-[10px] font-medium text-slate-400 border border-white/5 bg-black/40 p-3 rounded-lg text-center flex items-center justify-center gap-2">
-            <Activity size={12} className="text-blue-500/80" />
-            ⚡ Interaction: Hovering over any past session row scrubs the radar chart in real time.
           </div>
 
-        </div>
+          {/* ========================================================= */}
+          {/* RIGHT RAIL (35%) — STICKY INDEPENDENT DECK               */}
+          {/* ========================================================= */}
+          {}
+          <div className="w-full lg:w-[35%] flex flex-col gap-6 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto scrollbar-hide shrink-0">
+            
+            <AnimatePresence mode="wait">
+              <motion.div 
+                key={activeTarget}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.3 }}
+                className="w-full flex flex-col gap-6"
+              >
+                {/* COMPANY DNA RADAR CHART */}
+                <section className="bg-[#050508] border border-white/[0.08] rounded-2xl p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] relative overflow-hidden shrink-0">
+                  <div className="flex justify-between items-center mb-2 relative z-10">
+                    <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Company DNA · {activeTarget} L4</h2>
+                    <span className={`text-[9px] font-mono px-2 py-0.5 rounded border transition-colors ${
+                      hoveredSessionId 
+                        ? "bg-blue-500/20 text-blue-400 border-blue-500/30 animate-pulse" 
+                        : "bg-white/5 text-slate-500 border-white/10"
+                    }`}>
+                      {hoveredSessionId ? `Previewing Session #${hoveredSessionId}` : "Live Company Average"}
+                    </span>
+                  </div>
 
-        {/* ========================================================================= */}
-        {/* RIGHT RAIL (35%) — STICKY INSTRUMENT DECK                                 */}
-        {/* ========================================================================= */}
-        <div className="w-full lg:w-[35%] flex flex-col gap-6 lg:sticky lg:top-24 lg:h-[calc(100vh-8rem)]">
-          
-          <AnimatePresence mode="wait">
-            <motion.div 
-              key={activeTarget}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.3 }}
-              className="w-full flex flex-col gap-6"
-            >
-              {/* COMPANY DNA RADAR CHART */}
-              <section className="bg-[#050508] border border-white/[0.08] rounded-2xl p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] relative overflow-hidden shrink-0">
-                <div className="flex justify-between items-center mb-2 relative z-10">
-                  <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Company DNA · {activeTarget} L4</h2>
-                  <span className={`text-[9px] font-mono px-2 py-0.5 rounded border transition-colors ${
-                    hoveredSessionId 
-                      ? "bg-blue-500/20 text-blue-400 border-blue-500/30 animate-pulse" 
-                      : "bg-white/5 text-slate-500 border-white/10"
-                  }`}>
-                    {hoveredSessionId ? `Previewing Session #${hoveredSessionId}` : "Live Company Average"}
-                  </span>
-                </div>
+                  <div className="h-56 w-full relative z-10 -ml-2">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart data={activeRadar}>
+                        <PolarGrid stroke="rgba(255,255,255,0.1)" />
+                        <PolarAngleAxis dataKey="dim" tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: "bold" }} />
+                        <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
+                        <Radar name="Score" dataKey="value" stroke="#3b82f6" fill="#3b82f6" fillOpacity={hoveredSessionId ? 0.4 : 0.2} strokeWidth={2} />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </div>
 
-                <div className="h-56 w-full relative z-10 -ml-2">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart data={activeRadar}>
-                      <PolarGrid stroke="rgba(255,255,255,0.1)" />
-                      <PolarAngleAxis dataKey="dim" tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: "bold" }} />
-                      <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
-                      <Radar name="Score" dataKey="value" stroke="#3b82f6" fill="#3b82f6" fillOpacity={hoveredSessionId ? 0.4 : 0.2} strokeWidth={2} />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </div>
+                  <div className="grid grid-cols-5 gap-1 border-t border-white/[0.06] pt-4 mt-2">
+                    {activeRadar.map((stat, i) => (
+                      <div key={i} className="text-center">
+                         <div className="text-[13px] font-mono font-bold text-white mb-0.5">{stat.value}</div>
+                         <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">{stat.dim}</div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
 
-                <div className="grid grid-cols-5 gap-1 border-t border-white/[0.06] pt-4 mt-2">
-                  {activeRadar.map((stat, i) => (
-                    <div key={i} className="text-center">
-                       <div className="text-[13px] font-mono font-bold text-white mb-0.5">{stat.value}</div>
-                       <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">{stat.dim}</div>
-                    </div>
-                  ))}
-                </div>
-              </section>
+                {/* RECOMMENDED ACTION DECK */}
+                <section className="bg-[#050508] border border-white/[0.08] rounded-2xl p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] shrink-0">
+                  <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4">Recommended Action</h2>
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-5 mb-4">
+                    <h3 className="text-sm font-bold text-white mb-1">{currentCompanyData.recommendedDrill}</h3>
+                    <p className="text-[11px] text-slate-400 font-medium mb-4">
+                      {activeTarget} L4 · Est. {currentCompanyData.estTime} · <span className="text-emerald-400">{currentCompanyData.eloGain}</span>
+                    </p>
+                    
+                    <button 
+                      onClick={() => currentCompanyData.drillType === 'coding' ? onStartCoding?.() : onStartNew?.()} 
+                      className="relative group overflow-hidden w-full bg-white text-black py-3 rounded-lg text-sm font-bold active:scale-95 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.15)] outline-none"
+                    >
+                      <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
+                      <Play size={14} className="fill-current" /> Launch Drill <kbd className="font-mono text-[10px] bg-black/10 px-1.5 py-0.5 rounded ml-1 text-black/60 shadow-sm border border-black/10">↵</kbd>
+                    </button>
+                  </div>
 
-              {/* RECOMMENDED ACTION DECK */}
-              <section className="bg-[#050508] border border-white/[0.08] rounded-2xl p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] shrink-0">
-                <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4">Recommended Action</h2>
-                <div className="bg-white/5 border border-white/10 rounded-xl p-5 mb-4">
-                  <h3 className="text-sm font-bold text-white mb-1">{currentCompanyData.recommendedDrill}</h3>
-                  <p className="text-[11px] text-slate-400 font-medium mb-4">
-                    {activeTarget} L4 · Est. {currentCompanyData.estTime} · <span className="text-emerald-400">{currentCompanyData.eloGain}</span>
-                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button 
+                      onClick={onStartNew}
+                      className="py-2.5 rounded-lg border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] text-xs font-bold text-slate-300 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <GitBranch size={14} className="text-blue-400" /> Track A <kbd className="hidden xl:inline-block font-mono text-[9px] text-slate-400 ml-1 bg-white/10 px-1 rounded">A</kbd>
+                    </button>
+                    <button 
+                      onClick={onStartCoding}
+                      className="py-2.5 rounded-lg border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] text-xs font-bold text-slate-300 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Code2 size={14} className="text-amber-400" /> Track B <kbd className="hidden xl:inline-block font-mono text-[9px] text-slate-400 ml-1 bg-white/10 px-1 rounded">B</kbd>
+                    </button>
+                  </div>
+                </section>
+
+                {/* GAP FIX QUEUE */}
+                <section className="bg-[#050508] border border-white/[0.08] rounded-2xl flex flex-col shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] shrink-0 overflow-hidden">
+                  <div className="p-5 border-b border-white/[0.06] flex justify-between items-center bg-[#030305]/50 shrink-0">
+                    <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Gap Fix Queue</h2>
+                    <span className="text-[9px] font-mono text-slate-400 border border-white/5 px-2 py-0.5 rounded">{currentCompanyData.gapQueue.length} Recommended Drills</span>
+                  </div>
                   
-                  <button 
-                    onClick={() => currentCompanyData.drillType === 'coding' ? onStartCoding?.() : onStartNew?.()} 
-                    className="relative group overflow-hidden w-full bg-white text-black py-3 rounded-lg text-sm font-bold active:scale-95 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.15)] outline-none"
-                  >
-                    <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
-                    <Play size={14} className="fill-current" /> Launch Drill <kbd className="font-mono text-[10px] bg-black/10 px-1.5 py-0.5 rounded ml-1 text-black/60 shadow-sm border border-black/10">↵</kbd>
-                  </button>
-                </div>
+                  <div className="p-3 space-y-2">
+                    {currentCompanyData.gapQueue.map((item, idx) => (
+                      <GapCard 
+                        key={item.id} 
+                        title={item.title} 
+                        meta={item.meta} 
+                        elo={item.elo} 
+                        num={idx + 1} 
+                        onClick={() => item.track === 'coding' ? onStartCoding?.() : onStartNew?.()}
+                      />
+                    ))}
+                  </div>
+                </section>
+              </motion.div>
+            </AnimatePresence>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <button 
-                    onClick={onStartNew}
-                    className="py-2.5 rounded-lg border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] text-xs font-bold text-slate-300 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <GitBranch size={14} className="text-blue-400" /> Track A <kbd className="hidden xl:inline-block font-mono text-[9px] text-slate-400 ml-1 bg-white/10 px-1 rounded">A</kbd>
-                  </button>
-                  <button 
-                    onClick={onStartCoding}
-                    className="py-2.5 rounded-lg border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] text-xs font-bold text-slate-300 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Code2 size={14} className="text-amber-400" /> Track B <kbd className="hidden xl:inline-block font-mono text-[9px] text-slate-400 ml-1 bg-white/10 px-1 rounded">B</kbd>
-                  </button>
-                </div>
-              </section>
-
-              {/* GAP FIX QUEUE */}
-              <section className="bg-[#050508] border border-white/[0.08] rounded-2xl flex flex-col shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] flex-1 min-h-0 overflow-hidden">
-                <div className="p-5 border-b border-white/[0.06] flex justify-between items-center bg-[#030305]/50 shrink-0">
-                  <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Gap Fix Queue</h2>
-                  <span className="text-[9px] font-mono text-slate-400 border border-white/5 px-2 py-0.5 rounded">{currentCompanyData.gapQueue.length} Recommended Drills</span>
-                </div>
-                
-                <div className="flex-1 overflow-y-auto p-3 space-y-2">
-                  {currentCompanyData.gapQueue.map((item, idx) => (
-                    <GapCard 
-                      key={item.id} 
-                      title={item.title} 
-                      meta={item.meta} 
-                      elo={item.elo} 
-                      num={idx + 1} 
-                      onClick={() => item.track === 'coding' ? onStartCoding?.() : onStartNew?.()}
-                    />
-                  ))}
-                </div>
-              </section>
-            </motion.div>
-          </AnimatePresence>
-
+          </div>
         </div>
+
+        {/* FULL-WIDTH 1-LINE FOOTER AT THE BOTTOM OF THE DASHBOARD */}
+        {}
+        <footer className="mt-16 pt-8 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] font-mono text-slate-500 w-full">
+          <div>© 2026 InterviewCoach AI · All rights reserved</div>
+          <div className="flex items-center gap-4">
+            <button onClick={onNavigateStudyPlan} className="hover:text-slate-300 transition-colors">Knowledge Graph</button>
+            <span className="text-slate-700">·</span>
+            <button onClick={onNavigateSettings} className="hover:text-slate-300 transition-colors">Settings</button>
+            <span className="text-slate-700">·</span>
+            <button onClick={onNavigateHistory} className="hover:text-slate-300 transition-colors">Sessions</button>
+            <span className="text-slate-700">·</span>
+            <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> All Systems Operational
+            </span>
+          </div>
+        </footer>
+
       </main>
 
     </div>
@@ -667,26 +748,3 @@ function GapCard({ title, meta, elo, num, onClick }) {
     </div>
   );
 }
-
-// MOCK DATA TO POPULATE LIST
-const MOCK_LEDGER = [
-  { id: 1, date: "Aug 2", type: "ML Engineer", company: "amazon", eloDelta: "", score: "—", persona: "Standard" },
-  { id: 2, date: "Aug 2", type: "ML Engineer", company: "amazon", eloDelta: "▲", score: "71/100", persona: "Standard" },
-  { id: 3, date: "Aug 2", type: "Frontend Engineer — L4", company: "amazon", eloDelta: "", score: "—", persona: "Hostile" },
-  { id: 4, date: "Aug 2", type: "Frontend Engineer — L4", company: "startup", eloDelta: "▲", score: "2/100", persona: "Hostile" },
-  { id: 5, date: "Aug 1", type: "Senior Engineer — L4", company: "apple", eloDelta: "", score: "—", persona: "Hostile" },
-  { id: 6, date: "Aug 1", type: "Frontend Engineer — L4", company: "startup", eloDelta: "", score: "—", persona: "Hostile" },
-  { id: 7, date: "Aug 1", type: "Frontend Engineer — L4", company: "startup", eloDelta: "", score: "—", persona: "—" },
-  { id: 8, date: "Aug 1", type: "Frontend Engineer — L4", company: "startup", eloDelta: "", score: "—", persona: "—" },
-  { id: 9, date: "Jul 31", type: "Frontend Engineer — L4", company: "microsoft", eloDelta: "▲", score: "88/100", persona: "—" },
-  { id: 10, date: "Jul 31", type: "Frontend Engineer — L4", company: "google", eloDelta: "", score: "—", persona: "—" },
-  { id: 11, date: "Jul 31", type: "Frontend Engineer — L4", company: "google", eloDelta: "", score: "—", persona: "—" },
-  { id: 12, date: "Jul 31", type: "Backend Engineer — L4", company: "google", eloDelta: "", score: "—", persona: "—" },
-];
-
-const ELO_HISTORY = [
-  { date: "Jul 10", elo: 1050 }, { date: "Jul 11", elo: 1080 },
-  { date: "Jul 15", elo: 1075 }, { date: "Jul 22", elo: 1110 },
-  { date: "Jul 29", elo: 1145 }, { date: "Aug 2", elo: 1170 },
-  { date: "Aug 8", elo: 1195 },
-];
