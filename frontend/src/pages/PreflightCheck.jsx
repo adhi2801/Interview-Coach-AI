@@ -91,11 +91,13 @@ export default function PreflightCheck({ onReady, onSkip }) {
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
 
+  // Runs once on mount only — enumerates devices, auto-selects the first
+  // mic, and opens the stream in a single pass (no re-trigger loop).
   useEffect(() => {
     checkMicrophone();
     return () => cleanupAudio();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDevice]);
+  }, []);
 
   const cleanupAudio = () => {
     if (streamRef.current) {
@@ -118,24 +120,23 @@ export default function PreflightCheck({ onReady, onSkip }) {
     return cleanLabel.charAt(0).toUpperCase() + cleanLabel.slice(1);
   };
 
-  async function checkMicrophone() {
+  async function checkMicrophone(deviceIdOverride) {
     cleanupAudio();
     try {
       const devList = await navigator.mediaDevices.enumerateDevices();
       const audioInputs = devList.filter((device) => device.kind === "audioinput");
-      
+
       const options = audioInputs.map((d, i) => ({
         id: d.deviceId || `mic-${i}`,
         label: formatDeviceLabel(d.label, i)
       }));
       setDevices(options);
-      
-      if (!selectedDevice && options.length > 0) {
-        setSelectedDevice(options[0].id);
-      }
+
+      const targetDevice = deviceIdOverride || selectedDevice || options[0]?.id || "";
+      if (targetDevice !== selectedDevice) setSelectedDevice(targetDevice);
 
       const constraints = {
-        audio: selectedDevice ? { deviceId: { exact: selectedDevice } } : true
+        audio: targetDevice ? { deviceId: { exact: targetDevice } } : true
       };
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
@@ -326,7 +327,7 @@ export default function PreflightCheck({ onReady, onSkip }) {
               </div>
               <HardwareDropdown 
                 value={selectedDevice}
-                onChange={setSelectedDevice}
+                onChange={(id) => checkMicrophone(id)}
                 options={devices}
                 disabled={micStatus === "checking" || micStatus === "denied"}
               />
