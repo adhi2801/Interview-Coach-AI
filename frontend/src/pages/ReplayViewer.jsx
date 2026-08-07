@@ -116,6 +116,29 @@ function parsePromptFallback(questionText, scenarioText, constraintsArray, askTe
   };
 }
 
+// Explicit color lookup — NEVER build Tailwind class names with template
+// literals like `text-${theme}-400`. Tailwind's build-time class scanner
+// only sees literal strings in source; runtime-interpolated class names
+// are silently dropped from the production CSS bundle. This was the root
+// cause of missing colors and the score-ring/text overlap on this page.
+const THEME_COLORS = {
+  emerald: {
+    text: "#34d399", textSoft: "#6ee7b7",
+    badgeBg: "rgba(16,185,129,0.1)", badgeBorder: "rgba(16,185,129,0.2)",
+    dotBg: "#34d399", glow: "rgba(16,185,129,0.14)",
+  },
+  amber: {
+    text: "#fbbf24", textSoft: "#fcd34d",
+    badgeBg: "rgba(245,158,11,0.1)", badgeBorder: "rgba(245,158,11,0.2)",
+    dotBg: "#fbbf24", glow: "rgba(245,158,11,0.14)",
+  },
+  rose: {
+    text: "#fb7185", textSoft: "#fda4af",
+    badgeBg: "rgba(244,63,94,0.1)", badgeBorder: "rgba(244,63,94,0.2)",
+    dotBg: "#fb7185", glow: "rgba(244,63,94,0.14)",
+  },
+};
+
 export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
   const [sessionList, setSessionList] = useState(null);
   const [replay, setReplay] = useState(null);
@@ -144,7 +167,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
         const res = await axios.get(`${API_URL}/replay/${sessionId}`, { headers: { Authorization: `Bearer ${token}` } });
         setReplay(res.data);
       } catch (err) {
-        console.error("Failed to decrypt session replay ledger:", err);
+        console.error("Failed to retrieve session replay:", err);
       }
       setLoading(false);
     }
@@ -173,7 +196,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
       <div className="h-screen w-full bg-[#000000] flex items-center justify-center font-sans">
         <div className="flex flex-col items-center gap-4 text-slate-500">
           <span className="w-8 h-8 border-2 border-slate-700 border-t-indigo-500 rounded-full animate-spin" />
-          <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400">Decrypting Telemetry Ledger...</span>
+          <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400">Loading Session Ledger...</span>
         </div>
       </div>
     );
@@ -266,7 +289,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
 
           {!filteredSessions || filteredSessions.length === 0 ? (
             <div className="p-16 border border-white/10 border-dashed rounded-2xl text-center text-slate-500 text-sm font-medium bg-white/[0.02]">
-              No flight ledgers found matching criteria.
+              No sessions found matching criteria.
             </div>
           ) : (
             <motion.div 
@@ -275,9 +298,9 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
             >
               <AnimatePresence>
                 {filteredSessions.map((s) => {
-                  const eloDelta = s.elo_after ? Math.round(s.elo_after - 1200) : 14; 
-                  const companyName = s.company_target ? s.company_target.charAt(0).toUpperCase() + s.company_target.slice(1) : "Google";
-                  const roleName = s.role || "Staff Engineer — L6";
+                  const eloDelta = s.elo_after ? Math.round(s.elo_after - 1200) : 0; 
+                  const companyName = s.company_target ? s.company_target.charAt(0).toUpperCase() + s.company_target.slice(1) : "Company";
+                  const roleName = s.role || "Role not set";
                   const init = companyName.charAt(0);
                   
                   const bgColors = { 'G': 'bg-blue-600', 'M': 'bg-blue-600', 'A': 'bg-amber-600', 'S': 'bg-indigo-600' };
@@ -308,19 +331,21 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
 
                         <div className="flex flex-col items-end gap-1.5">
                           <span className="text-[10px] font-mono font-bold text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 flex items-center gap-1.5">
-                            <Network size={10} /> {s.question_count || 4} Nodes
+                            <Network size={10} /> {s.question_count || 0} Nodes
                           </span>
-                          <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border flex items-center gap-1 ${
-                            eloDelta >= 0 ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" : "text-rose-400 bg-rose-500/10 border-rose-500/20"
-                          }`}>
-                            {eloDelta >= 0 ? '↑' : '↓'} {Math.abs(eloDelta)} ELO
-                          </span>
+                          {s.elo_after != null && (
+                            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border flex items-center gap-1 ${
+                              eloDelta >= 0 ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" : "text-rose-400 bg-rose-500/10 border-rose-500/20"
+                            }`}>
+                              {eloDelta >= 0 ? '↑' : '↓'} {Math.abs(eloDelta)} ELO
+                            </span>
+                          )}
                         </div>
                       </div>
 
                       <div className="flex justify-between items-end w-full pt-4 mt-auto border-t border-white/[0.04]">
                         <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                          SESSION #{s.id} <span className="w-1 h-1 bg-slate-600 rounded-full" /> {s.started_at ? new Date(s.started_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Jul 14"}
+                          SESSION #{s.id} <span className="w-1 h-1 bg-slate-600 rounded-full" /> {s.started_at ? new Date(s.started_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""}
                         </span>
                         <div className="text-[10px] font-bold text-indigo-400 opacity-0 group-hover:opacity-100 uppercase tracking-wider transition-opacity flex items-center gap-1">
                           Audit Ledger <ArrowRight size={12} />
@@ -336,9 +361,6 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
           {/* 1-LINE FOOTER */}
           <footer className="mt-16 pt-6 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] font-mono text-slate-500">
             <div>© 2026 InterviewCoach AI &middot; Session Replay &amp; Telemetry Ledger</div>
-            <div className="flex items-center gap-2 text-slate-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Telemetry Ledger Verified
-            </div>
           </footer>
 
         </main>
@@ -353,8 +375,8 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
           <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 mx-auto">
             <AlertTriangle size={24} />
           </div>
-          <h2 className="text-lg font-bold text-white tracking-tight">Ledger Corrupted or Missing</h2>
-          <p className="text-xs text-slate-400 font-medium leading-relaxed">Unable to load telemetry data for Session #{sessionId}. Verify network connection or select another record.</p>
+          <h2 className="text-lg font-bold text-white tracking-tight">Session Not Found</h2>
+          <p className="text-xs text-slate-400 font-medium leading-relaxed">Unable to load data for Session #{sessionId}. Verify network connection or select another record.</p>
           {onExit && (
             <button onClick={onExit} className="mt-4 px-6 py-2.5 bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 rounded-xl text-xs font-bold text-white transition-all">
               Return to Dashboard
@@ -368,7 +390,8 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
   const q = replay.questions[selected] || {};
   const overall = q?.scores ? ((q.scores.score_technical + q.scores.score_communication + q.scores.score_problem_solving + q.scores.score_cultural_fit + q.scores.score_confidence) / 5).toFixed(1) : 0;
   const ovNum = parseFloat(overall || 0);
-  const theme = ovNum >= 7.5 ? "emerald" : ovNum >= 5.0 ? "amber" : "rose";
+  const themeKey = ovNum >= 7.5 ? "emerald" : ovNum >= 5.0 ? "amber" : "rose";
+  const theme = THEME_COLORS[themeKey];
   const statusLabel = ovNum >= 7.5 ? "STRONG SIGNAL" : ovNum >= 5.0 ? "MODERATE SIGNAL" : "CRITICAL GAP";
   const totalNodes = replay.questions.length;
   const parsedPrompt = parsePromptFallback(q.question, q.scenario, q.constraints, q.ask, replay.role || "", q.category || "");
@@ -387,24 +410,15 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
     ? (trajectoryData.reduce((acc, curr) => acc + curr.score, 0) / trajectoryData.length).toFixed(2) 
     : "0.00";
 
-  const missingAnnotations = q.gaps?.length > 0 ? q.gaps.map(gap => ({
+  // Real gaps only — no fabricated fallback content. If the backend
+  // returned no gaps for this node, we say so honestly instead of
+  // inventing plausible-sounding placeholder feedback.
+  const realGaps = q.gaps?.length > 0 ? q.gaps.map(gap => ({
     title: gap.gap.replace(/_/g, " "),
     text: gap.prerequisites_to_study_first?.length > 0 
-      ? `Missing required domain signal. Identified prerequisite dependencies: ${gap.prerequisites_to_study_first.join(", ")}.`
-      : "Expected explicit architectural trade-off justification and risk contingency plan. None provided in candidate submission.",
-    solution: `"Provide a structured, two-phase release plan: deploy the keyboard navigation hotfix immediately, followed by automated integration tests in CI/CD."`
-  })) : [
-    {
-      title: "Technical Specificity on Accessibility",
-      text: "Expected explicit mention of keyboard focus traps and ARIA compliance attributes for the date-picker component. None provided in submission.",
-      solution: `"Ensure the date-picker handles keydown events for Arrow keys and applies aria-expanded='true' to active popup frames."`
-    },
-    {
-      title: "Contingency & Risk Mitigation Plan",
-      text: "Launch timeline was 3 days away. Candidate should have proposed a two-phase release to balance launch date against accessibility standards.",
-      solution: `"Propose a 24-hour hotfix sprint for keyboard navigation, paired with a feature flag fallback for screen-reader users."`
-    }
-  ];
+      ? `Prerequisite dependencies detected: ${gap.prerequisites_to_study_first.join(", ")}.`
+      : "Trade-off reasoning was underdeveloped for this response.",
+  })) : [];
 
   return (
     <div className="h-screen w-full bg-[#000000] text-slate-100 font-sans flex flex-col overflow-hidden selection:bg-indigo-500/30 relative">
@@ -422,9 +436,9 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
           </div>
           <div className="w-px h-4 bg-white/10 hidden sm:block" />
           <div className="flex items-center gap-2 font-mono text-xs">
-            <span className="text-slate-200 font-bold uppercase">{replay.company || "Microsoft"}</span>
+            <span className="text-slate-200 font-bold uppercase">{replay.company || "Company"}</span>
             <span className="text-slate-600">&gt;</span>
-            <span className="text-slate-400 font-medium">{replay.role || "Frontend Engineer - L4"}</span>
+            <span className="text-slate-400 font-medium">{replay.role || "Role"}</span>
             <span className="text-slate-600">&gt;</span>
             <span className="text-indigo-400 font-bold bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded text-[10px] tracking-widest uppercase shadow-sm">
               REPLAY STUDIO
@@ -462,29 +476,42 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
             <AnimatePresence mode="wait">
               <motion.div key={selected} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.3, ease: "easeOut" }} className="space-y-8">
                 
-                {/* HERO VERDICT DECK */}
+                {/* HERO VERDICT DECK — rebuilt with explicit color lookup and
+                    a defined-width ring so it can never overlap the text
+                    column, regardless of content length. */}
                 <div className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-6 md:p-8 relative overflow-hidden backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_20px_40px_-10px_rgba(0,0,0,0.5)]">
-                  <div className={`absolute -top-20 -right-20 w-64 h-64 bg-${theme}-500/10 blur-[100px] pointer-events-none rounded-full`} />
-                  
-                  <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8 relative z-10">
-                    <div className="w-24 h-24 rounded-full border-[3px] border-[#111116] flex flex-col items-center justify-center relative shadow-[0_0_30px_rgba(0,0,0,0.5)] shrink-0 bg-black/60 backdrop-blur-xl">
-                      <span className={`text-3xl font-extrabold font-mono tabular-nums text-${theme}-400 drop-shadow-[0_0_15px_currentColor] z-10 relative`}>
+                  <div
+                    className="absolute -top-20 -right-20 w-64 h-64 blur-[100px] pointer-events-none rounded-full"
+                    style={{ background: theme.glow }}
+                  />
+
+                  <div className="flex flex-col md:flex-row items-start md:items-center gap-6 md:gap-8 relative z-10">
+                    <div
+                      className="w-24 h-24 shrink-0 rounded-full border-[3px] border-[#111116] flex flex-col items-center justify-center relative shadow-[0_0_30px_rgba(0,0,0,0.5)] bg-black/60"
+                    >
+                      <span
+                        className="text-3xl font-extrabold font-mono tabular-nums z-10 relative"
+                        style={{ color: theme.text, filter: `drop-shadow(0 0 15px ${theme.text})` }}
+                      >
                         <AnimatedScore value={ovNum} />
                       </span>
                       <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mt-0.5 z-10 relative">/ 10</span>
                     </div>
 
-                    <div className="flex-1 text-center md:text-left space-y-2">
+                    <div className="flex-1 min-w-0 text-center md:text-left space-y-2">
                       <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
-                        <span className={`inline-flex items-center gap-1.5 text-[10px] font-mono font-bold px-2.5 py-1 rounded border uppercase tracking-widest bg-${theme}-500/10 text-${theme}-400 border-${theme}-500/20`}>
-                          <span className={`w-1.5 h-1.5 rounded-full bg-${theme}-400`} />
+                        <span
+                          className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold px-2.5 py-1 rounded border uppercase tracking-widest"
+                          style={{ background: theme.badgeBg, borderColor: theme.badgeBorder, color: theme.text }}
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full" style={{ background: theme.dotBg }} />
                           {statusLabel}
                         </span>
                         <span className="text-[10px] font-mono text-slate-400 bg-white/[0.04] border border-white/10 px-2.5 py-1 rounded uppercase font-bold">
                           NODE {selected + 1} LOGGED
                         </span>
                       </div>
-                      <h2 className="text-base md:text-xl font-bold text-white leading-[1.6] tracking-tight">
+                      <h2 className="text-sm md:text-base font-bold text-white leading-[1.6] tracking-tight">
                         {q?.scores?.overall_summary || "Diagnostic review complete for this interview node."}
                       </h2>
                     </div>
@@ -552,39 +579,35 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                   </div>
                 </div>
 
-                {/* ANNOTATED FEEDBACK */}
+                {/* ANNOTATED FEEDBACK — real gaps only, honest empty state */}
                 <div className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-6 md:p-8 space-y-5 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_20px_40px_-10px_rgba(0,0,0,0.5)]">
                   <div className="flex items-center justify-between border-b border-white/[0.04] pb-4">
                     <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-300 flex items-center gap-2.5">
-                      <Sparkles size={16} className="text-indigo-400" /> AI Annotation Breakdown
+                      <Sparkles size={16} className="text-indigo-400" /> Annotation Breakdown
                     </h3>
-                    <span className="text-[9px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded font-bold uppercase tracking-widest">{missingAnnotations.length} POINTS DIAGNOSED</span>
+                    {realGaps.length > 0 && (
+                      <span className="text-[9px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded font-bold uppercase tracking-widest">{realGaps.length} POINTS DIAGNOSED</span>
+                    )}
                   </div>
 
-                  <div className="space-y-3">
-                    {missingAnnotations.map((anno, idx) => (
-                      <div key={idx} className="bg-[#0A0A0E] border border-rose-500/20 p-4 rounded-xl space-y-2 relative overflow-hidden group">
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-rose-500/50" />
-                        <div className="flex items-center justify-between pl-2">
-                          <span className="text-sm font-bold text-white flex items-center gap-2">
-                            <XCircle size={16} className="text-rose-400 shrink-0" /> {anno.title}
-                          </span>
-                          <span className="text-[9px] font-mono bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2 py-0.5 rounded font-bold uppercase tracking-widest">Absent</span>
+                  {realGaps.length > 0 ? (
+                    <div className="space-y-3">
+                      {realGaps.map((anno, idx) => (
+                        <div key={idx} className="bg-[#0A0A0E] border border-rose-500/20 p-4 rounded-xl space-y-2 relative overflow-hidden group">
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-rose-500/50" />
+                          <div className="flex items-center justify-between pl-2">
+                            <span className="text-sm font-bold text-white flex items-center gap-2">
+                              <XCircle size={16} className="text-rose-400 shrink-0" /> {anno.title}
+                            </span>
+                            <span className="text-[9px] font-mono bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2 py-0.5 rounded font-bold uppercase tracking-widest">Absent</span>
+                          </div>
+                          <p className="text-sm text-slate-400 leading-relaxed font-medium pl-8">{anno.text}</p>
                         </div>
-                        <p className="text-sm text-slate-400 leading-relaxed font-medium pl-8">{anno.text}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="bg-emerald-500/5 border border-emerald-500/20 p-5 rounded-xl space-y-3 mt-4 relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500/50" />
-                    <span className="text-[10px] font-bold font-mono text-emerald-400 uppercase tracking-widest flex items-center gap-2 pl-2">
-                      <CheckCircle2 size={14} /> Expected Model Answer Scaffold
-                    </span>
-                    <p className="text-sm font-mono text-emerald-200/90 leading-relaxed bg-[#020204] p-4 rounded-lg border border-emerald-500/10 shadow-inner ml-2">
-                      {missingAnnotations[0]?.solution || `"Propose a structured, two-phase release plan: deploy the keyboard navigation hotfix immediately, followed by automated integration tests in CI/CD."`}
-                    </p>
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-slate-500 font-medium">No knowledge gaps were recorded for this node.</div>
+                  )}
                 </div>
 
               </motion.div>
@@ -593,9 +616,6 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
             {/* 1-LINE FOOTER */}
             <footer className="mt-12 pt-6 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] font-mono text-slate-500">
               <div>© 2026 InterviewCoach AI &middot; Session Replay &amp; Telemetry Ledger</div>
-              <div className="flex items-center gap-2 text-slate-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Telemetry Ledger Verified
-              </div>
             </footer>
 
           </div>
@@ -645,70 +665,35 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
               </div>
             )}
 
-            <div className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-5 space-y-4 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_20px_40px_-10px_rgba(0,0,0,0.5)] font-mono text-xs">
-              <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2 mb-2">
-                <Activity size={13} className="text-indigo-400" /> Voice Telemetry Log
-              </h3>
-              
-              <div className="flex items-end gap-1 h-10 w-full p-2 bg-[#020204] border border-white/[0.04] rounded-lg shadow-inner overflow-hidden mb-4">
-                {Array.from({ length: 32 }).map((_, i) => (
-                  <motion.div
-                    key={i}
-                    animate={{ height: [4, Math.random() * 24 + 4, 4] }}
-                    transition={{ duration: 0.4 + Math.random() * 0.5, repeat: Infinity, repeatType: "reverse" }}
-                    className="flex-1 rounded-t-sm bg-emerald-400"
-                  />
-                ))}
-              </div>
+            {/* Ranked Gap Fix Queue — real gaps only, hidden entirely if none exist */}
+            {realGaps.length > 0 && (
+              <div className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-5 space-y-4 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_20px_40px_-10px_rgba(0,0,0,0.5)]">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
+                    <Target size={14} className="text-amber-500" /> Gap Fix Queue
+                  </h3>
+                </div>
 
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Confidence Index</span>
-                  <span className="text-rose-400 font-bold">12%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Clarity Score</span>
-                  <span className="text-rose-400 font-bold">8%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Pace &amp; Cadence</span>
-                  <span className="text-amber-400 font-bold">31 WPM</span>
+                <div className="space-y-3">
+                  {q.gaps.map((gap, i) => (
+                    <motion.div 
+                      key={i} 
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setStudyPlanTopic(gap.gap)} 
+                      className="group bg-white/[0.02] border border-white/[0.06] hover:border-white/20 p-4 rounded-xl cursor-pointer transition-all shadow-sm"
+                    >
+                      <div className="flex items-start justify-between mb-1.5">
+                        <span className="text-sm font-bold text-slate-200 group-hover:text-white capitalize transition-colors">{gap.gap.replace(/_/g, " ")}</span>
+                      </div>
+                      <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5 mt-2 opacity-80 group-hover:opacity-100 transition-opacity">
+                        Launch Study Path <ArrowRight size={12} />
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
               </div>
-            </div>
-
-            <div className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-5 space-y-4 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_20px_40px_-10px_rgba(0,0,0,0.5)]">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
-                  <Target size={14} className="text-amber-500" /> Ranked Gap Fix Queue
-                </h3>
-                <span className="text-[9px] font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 uppercase tracking-widest">+34 ELO GAIN</span>
-              </div>
-
-              <div className="space-y-3">
-                {(q?.gaps?.length > 0 ? q.gaps : [
-                  { gap: "Accessibility Standards", urgency: "critical", elo: "+14" },
-                  { gap: "Risk Mitigation", urgency: "critical", elo: "+12" },
-                  { gap: "Cross-Functional Framing", urgency: "medium", elo: "+8" }
-                ]).map((gap, i) => (
-                  <motion.div 
-                    key={i} 
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setStudyPlanTopic(gap.gap)} 
-                    className="group bg-white/[0.02] border border-white/[0.06] hover:border-white/20 p-4 rounded-xl cursor-pointer transition-all shadow-sm"
-                  >
-                    <div className="flex items-start justify-between mb-1.5">
-                      <span className="text-sm font-bold text-slate-200 group-hover:text-white capitalize transition-colors">{gap.gap.replace(/_/g, " ")}</span>
-                      <span className="text-[10px] font-mono font-bold text-emerald-400">{gap.elo || "+12"} ELO</span>
-                    </div>
-                    <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5 mt-2 opacity-80 group-hover:opacity-100 transition-opacity">
-                      Launch Study Path <ArrowRight size={12} />
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
+            )}
 
           </div>
         </div>

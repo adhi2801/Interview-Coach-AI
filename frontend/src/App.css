@@ -29,3 +29,13 @@ html, body {
   font-feature-settings: "tnum";
   font-variant-numeric: tabular-nums;
 }
+
+/* Disable expensive blur effects on mobile - GPU-heavy blur/backdrop-blur causes severe lag on phones. Wildcard selector catches every blur variant so no page can silently fall outside this rule. */
+@media (max-width: 768px) {
+  [class*="blur-"],
+  [class*="backdrop-blur"] {
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
