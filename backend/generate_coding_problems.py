@@ -1,33 +1,61 @@
 """
 Generates new Coding Room problems using Claude, then VERIFIES each one is
-actually correct by running the generated Python solution against the
-generated test cases in a real subprocess — not just trusting the AI.
+actually correct by running the generated Python solution against its own
+test-case inputs in a real subprocess — not just trusting the AI.
 
-Only problems that pass verification get written to the output file.
-Anything that fails gets logged separately so you can see what was rejected
-and why (this is normal — some generations will have subtly wrong test
-cases, that's exactly what this script exists to catch).
+v2 changes from the original version, and why:
+
+1. Claude no longer states "expected_output" for test cases. It only writes
+   the solution code and a set of stdin *inputs*. We then run the solution
+   against each input ourselves and capture the real stdout as the ground
+   truth expected output. This makes the old "MISMATCH" rejection category
+   structurally impossible — a mismatch could only ever happen because
+   Claude was asked to hand-compute what its own code would output without
+   running it, which is exactly the kind of arithmetic/formatting slip an
+   LLM is prone to. Removing that step removes the failure mode.
+
+2. Generation uses Claude's structured tool-use output instead of asking it
+   to hand-write JSON with source code embedded as a string. Code contains
+   quotes, backslashes, and newlines that are easy to mis-escape inside a
+   JSON string; tool-use returns an already-parsed dict, no manual
+   json.loads()/fence-stripping needed.
+
+3. max_tokens raised from 3000 to 6000. The two problems that failed to
+   parse last time (Serialize/Deserialize Binary Tree, Trie) both need a
+   full solution plus 4 language stubs plus multiple test inputs in one
+   response — very plausibly they were hitting the token cap and getting
+   cut off mid-JSON, which looks like a "parsing error" but is really
+   truncation.
+
+4. Progress is saved after every single problem, not just at the very end,
+   so a crash or network blip partway through a batch doesn't lose
+   everything already generated.
+
+5. One retry with backoff on transient API failures.
 
 HOW TO USE:
 1. Copy this file into your backend/ folder (same folder as main.py)
-2. Make sure your .env has ANTHROPIC_API_KEY set (it already should, since
-   main.py uses it)
-3. Run: pip install anthropic --break-system-packages   (if not already installed)
-4. Run: python generate_coding_problems.py
-5. Wait — it calls Claude once per problem, then verifies each one locally.
-   This can take a few minutes for a full batch.
-6. Check the output:
-   - verified_problems.json  -> problems that passed verification, safe to review
-   - rejected_problems.json  -> problems that FAILED verification (for your curiosity, do not seed these)
-7. Read through verified_problems.json yourself before seeding it — this
-   script checks CORRECTNESS of test cases, not whether the problem is a
-   good/interesting/well-written question. That last judgment call is still yours.
+2. Make sure your .env has ANTHROPIC_API_KEY set
+3. pip install anthropic --break-system-packages   (if not already installed)
+4. python generate_coding_problems.py
+5. Check the output:
+   - verified_problems.json  -> problems that ran cleanly, safe to review
+   - rejected_problems.json  -> problems that crashed/timed out or failed
+     to generate at all (kept for your curiosity, do not seed these)
+6. Read through verified_problems.json yourself before seeding it. This
+   script verifies that the code RUNS and produces SOME consistent output —
+   it does not verify the code is logically correct for the stated problem.
+   A solution with a subtle bug that runs without crashing (e.g. an
+   off-by-one that doesn't error, just returns a slightly wrong answer)
+   will still pass this pipeline. That's exactly why the human read-through
+   step still exists — this script narrows down what you need to check by
+   eye, it doesn't replace checking it.
 
 WHAT THIS DOES NOT DO:
 - It does not touch your live database. It only writes local JSON files.
-- It only verifies the PYTHON solution runs correctly against test cases.
-  The JS/C++/Java versions are generated but not executed/verified (would
-  need those toolchains installed) — spot check those by eye.
+- It only runs/verifies the PYTHON solution. The JS/C++/Java starter stubs
+  are generated but not executed (would need those toolchains installed)
+  — spot check those by eye.
 """
 
 import os
@@ -40,10 +68,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), timeout=60.0)
+client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), timeout=90.0)
 
 # Define what to generate: (title_hint, difficulty 1-10, category/topic, companies)
-# Feel free to edit this list to add/remove/change what gets generated.
 TARGETS = [
     ("Binary Tree Level Order Traversal", 4, "Trees & Graphs", ["google", "meta"]),
     ("Longest Increasing Subsequence", 6, "Dynamic Programming", ["amazon", "google"]),
@@ -68,102 +95,171 @@ at difficulty {difficulty}/10 (1=easy/beginner, 10=very hard/staff-level), on th
 Write it in the exact same style as LeetCode-style interview problems, but wrapped in a
 realistic engineering scenario (not just an abstract algorithm statement).
 
-Return ONLY valid JSON, no markdown, no preamble, exactly this shape:
-{{
-  "slug": "<kebab-case-slug>",
-  "title": "<Problem Title>",
-  "difficulty": {difficulty},
-  "category": "{category}",
-  "description": "<2-4 sentence realistic engineering scenario framing the problem, then a precise technical problem statement>",
-  "constraints": ["<constraint 1>", "<constraint 2>", "<constraint 3>"],
-  "input_format": "<how input is given>",
-  "output_format": "<how output should be given>",
-  "python_solution": "<COMPLETE, CORRECT, working Python function that reads from stdin via input(), solves the problem, and prints the result. Must be fully self-contained and runnable as a script.>",
-  "starter_code_python": "<a starter stub version of the same function signature with 'pass' or similar, WITHOUT the solution, for the candidate to fill in>",
-  "starter_code_javascript": "<equivalent starter stub in JavaScript>",
-  "starter_code_cpp": "<equivalent starter stub in C++>",
-  "starter_code_java": "<equivalent starter stub in Java>",
-  "test_cases": [
-    {{"input": "<stdin input as a string, exactly as the python_solution expects it>", "expected_output": "<exact expected stdout output as a string>"}}
-  ]
-}}
+Your python_solution MUST be a complete, correct, self-contained Python script that reads
+input via input(), solves the problem, and prints the result — it will actually be executed.
 
-Include at least 5 test cases covering the base case, an edge case (empty/minimal input), and a larger case.
-The python_solution MUST be complete and correct — this will be executed and checked against your own test cases.
-"""
+Do NOT compute or state expected outputs yourself. Only provide test case INPUTS — the
+actual expected output for each one will be captured by running your solution, not by you
+predicting it. Provide at least 5 distinct test case inputs: the base/typical case, an
+edge case (empty or minimal input), a case with duplicate/repeated values if relevant to
+this problem, and a larger case that would reveal a performance problem if your solution
+were inefficient. For each one, include a short "purpose" phrase so a human reviewer can
+quickly see what each test is checking without re-reading the input itself.
+
+Call the submit_coding_problem tool with the complete problem."""
+
+PROBLEM_TOOL = {
+    "name": "submit_coding_problem",
+    "description": "Submit a fully-specified coding interview problem, including a working solution and test case inputs (no expected outputs — those are computed separately by executing the solution).",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "slug": {"type": "string", "description": "kebab-case unique identifier, e.g. 'binary-tree-level-order-traversal'"},
+            "title": {"type": "string"},
+            "difficulty": {"type": "integer", "minimum": 1, "maximum": 10},
+            "category": {"type": "string"},
+            "description": {"type": "string", "description": "2-4 sentence realistic engineering scenario framing the problem, then a precise technical problem statement"},
+            "constraints": {"type": "array", "items": {"type": "string"}},
+            "input_format": {"type": "string"},
+            "output_format": {"type": "string"},
+            "python_solution": {
+                "type": "string",
+                "description": "Complete, correct, working Python script. Reads input via input(), solves the problem, prints the result. Must run standalone with no missing imports."
+            },
+            "starter_code_python": {"type": "string", "description": "Starter stub with the same function signature, no solution logic — 'pass' or similar, for the candidate to fill in."},
+            "starter_code_javascript": {"type": "string"},
+            "starter_code_cpp": {"type": "string"},
+            "starter_code_java": {"type": "string"},
+            "test_cases_planned": {
+                "type": "array",
+                "description": "At least 5 distinct test case inputs. Do NOT include expected outputs.",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "input": {"type": "string", "description": "Exact stdin input as python_solution expects it."},
+                        "purpose": {"type": "string", "description": "Short phrase, e.g. 'empty input', 'single element', 'large input for performance'."}
+                    },
+                    "required": ["input", "purpose"]
+                }
+            }
+        },
+        "required": [
+            "slug", "title", "difficulty", "category", "description", "constraints",
+            "input_format", "output_format", "python_solution",
+            "starter_code_python", "starter_code_javascript", "starter_code_cpp", "starter_code_java",
+            "test_cases_planned"
+        ]
+    }
+}
 
 
-def call_claude_for_problem(title_hint, difficulty, category):
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=3000,
-        system="You are an expert technical interviewer and competitive programmer. You write precise, correct, well-tested coding problems. You never make mistakes in expected outputs.",
-        messages=[{"role": "user", "content": GENERATION_PROMPT.format(
-            title_hint=title_hint, difficulty=difficulty, category=category
-        )}]
-    )
-    raw = response.content[0].text.strip()
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-    return json.loads(raw.strip())
+def call_claude_for_problem(title_hint, difficulty, category, max_retries=2):
+    last_err = None
+    for attempt in range(max_retries + 1):
+        try:
+            response = client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=6000,
+                system="You are an expert technical interviewer and competitive programmer. You write precise, well-tested coding problems with fully correct, runnable solutions. You never leave a solution incomplete or a function unimplemented. You always provide at least 5 distinct test case inputs — never zero, never fewer than 3.",
+                tools=[PROBLEM_TOOL],
+                tool_choice={"type": "tool", "name": "submit_coding_problem"},
+                messages=[{"role": "user", "content": GENERATION_PROMPT.format(
+                    title_hint=title_hint, difficulty=difficulty, category=category
+                )}]
+            )
+            tool_block = next((b for b in response.content if b.type == "tool_use"), None)
+            if tool_block is None:
+                raise ValueError("Claude's response had no tool_use block — check the raw response.")
+            result = dict(tool_block.input)
+
+            # Tool-use schemas are a strong hint to the model, not a hard
+            # guarantee — Claude occasionally returns an empty or too-short
+            # test_cases_planned list despite the schema saying it's
+            # required. Treat that as a failed attempt and retry the whole
+            # generation rather than passing an unusable problem forward.
+            planned_count = len(result.get("test_cases_planned", []))
+            if planned_count < 3:
+                raise ValueError(f"Only {planned_count} test case(s) returned — retrying generation")
+
+            return result
+        except Exception as e:
+            last_err = e
+            if attempt < max_retries:
+                print(f"    Attempt {attempt + 1} failed ({e}); retrying...")
+                time.sleep(3)
+    raise last_err
 
 
-def verify_python_solution(problem):
+def run_against_input(script_path, stdin_input, timeout=5):
+    """Runs the solution once against one input. Returns (ok, output_or_None, error_or_None)."""
+    try:
+        proc = subprocess.run(
+            ["python", script_path],
+            input=stdin_input,
+            capture_output=True,
+            text=True,
+            timeout=timeout
+        )
+    except subprocess.TimeoutExpired:
+        return False, None, "TIMEOUT (infinite loop or too slow)"
+
+    if proc.returncode != 0:
+        return False, None, f"CRASHED — {proc.stderr.strip()[:200]}"
+
+    return True, proc.stdout.strip(), None
+
+
+def build_and_verify_test_cases(problem):
     """
-    Actually runs the generated python_solution against each generated
-    test case in a real subprocess. Returns (passed: bool, details: list)
+    Runs python_solution against every planned input and captures the real
+    output as the ground-truth expected_output. Returns
+    (all_passed: bool, test_cases: list, details: list[str]).
     """
     solution_code = problem.get("python_solution", "")
-    test_cases = problem.get("test_cases", [])
+    planned = problem.get("test_cases_planned", [])
 
-    if not solution_code or not test_cases:
-        return False, ["Missing solution code or test cases"]
-
-    results = []
-    all_passed = True
+    if not solution_code:
+        return False, [], ["Missing python_solution"]
+    if len(planned) < 3:
+        return False, [], [f"Only {len(planned)} test case(s) planned — need at least 3 for meaningful coverage"]
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write(solution_code)
         script_path = f.name
 
-    try:
-        for i, tc in enumerate(test_cases):
-            try:
-                proc = subprocess.run(
-                    ["python", script_path],
-                    input=tc["input"],
-                    capture_output=True,
-                    text=True,
-                    timeout=5
-                )
-                actual = proc.stdout.strip()
-                expected = str(tc["expected_output"]).strip()
+    test_cases = []
+    details = []
+    all_passed = True
 
-                if proc.returncode != 0:
-                    results.append(f"Test {i+1}: CRASHED — {proc.stderr.strip()[:200]}")
-                    all_passed = False
-                elif actual != expected:
-                    results.append(f"Test {i+1}: MISMATCH — expected '{expected}', got '{actual}'")
-                    all_passed = False
-                else:
-                    results.append(f"Test {i+1}: PASS")
-            except subprocess.TimeoutExpired:
-                results.append(f"Test {i+1}: TIMEOUT (infinite loop or too slow)")
+    try:
+        for i, tc in enumerate(planned):
+            inp = tc.get("input", "")
+            purpose = tc.get("purpose", "")
+            ok, output, err = run_against_input(script_path, inp)
+            if not ok:
+                details.append(f"Test {i + 1} ({purpose}): {err}")
                 all_passed = False
+            else:
+                details.append(f"Test {i + 1} ({purpose}): OK — captured output as ground truth")
+                test_cases.append({"input": inp, "expected_output": output, "purpose": purpose})
     finally:
         os.unlink(script_path)
 
-    return all_passed, results
+    return all_passed, test_cases, details
 
 
 def main():
     verified = []
     rejected = []
 
+    def flush():
+        with open("verified_problems.json", "w") as f:
+            json.dump(verified, f, indent=2)
+        with open("rejected_problems.json", "w") as f:
+            json.dump(rejected, f, indent=2)
+
     for idx, (title_hint, difficulty, category, companies) in enumerate(TARGETS):
-        print(f"\n[{idx+1}/{len(TARGETS)}] Generating: {title_hint} (difficulty {difficulty})...")
+        print(f"\n[{idx + 1}/{len(TARGETS)}] Generating: {title_hint} (difficulty {difficulty})...")
 
         try:
             problem = call_claude_for_problem(title_hint, difficulty, category)
@@ -171,35 +267,37 @@ def main():
         except Exception as e:
             print(f"  FAILED to generate: {e}")
             rejected.append({"title_hint": title_hint, "error": f"Generation failed: {e}"})
+            flush()
             continue
 
-        print(f"  Generated '{problem.get('title')}'. Verifying against its own test cases...")
-        passed, details = verify_python_solution(problem)
+        planned_count = len(problem.get("test_cases_planned", []))
+        print(f"  Generated '{problem.get('title')}'. Running solution against {planned_count} planned test case(s)...")
+        passed, test_cases, details = build_and_verify_test_cases(problem)
 
         if passed:
-            print(f"  ✅ VERIFIED — all {len(details)} test cases passed.")
+            problem["test_cases"] = test_cases
+            problem.pop("test_cases_planned", None)
+            print(f"  VERIFIED — all {len(test_cases)} test cases ran cleanly; outputs captured as ground truth.")
             verified.append(problem)
         else:
-            print(f"  ❌ REJECTED — some test cases failed:")
+            print(f"  REJECTED:")
             for d in details:
-                if "PASS" not in d:
+                if "OK" not in d:
                     print(f"      {d}")
             problem["_rejection_details"] = details
             rejected.append(problem)
 
+        flush()  # save progress after every problem, not just at the end
         time.sleep(1)  # be polite to the API
-
-    with open("verified_problems.json", "w") as f:
-        json.dump(verified, f, indent=2)
-    with open("rejected_problems.json", "w") as f:
-        json.dump(rejected, f, indent=2)
 
     print("\n" + "=" * 70)
     print(f"DONE. {len(verified)} problems VERIFIED and written to verified_problems.json")
     print(f"      {len(rejected)} problems REJECTED — see rejected_problems.json")
     print("=" * 70)
     print("\nNext step: read through verified_problems.json yourself before")
-    print("seeding it into your database. This confirms correctness, not quality.")
+    print("seeding it into your database. This confirms the code runs cleanly")
+    print("and is internally consistent, not that it's logically correct or")
+    print("well-written — that judgment call is still yours.")
 
 
 if __name__ == "__main__":

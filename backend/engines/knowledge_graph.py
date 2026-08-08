@@ -67,6 +67,44 @@ class KnowledgeGapGraph:
 
         return study_plan
 
+    def identify_topics_addressed(self, question: str, answer: str) -> list:
+        """
+        Identifies which CS topics this answer meaningfully engaged with —
+        regardless of whether the answer was strong or weak. Unlike
+        extract_gaps (which only fires below a 7.0 technical score and
+        only reports topics the candidate got WRONG), this runs on every
+        answer and powers real knowledge-graph coverage tracking via
+        Answer.topics_covered.
+        """
+        db_topics = self._get_all_topic_names()
+        topic_list_str = ", ".join(db_topics)
+
+        response = self.client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=150,
+            system=f"""Return only a JSON list of topic strings. No explanation. No markdown.
+            You MUST choose only from this exact list of valid topics — do not invent new ones:
+            {topic_list_str}
+            List every topic this answer meaningfully engaged with, regardless of quality.
+            If none apply, return an empty list [].""",
+            messages=[{"role": "user", "content":
+                f"Which CS topics from the list did this answer engage with?\n"
+                f"Question: {question}\nAnswer: {answer}\n"
+                f"Return maximum 4 topics as a JSON list like: [\"topic_name\", \"topic_name\"]"}]
+        )
+
+        raw = response.content[0].text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+
+        try:
+            topics = json.loads(raw.strip())
+            return [t.lower().replace(" ", "_") for t in topics if isinstance(t, str)]
+        except json.JSONDecodeError:
+            return []
+    
     def _get_all_topic_names(self) -> list:
         db = SessionLocal()
         try:

@@ -30,12 +30,17 @@ export default function StudyPlanBrowser({ onGoBack }) {
     async function fetchTopics() {
       try {
         const res = await axios.get(`${API_URL}/topics`);
-        const fetchedTopics = (res.data.topics || []).map((t, i) => {
-          let status = 'locked';
-          if (i % 4 === 0) status = 'passed';
-          else if (i % 3 === 0) status = 'gap';
-          return { ...t, status: t.status || status };
-        });
+        // Previously this filled in a fake status (~1/4 "passed", ~1/3 "gap",
+        // everything else "locked") based purely on array index whenever the
+        // backend didn't send a real status. That's why most cards looked
+        // randomly locked regardless of anything about the user or topic.
+        // Fixed: if the backend doesn't give us a real status, treat it as
+        // "unattempted" (browsable, just not yet passed/flagged) instead of
+        // fabricating "locked".
+        const fetchedTopics = (res.data.topics || []).map((t) => ({
+          ...t,
+          status: t.status || "unattempted",
+        }));
         setTopics(fetchedTopics);
       } catch (err) {
         console.error("Failed to load topics:", err);
@@ -229,16 +234,18 @@ export default function StudyPlanBrowser({ onGoBack }) {
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                       {catTopics.map((t) => {
-                        const isLocked = t.status === 'locked';
+                        // "isLocked" no longer disables the card — every topic is
+                        // inspectable regardless of status. It's still shown as a
+                        // badge for information, just not used to block clicks.
                         const isPassed = t.status === 'passed';
                         const isGap = t.status === 'gap';
+                        const isLocked = t.status === 'locked';
 
                         return (
                           <GlassCard 
                             key={t.name} 
                             mousePos={mousePos}
-                            onClick={() => !isLocked && setSelectedTopic(t.name)}
-                            disabled={isLocked}
+                            onClick={() => setSelectedTopic(t.name)}
                           >
                             <div className="flex flex-col h-full justify-between">
                               <div>
@@ -254,13 +261,17 @@ export default function StudyPlanBrowser({ onGoBack }) {
                                     <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-widest text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded">
                                       <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" /> ACTIVE GAP
                                     </span>
-                                  ) : (
+                                  ) : isLocked ? (
                                     <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-widest text-slate-500 bg-white/[0.04] border border-white/10 px-2 py-1 rounded">
                                       <Lock size={10} /> LOCKED
                                     </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-widest text-slate-500 bg-white/[0.04] border border-white/10 px-2 py-1 rounded">
+                                      NOT YET ATTEMPTED
+                                    </span>
                                   )}
                                 </div>
-                                <h3 className={`text-base font-bold tracking-tight capitalize mb-2 ${isLocked ? 'text-slate-400' : 'text-white'}`}>
+                                <h3 className="text-base font-bold tracking-tight capitalize mb-2 text-white">
                                   {t.name.replace(/_/g, " ")}
                                 </h3>
                                 <div className="flex items-center gap-2 mb-4">
@@ -271,11 +282,9 @@ export default function StudyPlanBrowser({ onGoBack }) {
                               </div>
                               
                               <div className="pt-3 border-t border-white/[0.04] mt-auto">
-                                {!isLocked && (
-                                  <p className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 text-indigo-400 group-hover:text-indigo-300 transition-colors">
-                                    <Activity size={12} /> Inspect Dependency Chain <ChevronRight size={12} />
-                                  </p>
-                                )}
+                                <p className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 text-indigo-400 group-hover:text-indigo-300 transition-colors">
+                                  <Activity size={12} /> Inspect Dependency Chain <ChevronRight size={12} />
+                                </p>
                               </div>
                             </div>
                           </GlassCard>
@@ -310,7 +319,7 @@ export default function StudyPlanBrowser({ onGoBack }) {
   );
 }
 
-function GlassCard({ children, mousePos, onClick, disabled }) {
+function GlassCard({ children, mousePos, onClick }) {
   const [rect, setRect] = useState(null);
   const cardRef = useRef(null);
 
@@ -325,20 +334,15 @@ function GlassCard({ children, mousePos, onClick, disabled }) {
   return (
     <motion.button 
       ref={cardRef}
-      whileTap={disabled ? {} : { scale: 0.96 }}
+      whileTap={{ scale: 0.96 }}
       onClick={onClick}
-      disabled={disabled}
-      className={`relative text-left rounded-xl bg-[#0B0C10] border p-5 overflow-hidden transition-all duration-200 group outline-none h-44 ${
-        disabled 
-          ? "border-white/[0.04] opacity-70 cursor-not-allowed" 
-          : "border-white/[0.08] hover:border-indigo-500/30 cursor-pointer shadow-[0_10px_20px_-10px_rgba(0,0,0,0.5)]"
-      }`}
+      className="relative text-left rounded-xl bg-[#0B0C10] border border-white/[0.08] hover:border-indigo-500/30 cursor-pointer shadow-[0_10px_20px_-10px_rgba(0,0,0,0.5)] p-5 overflow-hidden transition-all duration-200 group outline-none h-44"
     >
       <div 
         className="absolute inset-0 pointer-events-none transition-opacity duration-300 z-0"
         style={{
           background: `radial-gradient(300px circle at ${cursorX}px ${cursorY}px, rgba(255,255,255,0.03), transparent 40%)`,
-          opacity: isHovered && !disabled ? 1 : 0
+          opacity: isHovered ? 1 : 0
         }}
       />
       <div className="relative z-10 w-full h-full flex flex-col">

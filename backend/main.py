@@ -31,7 +31,7 @@ security = HTTPBearer(auto_error=False)
 def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> int | None:
     """
     Extracts the user_id from a JWT token if present.
-    Returns None if no token is provided — endpoints can still work
+    Returns None if no token is provided Ã¢â‚¬â€ endpoints can still work
     for anonymous/guest use, but will personalize when a token exists.
     """
     if not credentials:
@@ -78,20 +78,20 @@ try:
     redis_client = redis.from_url(os.getenv("REDIS_URL"), decode_responses=True, socket_connect_timeout=2)
     redis_client.ping()
 except Exception:
-    redis_client = None  # same fail-open pattern as company_dna.py — don't crash the app if Redis is down
+    redis_client = None  # same fail-open pattern as company_dna.py Ã¢â‚¬â€ don't crash the app if Redis is down
 
-DAILY_TOKEN_BUDGET = 20000 # tune this — rough starting point for a free-tier user
+DAILY_TOKEN_BUDGET = 20000 # tune this Ã¢â‚¬â€ rough starting point for a free-tier user
 
 def estimate_tokens(text: str) -> int:
     # Rough approximation: ~4 characters per token for English text.
-    # Not exact, but doesn't need to be — this is a budget GUARD, not billing.
+    # Not exact, but doesn't need to be Ã¢â‚¬â€ this is a budget GUARD, not billing.
     return len(text) // 4
 
 def check_and_charge_token_budget(user_id: int, estimated_tokens: int) -> bool:
     """Returns True if the user is under budget and the charge was applied,
     False if they're over budget and should be rejected."""
     if not redis_client or not user_id:
-        return True  # fail open — same philosophy as the caching layer
+        return True  # fail open Ã¢â‚¬â€ same philosophy as the caching layer
 
     key = f"token_budget:{user_id}:{datetime.utcnow().strftime('%Y-%m-%d')}"
     current = redis_client.get(key)
@@ -169,7 +169,7 @@ replay_system = ReplaySystem()
 
 @app.on_event("startup")
 def startup():
-    print("Application started — schema managed by Alembic migrations")
+    print("Application started Ã¢â‚¬â€ schema managed by Alembic migrations")
 
 @app.get("/health")
 def health_check():
@@ -295,8 +295,8 @@ def start_session(payload: StartSessionRequest, request: Request, user_id: int =
 
 def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
     """
-    Runs in the background. Does all the heavy work — Claude scoring,
-    gap detection, peer comparison, ELO update — without blocking
+    Runs in the background. Does all the heavy work Ã¢â‚¬â€ Claude scoring,
+    gap detection, peer comparison, ELO update Ã¢â‚¬â€ without blocking
     the original HTTP request.
     """
     db = SessionLocal()
@@ -321,6 +321,9 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
         gaps = gap_engine.extract_gaps(
             question=payload.question, answer=clean_answer,
             technical_score=technical_score, company=payload.company
+        )
+        topics_addressed = gap_engine.identify_topics_addressed(
+            question=payload.question, answer=clean_answer
         )
         peer = peer_engine.get_percentile(your_score=overall, difficulty=payload.difficulty)
         
@@ -351,7 +354,7 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
                 user.elo_rating = new_elo
                 db.commit()
 
-        # Snapshot ELO on the session itself too — this is what makes the
+        # Snapshot ELO on the session itself too Ã¢â‚¬â€ this is what makes the
         # Rating History chart show REAL per-session values instead of
         # always plotting whatever the user's current live ELO happens to be.
         if session_record:
@@ -363,7 +366,8 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
             session_id=payload.session_id, question_text=payload.question, answer_text=clean_answer,
             score_technical=scores["score_technical"], score_communication=scores["score_communication"],
             score_problem_solving=scores["score_problem_solving"], score_cultural_fit=scores["score_cultural_fit"],
-            score_confidence=scores["score_confidence"], gaps_identified=gaps
+            score_confidence=scores["score_confidence"], gaps_identified=gaps,
+            topics_covered=topics_addressed
         )
         db.add(answer_record)
         db.commit()
@@ -424,7 +428,7 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
 @app.post("/answer/submit")
 @limiter.limit("20/minute")
 def submit_answer(payload: SubmitAnswerRequest, background_tasks: BackgroundTasks, request: Request, user_id: int = Depends(get_current_user_id)):
-    # Token budget check — separate from the request-count limiter above.
+    # Token budget check Ã¢â‚¬â€ separate from the request-count limiter above.
     # This catches the case where someone stays under 20 requests/minute
     # but pastes something huge into every single one.
     estimated = estimate_tokens(payload.answer) + estimate_tokens(payload.question)
@@ -530,7 +534,7 @@ def rate_feedback(payload: FeedbackRatingRequest, user_id: int = Depends(get_cur
             InterviewSession.id == answer.session_id
         ).first()
         if not user_id or not session_record or session_record.user_id != user_id:
-            return {"status": "ok"}  # silent no-op — not your answer to rate
+            return {"status": "ok"}  # silent no-op Ã¢â‚¬â€ not your answer to rate
 
         answer.feedback_helpful = 1 if payload.helpful else 0
         db.commit()
@@ -611,6 +615,155 @@ def get_user_sessions(user_id: int = Depends(get_current_user_id)):
     finally:
         db.close()
 
+ # Paste these two endpoints into backend/main.py, directly after
+# the existing @app.get("/user/sessions") endpoint.
+
+@app.get("/user/skill-radar")
+def get_skill_radar(session_id: Optional[int] = None, company: Optional[str] = None, user_id: int = Depends(get_current_user_id)):
+    """
+    Real 5-dimension average score radar, computed from actual persisted
+    Answer rows Ã¢â‚¬â€ the same five scores every debrief and replay screen
+    already uses (score_technical, score_communication, score_problem_solving,
+    score_cultural_fit, score_confidence). No fabricated per-category data.
+
+    - session_id: scope to one session's answers (powers "hover a session
+      row to preview its real radar" instead of the old fake per-company one)
+    - company: scope to all sessions targeting one company
+    - neither: all-time average across every answer the user has given
+    """
+    if not user_id:
+        return {"radar": None, "sample_size": 0}
+
+    db = SessionLocal()
+    try:
+        query = db.query(Answer).join(InterviewSession, Answer.session_id == InterviewSession.id).filter(
+            InterviewSession.user_id == user_id
+        )
+        if session_id is not None:
+            query = query.filter(Answer.session_id == session_id)
+        if company:
+            query = query.filter(InterviewSession.company_target == company.lower())
+
+        answers = query.all()
+        if not answers:
+            return {"radar": None, "sample_size": 0}
+
+        fields = ["score_technical", "score_communication", "score_problem_solving", "score_cultural_fit", "score_confidence"]
+        labels = {
+            "score_technical": "Technical", "score_communication": "Communication",
+            "score_problem_solving": "Problem Solving", "score_cultural_fit": "Culture Fit",
+            "score_confidence": "Confidence",
+        }
+
+        radar = []
+        for f in fields:
+            values = [getattr(a, f) for a in answers if getattr(a, f) is not None]
+            avg = round((sum(values) / len(values)) * 10, 1) if values else 0  # scale 0-10 -> 0-100
+            radar.append({"dim": labels[f], "value": avg})
+
+        return {"radar": radar, "sample_size": len(answers)}
+    finally:
+        db.close()
+
+
+@app.get("/user/gap-queue")
+def get_gap_queue(company: Optional[str] = None, user_id: int = Depends(get_current_user_id)):
+    """
+    Real gap queue Ã¢â‚¬â€ aggregates Answer.gaps_identified (already persisted
+    by process_answer_scoring via gap_engine.extract_gaps on every
+    low-scoring answer) across the user's sessions, optionally filtered
+    to one company. Ranked by urgency then frequency. Replaces the old
+    hardcoded per-company COMPANY_TELEMETRY gap lists.
+    """
+    if not user_id:
+        return {"critical_gap": None, "queue": []}
+
+    db = SessionLocal()
+    try:
+        query = db.query(Answer, InterviewSession).join(
+            InterviewSession, Answer.session_id == InterviewSession.id
+        ).filter(InterviewSession.user_id == user_id)
+
+        if company:
+            query = query.filter(InterviewSession.company_target == company.lower())
+
+        rows = query.all()
+
+        urgency_rank = {"critical": 3, "high": 2, "medium": 1, "low": 0}
+        tally = {}
+
+        for answer, session in rows:
+            for g in (answer.gaps_identified or []):
+                name = g.get("gap")
+                if not name:
+                    continue
+                entry = tally.setdefault(name, {"count": 0, "urgency": "low", "prereqs": [], "category": g.get("category")})
+                entry["count"] += 1
+                if urgency_rank.get(g.get("urgency", "low"), 0) > urgency_rank.get(entry["urgency"], 0):
+                    entry["urgency"] = g.get("urgency", "low")
+                if g.get("prerequisites_to_study_first"):
+                    entry["prereqs"] = g["prerequisites_to_study_first"]
+
+        ranked = sorted(
+            tally.items(),
+            key=lambda kv: (urgency_rank.get(kv[1]["urgency"], 0), kv[1]["count"]),
+            reverse=True
+        )
+
+        queue = [
+            {
+                "gap": name, "occurrences": data["count"], "urgency": data["urgency"],
+                "prerequisites_to_study_first": data["prereqs"], "category": data["category"],
+            }
+            for name, data in ranked
+        ]
+
+        return {"critical_gap": queue[0] if queue else None, "queue": queue[:6]}
+    finally:
+        db.close()       
+@app.get("/user/skill-matrix")
+
+
+def get_skill_matrix(user_id: int = Depends(get_current_user_id)):
+    """
+    Real knowledge-graph coverage: for each Topic.category, how many
+    distinct topics has this user's Answer.topics_covered actually
+    touched, out of how many topics exist in that category total.
+    Requires topics_covered to be populated by identify_topics_addressed
+    during scoring.
+    """
+    if not user_id:
+        return {"categories": [], "total_touched": 0, "total_topics": 0}
+
+    db = SessionLocal()
+    try:
+        answers = db.query(Answer).join(InterviewSession, Answer.session_id == InterviewSession.id).filter(
+            InterviewSession.user_id == user_id
+        ).all()
+
+        touched_topic_names = set()
+        for a in answers:
+            for t in (a.topics_covered or []):
+                touched_topic_names.add(t)
+
+        all_topics = db.query(Topic).all()
+        by_category = {}
+        for t in all_topics:
+            cat = t.category or "Other"
+            by_category.setdefault(cat, {"total": 0, "touched": 0})
+            by_category[cat]["total"] += 1
+            if t.name in touched_topic_names:
+                by_category[cat]["touched"] += 1
+
+        categories = [
+            {"category": cat, "touched": data["touched"], "total": data["total"]}
+            for cat, data in sorted(by_category.items())
+        ]
+        real_touched = touched_topic_names & {t.name for t in all_topics}
+        return {"categories": categories, "total_touched": len(real_touched), "total_topics": len(all_topics)}
+    finally:
+        db.close()
+
 @app.delete("/user/me")
 def delete_my_account(user_id: int = Depends(get_current_user_id)):
     if not user_id:
@@ -650,7 +803,7 @@ def delete_my_account(user_id: int = Depends(get_current_user_id)):
 
 @app.get("/coding/problems")
 def list_coding_problems():
-    """List problems without exposing test cases — just enough to build a picker UI."""
+    """List problems without exposing test cases Ã¢â‚¬â€ just enough to build a picker UI."""
     db = SessionLocal()
     try:
         problems = db.query(CodingProblem).all()
@@ -673,7 +826,7 @@ def list_coding_problems():
 
 @app.get("/coding/problems/{slug}")
 def get_coding_problem(slug: str):
-    """Full problem detail — starter code + VISIBLE test cases only. Hidden cases never leave the server."""
+    """Full problem detail Ã¢â‚¬â€ starter code + VISIBLE test cases only. Hidden cases never leave the server."""
     db = SessionLocal()
     try:
         problem = db.query(CodingProblem).filter(CodingProblem.slug == slug).first()
@@ -705,7 +858,7 @@ def get_coding_problem(slug: str):
 @limiter.limit("20/minute")
 def run_code(request: Request, payload: RunCodeRequest, user_id: int = Depends(get_current_user_id)):
     """
-    'Run' button — executes against VISIBLE sample cases only. Self-check for the
+    'Run' button Ã¢â‚¬â€ executes against VISIBLE sample cases only. Self-check for the
     candidate, mirrors what a real IDE's 'run against examples' does. Nothing persisted.
     """
     db = SessionLocal()
@@ -738,7 +891,7 @@ def run_code(request: Request, payload: RunCodeRequest, user_id: int = Depends(g
 @limiter.limit("10/minute")
 def submit_code(request: Request, payload: SubmitCodeRequest, user_id: int = Depends(get_current_user_id)):
     """
-    'Submit' button — executes against ALL test cases (visible + hidden), grades
+    'Submit' button Ã¢â‚¬â€ executes against ALL test cases (visible + hidden), grades
     quality with Claude via coding_engine.grade_submission(), and persists the result.
     """
     if not user_id:
@@ -761,7 +914,7 @@ def submit_code(request: Request, payload: SubmitCodeRequest, user_id: int = Dep
 
         grading = coding_engine.grade_submission(problem.description, payload.code, test_results_for_grading)
 
-        # ELO update — reuses the exact same formula the interview track
+        # ELO update Ã¢â‚¬â€ reuses the exact same formula the interview track
         # uses (difficulty_engine.update_elo), so Track A and Track B share
         # one consistent skill rating instead of two disconnected numbers.
         # Score is primarily test-pass-rate (correctness matters most in a
@@ -822,8 +975,8 @@ def submit_code(request: Request, payload: SubmitCodeRequest, user_id: int = Dep
 def get_next_coding_problem(user_id: int = Depends(get_current_user_id)):
     """
     Picks the next coding problem for the authenticated user based on their
-    current ELO — same difficulty-band logic the interview track uses
-    (elo-800)/100 — and skips problems they've already fully passed, so
+    current ELO Ã¢â‚¬â€ same difficulty-band logic the interview track uses
+    (elo-800)/100 Ã¢â‚¬â€ and skips problems they've already fully passed, so
     the coding track finally adapts instead of always serving 'two_sum'.
     """
     db = SessionLocal()
@@ -848,7 +1001,7 @@ def get_next_coding_problem(user_id: int = Depends(get_current_user_id)):
         pool = unsolved if unsolved else candidates  # if everything nearby is solved, allow repeats rather than dead-ending
 
         if not pool:
-            # No problems exist in range at all — widen to the full bank as a last resort
+            # No problems exist in range at all Ã¢â‚¬â€ widen to the full bank as a last resort
             pool = db.query(CodingProblem).all()
 
         if not pool:
@@ -907,7 +1060,7 @@ import whisper
 import tempfile
 import os as os_module
 
-# Load Whisper once at startup, not per-connection — loading takes ~15s
+# Load Whisper once at startup, not per-connection Ã¢â‚¬â€ loading takes ~15s
 # and we don't want every new WebSocket connection to pay that cost.
 whisper_model = None
 

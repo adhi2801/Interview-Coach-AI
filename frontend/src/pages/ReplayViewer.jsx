@@ -191,6 +191,13 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
 
   const noiseSvg = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`;
 
+  // Cinematic reveal — same staggered fadeUp language as the InterviewRoom
+  // debrief screen, so both pages feel like one product.
+  const fadeUp = {
+    hidden: { opacity: 0, y: 20 },
+    show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.1 + i * 0.12 } })
+  };
+
   if (loading) {
     return (
       <div className="h-screen w-full bg-[#000000] flex items-center justify-center font-sans">
@@ -475,19 +482,39 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
             
             <AnimatePresence mode="wait">
               <motion.div key={selected} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.3, ease: "easeOut" }} className="space-y-8">
-                
+
+                <style>{`
+                  @keyframes replayRingPulse { 0%, 100% { box-shadow: 0 0 20px var(--ring-glow, rgba(52,211,153,0.25)); } 50% { box-shadow: 0 0 38px var(--ring-glow, rgba(52,211,153,0.45)); } }
+                `}</style>
+
+                {/* SESSION LABEL — same pattern as the InterviewRoom debrief */}
+                <motion.div variants={fadeUp} initial="hidden" animate="show" custom={0} className="flex items-center gap-3">
+                  <div className="w-px h-7" style={{ background: `linear-gradient(to bottom, transparent, ${theme.dotBg}99, transparent)` }} />
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-slate-500">
+                    Session Replay &middot; Node {selected + 1} of {totalNodes}
+                  </span>
+                </motion.div>
+
                 {/* HERO VERDICT DECK — rebuilt with explicit color lookup and
                     a defined-width ring so it can never overlap the text
                     column, regardless of content length. */}
-                <div className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-6 md:p-8 relative overflow-hidden backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_20px_40px_-10px_rgba(0,0,0,0.5)]">
+                <motion.div
+                  variants={fadeUp} initial="hidden" animate="show" custom={1}
+                  className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-6 md:p-8 relative overflow-hidden backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_20px_40px_-10px_rgba(0,0,0,0.5)]"
+                >
                   <div
                     className="absolute -top-20 -right-20 w-64 h-64 blur-[100px] pointer-events-none rounded-full"
                     style={{ background: theme.glow }}
                   />
+                  <div
+                    className="absolute -bottom-16 -left-16 w-48 h-48 blur-[90px] pointer-events-none rounded-full"
+                    style={{ background: "rgba(99,102,241,0.08)" }}
+                  />
 
                   <div className="flex flex-col md:flex-row items-start md:items-center gap-6 md:gap-8 relative z-10">
                     <div
-                      className="w-24 h-24 shrink-0 rounded-full border-[3px] border-[#111116] flex flex-col items-center justify-center relative shadow-[0_0_30px_rgba(0,0,0,0.5)] bg-black/60"
+                      className="w-24 h-24 shrink-0 rounded-full border-[3px] border-[#111116] flex flex-col items-center justify-center relative bg-black/60"
+                      style={{ "--ring-glow": `${theme.text}40`, animation: "replayRingPulse 3s ease-in-out infinite" }}
                     >
                       <span
                         className="text-3xl font-extrabold font-mono tabular-nums z-10 relative"
@@ -498,7 +525,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                       <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mt-0.5 z-10 relative">/ 10</span>
                     </div>
 
-                    <div className="flex-1 min-w-0 text-center md:text-left space-y-2">
+                    <div className="flex-1 min-w-0 text-center md:text-left space-y-3">
                       <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
                         <span
                           className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold px-2.5 py-1 rounded border uppercase tracking-widest"
@@ -511,15 +538,15 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                           NODE {selected + 1} LOGGED
                         </span>
                       </div>
-                      <h2 className="text-sm md:text-base font-bold text-white leading-[1.6] tracking-tight">
+                      <h2 className="text-base md:text-lg font-bold text-white leading-[1.55] tracking-tight">
                         {q?.scores?.overall_summary || "Diagnostic review complete for this interview node."}
                       </h2>
                     </div>
                   </div>
-                </div>
+                </motion.div>
 
                 {/* STAR DECOMPILED PROMPT */}
-                <div className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-6 md:p-8 space-y-5 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_20px_40px_-10px_rgba(0,0,0,0.5)]">
+                <motion.div variants={fadeUp} initial="hidden" animate="show" custom={2} className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-6 md:p-8 space-y-5 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_20px_40px_-10px_rgba(0,0,0,0.5)]">
                   <div className="flex items-center justify-between border-b border-white/[0.04] pb-4">
                     <div className="flex items-center gap-2.5">
                       <Terminal size={16} className="text-indigo-400" />
@@ -560,10 +587,10 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                       ))}
                     </div>
                   </div>
-                </div>
+                </motion.div>
 
                 {/* CANDIDATE SUBMITTED RESPONSE */}
-                <div className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-6 md:p-8 space-y-4 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_20px_40px_-10px_rgba(0,0,0,0.5)]">
+                <motion.div variants={fadeUp} initial="hidden" animate="show" custom={3} className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-6 md:p-8 space-y-4 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_20px_40px_-10px_rgba(0,0,0,0.5)]">
                   <div className="flex items-center justify-between border-b border-white/[0.04] pb-4">
                     <div className="flex items-center gap-2.5">
                       <MessageSquare size={16} className="text-slate-400" />
@@ -577,10 +604,10 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                   <div className="bg-[#020204] border border-white/[0.05] p-5 rounded-xl font-mono text-sm text-slate-200 leading-[1.8] whitespace-pre-wrap shadow-inner">
                     {q.answer || "[No candidate response recorded for this node]"}
                   </div>
-                </div>
+                </motion.div>
 
                 {/* ANNOTATED FEEDBACK — real gaps only, honest empty state */}
-                <div className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-6 md:p-8 space-y-5 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_20px_40px_-10px_rgba(0,0,0,0.5)]">
+                <motion.div variants={fadeUp} initial="hidden" animate="show" custom={4} className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-6 md:p-8 space-y-5 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_20px_40px_-10px_rgba(0,0,0,0.5)]">
                   <div className="flex items-center justify-between border-b border-white/[0.04] pb-4">
                     <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-300 flex items-center gap-2.5">
                       <Sparkles size={16} className="text-indigo-400" /> Annotation Breakdown
@@ -608,7 +635,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                   ) : (
                     <div className="text-xs text-slate-500 font-medium">No knowledge gaps were recorded for this node.</div>
                   )}
-                </div>
+                </motion.div>
 
               </motion.div>
             </AnimatePresence>
@@ -621,7 +648,10 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
           </div>
 
           {/* RIGHT STICKY RAIL */}
-          <div className="w-full lg:w-[35%] flex flex-col gap-6 lg:sticky lg:top-6 pb-32">
+          <motion.div
+            initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
+            className="w-full lg:w-[35%] flex flex-col gap-6 lg:sticky lg:top-6 pb-32"
+          >
             <div className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-5 space-y-3 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_20px_40px_-10px_rgba(0,0,0,0.5)]">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Session ELO Trajectory</h3>
@@ -695,7 +725,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
               </div>
             )}
 
-          </div>
+          </motion.div>
         </div>
       </main>
 

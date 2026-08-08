@@ -1,326 +1,62 @@
 [
   {
-    "slug": "org-chart-level-snapshot",
-    "title": "Org Chart Level Snapshot",
+    "slug": "data-center-network-layer-broadcast",
+    "title": "Data Center Network: Layer-by-Layer Broadcast Log",
     "difficulty": 4,
     "category": "Trees & Graphs",
-    "description": "Your company uses a binary tree to represent its management hierarchy, where each node stores an employee ID. The HR team needs a 'level snapshot' feature that exports the org chart grouped by management depth \u2014 all employees at the CEO level first, then their direct reports, and so on. Given the root of a binary tree representing the org chart, return all employee IDs grouped by their depth level, where each level is printed on a separate line with IDs separated by spaces.",
+    "description": "You are an infrastructure engineer at a cloud company. Your data center uses a hierarchical tree topology where a root switch fans out to aggregation switches, which in turn fan out to rack-level switches, and so on. During a routine diagnostic, you need to generate a broadcast log that records which switch IDs received a signal at each \"hop\" level from the root.\n\nGiven a binary tree representing the switch hierarchy (where each node stores the switch's integer ID), return a 2D list where each inner list contains the switch IDs at that depth level, ordered from left to right. Each line of output should represent one level of the hierarchy. If the tree is empty, output nothing.",
     "constraints": [
-      "The number of nodes in the tree is in the range [0, 1000]",
-      "Node values (employee IDs) are in the range [-1000, 1000]",
-      "The tree is given as a level-order serialization using -1 to represent null nodes"
+      "The number of nodes in the tree is in the range [0, 2000].",
+      "Node values (switch IDs) are in the range [-1000, 1000].",
+      "The tree is given as a level-order serialization using -1 to represent null/missing child nodes."
     ],
-    "input_format": "A single line containing space-separated integers representing the level-order serialization of the binary tree. Use -1 to represent null nodes. An empty tree is represented by the single value -1.",
-    "output_format": "Print each level of the tree on a separate line, with node values separated by spaces. If the tree is empty, print nothing.",
-    "python_solution": "from collections import deque\n\ndef build_tree(values):\n    if not values or values[0] == -1:\n        return None\n    \n    class TreeNode:\n        def __init__(self, val):\n            self.val = val\n            self.left = None\n            self.right = None\n    \n    root = TreeNode(values[0])\n    queue = deque([root])\n    i = 1\n    while queue and i < len(values):\n        node = queue.popleft()\n        if i < len(values) and values[i] != -1:\n            node.left = TreeNode(values[i])\n            queue.append(node.left)\n        i += 1\n        if i < len(values) and values[i] != -1:\n            node.right = TreeNode(values[i])\n            queue.append(node.right)\n        i += 1\n    return root\n\ndef level_order(root):\n    if root is None:\n        return []\n    result = []\n    queue = deque([root])\n    while queue:\n        level_size = len(queue)\n        level = []\n        for _ in range(level_size):\n            node = queue.popleft()\n            level.append(node.val)\n            if node.left:\n                queue.append(node.left)\n            if node.right:\n                queue.append(node.right)\n        result.append(level)\n    return result\n\nline = input().strip()\nvalues = list(map(int, line.split()))\nroot = build_tree(values)\nlevels = level_order(root)\nfor level in levels:\n    print(' '.join(map(str, level)))\n",
-    "starter_code_python": "from collections import deque\n\ndef build_tree(values):\n    # Helper to build tree from level-order list (use -1 for null)\n    pass\n\ndef level_order(root):\n    # Return list of lists, each inner list is one level\n    pass\n\nline = input().strip()\nvalues = list(map(int, line.split()))\nroot = build_tree(values)\nlevels = level_order(root)\nfor level in levels:\n    print(' '.join(map(str, level)))\n",
-    "starter_code_javascript": "const readline = require('readline');\nconst rl = readline.createInterface({ input: process.stdin });\nrl.on('line', (line) => {\n    const values = line.trim().split(' ').map(Number);\n    // TODO: build tree and perform level order traversal\n    // Print each level on a separate line with values space-separated\n});\n",
-    "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nstruct TreeNode {\n    int val;\n    TreeNode* left;\n    TreeNode* right;\n    TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}\n};\n\nTreeNode* buildTree(vector<int>& vals) {\n    // TODO: build tree from level-order serialization (-1 = null)\n    return nullptr;\n}\n\nvector<vector<int>> levelOrder(TreeNode* root) {\n    // TODO: return level order traversal\n    return {};\n}\n\nint main() {\n    // Read input, build tree, print each level\n    return 0;\n}\n",
-    "starter_code_java": "import java.util.*;\n\npublic class Solution {\n    static class TreeNode {\n        int val;\n        TreeNode left, right;\n        TreeNode(int x) { val = x; }\n    }\n\n    static TreeNode buildTree(int[] vals) {\n        // TODO: build tree from level-order serialization (-1 = null)\n        return null;\n    }\n\n    static List<List<Integer>> levelOrder(TreeNode root) {\n        // TODO: return level order traversal\n        return new ArrayList<>();\n    }\n\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        // Read input, build tree, print each level\n    }\n}\n",
+    "input_format": "A single line containing space-separated integers representing the binary tree in level-order (BFS) serialization. The value -1 denotes a null node (no switch at that position). An empty line or the single token -1 means the tree is empty.",
+    "output_format": "Print one line per level of the tree. Each line contains the space-separated switch IDs at that level from left to right. If the tree is empty, print nothing.",
+    "python_solution": "\nfrom collections import deque\n\ndef parse_tree(vals):\n    if not vals or vals[0] == -1:\n        return None\n\n    class TreeNode:\n        def __init__(self, val):\n            self.val = val\n            self.left = None\n            self.right = None\n\n    root = TreeNode(vals[0])\n    queue = deque([root])\n    i = 1\n    while queue and i < len(vals):\n        node = queue.popleft()\n        # left child\n        if i < len(vals):\n            if vals[i] != -1:\n                node.left = TreeNode(vals[i])\n                queue.append(node.left)\n            i += 1\n        # right child\n        if i < len(vals):\n            if vals[i] != -1:\n                node.right = TreeNode(vals[i])\n                queue.append(node.right)\n            i += 1\n    return root\n\ndef level_order(root):\n    if root is None:\n        return []\n    result = []\n    queue = deque([root])\n    while queue:\n        level_size = len(queue)\n        level = []\n        for _ in range(level_size):\n            node = queue.popleft()\n            level.append(node.val)\n            if node.left:\n                queue.append(node.left)\n            if node.right:\n                queue.append(node.right)\n        result.append(level)\n    return result\n\nline = input().strip()\nif line == \"\" or line == \"-1\":\n    vals = [-1]\nelse:\n    vals = list(map(int, line.split()))\n\nroot = parse_tree(vals)\nlevels = level_order(root)\nfor level in levels:\n    print(*level)\n",
+    "starter_code_python": "\nfrom collections import deque\n\ndef parse_tree(vals):\n    if not vals or vals[0] == -1:\n        return None\n\n    class TreeNode:\n        def __init__(self, val):\n            self.val = val\n            self.left = None\n            self.right = None\n\n    root = TreeNode(vals[0])\n    queue = deque([root])\n    i = 1\n    while queue and i < len(vals):\n        node = queue.popleft()\n        if i < len(vals):\n            if vals[i] != -1:\n                node.left = TreeNode(vals[i])\n                queue.append(node.left)\n            i += 1\n        if i < len(vals):\n            if vals[i] != -1:\n                node.right = TreeNode(vals[i])\n                queue.append(node.right)\n            i += 1\n    return root\n\ndef level_order(root):\n    # TODO: implement level-order traversal\n    # Return a list of lists, each inner list containing node values at that depth\n    pass\n\nline = input().strip()\nif line == \"\" or line == \"-1\":\n    vals = [-1]\nelse:\n    vals = list(map(int, line.split()))\n\nroot = parse_tree(vals)\nlevels = level_order(root)\nfor level in levels:\n    print(*level)\n",
+    "starter_code_javascript": "\nconst readline = require('readline');\n\nconst rl = readline.createInterface({ input: process.stdin });\nrl.on('line', (line) => {\n    line = line.trim();\n    const vals = (line === '' || line === '-1') ? [-1] : line.split(' ').map(Number);\n\n    class TreeNode {\n        constructor(val) {\n            this.val = val;\n            this.left = null;\n            this.right = null;\n        }\n    }\n\n    function parseTree(vals) {\n        if (!vals.length || vals[0] === -1) return null;\n        const root = new TreeNode(vals[0]);\n        const queue = [root];\n        let i = 1;\n        while (queue.length && i < vals.length) {\n            const node = queue.shift();\n            if (i < vals.length) {\n                if (vals[i] !== -1) { node.left = new TreeNode(vals[i]); queue.push(node.left); }\n                i++;\n            }\n            if (i < vals.length) {\n                if (vals[i] !== -1) { node.right = new TreeNode(vals[i]); queue.push(node.right); }\n                i++;\n            }\n        }\n        return root;\n    }\n\n    function levelOrder(root) {\n        // TODO: implement level-order traversal\n        // Return array of arrays\n    }\n\n    const root = parseTree(vals);\n    const levels = levelOrder(root);\n    if (levels) levels.forEach(level => console.log(level.join(' ')));\n    rl.close();\n});\n",
+    "starter_code_cpp": "\n#include <bits/stdc++.h>\nusing namespace std;\n\nstruct TreeNode {\n    int val;\n    TreeNode* left;\n    TreeNode* right;\n    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}\n};\n\nTreeNode* parseTree(vector<int>& vals) {\n    if (vals.empty() || vals[0] == -1) return nullptr;\n    TreeNode* root = new TreeNode(vals[0]);\n    queue<TreeNode*> q;\n    q.push(root);\n    int i = 1;\n    while (!q.empty() && i < (int)vals.size()) {\n        TreeNode* node = q.front(); q.pop();\n        if (i < (int)vals.size()) {\n            if (vals[i] != -1) { node->left = new TreeNode(vals[i]); q.push(node->left); }\n            i++;\n        }\n        if (i < (int)vals.size()) {\n            if (vals[i] != -1) { node->right = new TreeNode(vals[i]); q.push(node->right); }\n            i++;\n        }\n    }\n    return root;\n}\n\nvector<vector<int>> levelOrder(TreeNode* root) {\n    // TODO: implement level-order traversal\n}\n\nint main() {\n    string line;\n    getline(cin, line);\n    vector<int> vals;\n    istringstream iss(line);\n    int x;\n    while (iss >> x) vals.push_back(x);\n    if (vals.empty() || vals[0] == -1) { return 0; }\n\n    TreeNode* root = parseTree(vals);\n    auto levels = levelOrder(root);\n    for (auto& level : levels) {\n        for (int i = 0; i < (int)level.size(); i++) {\n            if (i) cout << ' ';\n            cout << level[i];\n        }\n        cout << '\\n';\n    }\n    return 0;\n}\n",
+    "starter_code_java": "\nimport java.util.*;\n\npublic class Solution {\n\n    static class TreeNode {\n        int val;\n        TreeNode left, right;\n        TreeNode(int v) { val = v; }\n    }\n\n    static TreeNode parseTree(int[] vals) {\n        if (vals.length == 0 || vals[0] == -1) return null;\n        TreeNode root = new TreeNode(vals[0]);\n        Queue<TreeNode> queue = new LinkedList<>();\n        queue.add(root);\n        int i = 1;\n        while (!queue.isEmpty() && i < vals.length) {\n            TreeNode node = queue.poll();\n            if (i < vals.length) {\n                if (vals[i] != -1) { node.left = new TreeNode(vals[i]); queue.add(node.left); }\n                i++;\n            }\n            if (i < vals.length) {\n                if (vals[i] != -1) { node.right = new TreeNode(vals[i]); queue.add(node.right); }\n                i++;\n            }\n        }\n        return root;\n    }\n\n    static List<List<Integer>> levelOrder(TreeNode root) {\n        // TODO: implement level-order traversal\n        return null;\n    }\n\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String line = sc.nextLine().trim();\n        if (line.isEmpty() || line.equals(\"-1\")) return;\n        String[] parts = line.split(\"\\\\s+\");\n        int[] vals = new int[parts.length];\n        for (int i = 0; i < parts.length; i++) vals[i] = Integer.parseInt(parts[i]);\n\n        TreeNode root = parseTree(vals);\n        List<List<Integer>> levels = levelOrder(root);\n        if (levels == null) return;\n        for (List<Integer> level : levels) {\n            StringBuilder sb = new StringBuilder();\n            for (int i = 0; i < level.size(); i++) {\n                if (i > 0) sb.append(' ');\n                sb.append(level.get(i));\n            }\n            System.out.println(sb);\n        }\n    }\n}\n",
+    "companies": [
+      "google",
+      "meta"
+    ],
     "test_cases": [
       {
         "input": "3 9 20 -1 -1 15 7",
-        "expected_output": "3\n9 20\n15 7"
-      },
-      {
-        "input": "1",
-        "expected_output": "1"
+        "expected_output": "3\n9 20\n15 7",
+        "purpose": "Typical balanced tree with 3 levels \u2014 standard base case"
       },
       {
         "input": "-1",
-        "expected_output": ""
+        "expected_output": "",
+        "purpose": "Empty tree \u2014 edge case with no nodes"
       },
       {
-        "input": "1 2 3 4 5 -1 -1",
-        "expected_output": "1\n2 3\n4 5"
+        "input": "42",
+        "expected_output": "42",
+        "purpose": "Single-node tree \u2014 minimal non-empty input"
       },
       {
-        "input": "1 -1 2 -1 -1 -1 3",
-        "expected_output": "1\n2"
+        "input": "5 5 5 5 5 5 5 5 5 5 5 5 5 5 5",
+        "expected_output": "5\n5 5\n5 5 5 5\n5 5 5 5 5 5 5 5",
+        "purpose": "All duplicate values \u2014 perfect binary tree with 4 levels, tests repeated IDs"
       },
       {
-        "input": "10 5 15 3 7 12 20 1 -1 6 -1 -1 13 -1 -1",
-        "expected_output": "10\n5 15\n3 7 12 20\n1 6 13"
+        "input": "1 2 -1 3 -1 4 -1 5 -1 6 -1 7 -1 8 -1 9 -1 10",
+        "expected_output": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10",
+        "purpose": "Left-skewed tree \u2014 would reveal O(n\u00b2) performance issues with naive solutions"
       },
       {
-        "input": "0 -1000 1000",
-        "expected_output": "0\n-1000 1000"
+        "input": "10 5 15 3 7 12 20 1 4 6 8 11 13 18 25",
+        "expected_output": "10\n5 15\n3 7 12 20\n1 4 6 8 11 13 18 25",
+        "purpose": "Full binary tree with 4 levels \u2014 checks correct left-to-right ordering across all levels"
+      },
+      {
+        "input": "-5 -3 -1 -10 -4 -2 0",
+        "expected_output": "-5\n-3\n-10 -4\n-2 0",
+        "purpose": "Tree with negative switch IDs \u2014 validates handling of negative values"
       }
-    ],
-    "companies": [
-      "google",
-      "meta"
-    ]
-  },
-  {
-    "slug": "microservice-deployment-order",
-    "title": "Microservice Deployment Order",
-    "difficulty": 6,
-    "category": "Graphs",
-    "description": "Your engineering team is deploying a set of microservices, where some services depend on others being deployed first (e.g., the 'auth-service' must be deployed before 'user-service'). Given a list of services and their dependencies, determine a valid deployment order such that all dependencies of a service are deployed before the service itself. If no valid deployment order exists (i.e., there is a circular dependency), return an empty list. If multiple valid orderings exist, return any one of them.",
-    "constraints": [
-      "1 <= n <= 2000 (number of services)",
-      "0 <= dependencies.length <= 5000",
-      "dependencies[i] = [a, b] means service b must be deployed before service a",
-      "Services are numbered from 0 to n-1",
-      "There are no duplicate dependency pairs"
-    ],
-    "input_format": "First line contains two integers n and m \u2014 the number of services and the number of dependencies. The next m lines each contain two integers a and b, meaning service b must be deployed before service a.",
-    "output_format": "Print a single line with n space-separated integers representing a valid deployment order, or print -1 if no valid order exists.",
-    "python_solution": "import sys\nfrom collections import deque\n\ndef solve():\n    input_data = sys.stdin.read().split()\n    idx = 0\n    n = int(input_data[idx]); idx += 1\n    m = int(input_data[idx]); idx += 1\n    \n    adj = [[] for _ in range(n)]\n    in_degree = [0] * n\n    \n    for _ in range(m):\n        a = int(input_data[idx]); idx += 1\n        b = int(input_data[idx]); idx += 1\n        # b must come before a\n        adj[b].append(a)\n        in_degree[a] += 1\n    \n    queue = deque()\n    for i in range(n):\n        if in_degree[i] == 0:\n            queue.append(i)\n    \n    result = []\n    while queue:\n        node = queue.popleft()\n        result.append(node)\n        for neighbor in adj[node]:\n            in_degree[neighbor] -= 1\n            if in_degree[neighbor] == 0:\n                queue.append(neighbor)\n    \n    if len(result) == n:\n        print(' '.join(map(str, result)))\n    else:\n        print(-1)\n\nsolve()",
-    "starter_code_python": "import sys\nfrom collections import deque\n\ndef solve():\n    input_data = sys.stdin.read().split()\n    idx = 0\n    n = int(input_data[idx]); idx += 1\n    m = int(input_data[idx]); idx += 1\n    \n    # Read dependencies and build graph\n    # dependencies[i] = [a, b] means b must be deployed before a\n    \n    # Your solution here\n    pass\n\nsolve()",
-    "starter_code_javascript": "const readline = require('readline');\n\nconst rl = readline.createInterface({ input: process.stdin });\nconst lines = [];\nrl.on('line', line => lines.push(line.trim()));\nrl.on('close', () => {\n    const [n, m] = lines[0].split(' ').map(Number);\n    \n    // Read dependencies and build graph\n    // dependencies[i] = [a, b] means b must be deployed before a\n    \n    // Your solution here\n});",
-    "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n    \n    int n, m;\n    cin >> n >> m;\n    \n    vector<vector<int>> adj(n);\n    vector<int> in_degree(n, 0);\n    \n    for (int i = 0; i < m; i++) {\n        int a, b;\n        cin >> a >> b;\n        // b must come before a\n        // Your solution here\n    }\n    \n    // Your topological sort here\n    \n    return 0;\n}",
-    "starter_code_java": "import java.util.*;\nimport java.io.*;\n\npublic class Solution {\n    public static void main(String[] args) throws IOException {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        StringTokenizer st = new StringTokenizer(br.readLine());\n        int n = Integer.parseInt(st.nextToken());\n        int m = Integer.parseInt(st.nextToken());\n        \n        List<List<Integer>> adj = new ArrayList<>();\n        int[] inDegree = new int[n];\n        for (int i = 0; i < n; i++) adj.add(new ArrayList<>());\n        \n        for (int i = 0; i < m; i++) {\n            st = new StringTokenizer(br.readLine());\n            int a = Integer.parseInt(st.nextToken());\n            int b = Integer.parseInt(st.nextToken());\n            // b must come before a\n            // Your solution here\n        }\n        \n        // Your topological sort here\n    }\n}",
-    "test_cases": [
-      {
-        "input": "4 4\n1 0\n2 0\n3 1\n3 2",
-        "expected_output": "0 1 2 3"
-      },
-      {
-        "input": "3 3\n1 0\n2 1\n0 2",
-        "expected_output": "-1"
-      },
-      {
-        "input": "1 0",
-        "expected_output": "0"
-      },
-      {
-        "input": "6 6\n1 0\n2 1\n3 1\n4 2\n4 3\n5 4",
-        "expected_output": "0 1 2 3 4 5"
-      },
-      {
-        "input": "5 0",
-        "expected_output": "0 1 2 3 4"
-      },
-      {
-        "input": "7 7\n1 0\n2 0\n3 1\n4 2\n5 3\n5 4\n6 5",
-        "expected_output": "0 1 2 3 4 5 6"
-      },
-      {
-        "input": "4 4\n1 0\n2 1\n3 2\n1 3",
-        "expected_output": "-1"
-      }
-    ],
-    "companies": [
-      "google",
-      "meta"
-    ]
-  },
-  {
-    "slug": "count-server-clusters",
-    "title": "Count Server Clusters",
-    "difficulty": 3,
-    "category": "Graphs & DFS",
-    "description": "Your team manages a data center represented as a 2D grid where each cell is either an active server ('1') or empty space ('0'). Servers that are directly adjacent (horizontally or vertically) to each other belong to the same cluster and share network resources. You need to write a monitoring tool that counts how many independent server clusters exist in the data center layout. Given an m x n grid representing the data center, return the number of distinct server clusters.",
-    "constraints": [
-      "1 <= m, n <= 50",
-      "grid[i][j] is either '0' or '1'",
-      "Each cell has at most 4 neighbors (up, down, left, right)"
-    ],
-    "input_format": "First line contains two integers m and n (rows and columns). The next m lines each contain n characters ('0' or '1') separated by spaces representing the grid.",
-    "output_format": "A single integer representing the number of distinct server clusters.",
-    "python_solution": "import sys\nfrom collections import deque\n\ndef solve():\n    line1 = input().split()\n    m, n = int(line1[0]), int(line1[1])\n    grid = []\n    for _ in range(m):\n        row = input().split()\n        grid.append(row)\n\n    visited = [[False] * n for _ in range(m)]\n    count = 0\n\n    def dfs(r, c):\n        if r < 0 or r >= m or c < 0 or c >= n:\n            return\n        if visited[r][c] or grid[r][c] == '0':\n            return\n        visited[r][c] = True\n        dfs(r + 1, c)\n        dfs(r - 1, c)\n        dfs(r, c + 1)\n        dfs(r, c - 1)\n\n    for i in range(m):\n        for j in range(n):\n            if not visited[i][j] and grid[i][j] == '1':\n                dfs(i, j)\n                count += 1\n\n    print(count)\n\nsolve()",
-    "starter_code_python": "import sys\n\ndef solve():\n    line1 = input().split()\n    m, n = int(line1[0]), int(line1[1])\n    grid = []\n    for _ in range(m):\n        row = input().split()\n        grid.append(row)\n\n    # TODO: implement your solution here\n    pass\n\nsolve()",
-    "starter_code_javascript": "const readline = require('readline');\nconst rl = readline.createInterface({ input: process.stdin });\nconst lines = [];\nrl.on('line', line => lines.push(line.trim()));\nrl.on('close', () => {\n    const [m, n] = lines[0].split(' ').map(Number);\n    const grid = [];\n    for (let i = 1; i <= m; i++) {\n        grid.push(lines[i].split(' '));\n    }\n\n    // TODO: implement your solution here\n    // console.log(answer);\n});",
-    "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nint m, n;\nvector<vector<char>> grid;\nvector<vector<bool>> visited;\n\nvoid dfs(int r, int c) {\n    // TODO: implement DFS\n}\n\nint main() {\n    cin >> m >> n;\n    grid.resize(m, vector<char>(n));\n    visited.resize(m, vector<bool>(n, false));\n    for (int i = 0; i < m; i++)\n        for (int j = 0; j < n; j++)\n            cin >> grid[i][j];\n\n    int count = 0;\n    // TODO: implement your solution here\n    cout << count << endl;\n    return 0;\n}",
-    "starter_code_java": "import java.util.*;\n\npublic class Solution {\n    static int m, n;\n    static char[][] grid;\n    static boolean[][] visited;\n\n    static void dfs(int r, int c) {\n        // TODO: implement DFS\n    }\n\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        m = sc.nextInt();\n        n = sc.nextInt();\n        grid = new char[m][n];\n        visited = new boolean[m][n];\n        for (int i = 0; i < m; i++)\n            for (int j = 0; j < n; j++)\n                grid[i][j] = sc.next().charAt(0);\n\n        int count = 0;\n        // TODO: implement your solution here\n        System.out.println(count);\n    }\n}",
-    "test_cases": [
-      {
-        "input": "4 5\n1 1 0 0 0\n1 1 0 0 0\n0 0 1 0 0\n0 0 0 1 1",
-        "expected_output": "3"
-      },
-      {
-        "input": "1 1\n0",
-        "expected_output": "0"
-      },
-      {
-        "input": "1 1\n1",
-        "expected_output": "1"
-      },
-      {
-        "input": "3 3\n1 0 1\n0 1 0\n1 0 1",
-        "expected_output": "5"
-      },
-      {
-        "input": "3 3\n1 1 1\n1 1 1\n1 1 1",
-        "expected_output": "1"
-      },
-      {
-        "input": "2 6\n1 0 0 1 0 1\n0 0 0 1 0 0",
-        "expected_output": "3"
-      },
-      {
-        "input": "1 5\n0 0 0 0 0",
-        "expected_output": "0"
-      }
-    ],
-    "companies": [
-      "amazon",
-      "meta"
-    ]
-  },
-  {
-    "slug": "group-duplicate-log-tags",
-    "title": "Group Duplicate Log Tags",
-    "difficulty": 3,
-    "category": "Hash Tables",
-    "description": "Your team's logging system receives thousands of tags per day, and you've noticed that many tags are just scrambled versions of each other (e.g., 'error' and 'rreoe' might both refer to the same underlying category). You need to write a utility that groups tags that are anagrams of each other so that analysts can de-duplicate and standardize the tag taxonomy. Given a list of log tags (lowercase strings), group all tags that are anagrams of each other together. Each group should be sorted alphabetically internally, and the groups themselves should be sorted by their first element alphabetically.",
-    "constraints": [
-      "1 <= tags.length <= 10^4",
-      "0 <= tags[i].length <= 100",
-      "tags[i] consists of only lowercase English letters"
-    ],
-    "input_format": "The first line contains an integer n, the number of tags. The second line contains n space-separated strings representing the tags.",
-    "output_format": "Print each group of anagram tags on a separate line, with tags within the group separated by spaces. Groups should be sorted by their first element alphabetically, and tags within each group should be sorted alphabetically.",
-    "python_solution": "from collections import defaultdict\n\ndef solve():\n    n = int(input().strip())\n    if n == 0:\n        return\n    tags = input().strip().split()\n    \n    groups = defaultdict(list)\n    for tag in tags:\n        key = tuple(sorted(tag))\n        groups[key].append(tag)\n    \n    result = []\n    for group in groups.values():\n        result.append(sorted(group))\n    \n    result.sort(key=lambda g: g[0])\n    \n    for group in result:\n        print(' '.join(group))\n\nsolve()",
-    "starter_code_python": "from collections import defaultdict\n\ndef solve():\n    n = int(input().strip())\n    if n == 0:\n        return\n    tags = input().strip().split()\n    \n    # Your code here\n    pass\n\nsolve()",
-    "starter_code_javascript": "const readline = require('readline');\nconst rl = readline.createInterface({ input: process.stdin });\nconst lines = [];\nrl.on('line', line => lines.push(line.trim()));\nrl.on('close', () => {\n    const n = parseInt(lines[0]);\n    if (n === 0) return;\n    const tags = lines[1].split(' ');\n    \n    // Your code here\n    // Group anagram tags and print each group sorted, groups sorted by first element\n});",
-    "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    int n;\n    cin >> n;\n    if (n == 0) return 0;\n    vector<string> tags(n);\n    for (int i = 0; i < n; i++) cin >> tags[i];\n    \n    // Your code here\n    // Group anagram tags and print each group sorted, groups sorted by first element\n    \n    return 0;\n}",
-    "starter_code_java": "import java.util.*;\nimport java.io.*;\n\npublic class Solution {\n    public static void main(String[] args) throws IOException {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        int n = Integer.parseInt(br.readLine().trim());\n        if (n == 0) return;\n        String[] tags = br.readLine().trim().split(\" \");\n        \n        // Your code here\n        // Group anagram tags and print each group sorted, groups sorted by first element\n    }\n}",
-    "test_cases": [
-      {
-        "input": "6\neat tea tan ate nat bat",
-        "expected_output": "ate eat tea\nbat\nnat tan"
-      },
-      {
-        "input": "1\nhello",
-        "expected_output": "hello"
-      },
-      {
-        "input": "3\nabc bca cab",
-        "expected_output": "abc bca cab"
-      },
-      {
-        "input": "5\na b c d e",
-        "expected_output": "a\nb\nc\nd\ne"
-      },
-      {
-        "input": "8\nlisten silent enlist dog god log cat act",
-        "expected_output": "act cat\ndog god\nenlist listen silent\nlog"
-      },
-      {
-        "input": "4\naab baa aba bba",
-        "expected_output": "aab aba baa\nbba"
-      },
-      {
-        "input": "2\nab ba",
-        "expected_output": "ab ba"
-      }
-    ],
-    "companies": [
-      "amazon",
-      "meta"
-    ]
-  },
-  {
-    "slug": "top-k-server-response-times",
-    "title": "Top K Server Response Times",
-    "difficulty": 4,
-    "category": "Heaps",
-    "description": "You are a backend engineer at a cloud infrastructure company monitoring server performance. Your team collects response times (in milliseconds) from various API endpoints and needs to quickly identify the slowest requests to prioritize optimization. Given an array of response times recorded during a monitoring window and an integer k, find the k-th largest response time. Note that k-th largest means the k-th largest in sorted descending order, so if k=1 it is the maximum response time.",
-    "constraints": [
-      "1 <= k <= n <= 10^5",
-      "1 <= response_times[i] <= 10^9",
-      "The array will always have at least k elements"
-    ],
-    "input_format": "The first line contains two integers n and k, where n is the number of response time measurements and k is the rank. The second line contains n space-separated integers representing the response times in milliseconds.",
-    "output_format": "Print a single integer representing the k-th largest response time.",
-    "python_solution": "import heapq\n\ndef main():\n    line1 = input().split()\n    n, k = int(line1[0]), int(line1[1])\n    response_times = list(map(int, input().split()))\n    \n    # Use a min-heap of size k\n    # The top of the heap will be the k-th largest element\n    min_heap = []\n    \n    for time in response_times:\n        heapq.heappush(min_heap, time)\n        if len(min_heap) > k:\n            heapq.heappop(min_heap)\n    \n    print(min_heap[0])\n\nmain()",
-    "starter_code_python": "import heapq\n\ndef find_kth_largest_response_time(response_times, k):\n    # Your implementation here\n    pass\n\ndef main():\n    line1 = input().split()\n    n, k = int(line1[0]), int(line1[1])\n    response_times = list(map(int, input().split()))\n    print(find_kth_largest_response_time(response_times, k))\n\nmain()",
-    "starter_code_javascript": "const readline = require('readline');\n\nconst rl = readline.createInterface({ input: process.stdin });\nconst lines = [];\nrl.on('line', line => lines.push(line.trim()));\nrl.on('close', () => {\n    const [n, k] = lines[0].split(' ').map(Number);\n    const responseTimes = lines[1].split(' ').map(Number);\n    \n    function findKthLargest(responseTimes, k) {\n        // Your implementation here\n    }\n    \n    console.log(findKthLargest(responseTimes, k));\n});",
-    "starter_code_cpp": "#include <iostream>\n#include <vector>\n#include <queue>\nusing namespace std;\n\nint findKthLargest(vector<int>& responseTimes, int k) {\n    // Your implementation here\n    return -1;\n}\n\nint main() {\n    int n, k;\n    cin >> n >> k;\n    vector<int> responseTimes(n);\n    for (int i = 0; i < n; i++) {\n        cin >> responseTimes[i];\n    }\n    cout << findKthLargest(responseTimes, k) << endl;\n    return 0;\n}",
-    "starter_code_java": "import java.util.*;\n\npublic class Solution {\n    public static int findKthLargest(int[] responseTimes, int k) {\n        // Your implementation here\n        return -1;\n    }\n    \n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int n = sc.nextInt();\n        int k = sc.nextInt();\n        int[] responseTimes = new int[n];\n        for (int i = 0; i < n; i++) {\n            responseTimes[i] = sc.nextInt();\n        }\n        System.out.println(findKthLargest(responseTimes, k));\n    }\n}",
-    "test_cases": [
-      {
-        "input": "6 2\n300 150 800 450 200 600",
-        "expected_output": "600"
-      },
-      {
-        "input": "1 1\n500",
-        "expected_output": "500"
-      },
-      {
-        "input": "5 1\n100 200 300 400 500",
-        "expected_output": "500"
-      },
-      {
-        "input": "5 5\n100 200 300 400 500",
-        "expected_output": "100"
-      },
-      {
-        "input": "7 3\n120 340 90 780 560 230 670",
-        "expected_output": "560"
-      },
-      {
-        "input": "10 4\n1000 999 998 997 996 995 994 993 992 991",
-        "expected_output": "997"
-      },
-      {
-        "input": "5 2\n42 42 42 42 42",
-        "expected_output": "42"
-      }
-    ],
-    "companies": [
-      "amazon",
-      "google"
-    ]
-  },
-  {
-    "slug": "longest-symmetric-log-sequence",
-    "title": "Longest Symmetric Log Sequence",
-    "difficulty": 5,
-    "category": "Dynamic Programming",
-    "description": "You are building a log analysis tool for a distributed system. Engineers have noticed that certain error patterns repeat in a symmetric (palindromic) fashion across log event codes, which often indicates a cyclical fault or a ping-pong failure between two services. Given a string of single-character log event codes, your task is to find the longest contiguous subsequence of log codes that reads the same forwards and backwards. This symmetric segment is flagged for deeper investigation. Return the longest palindromic substring. If there are multiple substrings of the same maximum length, return the one that appears first (leftmost).",
-    "constraints": [
-      "1 <= len(s) <= 1000",
-      "s consists of lowercase English letters only",
-      "If multiple palindromic substrings share the maximum length, return the leftmost one"
-    ],
-    "input_format": "A single line containing the string s of log event codes.",
-    "output_format": "A single line containing the longest palindromic substring.",
-    "python_solution": "def solve():\n    s = input().strip()\n    n = len(s)\n    if n == 0:\n        print('')\n        return\n\n    # dp[i][j] = True if s[i..j] is a palindrome\n    dp = [[False] * n for _ in range(n)]\n\n    start = 0\n    max_len = 1\n\n    # All single characters are palindromes\n    for i in range(n):\n        dp[i][i] = True\n\n    # Check for length 2\n    for i in range(n - 1):\n        if s[i] == s[i + 1]:\n            dp[i][i + 1] = True\n            start = i\n            max_len = 2\n\n    # Check for lengths greater than 2\n    for length in range(3, n + 1):\n        for i in range(n - length + 1):\n            j = i + length - 1\n            if s[i] == s[j] and dp[i + 1][j - 1]:\n                dp[i][j] = True\n                if length > max_len:\n                    max_len = length\n                    start = i\n\n    print(s[start:start + max_len])\n\nsolve()",
-    "starter_code_python": "def solve():\n    s = input().strip()\n    # Your solution here\n    pass\n\nsolve()",
-    "starter_code_javascript": "const readline = require('readline');\nconst rl = readline.createInterface({ input: process.stdin });\nrl.on('line', (s) => {\n    // Your solution here\n    rl.close();\n});",
-    "starter_code_cpp": "#include <iostream>\n#include <string>\nusing namespace std;\n\nint main() {\n    string s;\n    cin >> s;\n    // Your solution here\n    return 0;\n}",
-    "starter_code_java": "import java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String s = sc.nextLine().trim();\n        // Your solution here\n    }\n}",
-    "test_cases": [
-      {
-        "input": "babad",
-        "expected_output": "bab"
-      },
-      {
-        "input": "cbbd",
-        "expected_output": "bb"
-      },
-      {
-        "input": "a",
-        "expected_output": "a"
-      },
-      {
-        "input": "racecar",
-        "expected_output": "racecar"
-      },
-      {
-        "input": "abcba",
-        "expected_output": "abcba"
-      },
-      {
-        "input": "abacdfgdcaba",
-        "expected_output": "aba"
-      },
-      {
-        "input": "aacabdkacaa",
-        "expected_output": "aca"
-      },
-      {
-        "input": "aaaa",
-        "expected_output": "aaaa"
-      }
-    ],
-    "companies": [
-      "amazon",
-      "meta"
     ]
   }
 ]
