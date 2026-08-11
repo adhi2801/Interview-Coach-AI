@@ -102,9 +102,17 @@ Do NOT compute or state expected outputs yourself. Only provide test case INPUTS
 actual expected output for each one will be captured by running your solution, not by you
 predicting it. Provide at least 5 distinct test case inputs: the base/typical case, an
 edge case (empty or minimal input), a case with duplicate/repeated values if relevant to
-this problem, and a larger case that would reveal a performance problem if your solution
+this problem, and one larger case that would reveal a performance problem if your solution
 were inefficient. For each one, include a short "purpose" phrase so a human reviewer can
 quickly see what each test is checking without re-reading the input itself.
+
+For the "larger case" specifically: keep it at a size you can construct correctly by hand
+(a few hundred elements is enough to distinguish an efficient solution from an inefficient
+one — you do not need 10,000+ elements to prove a performance point). It is far more
+important that this input exactly matches the input_format you already specified — same
+number of lines, same delimiters, same order — than that it be extremely large. A big input
+that is malformed relative to your own stated format will make your solution crash on a
+parsing error, not demonstrate anything about performance.
 
 Call the submit_coding_problem tool with the complete problem."""
 
@@ -153,7 +161,7 @@ PROBLEM_TOOL = {
 }
 
 
-def call_claude_for_problem(title_hint, difficulty, category, max_retries=2):
+def call_claude_for_problem(title_hint, difficulty, category, max_retries=3):
     last_err = None
     for attempt in range(max_retries + 1):
         try:
@@ -181,6 +189,18 @@ def call_claude_for_problem(title_hint, difficulty, category, max_retries=2):
             if planned_count < 3:
                 raise ValueError(f"Only {planned_count} test case(s) returned — retrying generation")
 
+            # A length check alone isn't enough — len() works on strings too,
+            # so a malformed response where test_cases_planned came back as a
+            # string (not a list) could sail past a bare length check and
+            # then crash later when the code tries to iterate it expecting
+            # dicts. Validate the actual shape, not just a count.
+            planned = result.get("test_cases_planned")
+            if not isinstance(planned, list):
+                raise ValueError(f"test_cases_planned was not a list (got {type(planned).__name__}) — retrying generation")
+            well_formed = [tc for tc in planned if isinstance(tc, dict) and isinstance(tc.get("input"), str)]
+            if len(well_formed) < 3:
+                raise ValueError(f"Only {len(well_formed)} well-formed test case(s) out of {len(planned)} — retrying generation")
+
             return result
         except Exception as e:
             last_err = e
@@ -197,16 +217,32 @@ def run_against_input(script_path, stdin_input, timeout=5):
             ["python", script_path],
             input=stdin_input,
             capture_output=True,
-            text=True,
+            # Explicit UTF-8, not text=True. text=True lets subprocess fall
+            # back to the OS's locale-preferred encoding, which on Windows
+            # is frequently cp1252 — a legacy codepage that can't represent
+            # most non-ASCII characters. If Claude's test input contains
+            # anything outside plain ASCII (accented letters, Cyrillic,
+            # emoji, etc.), writing it to stdin under cp1252 throws
+            # UnicodeEncodeError and previously crashed the whole script.
+            # UTF-8 can represent essentially anything, so this is the fix
+            # regardless of what platform this runs on.
+            encoding="utf-8",
+            errors="replace",
             timeout=timeout
         )
     except subprocess.TimeoutExpired:
         return False, None, "TIMEOUT (infinite loop or too slow)"
+    except Exception as e:
+        # Defense in depth: any other unexpected subprocess-level failure
+        # (permissions, OS quirks, anything not anticipated above) becomes
+        # a clean rejection for this one test case instead of an uncaught
+        # exception that kills every problem still left in the batch.
+        return False, None, f"UNEXPECTED ERROR running subprocess — {type(e).__name__}: {e}"
 
     if proc.returncode != 0:
-        return False, None, f"CRASHED — {proc.stderr.strip()[:200]}"
+        return False, None, f"CRASHED — {(proc.stderr or '').strip()[:2000]}"
 
-    return True, proc.stdout.strip(), None
+    return True, (proc.stdout or "").strip(), None
 
 
 def build_and_verify_test_cases(problem):
@@ -220,10 +256,29 @@ def build_and_verify_test_cases(problem):
 
     if not solution_code:
         return False, [], ["Missing python_solution"]
-    if len(planned) < 3:
-        return False, [], [f"Only {len(planned)} test case(s) planned — need at least 3 for meaningful coverage"]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+    # Same shape-defense as in call_claude_for_problem, kept here too since
+    # this function may end up called on data that skipped that check (e.g.
+    # if this module is imported and reused elsewhere later). A malformed
+    # test_cases_planned (wrong type, or a list of non-dict items) is
+    # filtered out here rather than assumed away.
+    if not isinstance(planned, list):
+        return False, [], [f"test_cases_planned was not a list (got {type(planned).__name__}) — malformed response"]
+
+    well_formed = [tc for tc in planned if isinstance(tc, dict) and isinstance(tc.get("input"), str)]
+    if len(well_formed) < 3:
+        return False, [], [f"Only {len(well_formed)} well-formed test case(s) out of {len(planned)} planned — need at least 3"]
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False, encoding="utf-8") as f:
+        # Same root cause as the earlier stdin encoding bug: writing this
+        # file without an explicit encoding falls back to the OS locale
+        # (cp1252 on Windows), which happily writes characters like an
+        # em dash as a single non-UTF-8 byte. Python then fails to even
+        # parse the file when running it, since it assumes UTF-8 source
+        # encoding by default (PEP 263). Claude's generated code and
+        # comments use em dashes and other non-ASCII punctuation
+        # constantly, so this was likely to keep recurring across many
+        # future problems until fixed here explicitly.
         f.write(solution_code)
         script_path = f.name
 
@@ -232,7 +287,7 @@ def build_and_verify_test_cases(problem):
     all_passed = True
 
     try:
-        for i, tc in enumerate(planned):
+        for i, tc in enumerate(well_formed):
             inp = tc.get("input", "")
             purpose = tc.get("purpose", "")
             ok, output, err = run_against_input(script_path, inp)
@@ -272,7 +327,23 @@ def main():
 
         planned_count = len(problem.get("test_cases_planned", []))
         print(f"  Generated '{problem.get('title')}'. Running solution against {planned_count} planned test case(s)...")
-        passed, test_cases, details = build_and_verify_test_cases(problem)
+
+        try:
+            passed, test_cases, details = build_and_verify_test_cases(problem)
+        except Exception as e:
+            # Belt-and-suspenders: three unexpected failure shapes have
+            # already turned up in real runs (empty test list, a string
+            # where a list was expected, a Windows-only encoding crash).
+            # Rather than assume we've now seen every way Claude's output
+            # can be malformed, anything still unanticipated becomes a
+            # logged rejection for this one problem instead of killing the
+            # rest of the batch.
+            print(f"  REJECTED — unexpected error during verification: {e}")
+            problem["_rejection_details"] = [f"Unexpected error: {type(e).__name__}: {e}"]
+            rejected.append(problem)
+            flush()
+            time.sleep(1)
+            continue
 
         if passed:
             problem["test_cases"] = test_cases

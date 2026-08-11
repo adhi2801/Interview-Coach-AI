@@ -11,9 +11,21 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "fallback-dev-secret-change-in-production")
+# Fail loudly if this isn't set, rather than silently signing real tokens
+# with a fallback secret that's sitting in plain text in a public GitHub
+# repo. A missing env var should be a startup crash, not a security hole.
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError(
+        "JWT_SECRET_KEY environment variable is not set. Refusing to start "
+        "with an insecure default — set a real secret in your .env / "
+        "deployment environment before running the app."
+    )
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
+
+MIN_PASSWORD_LENGTH = 8
 
 
 def hash_password(password: str) -> str:
@@ -26,6 +38,19 @@ def hash_password(password: str) -> str:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     password_bytes = plain_password.encode("utf-8")[:72]
     return bcrypt.checkpw(password_bytes, hashed_password.encode("utf-8"))
+
+
+def validate_password_strength(password: str) -> str | None:
+    """
+    Returns an error message string if the password is too weak to accept,
+    or None if it's fine. Call this at signup/password-change routes
+    BEFORE calling hash_password — hash_password itself will happily hash
+    an empty string, so this check has to live at the call site, not
+    inside hashing.
+    """
+    if not password or len(password) < MIN_PASSWORD_LENGTH:
+        return f"Password must be at least {MIN_PASSWORD_LENGTH} characters."
+    return None
 
 
 def create_access_token(data: dict) -> str:

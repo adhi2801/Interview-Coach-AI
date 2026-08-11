@@ -9,6 +9,42 @@ from models import Topic, TopicPrerequisite, CompanyTopicWeight
 load_dotenv()
 
 
+def _call_claude_topic_list(client, **create_kwargs) -> list:
+    """
+    Calls Claude and parses a JSON list response, with one retry.
+    Used by both extract_gaps and identify_topics_addressed so the
+    'strip markdown fences, parse JSON' logic exists in exactly one
+    place instead of being copy-pasted per call site.
+    """
+    for attempt in range(2):
+        try:
+            response = client.messages.create(**create_kwargs)
+            raw = response.content[0].text.strip()
+            if raw.startswith("```"):
+                raw = raw.split("```")[1]
+                if raw.startswith("json"):
+                    raw = raw[4:]
+            return json.loads(raw.strip())
+        except Exception:
+            if attempt == 1:
+                return []
+    return []
+
+
+_topic_names_cache = None
+
+
+def _get_cached_topic_names() -> list:
+    global _topic_names_cache
+    if _topic_names_cache is None:
+        db = SessionLocal()
+        try:
+            _topic_names_cache = [t.name for t in db.query(Topic).all()]
+        finally:
+            db.close()
+    return _topic_names_cache
+
+
 class KnowledgeGapGraph:
     def __init__(self):
         self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), timeout=30.0)
@@ -17,10 +53,11 @@ class KnowledgeGapGraph:
         if technical_score >= 7.0:
             return []
 
-        db_topics = self._get_all_topic_names()
+        db_topics = _get_cached_topic_names()
         topic_list_str = ", ".join(db_topics)
 
-        response = self.client.messages.create(
+        failed_topics = _call_claude_topic_list(
+            self.client,
             model="claude-sonnet-4-6",
             max_tokens=200,
             system=f"""Return only a JSON list of topic strings. No explanation. No markdown.
@@ -32,17 +69,6 @@ class KnowledgeGapGraph:
                 f"Question: {question}\nAnswer: {answer}\n"
                 f"Return maximum 3 topics as a JSON list like: [\"topic_name\", \"topic_name\"]"}]
         )
-
-        raw = response.content[0].text.strip()
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-
-        try:
-            failed_topics = json.loads(raw.strip())
-        except json.JSONDecodeError:
-            failed_topics = []
 
         db = SessionLocal()
         study_plan = []
@@ -76,10 +102,11 @@ class KnowledgeGapGraph:
         answer and powers real knowledge-graph coverage tracking via
         Answer.topics_covered.
         """
-        db_topics = self._get_all_topic_names()
+        db_topics = _get_cached_topic_names()
         topic_list_str = ", ".join(db_topics)
 
-        response = self.client.messages.create(
+        topics = _call_claude_topic_list(
+            self.client,
             model="claude-sonnet-4-6",
             max_tokens=150,
             system=f"""Return only a JSON list of topic strings. No explanation. No markdown.
@@ -93,25 +120,7 @@ class KnowledgeGapGraph:
                 f"Return maximum 4 topics as a JSON list like: [\"topic_name\", \"topic_name\"]"}]
         )
 
-        raw = response.content[0].text.strip()
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-
-        try:
-            topics = json.loads(raw.strip())
-            return [t.lower().replace(" ", "_") for t in topics if isinstance(t, str)]
-        except json.JSONDecodeError:
-            return []
-    
-    def _get_all_topic_names(self) -> list:
-        db = SessionLocal()
-        try:
-            topics = db.query(Topic).all()
-            return [t.name for t in topics]
-        finally:
-            db.close()
+        return [t.lower().replace(" ", "_") for t in topics if isinstance(t, str)]
 
     def _get_company_weight(self, db: Session, topic_id: int, company: str = None) -> float:
         if not company:

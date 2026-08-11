@@ -176,7 +176,7 @@ function RequireSession({ sessionData, redirectTo = "/", children }) {
   return children;
 }
 
-function AuthenticatedRoutes({ user, onLogout, onEloUpdate, sessionData, setSessionData }) {
+function AuthenticatedRoutes({ user, onLogout, onEloUpdate, sessionData, setSessionData, onOpenCommandPalette }) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -191,7 +191,7 @@ function AuthenticatedRoutes({ user, onLogout, onEloUpdate, sessionData, setSess
         className="w-full h-full"
       >
         <Routes location={location}>
-          <Route path="/" element={<UserDashboard user={user} onLogout={onLogout} onStartNew={() => navigate("/setup")} onNavigateHistory={() => navigate("/replay")} onStartCoding={() => navigate("/coding")} onNavigateSettings={() => navigate("/settings")} onNavigateStudyPlan={() => navigate("/study-plan")} />} />
+          <Route path="/" element={<UserDashboard user={user} onLogout={onLogout} onStartNew={() => navigate("/setup")} onNavigateHistory={() => navigate("/replay")} onStartCoding={() => navigate("/coding")} onNavigateSettings={() => navigate("/settings")} onNavigateStudyPlan={() => navigate("/study-plan")} onOpenCommandPalette={onOpenCommandPalette} />} />
           <Route path="/setup" element={<Dashboard user={user} onLogout={onLogout} onGoBack={() => navigate("/")} onStart={(data) => { setSessionData(data); navigate("/preflight"); }} />} />
           <Route path="/preflight" element={<PreflightCheck onReady={() => navigate("/interview")} onSkip={() => navigate("/interview")} />} />
           <Route path="/interview" element={
@@ -275,7 +275,7 @@ function AppContent({ user, checkingAuth, handleAuth, handleLogout, handleEloUpd
     <>
       <div className="w-full min-h-screen relative z-10">
         {user ? (
-          <AuthenticatedRoutes user={user} onLogout={handleLogout} onEloUpdate={handleEloUpdate} sessionData={sessionData} setSessionData={setSessionData} />
+          <AuthenticatedRoutes user={user} onLogout={handleLogout} onEloUpdate={handleEloUpdate} sessionData={sessionData} setSessionData={setSessionData} onOpenCommandPalette={() => setCmdOpen(true)} />
         ) : (
           <UnauthenticatedRoutes onAuth={handleAuth} />
         )}

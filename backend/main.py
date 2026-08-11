@@ -16,10 +16,9 @@ from engines.knowledge_graph import KnowledgeGapGraph
 from engines.confidence_coach import ConfidenceCoach
 from engines.peer_comparison import PeerComparisonEngine
 from engines.replay_system import ReplaySystem
-from engines.replay_system import ReplaySystem
 from coding_engine import CodingEngine
 from code_executor import CodeExecutor
-from auth import hash_password, verify_password, create_access_token, decode_access_token
+from auth import hash_password, verify_password, create_access_token, decode_access_token, validate_password_strength
 from content_filter import contains_profanity, sanitize_for_storage
 from models import User
 from datetime import datetime
@@ -31,7 +30,7 @@ security = HTTPBearer(auto_error=False)
 def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> int | None:
     """
     Extracts the user_id from a JWT token if present.
-    Returns None if no token is provided Ã¢â‚¬â€ endpoints can still work
+    Returns None if no token is provided — endpoints can still work
     for anonymous/guest use, but will personalize when a token exists.
     """
     if not credentials:
@@ -78,20 +77,20 @@ try:
     redis_client = redis.from_url(os.getenv("REDIS_URL"), decode_responses=True, socket_connect_timeout=2)
     redis_client.ping()
 except Exception:
-    redis_client = None  # same fail-open pattern as company_dna.py Ã¢â‚¬â€ don't crash the app if Redis is down
+    redis_client = None  # same fail-open pattern as company_dna.py — don't crash the app if Redis is down
 
-DAILY_TOKEN_BUDGET = 20000 # tune this Ã¢â‚¬â€ rough starting point for a free-tier user
+DAILY_TOKEN_BUDGET = 20000  # tune this — rough starting point for a free-tier user
 
 def estimate_tokens(text: str) -> int:
     # Rough approximation: ~4 characters per token for English text.
-    # Not exact, but doesn't need to be Ã¢â‚¬â€ this is a budget GUARD, not billing.
+    # Not exact, but doesn't need to be — this is a budget GUARD, not billing.
     return len(text) // 4
 
 def check_and_charge_token_budget(user_id: int, estimated_tokens: int) -> bool:
     """Returns True if the user is under budget and the charge was applied,
     False if they're over budget and should be rejected."""
     if not redis_client or not user_id:
-        return True  # fail open Ã¢â‚¬â€ same philosophy as the caching layer
+        return True  # fail open — same philosophy as the caching layer
 
     key = f"token_budget:{user_id}:{datetime.utcnow().strftime('%Y-%m-%d')}"
     current = redis_client.get(key)
@@ -169,7 +168,7 @@ replay_system = ReplaySystem()
 
 @app.on_event("startup")
 def startup():
-    print("Application started Ã¢â‚¬â€ schema managed by Alembic migrations")
+    print("Application started — schema managed by Alembic migrations")
 
 @app.get("/health")
 def health_check():
@@ -198,15 +197,24 @@ def list_topics():
         db.close()
 
 @app.post("/auth/signup")
-def signup(payload: SignupRequest):
+@limiter.limit("5/minute")
+def signup(payload: SignupRequest, request: Request):
+    # Normalize email casing so "User@Example.com" and "user@example.com"
+    # are always treated as the same account, both here and at login.
+    email = payload.email.strip().lower()
+
+    password_error = validate_password_strength(payload.password)
+    if password_error:
+        return {"error": password_error}
+
     db = SessionLocal()
     try:
-        existing = db.query(User).filter(User.email == payload.email).first()
+        existing = db.query(User).filter(User.email == email).first()
         if existing:
             return {"error": "An account with this email already exists"}
 
         user = User(
-            email=payload.email,
+            email=email,
             name=payload.name,
             hashed_password=hash_password(payload.password),
             elo_rating=1200.0
@@ -227,10 +235,13 @@ def signup(payload: SignupRequest):
 
 
 @app.post("/auth/login")
-def login(payload: LoginRequest):
+@limiter.limit("5/minute")
+def login(payload: LoginRequest, request: Request):
+    email = payload.email.strip().lower()
+
     db = SessionLocal()
     try:
-        user = db.query(User).filter(User.email == payload.email).first()
+        user = db.query(User).filter(User.email == email).first()
         if not user or not verify_password(payload.password, user.hashed_password):
             return {"error": "Invalid email or password"}
 
@@ -287,7 +298,7 @@ def start_session(payload: StartSessionRequest, request: Request, user_id: int =
         "scenario": question_data.get("scenario", ""),
         "constraints": question_data.get("constraints", []),
         "ask": question_data.get("ask", ""),
-        "category": question_data["category"],
+        "category": question_data.get("category", "General"),
         "sub_category": question_data.get("sub_category", ""),
         "difficulty": difficulty,
         "company_profile": company_engine.get_profile(payload.company)
@@ -295,8 +306,8 @@ def start_session(payload: StartSessionRequest, request: Request, user_id: int =
 
 def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
     """
-    Runs in the background. Does all the heavy work Ã¢â‚¬â€ Claude scoring,
-    gap detection, peer comparison, ELO update Ã¢â‚¬â€ without blocking
+    Runs in the background. Does all the heavy work — Claude scoring,
+    gap detection, peer comparison, ELO update — without blocking
     the original HTTP request.
     """
     db = SessionLocal()
@@ -339,6 +350,22 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
         # 2. Fetch/Create session record
         session_record = db.query(InterviewSession).filter(InterviewSession.id == payload.session_id).first()
         if not session_record:
+            # This path means /answer/submit was called with a session_id
+            # that /session/start never actually created — that shouldn't
+            # happen in normal operation. Logging loudly here rather than
+            # silently self-healing, since manually forcing `id=` on an
+            # auto-increment primary key on insert can desync Postgres's
+            # sequence counter from the table's actual max id, causing a
+            # future *normal* insert to collide with this one and crash
+            # with a duplicate-key error much later, for reasons that look
+            # completely unrelated at the time. If this ever actually
+            # fires in production, it's worth finding out why rather than
+            # letting it happen silently.
+            logger.warning(
+                "session_record_missing_fallback_triggered",
+                session_id=payload.session_id,
+                note="InterviewSession did not exist for this session_id — check upstream flow"
+            )
             session_record = InterviewSession(
                 id=payload.session_id, difficulty_level=payload.difficulty,
                 company_target=payload.company or "unknown", role="unknown"
@@ -354,7 +381,7 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
                 user.elo_rating = new_elo
                 db.commit()
 
-        # Snapshot ELO on the session itself too Ã¢â‚¬â€ this is what makes the
+        # Snapshot ELO on the session itself too — this is what makes the
         # Rating History chart show REAL per-session values instead of
         # always plotting whatever the user's current live ELO happens to be.
         if session_record:
@@ -404,7 +431,7 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
             "next_scenario": next_question_data.get("scenario", ""),
             "next_constraints": next_question_data.get("constraints", []),
             "next_ask": next_question_data.get("ask", ""),
-            "next_category": next_question_data["category"],
+            "next_category": next_question_data.get("category", "General"),
             "next_sub_category": next_question_data.get("sub_category", ""),
             "answer_id": answer_record.id
         }
@@ -428,11 +455,21 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
 @app.post("/answer/submit")
 @limiter.limit("20/minute")
 def submit_answer(payload: SubmitAnswerRequest, background_tasks: BackgroundTasks, request: Request, user_id: int = Depends(get_current_user_id)):
-    # Token budget check Ã¢â‚¬â€ separate from the request-count limiter above.
+    # Previously this endpoint only checked the token budget when a
+    # user_id was present ("if user_id and not check_and_charge_token_budget(...)"),
+    # which meant an anonymous session skipped cost protection ENTIRELY —
+    # every real answer here calls Claude for scoring, so an unauthenticated
+    # caller could run up the Anthropic bill with no cap at all beyond the
+    # plain per-minute rate limit. /coding/submit already correctly requires
+    # login; this brings /answer/submit in line with that same rule.
+    if not user_id:
+        return {"error": "You must be logged in to submit an answer"}
+
+    # Token budget check — separate from the request-count limiter above.
     # This catches the case where someone stays under 20 requests/minute
     # but pastes something huge into every single one.
     estimated = estimate_tokens(payload.answer) + estimate_tokens(payload.question)
-    if user_id and not check_and_charge_token_budget(user_id, estimated):
+    if not check_and_charge_token_budget(user_id, estimated):
         return {"error": "Daily usage limit reached. Please try again tomorrow."}
 
     logger.info("answer_submitted", session_id=payload.session_id, difficulty=payload.difficulty, user_id=user_id)
@@ -534,7 +571,7 @@ def rate_feedback(payload: FeedbackRatingRequest, user_id: int = Depends(get_cur
             InterviewSession.id == answer.session_id
         ).first()
         if not user_id or not session_record or session_record.user_id != user_id:
-            return {"status": "ok"}  # silent no-op Ã¢â‚¬â€ not your answer to rate
+            return {"status": "ok"}  # silent no-op — not your answer to rate
 
         answer.feedback_helpful = 1 if payload.helpful else 0
         db.commit()
@@ -622,7 +659,7 @@ def get_user_sessions(user_id: int = Depends(get_current_user_id)):
 def get_skill_radar(session_id: Optional[int] = None, company: Optional[str] = None, user_id: int = Depends(get_current_user_id)):
     """
     Real 5-dimension average score radar, computed from actual persisted
-    Answer rows Ã¢â‚¬â€ the same five scores every debrief and replay screen
+    Answer rows — the same five scores every debrief and replay screen
     already uses (score_technical, score_communication, score_problem_solving,
     score_cultural_fit, score_confidence). No fabricated per-category data.
 
@@ -669,7 +706,7 @@ def get_skill_radar(session_id: Optional[int] = None, company: Optional[str] = N
 @app.get("/user/gap-queue")
 def get_gap_queue(company: Optional[str] = None, user_id: int = Depends(get_current_user_id)):
     """
-    Real gap queue Ã¢â‚¬â€ aggregates Answer.gaps_identified (already persisted
+    Real gap queue — aggregates Answer.gaps_identified (already persisted
     by process_answer_scoring via gap_engine.extract_gaps on every
     low-scoring answer) across the user's sessions, optionally filtered
     to one company. Ranked by urgency then frequency. Replaces the old
@@ -720,10 +757,10 @@ def get_gap_queue(company: Optional[str] = None, user_id: int = Depends(get_curr
 
         return {"critical_gap": queue[0] if queue else None, "queue": queue[:6]}
     finally:
-        db.close()       
+        db.close()
+
+
 @app.get("/user/skill-matrix")
-
-
 def get_skill_matrix(user_id: int = Depends(get_current_user_id)):
     """
     Real knowledge-graph coverage: for each Topic.category, how many
@@ -803,7 +840,7 @@ def delete_my_account(user_id: int = Depends(get_current_user_id)):
 
 @app.get("/coding/problems")
 def list_coding_problems():
-    """List problems without exposing test cases Ã¢â‚¬â€ just enough to build a picker UI."""
+    """List problems without exposing test cases — just enough to build a picker UI."""
     db = SessionLocal()
     try:
         problems = db.query(CodingProblem).all()
@@ -826,7 +863,7 @@ def list_coding_problems():
 
 @app.get("/coding/problems/{slug}")
 def get_coding_problem(slug: str):
-    """Full problem detail Ã¢â‚¬â€ starter code + VISIBLE test cases only. Hidden cases never leave the server."""
+    """Full problem detail — starter code + VISIBLE test cases only. Hidden cases never leave the server."""
     db = SessionLocal()
     try:
         problem = db.query(CodingProblem).filter(CodingProblem.slug == slug).first()
@@ -858,9 +895,16 @@ def get_coding_problem(slug: str):
 @limiter.limit("20/minute")
 def run_code(request: Request, payload: RunCodeRequest, user_id: int = Depends(get_current_user_id)):
     """
-    'Run' button Ã¢â‚¬â€ executes against VISIBLE sample cases only. Self-check for the
+    'Run' button — executes against VISIBLE sample cases only. Self-check for the
     candidate, mirrors what a real IDE's 'run against examples' does. Nothing persisted.
     """
+    # Every Judge0 call here costs real money against your RapidAPI quota, and
+    # run_test_cases calls this once PER test case — so one anonymous request
+    # can trigger several paid calls at once, with no account tied to the cost.
+    # Same category of bug /answer/submit had for Claude costs; same fix.
+    if not user_id:
+        return {"error": "You must be logged in to run code"}
+
     db = SessionLocal()
     try:
         problem = db.query(CodingProblem).filter(CodingProblem.id == payload.problem_id).first()
@@ -891,7 +935,7 @@ def run_code(request: Request, payload: RunCodeRequest, user_id: int = Depends(g
 @limiter.limit("10/minute")
 def submit_code(request: Request, payload: SubmitCodeRequest, user_id: int = Depends(get_current_user_id)):
     """
-    'Submit' button Ã¢â‚¬â€ executes against ALL test cases (visible + hidden), grades
+    'Submit' button — executes against ALL test cases (visible + hidden), grades
     quality with Claude via coding_engine.grade_submission(), and persists the result.
     """
     if not user_id:
@@ -914,7 +958,7 @@ def submit_code(request: Request, payload: SubmitCodeRequest, user_id: int = Dep
 
         grading = coding_engine.grade_submission(problem.description, payload.code, test_results_for_grading)
 
-        # ELO update Ã¢â‚¬â€ reuses the exact same formula the interview track
+        # ELO update — reuses the exact same formula the interview track
         # uses (difficulty_engine.update_elo), so Track A and Track B share
         # one consistent skill rating instead of two disconnected numbers.
         # Score is primarily test-pass-rate (correctness matters most in a
@@ -975,8 +1019,8 @@ def submit_code(request: Request, payload: SubmitCodeRequest, user_id: int = Dep
 def get_next_coding_problem(user_id: int = Depends(get_current_user_id)):
     """
     Picks the next coding problem for the authenticated user based on their
-    current ELO Ã¢â‚¬â€ same difficulty-band logic the interview track uses
-    (elo-800)/100 Ã¢â‚¬â€ and skips problems they've already fully passed, so
+    current ELO — same difficulty-band logic the interview track uses
+    (elo-800)/100 — and skips problems they've already fully passed, so
     the coding track finally adapts instead of always serving 'two_sum'.
     """
     db = SessionLocal()
@@ -1001,7 +1045,7 @@ def get_next_coding_problem(user_id: int = Depends(get_current_user_id)):
         pool = unsolved if unsolved else candidates  # if everything nearby is solved, allow repeats rather than dead-ending
 
         if not pool:
-            # No problems exist in range at all Ã¢â‚¬â€ widen to the full bank as a last resort
+            # No problems exist in range at all — widen to the full bank as a last resort
             pool = db.query(CodingProblem).all()
 
         if not pool:
@@ -1060,16 +1104,16 @@ import whisper
 import tempfile
 import os as os_module
 
-# Load Whisper once at startup, not per-connection Ã¢â‚¬â€ loading takes ~15s
+# Load Whisper once at startup, not per-connection — loading takes ~15s
 # and we don't want every new WebSocket connection to pay that cost.
 whisper_model = None
 
 def get_whisper_model():
     global whisper_model
     if whisper_model is None:
-        print("Loading Whisper model for live transcription...")
+        logger.info("whisper_model_loading")
         whisper_model = whisper.load_model("small")
-        print("Whisper model ready")
+        logger.info("whisper_model_ready")
     return whisper_model
 
 @app.websocket("/ws/coaching/{session_id}")
@@ -1101,7 +1145,7 @@ async def coaching_websocket(websocket: WebSocket, session_id: int, token: str =
 
     await websocket.accept()
     coach = ConfidenceCoach()
-    print(f"WebSocket connected for session {session_id}")
+    logger.info("websocket_connected", session_id=session_id, user_id=user_id)
 
     try:
         while True:
@@ -1162,10 +1206,10 @@ async def coaching_websocket(websocket: WebSocket, session_id: int, token: str =
                     await websocket.send_json({"type": "pong"})
 
     except WebSocketDisconnect:
-        print(f"WebSocket disconnected for session {session_id}")
+        logger.info("websocket_disconnected", session_id=session_id, user_id=user_id)
     except Exception as e:
-        print(f"WebSocket error: {e}")
+        logger.error("websocket_error", session_id=session_id, user_id=user_id, error=str(e))
         try:
             await websocket.send_json({"type": "error", "message": str(e)})
-        except:
+        except Exception:
             pass

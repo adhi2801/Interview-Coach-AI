@@ -128,7 +128,7 @@ class CodeExecutor:
         for case in test_cases:
             exec_result = self.run_code(code, language, stdin=case["input"])
             actual = exec_result.stdout.strip()
-            expected = case["expected_output"].strip()
+            expected = (case.get("expected_output") or "").strip()
 
             results.append(TestCaseResult(
                 passed=(actual == expected and not exec_result.timed_out and exec_result.exit_code == 0),

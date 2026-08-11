@@ -56,6 +56,16 @@ class AdaptiveDifficultyEngine:
         self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), timeout=30.0)
         self.vector_store = QuestionVectorStore()
 
+    def _call_claude_json(self, **create_kwargs) -> dict:
+        last_err = None
+        for attempt in range(2):
+            try:
+                response = self.client.messages.create(**create_kwargs)
+                return _parse_json_response(response.content[0].text)
+            except Exception as e:
+                last_err = e
+        raise last_err
+
     def select_question(self, elo: float, company: str, role: str, failed_topic: str = None,
                          persona: str = "standard") -> dict:
         """
@@ -109,7 +119,7 @@ class AdaptiveDifficultyEngine:
 
         persona_instruction = PERSONA_INSTRUCTIONS.get(persona, "")
 
-        response = self.client.messages.create(
+        parsed = self._call_claude_json(
             model="claude-sonnet-4-6",
             max_tokens=400,
             system=f"""You are a senior {company} interviewer hiring for a {role} position. The candidate just answered a question.
@@ -124,14 +134,13 @@ class AdaptiveDifficultyEngine:
                 "content": f"Original question: {previous_question}\nCandidate's answer: {previous_answer}\nGenerate the hostile follow-up."
             }]
         )
-        parsed = _parse_json_response(response.content[0].text)
 
         return {
             "scenario": parsed.get("scenario", ""),
             "constraints": parsed.get("constraints", []),
             "ask": parsed.get("ask", ""),
             "question": f"{parsed.get('scenario','')} {parsed.get('ask','')}".strip(),
-            "category": previous_category or "system_design",
+            "category": previous_category if previous_category in VALID_CATEGORIES else "system_design",
             "sub_category": parsed.get("sub_category", constraint_type),
             "difficulty": difficulty
         }
@@ -160,7 +169,7 @@ class AdaptiveDifficultyEngine:
         target = prereq_name if prereq_name else failed_topic
         persona_instruction = PERSONA_INSTRUCTIONS.get(persona, "")
 
-        response = self.client.messages.create(
+        parsed = self._call_claude_json(
             model="claude-sonnet-4-6",
             max_tokens=400,
             system=f"""You are a {company} interviewer. The candidate just failed a question on {failed_topic}.
@@ -175,7 +184,6 @@ class AdaptiveDifficultyEngine:
                 "content": f"Generate a prerequisite scenario question about {target} for a {role} candidate."
             }]
         )
-        parsed = _parse_json_response(response.content[0].text)
 
         # Trust the Topic table's own category column over an LLM guess when we have it.
         category = prereq_category if prereq_category else self._classify_topic_name(target)
@@ -226,13 +234,12 @@ class AdaptiveDifficultyEngine:
             messages = [{"role": "user", "content":
                 f"Base question: {base_question}\n\nMutation instruction: {mutation}\n\n{DIFFICULTY_SCOPE}\n\nRewrite this as a scenario-based question specifically tailored for a {role} candidate — the scenario, constraints, and ask should reflect problems a {role} would realistically face in that role, not a generic backend/systems question.\n\n{json_instruction}"}]
 
-        response = self.client.messages.create(
+        parsed = self._call_claude_json(
             model="claude-sonnet-4-6",
             max_tokens=500,
             system=f"You are a {company} interviewer hiring for a {role} position. Generate or mutate interview questions into scenario-based, trade-off testing questions that are realistic and specific to what a {role} actually works on. No markdown, no asterisks. {persona_instruction}",
             messages=messages
         )
-        parsed = _parse_json_response(response.content[0].text)
 
         # Prefer Claude's fresh classification of the FINAL mutated scenario over
         # a stale seed tag — the seed question may have been rewritten so heavily

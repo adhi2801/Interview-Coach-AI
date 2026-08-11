@@ -1,5 +1,4 @@
 import os
-import json
 import redis
 import json as json_module 
 import anthropic
@@ -15,6 +14,8 @@ except Exception:
     # rather than crashing the whole app — a cache is an optimization,
     # not a dependency the app should die without.
     redis_client = None
+
+REQUIRED_PROFILE_KEYS = ["name", "focus_areas", "behavioral_framework", "question_style", "red_flags", "green_flags", "values"]
 
 COMPANY_PROFILES = {
     "google": {
@@ -96,7 +97,7 @@ class CompanyDNAEngine:
     def get_profile(self, company_name: str) -> dict:
         key = company_name.lower().strip()
         if key in COMPANY_PROFILES:
-            return COMPANY_PROFILES[key]
+            return dict(COMPANY_PROFILES[key])  # copy, so nothing downstream can accidentally mutate the shared original
 
         # Only unknown companies hit the cache — the 7 hardcoded ones above
         # are already free, no need to cache what's already instant.
@@ -106,9 +107,9 @@ class CompanyDNAEngine:
             if cached:
                 return json_module.loads(cached)
 
-        profile = self._generate_dynamic_profile(company_name)
+        profile, generated_successfully = self._generate_dynamic_profile(company_name)
 
-        if redis_client:
+        if redis_client and generated_successfully:
             # 7 day TTL — company interview styles don't change week to week,
             # but this avoids caching something forever if Claude ever
             # generates a bad/malformed profile for a given name.
@@ -116,16 +117,40 @@ class CompanyDNAEngine:
 
         return profile
     
-    def _generate_dynamic_profile(self, company_name: str) -> dict:
-        response = self.client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=500,
-            system="Return only valid JSON. No preamble. No markdown.",
-            messages=[{"role": "user", "content":
-                f"Generate an interview profile for {company_name} with exactly these keys: "
-                f"name, focus_areas, behavioral_framework, question_style, red_flags, green_flags, values"}]
-        )
-        return json.loads(response.content[0].text)
+    def _generate_dynamic_profile(self, company_name: str) -> tuple:
+        for attempt in range(2):
+            try:
+                response = self.client.messages.create(
+                    model="claude-sonnet-4-6",
+                    max_tokens=500,
+                    system="Return only valid JSON. No preamble. No markdown.",
+                    messages=[{"role": "user", "content":
+                        f"Generate an interview profile for {company_name} with exactly these keys: "
+                        f"name, focus_areas, behavioral_framework, question_style, red_flags, green_flags, values"}]
+                )
+                raw = response.content[0].text.strip()
+                if raw.startswith("```"):
+                    raw = raw.split("```")[1]
+                    if raw.startswith("json"):
+                        raw = raw[4:]
+                
+                profile = json_module.loads(raw.strip())
+                if all(k in profile for k in REQUIRED_PROFILE_KEYS):
+                    return profile, True
+            except Exception:
+                pass
+
+        # Both attempts failed, or came back incomplete — fall back to a
+        # safe generic profile rather than breaking session start.
+        return {
+            "name": company_name.title(),
+            "focus_areas": "general software engineering practices",
+            "behavioral_framework": "Standard behavioral interview approach",
+            "question_style": "Realistic scenario-based questions",
+            "red_flags": ["Vague reasoning", "No trade-off analysis"],
+            "green_flags": ["Structured thinking", "Clear communication"],
+            "values": ["Problem Solving", "Collaboration"],
+        }, False
     
     def get_interviewer_prompt(self, company_name: str, role: str) -> str:
         profile = self.get_profile(company_name)

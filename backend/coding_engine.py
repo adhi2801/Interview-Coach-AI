@@ -25,8 +25,23 @@ class CodingEngine:
     def __init__(self):
         self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), timeout=30.0)
 
+    def _call_claude_json(self, **create_kwargs) -> dict:
+        last_err = None
+        for attempt in range(2):
+            try:
+                response = self.client.messages.create(**create_kwargs)
+                raw = response.content[0].text.strip()
+                if raw.startswith("```"):
+                    raw = raw.split("```")[1]
+                    if raw.startswith("json"):
+                        raw = raw[4:]
+                return json.loads(raw.strip())
+            except Exception as e:
+                last_err = e
+        raise last_err
+
     def get_hint(self, problem: str, current_code: str, language: str) -> dict:
-        response = self.client.messages.create(
+        return self._call_claude_json(
             model="claude-sonnet-4-6",
             max_tokens=200,
             system=SOCRATIC_SYSTEM_PROMPT,
@@ -35,22 +50,16 @@ class CodingEngine:
                 "content": f"Problem: {problem}\n\nCandidate's current code ({language}):\n{current_code}\n\nGive one Socratic hint."
             }]
         )
-        raw = response.content[0].text.strip()
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-        return json.loads(raw.strip())
 
     def grade_submission(self, problem: str, code: str, test_results: list) -> dict:
         """
         test_results: list of {"passed": bool, "input": ..., "expected": ..., "actual": ...}
-        from the execution sandbox (Piston), not from Claude — Claude grades
+        from the execution sandbox (Judge0), not from Claude — Claude grades
         QUALITY on top of objective pass/fail, it doesn't decide correctness.
         """
         passed_count = sum(1 for t in test_results if t["passed"])
 
-        response = self.client.messages.create(
+        quality = self._call_claude_json(
             model="claude-sonnet-4-6",
             max_tokens=500,
             system="""You are grading a coding interview submission. Test results are already
@@ -63,12 +72,6 @@ class CodingEngine:
                 "content": f"Problem: {problem}\n\nCode:\n{code}\n\nTest results: {passed_count}/{len(test_results)} passed"
             }]
         )
-        raw = response.content[0].text.strip()
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-        quality = json.loads(raw.strip())
 
         return {
             "tests_passed": passed_count,

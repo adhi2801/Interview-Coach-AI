@@ -1,6 +1,5 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, JSON, Text, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import declarative_base, relationship
 from datetime import datetime
 
 Base = declarative_base()
@@ -23,7 +22,7 @@ class InterviewSession(Base):
     __tablename__ = "sessions"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
     company_target = Column(String)
     role = Column(String)
     persona = Column(String, nullable=True)  # "standard" | "hostile" | "socratic" | "exhausted" — set once at session start
@@ -41,7 +40,7 @@ class Answer(Base):
     __tablename__ = "answers"
 
     id = Column(Integer, primary_key=True)
-    session_id = Column(Integer, ForeignKey("sessions.id"))
+    session_id = Column(Integer, ForeignKey("sessions.id", ondelete="CASCADE"), index=True)
     question_text = Column(Text)
     answer_text = Column(Text)
     score_technical = Column(Float)
@@ -71,8 +70,8 @@ class TopicPrerequisite(Base):
     __tablename__ = "topic_prerequisites"
 
     id = Column(Integer, primary_key=True)
-    topic_id = Column(Integer, ForeignKey("topics.id"))
-    prerequisite_id = Column(Integer, ForeignKey("topics.id"))
+    topic_id = Column(Integer, ForeignKey("topics.id", ondelete="CASCADE"))
+    prerequisite_id = Column(Integer, ForeignKey("topics.id", ondelete="CASCADE"))
 
 
 class CompanyTopicWeight(Base):
@@ -80,17 +79,19 @@ class CompanyTopicWeight(Base):
 
     id = Column(Integer, primary_key=True)
     company = Column(String, nullable=False)
-    topic_id = Column(Integer, ForeignKey("topics.id"))
+    topic_id = Column(Integer, ForeignKey("topics.id", ondelete="CASCADE"))
     weight = Column(Float, default=1.0)
+
 
 class ScoringJob(Base):
     __tablename__ = "scoring_jobs"
 
     id = Column(Integer, primary_key=True)
-    session_id = Column(Integer, ForeignKey("sessions.id"))
+    session_id = Column(Integer, ForeignKey("sessions.id", ondelete="CASCADE"))
     status = Column(String, default="processing")  # processing | done | failed
     result = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
 
 # ADD THESE THREE CLASSES to backend/models.py
 # (append after your existing ScoringJob class — same file, same Base)
@@ -119,11 +120,11 @@ class CodingTestCase(Base):
     __tablename__ = "coding_test_cases"
 
     id = Column(Integer, primary_key=True)
-    problem_id = Column(Integer, ForeignKey("coding_problems.id"))
+    problem_id = Column(Integer, ForeignKey("coding_problems.id", ondelete="CASCADE"), index=True)
     input_data = Column(Text)  # raw stdin the program will receive
     expected_output = Column(Text)  # raw stdout expected back
     is_hidden = Column(Integer, default=1)  # 0 = visible sample (shown to candidate, used by "Run")
-                                              # 1 = hidden grading case (only used by "Submit")
+                                            # 1 = hidden grading case (only used by "Submit")
 
     problem = relationship("CodingProblem", back_populates="test_cases")
 
@@ -132,9 +133,9 @@ class CodingSubmission(Base):
     __tablename__ = "coding_submissions"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    session_id = Column(Integer, ForeignKey("sessions.id"), nullable=True)  # nullable: coding can be practiced standalone, not just inside a full interview session
-    problem_id = Column(Integer, ForeignKey("coding_problems.id"))
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    session_id = Column(Integer, ForeignKey("sessions.id", ondelete="CASCADE"), nullable=True)  # nullable: coding can be practiced standalone, not just inside a full interview session
+    problem_id = Column(Integer, ForeignKey("coding_problems.id", ondelete="CASCADE"), index=True)
 
     code = Column(Text)
     language = Column(String, default="python")
@@ -148,6 +149,7 @@ class CodingSubmission(Base):
 
     submitted_at = Column(DateTime, default=datetime.utcnow)    
 
+
 # ADD THIS CLASS to backend/models.py
 # (append after CodingSubmission, or wherever you put the coding classes)
 #
@@ -160,13 +162,14 @@ class ReplayManifest(Base):
     __tablename__ = "replay_manifests"
 
     id = Column(Integer, primary_key=True)
-    session_id = Column(Integer, ForeignKey("sessions.id"), unique=True, nullable=False)
+    session_id = Column(Integer, ForeignKey("sessions.id", ondelete="CASCADE"), unique=True, nullable=False)
     user_name = Column(String)
     company = Column(String)
     role = Column(String)
     started_at = Column(DateTime, default=datetime.utcnow)
     ended_at = Column(DateTime, nullable=True)
     events = Column(JSON, default=list)  # same event shape as before: {"type", "timestamp", "data"}    
+
 
 class QuestionEmbedding(Base):
     __tablename__ = "question_embeddings"
@@ -176,4 +179,4 @@ class QuestionEmbedding(Base):
     difficulty = Column(Integer, nullable=False)
     topics = Column(JSON)      # list of strings
     companies = Column(JSON)   # list of strings
-    embedding = Column(JSON, nullable=False)  # list of 384 floats from all-MiniLM-L6-v2    
+    embedding = Column(JSON, nullable=False)  # list of 384 floats from all-MiniLM-L6-v2

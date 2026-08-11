@@ -2,7 +2,6 @@ import { API_URL, WS_URL } from "../config";
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import StudyPlan from "./StudyPlan";
-import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import {
   Mic, Square, AlertTriangle, Lightbulb, Activity, ShieldAlert, ChevronRight,
@@ -452,9 +451,8 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   const eloDelta = newElo ? Math.round(newElo - currentElo) : 0;
 
   // DETECT PROFANITY / POLICY VIOLATION FROM BACKEND EVALUATION
-  const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappropriate language") ||
-                          scores?.overall_summary?.toLowerCase().includes("unprofessional language") ||
-                          scores?.score_technical === 0;
+const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappropriate language") ||
+                        scores?.overall_summary?.toLowerCase().includes("unprofessional language");
 
   // Persona-driven CSS custom properties applied to the room shell.
   // Everything downstream (dots, borders, timer color, ask-card accent)
@@ -642,6 +640,11 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
 
               {/* Text Area */}
               <div className="flex-1 relative w-full min-h-[280px] bg-[#000000]">
+                {showHint && constraints?.length > 0 && (
+                <div className="absolute top-2 left-8 right-8 z-20 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-xs text-amber-200">
+                <strong>Tip:</strong> Make sure your answer directly addresses: "{constraints[0]}"
+                </div>
+                 )}
                 {!answer && (
                   <div className="absolute top-8 left-8 pointer-events-none select-none">
                     <pre className="text-slate-500 text-sm md:text-base font-mono font-medium leading-[1.8] m-0">
@@ -676,7 +679,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                     <span className="hidden sm:inline">{isRecording ? 'Stop Voice' : 'Hold to Speak'}</span>
                   </button>
                   <button onClick={() => setShowHint(!showHint)} className="text-xs font-mono font-bold text-slate-300 hover:text-white transition-colors bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl">
-                    Hint <span className="opacity-50">-15 ELO</span>
+                  <Lightbulb size={13} className="inline mr-1" /> Hint
                   </button>
                 </div>
 
@@ -1075,6 +1078,17 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                     className="bg-white/5 border border-white/10 hover:bg-white/10 text-white px-5 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-2 outline-none"
                   >
                     <RefreshCw size={13} /> Retry This Node
+                    {currentAnswerId && (
+                   <div className="flex items-center gap-2 mr-2">
+                   <span className="text-xs text-slate-500">Was this feedback helpful?</span>
+                  <button onClick={() => rateFeedback(true)} className={`p-2 rounded-lg border ${feedbackRating === true ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'}`}>
+                  <ThumbsUp size={14} />
+                  </button>
+                  <button onClick={() => rateFeedback(false)} className={`p-2 rounded-lg border ${feedbackRating === false ? 'bg-rose-500/20 border-rose-500/40 text-rose-400' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'}`}>
+                  <ThumbsDown size={14} />
+                  </button>
+                  </div>
+                    )}
                   </button>
                   <button
                     onClick={onFinish}
