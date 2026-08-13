@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from engines.adaptive_difficulty import AdaptiveDifficultyEngine
+from engines.adaptive_difficulty import AdaptiveDifficultyEngine, ROLE_ELO_BANDS
 from engines.scoring import MultiDimensionalScorer
 from engines.company_dna import CompanyDNAEngine
 from engines.knowledge_graph import KnowledgeGapGraph
@@ -23,6 +23,8 @@ from content_filter import contains_profanity, sanitize_for_storage
 from models import User
 from datetime import datetime
 import redis
+import uuid
+import json as json_module
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 security = HTTPBearer(auto_error=False)
@@ -121,6 +123,7 @@ class StartSessionRequest(BaseModel):
     role: str
     elo: float = 1200.0
     persona: str = "standard"
+    preview_id: Optional[str] = None
 
 class SubmitAnswerRequest(BaseModel):
     session_id: int
@@ -169,6 +172,16 @@ replay_system = ReplaySystem()
 @app.on_event("startup")
 def startup():
     print("Application started — schema managed by Alembic migrations")
+
+@app.get("/companies/{company}/profile")
+def get_company_profile(company: str):
+    return company_engine.get_profile(company)
+
+
+@app.get("/roles/elo-bands")
+def get_elo_bands():
+    return ROLE_ELO_BANDS
+
 
 @app.get("/health")
 def health_check():
@@ -255,6 +268,26 @@ def login(payload: LoginRequest, request: Request):
     finally:
         db.close()
 
+@app.post("/session/preview")
+@limiter.limit("15/minute")
+def preview_session(payload: StartSessionRequest, request: Request, user_id: int = Depends(get_current_user_id)):
+    """
+    User-initiated only — the frontend calls this from a 'Preview Opening
+    Line' button, never automatically on every dropdown change, since this
+    is a real paid/non-deterministic Claude call under the hood.
+    Caches the result under a short-lived token so /session/start can
+    reuse the EXACT SAME question instead of generating a different one
+    if the user goes on to actually launch.
+    """
+    question_data = difficulty_engine.select_question(
+        elo=payload.elo, company=payload.company, role=payload.role, persona=payload.persona
+    )
+    preview_id = str(uuid.uuid4())
+    if redis_client:
+        redis_client.setex(f"preview:{preview_id}", 600, json_module.dumps(question_data))
+    return {"preview_id": preview_id, **question_data}
+
+
 @app.post("/session/start")
 @limiter.limit("10/minute")
 def start_session(payload: StartSessionRequest, request: Request, user_id: int = Depends(get_current_user_id)):
@@ -282,12 +315,19 @@ def start_session(payload: StartSessionRequest, request: Request, user_id: int =
         company=payload.company,
         role=payload.role
     )
-    question_data = difficulty_engine.select_question(
-        elo=payload.elo,
-        company=payload.company,
-        role=payload.role,
-        persona=payload.persona
-    )
+    cached_preview = None
+    if payload.preview_id and redis_client:
+        cached_preview = redis_client.get(f"preview:{payload.preview_id}")
+
+    if cached_preview:
+        question_data = json_module.loads(cached_preview)
+    else:
+        question_data = difficulty_engine.select_question(
+            elo=payload.elo,
+            company=payload.company,
+            role=payload.role,
+            persona=payload.persona
+        )
     difficulty = min(10, max(1, int((payload.elo - 800) / 100)))
     replay_system.log_event(new_session_id, "question_asked", question_data)
 

@@ -208,8 +208,8 @@ const LIVE_DEMO_QUESTIONS = {
 };
 
 const SCORE_DIMENSIONS = [
-  { label: 'Accuracy', color: 'text-indigo-300 bg-indigo-500/10 border-indigo-500/20' },
-  { label: 'Scalability', color: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20' },
+  { label: 'Technical Accuracy', color: 'text-indigo-300 bg-indigo-500/10 border-indigo-500/20' },
+  { label: 'Problem Solving', color: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20' },
   { label: 'Communication', color: 'text-amber-300 bg-amber-500/10 border-amber-500/20' },
   { label: 'Culture Fit', color: 'text-pink-300 bg-pink-500/10 border-pink-500/20' },
   { label: 'Confidence', color: 'text-sky-300 bg-sky-500/10 border-sky-500/20' },

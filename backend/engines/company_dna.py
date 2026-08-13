@@ -15,13 +15,14 @@ except Exception:
     # not a dependency the app should die without.
     redis_client = None
 
-REQUIRED_PROFILE_KEYS = ["name", "focus_areas", "behavioral_framework", "question_style", "red_flags", "green_flags", "values"]
+REQUIRED_PROFILE_KEYS = ["name", "focus_areas", "behavioral_framework", "question_style", "red_flags", "green_flags", "values", "typical_rounds"]
 
 COMPANY_PROFILES = {
     "google": {
         "name": "Google",
         "focus_areas": "algorithms data-structures system-design scalability",
         "behavioral_framework": "STAR method aligned with Google's 4 core attributes",
+        "typical_rounds": "2x Coding · 1x System Design · 1x Googley",
         "difficulty_bias": 1.3,
         "question_style": "Open-ended, ambiguous, expects clarifying questions",
         "red_flags": ["No clarifying questions", "Skips edge cases", "Can't estimate complexity"],
@@ -32,6 +33,7 @@ COMPANY_PROFILES = {
         "name": "Amazon",
         "focus_areas": "leadership-principles behavioral system-design ownership",
         "behavioral_framework": "14 Leadership Principles — every answer must map to one",
+        "typical_rounds": "1x System Design · 3x Leadership Principles",
         "difficulty_bias": 1.0,
         "question_style": "Tell me about a time... situation-based, evidence-required",
         "red_flags": ["Vague examples", "No measurable impact", "Blames teammates"],
@@ -42,6 +44,7 @@ COMPANY_PROFILES = {
         "name": "Meta",
         "focus_areas": "product-sense data-analysis growth coding impact",
         "behavioral_framework": "Impact-focused, move fast, data-driven decisions",
+        "typical_rounds": "2x Coding · 1x System Design · 1x Behavioral",
         "difficulty_bias": 1.1,
         "question_style": "Product-first, how would you build X for 3 billion users",
         "red_flags": ["No data-driven thinking", "Over-engineering", "Ignores scale"],
@@ -52,6 +55,7 @@ COMPANY_PROFILES = {
         "name": "Microsoft",
         "focus_areas": "growth-mindset collaboration design-patterns cloud-azure",
         "behavioral_framework": "Growth mindset, learn from failure, team player",
+        "typical_rounds": "2x Coding · 2x System Design · 1x Hiring Manager",
         "difficulty_bias": 0.9,
         "question_style": "Collaborative problem solving, explain your reasoning",
         "red_flags": ["Fixed mindset", "Not asking for help", "Dismissing feedback"],
@@ -62,6 +66,7 @@ COMPANY_PROFILES = {
         "name": "Apple",
         "focus_areas": "design-thinking quality system-design user-experience",
         "behavioral_framework": "Attention to detail, privacy-first, craftsmanship",
+        "typical_rounds": "3x Technical Deep Dive · 1x Behavioral",
         "difficulty_bias": 1.2,
         "question_style": "Deep technical dives, focus on quality over speed",
         "red_flags": ["Sloppy solutions", "Ignoring user experience", "Privacy oversight"],
@@ -72,6 +77,7 @@ COMPANY_PROFILES = {
         "name": "Netflix",
         "focus_areas": "streaming distributed-systems freedom-responsibility culture",
         "behavioral_framework": "Freedom and Responsibility — high autonomy, high accountability",
+        "typical_rounds": "1x Core Tech · 2x System Design · 1x Culture",
         "difficulty_bias": 1.2,
         "question_style": "Context not control, judgment over rules",
         "red_flags": ["Needs micromanagement", "Avoids hard decisions", "Process-dependent"],
@@ -82,6 +88,7 @@ COMPANY_PROFILES = {
         "name": "Startup",
         "focus_areas": "practical-coding culture-fit adaptability speed",
         "behavioral_framework": "Move fast, wear many hats, ship it",
+        "typical_rounds": "1x Pairing · 1x Architecture · 1x Founder Fit",
         "difficulty_bias": 0.8,
         "question_style": "Practical take-home style, real problems we face",
         "red_flags": ["Rigid thinking", "Needs big team support", "Slow decision making"],
@@ -126,7 +133,8 @@ class CompanyDNAEngine:
                     system="Return only valid JSON. No preamble. No markdown.",
                     messages=[{"role": "user", "content":
                         f"Generate an interview profile for {company_name} with exactly these keys: "
-                        f"name, focus_areas, behavioral_framework, question_style, red_flags, green_flags, values"}]
+                        f"name, focus_areas, behavioral_framework, question_style, red_flags, green_flags, values, typical_rounds "
+                        f"(typical_rounds should be a short string like '2x Coding · 1x System Design · 1x Behavioral')"}]
                 )
                 raw = response.content[0].text.strip()
                 if raw.startswith("```"):
@@ -150,6 +158,7 @@ class CompanyDNAEngine:
             "red_flags": ["Vague reasoning", "No trade-off analysis"],
             "green_flags": ["Structured thinking", "Clear communication"],
             "values": ["Problem Solving", "Collaboration"],
+            "typical_rounds": "2x Technical · 1x Behavioral",
         }, False
     
     def get_interviewer_prompt(self, company_name: str, role: str) -> str:

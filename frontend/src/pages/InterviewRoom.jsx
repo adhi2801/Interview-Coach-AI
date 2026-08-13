@@ -116,7 +116,16 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   const [loading, setLoading] = useState(false);
   const [phase, setPhase] = useState("answering");
   const [questionNum, setQuestionNum] = useState(1);
-  const TIME_LIMIT = 120;
+  // Base 90s + ~9s per 100 characters of context, plus 15s per constraint —
+  // a longer/denser question genuinely needs more reading+thinking time.
+  // Floor 90s, cap 240s so it never runs away on an unusually long scenario.
+  function computeTimeLimit(scenarioText, constraintList) {
+    const base = 90;
+    const readingTime = Math.round((scenarioText?.length || 0) / 100) * 9;
+    const constraintTime = (constraintList?.length || 0) * 15;
+    return Math.min(240, Math.max(90, base + readingTime + constraintTime));
+  }
+  const TIME_LIMIT = computeTimeLimit(sessionData?.scenario, sessionData?.constraints);
   const [timeLeft, setTimeLeft] = useState(TIME_LIMIT);
   const [nextQuestion, setNextQuestion] = useState("");
   const [nextCategory, setNextCategory] = useState("");
@@ -134,6 +143,8 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   const [liveCoaching, setLiveCoaching] = useState(null);
   const [intervention, setIntervention] = useState(null);
   const [scoringError, setScoringError] = useState("");
+  const [eloBand, setEloBand] = useState(null);
+  const [showAbortConfirm, setShowAbortConfirm] = useState(false);
   const wsRef = useRef(null);
   const debounceRef = useRef(null);
   const timerRef = useRef(null);
@@ -205,16 +216,24 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
 
   useEffect(() => {
     clearInterval(timerRef.current);
-    setTimeLeft(TIME_LIMIT);
+    const limit = computeTimeLimit(scenario, constraints);
+    setTimeLeft(limit);
     timerRef.current = setInterval(() => {
       setTimeLeft((t) => (t <= 1 ? 0 : t - 1));
     }, 1000);
     return () => clearInterval(timerRef.current);
-  }, [question]);
+  }, [question, scenario, constraints]);
 
   useEffect(() => {
     autoSubmittedRef.current = false;
   }, [question]);
+
+  useEffect(() => {
+    axios.get(`${API_URL}/roles/elo-bands`).then(res => {
+      const band = res.data?.[sessionData?.role];
+      if (band) setEloBand(band);
+    }).catch(() => setEloBand(null));
+  }, [sessionData?.role]);
 
   useEffect(() => {
     return () => {
@@ -321,6 +340,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
     if (!finalAnswer && !isTimeExpired) return;
 
     setLoading(true);
+    setScoringError("");
     clearInterval(timerRef.current);
     try {
       const token = localStorage.getItem("access_token");
@@ -337,7 +357,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
           category,
           persona,
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 }
       );
 
       if (startRes.data.error) {
@@ -348,12 +368,13 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
       await pollForResult(startRes.data.job_id);
     } catch (err) {
       console.error(err);
+      setScoringError("Couldn't reach the scoring service. Check your connection and try again.");
       setLoading(false);
     }
   }
 
   async function pollForResult(jobId) {
-    const maxAttempts = 30;
+    const maxAttempts = 60;
     let attempts = 0;
 
     const poll = async () => {
@@ -521,7 +542,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
             <>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold uppercase tracking-widest text-slate-300 hidden sm:block">Time</span>
-                <span className={`text-base font-bold tabular-nums font-mono ${timeLeft <= 20 ? "text-rose-400" : "text-white"}`}>
+                <span className={`text-base font-bold tabular-nums font-mono ${timeLeft <= 20 ? "text-rose-400 animate-pulse" : timeLeft <= 60 ? "text-amber-400" : "text-white"}`}>
                   {formatTime(timeLeft)}
                 </span>
               </div>
@@ -536,7 +557,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                 <span className="text-sm font-mono font-bold text-slate-100">{Math.round(currentElo)}</span>
               </div>
               <div className="w-px h-4 bg-white/10" />
-              <button onClick={onFinish} className="text-xs font-mono font-bold text-slate-300 hover:text-white uppercase tracking-widest border border-white/10 px-3 py-1 rounded bg-white/5 transition-colors">
+              <button onClick={() => setShowAbortConfirm(true)} className="text-xs font-mono font-bold text-slate-300 hover:text-white uppercase tracking-widest border border-white/10 px-3 py-1 rounded bg-white/5 transition-colors">
                 Abort
               </button>
             </>
@@ -553,6 +574,20 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
           )}
         </div>
       </header>
+
+      {/* NODE PROGRESS STRIP */}
+      <div className="h-[3px] w-full flex gap-[3px] flex-shrink-0 z-40 bg-black/40">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex-1 h-full transition-colors duration-500"
+            style={{
+              background: i < questionNum - 1 ? `rgba(var(--accent-rgb), 0.6)`
+                : i === questionNum - 1 ? "var(--accent)"
+                : "rgba(255,255,255,0.06)",
+              boxShadow: i === questionNum - 1 ? `0 0 6px var(--accent)` : "none"
+            }}
+          />
+        ))}
+      </div>
 
       {/* MAIN WORKSPACE SHELL */}
       <main className="flex-1 w-full flex flex-col overflow-hidden relative z-10 bg-[#000000] min-h-0">
@@ -640,22 +675,32 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
 
               {/* Text Area */}
               <div className="flex-1 relative w-full min-h-[280px] bg-[#000000]">
+                {scoringError && (
+                  <div className="absolute top-2 left-8 right-8 z-20 bg-rose-500/10 border border-rose-500/20 rounded-lg p-3 text-xs text-rose-300 flex items-center justify-between gap-3">
+                    <span>{scoringError}</span>
+                    <button onClick={() => setScoringError("")} className="text-rose-400 hover:text-rose-200 shrink-0">✕</button>
+                  </div>
+                )}
                 {showHint && constraints?.length > 0 && (
                 <div className="absolute top-2 left-8 right-8 z-20 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-xs text-amber-200">
                 <strong>Tip:</strong> Make sure your answer directly addresses: "{constraints[0]}"
                 </div>
                  )}
-                {!answer && (
-                  <div className="absolute top-8 left-8 pointer-events-none select-none">
-                    <pre className="text-slate-500 text-sm md:text-base font-mono font-medium leading-[1.8] m-0">
-                      {isBehavioral ? (
-                        <>// 1. Situation & Ownership...<br/><br/>// 2. Key Actions & Stakeholder Alignment...<br/><br/>// 3. Root Cause Analysis...</>
-                      ) : (
-                        <>// 1. Clarification & Edge Cases...<br/><br/>// 2. Core Architectural Approach...<br/><br/>// 3. Trade-offs & Limits...</>
-                      )}
-                    </pre>
-                  </div>
-                )}
+                <div
+                  className="absolute top-8 left-8 pointer-events-none select-none transition-opacity duration-300"
+                  style={{ opacity: answer ? 0 : 1 }}
+                >
+                  <span className="block text-[9px] font-mono font-bold uppercase tracking-widest text-slate-700 mb-2">
+                    Response Template — Generic, Not Personalized
+                  </span>
+                  <pre className="text-slate-500 text-sm md:text-base font-mono font-medium leading-[1.8] m-0">
+                    {isBehavioral ? (
+                      <>// 1. Situation & Ownership...<br/><br/>// 2. Key Actions & Stakeholder Alignment...<br/><br/>// 3. Root Cause Analysis...</>
+                    ) : (
+                      <>// 1. Clarification & Edge Cases...<br/><br/>// 2. Core Architectural Approach...<br/><br/>// 3. Trade-offs & Limits...</>
+                    )}
+                  </pre>
+                </div>
                 <textarea
                   value={answer}
                   onChange={(e) => handleAnswerChange(e.target.value)}
@@ -684,7 +729,9 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <span className="text-xs font-mono text-slate-400 hidden xl:block">{answer.length} chars</span>
+                  <span className="text-xs font-mono text-slate-400 hidden xl:block">
+                    {answer.trim() ? answer.trim().split(/\s+/).length : 0} words · {answer.length} chars
+                  </span>
                   <button
                     onClick={() => submitAnswer()}
                     disabled={loading}
@@ -733,6 +780,9 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                   <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                     <motion.div className="h-full" style={{ background: "var(--accent)" }} animate={{ width: `${(liveCoaching?.confidence_score || 0) * 10}%` }} transition={{ type: "spring", stiffness: 100 }} />
                   </div>
+                  <p className="text-[9.5px] text-slate-600 mt-1">
+                    {isRecording ? "Measuring from audio signal…" : "Measured from voice input · not yet active"}
+                  </p>
                 </div>
 
                 {/* Pace Widget */}
@@ -744,6 +794,9 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                   <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                     <motion.div className="h-full bg-blue-400" animate={{ width: `${Math.min((liveCoaching?.words_per_minute || 0) / 2, 100)}%` }} transition={{ type: "spring", stiffness: 100 }} />
                   </div>
+                  <p className="text-[9.5px] text-slate-600 mt-1">
+                    {liveCoaching?.words_per_minute ? "Live from typed/spoken input" : "Measured as you type or speak"}
+                  </p>
                 </div>
 
                 {/* Fillers Detected */}
@@ -752,6 +805,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                     <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300">Fillers Detected</span>
                     <span className={`text-sm font-bold tabular-nums ${(liveCoaching?.fillers_found || 0) > 3 ? 'text-amber-400' : 'text-white'}`}>{liveCoaching?.fillers_found || 0}</span>
                   </div>
+                  <p className="text-[9.5px] text-slate-600">"um", "uh", "like", "basically", "actually"</p>
                 </div>
 
                 {/* Intervention Toast */}
@@ -787,17 +841,21 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                 <p className="text-[10px] text-slate-600 italic mt-3">Scores are computed after you submit — not simulated live.</p>
               </div>
 
-              {/* Bottom Target ELO */}
-              <div className="mt-6 lg:mt-auto pt-5 border-t border-white/[0.08]">
-                <div className="flex justify-between items-center mb-1.5">
-                  <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300">Target Level</span>
-                  <span className="text-sm font-mono font-bold text-white">L{difficulty}</span>
+              {/* Bottom Target ELO — same real /roles/elo-bands source as
+                  Session Setup. Omitted entirely if no real band exists for
+                  this role, rather than showing an invented threshold. */}
+              {eloBand && (
+                <div className="mt-6 lg:mt-auto pt-5 border-t border-white/[0.08]">
+                  <div className="flex justify-between items-center mb-1.5">
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300">{eloBand.label}</span>
+                    <span className="text-sm font-mono font-bold text-white">{eloBand.low}–{eloBand.high}</span>
+                  </div>
+                  <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
+                      style={{ width: `${Math.max(0, Math.min(100, ((currentElo - eloBand.low) / (eloBand.high - eloBand.low)) * 100))}%` }} />
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300">Threshold ELO</span>
-                  <span className="text-sm font-mono font-bold text-slate-200">{(difficulty * 100) + 800}</span>
-                </div>
-              </div>
+              )}
 
             </div>
           </div>
@@ -928,10 +986,16 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                   <div>
                     <span className="text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-slate-500 block mb-3.5">5-Dimension Score Breakdown</span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                      <DimCard label="Technical Accuracy" subtitle="Correctness of approach" value={scores.score_technical} colorFrom="#6366f1" colorTo="#8b5cf6" badgeBg="rgba(99,102,241,0.14)" badgeBorder="rgba(99,102,241,0.28)" badgeColor="#a5b4fc" />
-                      <DimCard label="Problem Solving" subtitle="Trade-off & structural thinking" value={scores.score_problem_solving} colorFrom="#10b981" colorTo="#6366f1" badgeBg="rgba(16,185,129,0.12)" badgeBorder="rgba(16,185,129,0.25)" badgeColor="#6ee7b7" />
-                      <DimCard label="Communication" subtitle="Clarity of explanation" value={scores.score_communication} colorFrom="#f59e0b" colorTo="#10b981" badgeBg="rgba(245,158,11,0.12)" badgeBorder="rgba(245,158,11,0.25)" badgeColor="#fbbf24" />
-                      <DimCard label="Culture Fit" subtitle={`${company?.name || "Company"}-specific behaviours`} value={scores.score_cultural_fit} colorFrom="#ec4899" colorTo="#8b5cf6" badgeBg="rgba(236,72,153,0.1)" badgeBorder="rgba(236,72,153,0.22)" badgeColor="#f9a8d4" />
+                      {[
+                        { label: "Technical Accuracy", subtitle: "Correctness of approach", value: scores.score_technical, colorFrom: "#6366f1", colorTo: "#8b5cf6", badgeBg: "rgba(99,102,241,0.14)", badgeBorder: "rgba(99,102,241,0.28)", badgeColor: "#a5b4fc" },
+                        { label: "Problem Solving", subtitle: "Trade-off & structural thinking", value: scores.score_problem_solving, colorFrom: "#10b981", colorTo: "#6366f1", badgeBg: "rgba(16,185,129,0.12)", badgeBorder: "rgba(16,185,129,0.25)", badgeColor: "#6ee7b7" },
+                        { label: "Communication", subtitle: "Clarity of explanation", value: scores.score_communication, colorFrom: "#f59e0b", colorTo: "#10b981", badgeBg: "rgba(245,158,11,0.12)", badgeBorder: "rgba(245,158,11,0.25)", badgeColor: "#fbbf24" },
+                        { label: "Culture Fit", subtitle: `${company?.name || "Company"}-specific behaviours`, value: scores.score_cultural_fit, colorFrom: "#ec4899", colorTo: "#8b5cf6", badgeBg: "rgba(236,72,153,0.1)", badgeBorder: "rgba(236,72,153,0.22)", badgeColor: "#f9a8d4" },
+                      ].map((d, i) => (
+                        <motion.div key={d.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
+                          <DimCard {...d} />
+                        </motion.div>
+                      ))}
 
                       {/* Confidence + real voice telemetry — from actual liveCoaching captured
                           during this node, not simulated. Falls back honestly if no data. */}
@@ -1109,6 +1173,28 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
           </div>
         )}
       </main>
+
+      <AnimatePresence>
+        {showAbortConfirm && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-md flex items-center justify-center">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-[#0A0A12] border border-white/[0.12] rounded-2xl p-8 max-w-[360px] w-[calc(100%-40px)] text-center shadow-[0_24px_80px_rgba(0,0,0,0.7)]">
+              <div className="w-11 h-11 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle size={18} className="text-rose-400" />
+              </div>
+              <h3 className="text-base font-extrabold text-white mb-2">Abort this session?</h3>
+              <p className="text-xs text-slate-400 leading-relaxed mb-5">Progress on this node will not be saved. Your ELO will not be affected by incomplete sessions.</p>
+              <button onClick={onFinish} className="w-full py-2.5 rounded-lg bg-rose-500/15 border border-rose-500/35 text-rose-400 font-bold text-xs hover:bg-rose-500/25 transition-colors">
+                End Session
+              </button>
+              <button onClick={() => setShowAbortConfirm(false)} className="w-full py-2.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 font-semibold text-xs mt-2 hover:bg-white/10 transition-colors">
+                Keep Going
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

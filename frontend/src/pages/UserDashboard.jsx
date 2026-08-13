@@ -18,6 +18,8 @@ import { FaAmazon, FaMicrosoft, FaApple, FaGoogle } from 'react-icons/fa';
 import { SiMeta, SiNetflix } from 'react-icons/si';
 import StudyPlan from './StudyPlan';
 
+import { COMPANIES as SHARED_COMPANIES } from '../constants/companies';
+
 const TARGET_COMPANIES_FALLBACK = ["Google", "Amazon", "Meta", "Microsoft", "Apple"];
 
 const COMPANY_GLOW = {

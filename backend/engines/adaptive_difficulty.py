@@ -41,6 +41,21 @@ PERSONA_INSTRUCTIONS = {
 }
 
 
+# Real, documented target ELO bands per role — single source of truth,
+# consistent with the same 800 + difficulty*100 formula select_question
+# and update_elo already use. Roles not listed here simply have no
+# benchmark shown on the frontend — no invented numbers.
+ROLE_ELO_BANDS = {
+    "Software Engineer — L3": {"label": "L3 Band", "low": 900, "high": 1049},
+    "Senior Engineer — L4": {"label": "L4 Band", "low": 1050, "high": 1199},
+    "Frontend Engineer — L4": {"label": "L4 Band", "low": 1050, "high": 1199},
+    "Backend Engineer — L4": {"label": "L4 Band", "low": 1050, "high": 1199},
+    "ML Engineer": {"label": "ML Band", "low": 1100, "high": 1249},
+    "Staff Engineer — L5": {"label": "L5 Band", "low": 1200, "high": 1399},
+    "Systems Architect": {"label": "Staff Band", "low": 1400, "high": 1599},
+}
+
+
 def _parse_json_response(raw: str) -> dict:
     """Claude sometimes wraps JSON in ```json fences despite instructions. Strip defensively."""
     clean = raw.strip()
