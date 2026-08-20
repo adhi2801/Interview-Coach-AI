@@ -16,6 +16,8 @@ export default function StudyPlanBrowser({ onGoBack }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("All Topics");
   const [activeFilter, setActiveFilter] = useState("All");
+  const [sortMode, setSortMode] = useState("category"); // "category" | "gaps" | "alpha" | "difficulty"
+  const [difficultyFilter, setDifficultyFilter] = useState("All");
   const [mousePos, setMousePos] = useState({ x: -1000, y: -1000 });
   const [mounted, setMounted] = useState(false);
 
@@ -29,17 +31,18 @@ export default function StudyPlanBrowser({ onGoBack }) {
   useEffect(() => {
     async function fetchTopics() {
       try {
-        const res = await axios.get(`${API_URL}/topics`);
-        // Previously this filled in a fake status (~1/4 "passed", ~1/3 "gap",
-        // everything else "locked") based purely on array index whenever the
-        // backend didn't send a real status. That's why most cards looked
-        // randomly locked regardless of anything about the user or topic.
-        // Fixed: if the backend doesn't give us a real status, treat it as
-        // "unattempted" (browsable, just not yet passed/flagged) instead of
-        // fabricating "locked".
+        const token = localStorage.getItem("access_token");
+        const res = await axios.get(`${API_URL}/topics/status`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        // Status, prerequisites, and gap urgency now come from real per-user
+        // data (gaps_identified, topics_covered, TopicPrerequisite) via
+        // /topics/status. Default honestly to "unattempted" if the backend
+        // ever omits status, rather than fabricating one.
         const fetchedTopics = (res.data.topics || []).map((t) => ({
           ...t,
           status: t.status || "unattempted",
+          prerequisites: t.prerequisites || [],
         }));
         setTopics(fetchedTopics);
       } catch (err) {
@@ -57,8 +60,28 @@ export default function StudyPlanBrowser({ onGoBack }) {
                          (activeFilter === "Passed" && t.status === "passed") ||
                          (activeFilter === "Active Gaps" && t.status === "gap") ||
                          (activeFilter === "Locked" && t.status === "locked");
-    return matchesSearch && matchesCategory && matchesStatus;
+    const matchesDifficulty = difficultyFilter === "All" || (t.difficulty || 3) === difficultyFilter;
+    return matchesSearch && matchesCategory && matchesStatus && matchesDifficulty;
   });
+
+  const URGENCY_RANK = { critical: 3, high: 2, medium: 1, low: 0 };
+  function sortTopics(list) {
+    const arr = [...list];
+    if (sortMode === "gaps") {
+      // Real urgency first, using actual gap urgency data — not just gap/not-gap
+      arr.sort((a, b) => {
+        const au = a.status === "gap" ? URGENCY_RANK[a.urgency || "low"] : -1;
+        const bu = b.status === "gap" ? URGENCY_RANK[b.urgency || "low"] : -1;
+        return bu - au;
+      });
+    } else if (sortMode === "alpha") {
+      arr.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortMode === "difficulty") {
+      arr.sort((a, b) => (b.difficulty || 3) - (a.difficulty || 3));
+    }
+    // "category" mode = leave as returned (already ordered by backend query)
+    return arr;
+  }
 
   const grouped = filteredTopics.reduce((acc, t) => {
     const cat = t.category || "other";
@@ -66,6 +89,17 @@ export default function StudyPlanBrowser({ onGoBack }) {
     acc[cat].push(t);
     return acc;
   }, {});
+  // Apply sort within each category group, not just to the flat filtered list
+  Object.keys(grouped).forEach((cat) => { grouped[cat] = sortTopics(grouped[cat]); });
+
+  // Real "Recommended Next" — unattempted AND every real prerequisite already passed.
+  // No topic qualifies → show nothing, never fabricate a suggestion.
+  const passedNames = new Set(topics.filter(t => t.status === "passed").map(t => t.name));
+  const recommended = topics
+    .filter(t => t.status === "unattempted" && (t.prerequisites || []).every(p => passedNames.has(p)))
+    .slice(0, 4);
+
+  const gapCount = topics.filter(t => t.status === "gap").length;
 
   const categories = ["All Topics", ...Object.keys(topics.reduce((acc, t) => {
     const cat = t.category || "other";
@@ -114,8 +148,13 @@ export default function StudyPlanBrowser({ onGoBack }) {
         </div>
 
         <div className="flex items-center gap-4">
-           <div className="hidden md:flex items-center gap-2 text-[10px] font-mono font-bold uppercase tracking-widest text-emerald-400 border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 rounded-md">
-             <span>{topics.filter(t => t.status === 'passed').length} NODES ACTIVE</span>
+           <div className="hidden md:flex flex-col items-end gap-0.5">
+             <div className="flex items-center gap-2 text-[10px] font-mono font-bold uppercase tracking-widest text-emerald-400 border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 rounded-md">
+               <span>{topics.filter(t => t.status === 'passed').length} NODES ACTIVE</span>
+             </div>
+             {gapCount > 0 && (
+               <span className="text-[10px] font-mono font-bold text-amber-400/80 tracking-wide">{gapCount} active gap{gapCount !== 1 ? "s" : ""}</span>
+             )}
            </div>
 
            <div className="relative group w-48 sm:w-64">
@@ -213,6 +252,62 @@ export default function StudyPlanBrowser({ onGoBack }) {
               </p>
             </div>
 
+            {/* Sort + difficulty controls — real reordering, not decorative tabs */}
+            <div className="flex flex-wrap items-center gap-2 mb-8">
+              <span className="text-[10px] font-mono font-bold text-slate-600 uppercase tracking-widest mr-1">Sort</span>
+              <div className="flex items-center bg-white/[0.02] border border-white/[0.06] p-1 rounded-lg">
+                {[["category", "Category"], ["gaps", "Gaps First"], ["difficulty", "Difficulty"], ["alpha", "A–Z"]].map(([key, label]) => (
+                  <button key={key} onClick={() => setSortMode(key)}
+                    className={`px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-widest rounded-md transition-all outline-none ${sortMode === key ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-300"}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center bg-white/[0.02] border border-white/[0.06] p-1 rounded-lg ml-2">
+                {[["All", "All"], [3, "Easy"], [5, "Medium"], [7, "Hard"]].map(([key, label]) => (
+                  <button key={label} onClick={() => setDifficultyFilter(key)}
+                    className={`px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-widest rounded-md transition-all outline-none ${difficultyFilter === key ? "bg-white/[0.1] text-white" : "text-slate-500 hover:text-slate-300"}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Recommended Next — real: unattempted + every real prerequisite already passed.
+                Renders nothing if no topic qualifies; never fabricates a suggestion. */}
+            {recommended.length > 0 && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }} className="mb-10">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-5 h-5 rounded-md bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center">
+                    <Activity size={11} className="text-indigo-400" />
+                  </div>
+                  <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Recommended Next</span>
+                  <span className="text-[10px] text-slate-600 font-medium">Unblocked · prerequisites passed · not yet attempted</span>
+                  <div className="flex-1 h-px bg-white/[0.06]" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {recommended.map((t) => (
+                    <div key={t.name} onClick={() => setSelectedTopic(t.name)}
+                      className="relative rounded-xl bg-gradient-to-br from-[#111420] to-[#0f1117] border border-white/[0.1] hover:border-indigo-500/40 p-4 cursor-pointer transition-all hover:-translate-y-0.5">
+                      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 rounded">{t.category}</span>
+                      </div>
+                      <h3 className="text-sm font-bold text-white mb-2">{t.name.replace(/_/g, " ")}</h3>
+                      <div className="flex items-center gap-1 flex-wrap mb-2">
+                        {(t.prerequisites || []).map((p) => (
+                          <span key={p} className="text-[9px] text-emerald-400/80 bg-emerald-500/[0.08] border border-emerald-500/15 px-1.5 py-0.5 rounded font-medium">✓ {p}</span>
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-indigo-400 text-[11px] font-bold">
+                        <Activity size={11} /> Ready to attempt
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
             {loading ? (
               <div className="flex flex-col items-center justify-center py-32 text-slate-500 font-mono text-sm gap-4">
                  <div className="w-8 h-8 border-[3px] border-slate-700 border-t-indigo-500 rounded-full animate-spin" />
@@ -223,13 +318,26 @@ export default function StudyPlanBrowser({ onGoBack }) {
                 {Object.entries(grouped).map(([category, catTopics]) => (
                   <motion.div key={category} variants={itemVars} className="space-y-6">
                     <div className="flex items-center gap-3 border-b border-white/[0.06] pb-3">
-                      <div className="w-6 h-6 rounded bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                      <div className="w-6 h-6 rounded bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 flex-shrink-0">
                         {getCategoryIcon(category)}
                       </div>
-                      <h2 className="text-sm font-bold uppercase tracking-[0.15em] text-slate-300">
+                      <h2 className="text-sm font-bold uppercase tracking-[0.15em] text-slate-300 flex-shrink-0 whitespace-nowrap">
                         {category.replace(/_/g, " ")}
                       </h2>
-                      <span className="text-[10px] font-mono text-slate-600 ml-2">{catTopics.length} topics</span>
+                      <span className="text-[10px] font-mono text-slate-600 flex-shrink-0 whitespace-nowrap">{catTopics.length} topics</span>
+                      {(() => {
+                        const passedInCat = catTopics.filter(t => t.status === "passed").length;
+                        const pct = catTopics.length ? Math.round((passedInCat / catTopics.length) * 100) : 0;
+                        return (
+                          <div className="flex items-center gap-2 ml-1 flex-shrink-0">
+                            <div className="h-[3px] w-24 rounded-full bg-white/[0.06] overflow-hidden flex-shrink-0">
+                              <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-blue-500 transition-all duration-700" style={{ width: `${pct}%` }} />
+                            </div>
+                            <span className="text-[10px] font-mono text-slate-500 tabular-nums whitespace-nowrap">{passedInCat}/{catTopics.length}</span>
+                          </div>
+                        );
+                      })()}
+                      <div className="flex-1 h-px bg-white/[0.04] ml-2 min-w-[8px]" />
                     </div>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -246,8 +354,9 @@ export default function StudyPlanBrowser({ onGoBack }) {
                             key={t.name} 
                             mousePos={mousePos}
                             onClick={() => setSelectedTopic(t.name)}
+                            urgent={isGap && (t.urgency === "critical" || t.urgency === "high")}
                           >
-                            <div className="flex flex-col h-full justify-between">
+                            <div className="flex flex-col h-full justify-between relative">
                               <div>
                                 <div className="flex items-start justify-between mb-4">
                                   <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
@@ -262,7 +371,7 @@ export default function StudyPlanBrowser({ onGoBack }) {
                                       <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" /> ACTIVE GAP
                                     </span>
                                   ) : isLocked ? (
-                                    <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-widest text-slate-500 bg-white/[0.04] border border-white/10 px-2 py-1 rounded">
+                                    <span title="Prerequisite not detected in recent session history" className="inline-flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-widest text-slate-500 bg-white/[0.04] border border-white/10 px-2 py-1 rounded cursor-help">
                                       <Lock size={10} /> LOCKED
                                     </span>
                                   ) : (
@@ -285,6 +394,12 @@ export default function StudyPlanBrowser({ onGoBack }) {
                                 <p className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 text-indigo-400 group-hover:text-indigo-300 transition-colors">
                                   <Activity size={12} /> Inspect Dependency Chain <ChevronRight size={12} />
                                 </p>
+                                {isGap && (t.urgency === "critical" || t.urgency === "high") && (
+                                  <p className="text-[10px] font-medium text-amber-400/70 mt-1.5">↗ High-impact · practise next</p>
+                                )}
+                                {isPassed && (
+                                  <p className="text-[10px] font-medium text-emerald-400/60 mt-1.5">✓ Addressed in session</p>
+                                )}
                               </div>
                             </div>
                           </GlassCard>
@@ -319,7 +434,7 @@ export default function StudyPlanBrowser({ onGoBack }) {
   );
 }
 
-function GlassCard({ children, mousePos, onClick }) {
+function GlassCard({ children, mousePos, onClick, urgent }) {
   const [rect, setRect] = useState(null);
   const cardRef = useRef(null);
 
@@ -336,7 +451,7 @@ function GlassCard({ children, mousePos, onClick }) {
       ref={cardRef}
       whileTap={{ scale: 0.96 }}
       onClick={onClick}
-      className="relative text-left rounded-xl bg-[#0B0C10] border border-white/[0.08] hover:border-indigo-500/30 cursor-pointer shadow-[0_10px_20px_-10px_rgba(0,0,0,0.5)] p-5 overflow-hidden transition-all duration-200 group outline-none h-44"
+      className={`relative text-left rounded-xl bg-[#0B0C10] border border-white/[0.08] hover:border-indigo-500/30 cursor-pointer shadow-[0_10px_20px_-10px_rgba(0,0,0,0.5)] p-5 overflow-hidden transition-all duration-200 group outline-none h-44 ${urgent ? "shadow-[inset_0_0_0_1px_rgba(245,158,11,0.15),0_0_20px_rgba(245,158,11,0.08)]" : ""}`}
     >
       <div 
         className="absolute inset-0 pointer-events-none transition-opacity duration-300 z-0"

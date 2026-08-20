@@ -8,7 +8,6 @@ import Signup from "./pages/Signup";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import Landing from "./pages/Landing";
-import { ThemeProvider, ThemeToggle } from "./context/ThemeContext";
 import Dashboard from "./pages/Dashboard";
 import UserDashboard from "./pages/UserDashboard";
 import PreflightCheck from "./pages/PreflightCheck";
@@ -28,7 +27,6 @@ import "./styles/Tokens.css";
 import "./styles/Glass.css";
 import "./styles/Noise.css";
 import "./App.css";
-import "./styles/Theme.css";
 
 function CommandPalette({ isOpen, onClose, navigate, onLogout }) {
   const [search, setSearch] = useState("");
@@ -199,7 +197,7 @@ function AuthenticatedRoutes({ user, onLogout, onEloUpdate, sessionData, setSess
               <InterviewRoom sessionData={sessionData} onFinish={() => navigate("/replay")} onEloUpdate={onEloUpdate} />
             </RequireSession>
           } />
-          <Route path="/coding" element={<CodingRoom sessionId={sessionData?.session_id} onFinish={() => navigate("/")} />} />
+          <Route path="/coding" element={<CodingRoom sessionId={sessionData?.session_id} user={user} onFinish={() => navigate("/")} />} />
           <Route path="/replay" element={<ReplayViewer sessionId={sessionData?.session_id} onExit={() => navigate("/")} onSelectSession={(id) => navigate(`/replay/${id}`)} />} />
           <Route path="/replay/:id" element={<ReplayViewerWithParam onExit={() => navigate("/")} />} />
           <Route path="/study-plan" element={<StudyPlanBrowser onGoBack={() => navigate("/")} />} />
@@ -322,21 +320,19 @@ function App() {
   }
 
   return (
-    <ThemeProvider>
-      <div className="min-h-screen w-full bg-[#000000] text-slate-200 font-sans selection:bg-indigo-500/30 relative">
-        <BrowserRouter>
-          <AppContent 
-            user={user} 
-            checkingAuth={checkingAuth} 
-            handleAuth={handleAuth} 
-            handleLogout={handleLogout} 
-            handleEloUpdate={handleEloUpdate}
-            sessionData={sessionData}
-            setSessionData={setSessionData}
-          />
-        </BrowserRouter>
-      </div>
-    </ThemeProvider>
+    <div className="min-h-screen w-full bg-[#000000] text-slate-200 font-sans selection:bg-indigo-500/30 relative">
+      <BrowserRouter>
+        <AppContent 
+          user={user} 
+          checkingAuth={checkingAuth} 
+          handleAuth={handleAuth} 
+          handleLogout={handleLogout} 
+          handleEloUpdate={handleEloUpdate}
+          sessionData={sessionData}
+          setSessionData={setSessionData}
+        />
+      </BrowserRouter>
+    </div>
   );
 }
 

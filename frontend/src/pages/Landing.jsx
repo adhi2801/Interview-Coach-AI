@@ -320,6 +320,27 @@ const COMPANY_SIM_DATA = {
   }
 };
 
+// Approximate bands, mapped from the real backend ROLE_ELO_BANDS by
+// seniority tier — these landing-page role titles don't have exact
+// matches in ROLE_ELO_BANDS (which is keyed to the actual /roles
+// dropdown values), so this is a best-fit approximation by level,
+// not a precise per-role lookup. Labeled "Approx." in the UI for
+// that reason.
+// Approximate bands, mapped from the real backend ROLE_ELO_BANDS by
+// seniority level number (e.g. "L5" → the Staff Band, 1200–1399) — a
+// consistent rule applied to every role below that has an explicit
+// level. "startup" is intentionally null: the Founding Engineer role
+// has no L-number, so there's nothing for this rule to map from —
+// showing a number there would be invented, not derived.
+const SIM_ELO_BANDS = {
+  google: "1200–1399",
+  meta: "1200–1399",
+  amazon: "1200–1399",
+  microsoft: "1400–1599",
+  apple: "1200–1399",
+  netflix: "1200–1399",
+  startup: null,
+};
 
 const HOW_STEPS = [
   { icon: BrainCircuit, color: 'indigo', eyebrow: '01 · Configure', title: 'Company DNA & Persona', desc: "Pick Google, Meta, Amazon, or a startup — and set how hostile the interviewer should be." },
@@ -695,7 +716,7 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
           >
             {HOW_STEPS.map((step, i) => (
               <motion.div key={i} variants={staggerItem}>
-                <GlassCard className="p-6 h-full">
+                <GlassCard className="p-6 h-full transition-transform duration-300 hover:-translate-y-1">
                   <div className={`w-10 h-10 rounded-xl bg-${step.color}-500/10 border border-${step.color}-500/20 text-${step.color}-400 flex items-center justify-center mb-4`}>
                     <step.icon size={18} />
                   </div>
@@ -770,12 +791,19 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
           </div>
 
           <GlassCard className="p-0 border-white/10 shadow-2xl overflow-hidden">
-            <div className="h-12 border-b border-white/[0.08] bg-[#030305] flex items-center justify-between px-6 font-mono text-xs">
-              <div className="flex items-center gap-3">
-                <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest border ${currentSim.badgeColor}`}>{currentSim.badge}</span>
-                <span className="text-slate-400 text-xs font-semibold hidden sm:inline">{currentSim.role}</span>
-                <span className="bg-white/10 border border-white/10 text-slate-300 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded hidden sm:inline">{currentSim.persona} persona</span>
-              </div>
+            <div className="h-12 border-b border-white/[0.08] bg-[#030305] flex items-center justify-between px-6 font-mono text-xs overflow-hidden">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={`badge-${personaTarget}`}
+                  initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.22 }}
+                  className="flex items-center gap-3"
+                >
+                  <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest border ${currentSim.badgeColor}`}>{currentSim.badge}</span>
+                  <span className="text-slate-400 text-xs font-semibold hidden sm:inline">{currentSim.role}</span>
+                  <span className="bg-white/10 border border-white/10 text-slate-300 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded hidden sm:inline">{currentSim.persona} persona</span>
+                </motion.div>
+              </AnimatePresence>
               <span className="text-[9px] font-mono text-slate-600 uppercase tracking-widest">Preview of a real session</span>
             </div>
 
@@ -834,7 +862,13 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
               </div>
 
               {/* RIGHT: session telemetry — matches the real pre-answer empty state exactly, no fabricated numbers */}
-              <div className="lg:col-span-3 p-6 bg-[#020204] flex flex-col justify-between font-mono text-xs">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={`telemetry-${personaTarget}`}
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="lg:col-span-3 p-6 bg-[#020204] flex flex-col justify-between font-mono text-xs"
+                >
                 <div>
                   <div className="flex items-center justify-between border-b border-white/[0.06] pb-3 mb-5">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Session Telemetry</span>
@@ -852,10 +886,14 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
                   </div>
                 </div>
                 <div className="pt-4 border-t border-white/[0.06] space-y-1 text-[10px]">
-                  <div className="flex justify-between text-slate-500"><span>Target Level</span><span className="text-white font-bold">L3</span></div>
-                  <div className="flex justify-between text-slate-500"><span>Threshold ELO</span><span className="text-white font-bold">1100</span></div>
+                  <div className="flex justify-between text-slate-500"><span>Target Level</span><span className="text-white font-bold">{currentSim.role.split("·").pop().trim()}</span></div>
+                  <div className="flex justify-between text-slate-500">
+                    <span title="Approximate ELO band for this seniority level">Approx. ELO Band</span>
+                    <span className="text-white font-bold">{SIM_ELO_BANDS[personaTarget] || "No fixed levels"}</span>
+                  </div>
                 </div>
-              </div>
+                </motion.div>
+              </AnimatePresence>
             </div>
           </GlassCard>
         </section>
@@ -890,6 +928,7 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
             </div>
           </div>
 
+          <motion.div variants={staggerItem} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}>
           <GlassCard className="p-0 overflow-hidden">
             <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[500px]">
               <div className="lg:col-span-3 bg-[#050508] border-r border-white/10 p-6 flex flex-col justify-between">
@@ -975,6 +1014,7 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
               </div>
             </div>
           </GlassCard>
+          </motion.div>
         </section>
 
         {/* KNOWLEDGE GRAPH — full 93-node categorized view, flex-wrap so it never overlaps */}
@@ -1049,7 +1089,7 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
           >
             {ARCHITECTURE_CARDS.map((arch, idx) => (
               <motion.div key={idx} variants={staggerItem}>
-                <GlassCard tilt className="p-6 flex flex-col justify-between h-full">
+                <GlassCard tilt className="p-6 flex flex-col justify-between h-full transition-transform duration-300 hover:-translate-y-1">
                   <div>
                     <div className="flex items-center justify-between mb-4 gap-2">
                       <h3 className="text-base font-bold text-white tracking-tight">{arch.title}</h3>

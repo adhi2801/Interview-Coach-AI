@@ -43,7 +43,14 @@ class ConfidenceCoach:
                 fillers_found.append(f"{filler} (x{count})")
                 self.filler_counts[filler] = self.filler_counts.get(filler, 0) + count
 
-        # Calculate words per minute
+        # Calculate words per minute. IMPORTANT: the frontend sends the
+        # FULL current answer on every debounced chunk, not just new words
+        # since the last chunk — so total_words must be SET to the current
+        # word_count, not incremented on top of previous chunks' counts.
+        # The old `+=` here compounded every pause into an ever-inflating
+        # total, which is why WPM climbed unrealistically (200 -> 560+)
+        # the longer someone kept typing.
+        self.total_words = word_count
         elapsed_minutes = (time.time() - self.session_start) / 60
         wpm = self.total_words / max(elapsed_minutes, 0.01)
 

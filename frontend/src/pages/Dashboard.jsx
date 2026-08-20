@@ -24,12 +24,17 @@ const PERSONAS = [
 
 const KNOWN_COMPANIES = ["google", "amazon", "meta", "microsoft", "apple", "netflix", "startup"];
 
+// Honest, generic progress copy tied to the real request lifecycle of
+// /session/start — not scripted technical claims (no "WebRTC socket",
+// no "calibrating engine") about things that aren't actually happening
+// at that moment. Steps 0-2 are shown while the request is in flight;
+// the final step only ever renders once the request has genuinely
+// resolved (see bootStep logic in handleLaunch).
 const BOOT_SEQUENCE = [
-  "> Establishing secure WebRTC telemetry socket...",
-  "> Loading company interview profile...",
-  "> Calibrating adaptive difficulty engine...",
-  "> Preparing 5D evaluation rubric...",
-  "SYSTEM ONLINE. ENTERING CHAMBER."
+  "> Sending session request...",
+  "> Waiting for the server to build your interview...",
+  "> Almost there...",
+  "SESSION READY."
 ];
 
 function RollingNumber({ value, className = "" }) {
@@ -143,7 +148,9 @@ export default function Dashboard({ onStart, user, onGoBack }) {
   const [eloBands, setEloBands] = useState(null);
   const [companyIntel, setCompanyIntel] = useState(null);
   const [intelLoading, setIntelLoading] = useState(true);
+  const [intelError, setIntelError] = useState(false);
   const [companySessions, setCompanySessions] = useState([]);
+  const [sessionsError, setSessionsError] = useState(false);
   const [topicCount, setTopicCount] = useState(null);
 
   const [previewData, setPreviewData] = useState(null);
@@ -159,6 +166,13 @@ export default function Dashboard({ onStart, user, onGoBack }) {
   const currentElo = Math.round(user?.elo_rating || 1200);
   const activeComp = COMPANIES.find(c => c.id === company) || COMPANIES[0];
   const isFreshlyGenerated = !KNOWN_COMPANIES.includes(company);
+
+  // Single source of truth for auth headers — was previously duplicated
+  // inline in four places (handlePreview, handleLaunch, and two effects).
+  const authHeaders = () => {
+    const token = localStorage.getItem("access_token");
+    return token ? { headers: { Authorization: `Bearer ${token}` } } : null;
+  };
 
   useEffect(() => {
     axios.get(`${API_URL}/health`, { timeout: 5000 })
@@ -188,30 +202,36 @@ export default function Dashboard({ onStart, user, onGoBack }) {
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    if (!token) { setIntelLoading(false); return; }
+    const auth = authHeaders();
+    if (!auth) { setIntelLoading(false); return; }
     let cancelled = false;
     setIntelLoading(true);
-    const headers = { Authorization: `Bearer ${token}` };
+    setIntelError(false);
     Promise.all([
-      axios.get(`${API_URL}/user/skill-radar`, { headers, params: { company } }),
-      axios.get(`${API_URL}/user/gap-queue`, { headers, params: { company } }),
+      axios.get(`${API_URL}/user/skill-radar`, { ...auth, params: { company } }),
+      axios.get(`${API_URL}/user/gap-queue`, { ...auth, params: { company } }),
     ]).then(([radarRes, gapRes]) => {
       if (cancelled) return;
       setCompanyIntel({
         sampleSize: radarRes.data.sample_size, radar: radarRes.data.radar,
         criticalGap: gapRes.data.critical_gap, queue: gapRes.data.queue || [],
       });
-    }).catch(() => { if (!cancelled) setCompanyIntel(null); })
-      .finally(() => { if (!cancelled) setIntelLoading(false); });
+    }).catch(() => {
+      // A real fetch failure must not look identical to "you have no
+      // data for this company yet" — that was masking backend errors
+      // as empty state. Track it separately so the UI can tell the
+      // difference (see the companyIntel render block below).
+      if (!cancelled) { setCompanyIntel(null); setIntelError(true); }
+    }).finally(() => { if (!cancelled) setIntelLoading(false); });
     return () => { cancelled = true; };
   }, [company]);
 
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    if (!token) return;
+    const auth = authHeaders();
+    if (!auth) return;
     let cancelled = false;
-    axios.get(`${API_URL}/user/sessions`, { headers: { Authorization: `Bearer ${token}` } })
+    setSessionsError(false);
+    axios.get(`${API_URL}/user/sessions`, auth)
       .then(res => {
         if (cancelled) return;
         const matches = (res.data.sessions || [])
@@ -219,7 +239,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
           .slice(0, 3);
         setCompanySessions(matches);
       })
-      .catch(() => { if (!cancelled) setCompanySessions([]); });
+      .catch(() => { if (!cancelled) { setCompanySessions([]); setSessionsError(true); } });
     return () => { cancelled = true; };
   }, [company]);
 
@@ -240,15 +260,15 @@ export default function Dashboard({ onStart, user, onGoBack }) {
   }
 
   async function handlePreview() {
+    const auth = authHeaders();
+    if (!auth) { setPreviewError(true); return; }
     setPreviewPulse(true);
     setTimeout(() => setPreviewPulse(false), 300);
     setPreviewLoading(true);
     setPreviewError(false);
     try {
-      const token = localStorage.getItem("access_token");
       const res = await axios.post(`${API_URL}/session/preview`,
-        { user_name: user?.name || "Candidate", company, role, elo: currentElo, persona },
-        { headers: { Authorization: `Bearer ${token}` } });
+        { user_name: user?.name || "Candidate", company, role, elo: currentElo, persona }, auth);
       setPreviewData(res.data);
     } catch (err) {
       setPreviewError(true);
@@ -258,17 +278,26 @@ export default function Dashboard({ onStart, user, onGoBack }) {
 
   const handleLaunch = async () => {
     if (isBooting) return;
+    const auth = authHeaders();
+    if (!auth) { setLaunchError(true); return; }
     setIsBooting(true);
     setLaunchError(false);
     let step = 0;
-    const interval = setInterval(() => { step++; setBootStep(step); }, 420);
+    setBootStep(0);
+    // Advances through the honest "in-flight" steps only — never reaches
+    // the final "SESSION READY" step on its own. That step is set
+    // exactly once, only after the real request resolves below, so the
+    // UI never claims completion before the backend actually responds.
+    const interval = setInterval(() => {
+      step++;
+      if (step < BOOT_SEQUENCE.length - 1) setBootStep(step);
+    }, 420);
     try {
-      const token = localStorage.getItem("access_token");
       const res = await axios.post(`${API_URL}/session/start`,
         { user_name: user?.name || "Candidate", company, role, elo: currentElo, persona, preview_id: previewData?.preview_id || null },
-        { headers: { Authorization: `Bearer ${token}` } });
+        auth);
       clearInterval(interval);
-      setBootStep(BOOT_SEQUENCE.length);
+      setBootStep(BOOT_SEQUENCE.length - 1);
       setTimeout(() => { if (onStart) onStart({ ...res.data, company, role, persona, elo: currentElo }); }, 400);
     } catch (err) {
       clearInterval(interval);
@@ -301,7 +330,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
             <div className="w-[90vw] max-w-[500px] bg-[#0A0A0C] border border-white/10 p-6 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.9)] font-mono text-sm">
               <div className="flex items-center gap-3 mb-6 border-b border-white/10 pb-4">
                 <Terminal size={18} className="text-blue-400" />
-                <span className="text-white font-bold tracking-tight">SYSTEM BOOT SEQUENCE</span>
+                <span className="text-white font-bold tracking-tight">LAUNCHING SESSION</span>
               </div>
               <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mb-6">
                 <motion.div className="h-full bg-blue-500" initial={{ width: "0%" }}
@@ -336,7 +365,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
             {systemStatus === "ok" ? "Engine Ready" : systemStatus === "degraded" ? "Engine Degraded" : "Checking..."}
           </div>
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/10 text-[10px] font-mono font-bold tracking-widest text-white">
-            <Target size={12} className="text-slate-400" /> ELO {currentElo}
+            <Target size={12} className="text-slate-400" /> ELO <RollingNumber value={currentElo} />
           </div>
         </div>
       </header>
@@ -543,10 +572,14 @@ export default function Dashboard({ onStart, user, onGoBack }) {
                 {previewError && (
                   <motion.div key="error" {...blurFade} transition={{ duration: 0.25 }} className="flex flex-col items-center text-center gap-2 py-3">
                     <AlertTriangle size={18} className="text-amber-500/70" />
-                    <p className="text-xs text-slate-400">Couldn't generate a preview right now.</p>
-                    <button onClick={handlePreview} className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
-                      <RotateCcw size={11} /> Retry
-                    </button>
+                    <p className="text-xs text-slate-400">
+                      {authHeaders() ? "Couldn't generate a preview right now." : "Sign in to preview the opening line."}
+                    </p>
+                    {authHeaders() && (
+                      <button onClick={handlePreview} className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
+                        <RotateCcw size={11} /> Retry
+                      </button>
+                    )}
                   </motion.div>
                 )}
                 {previewData && (
@@ -576,6 +609,13 @@ export default function Dashboard({ onStart, user, onGoBack }) {
                 {intelLoading ? (
                   <motion.div key="loading" {...blurFade} transition={{ duration: 0.2 }} className="space-y-2">
                     <SkeletonLine className="h-3.5 w-[80%]" /><SkeletonLine className="h-3.5 w-[60%]" />
+                  </motion.div>
+                ) : intelError ? (
+                  // Was previously indistinguishable from "no sessions yet" —
+                  // a real backend failure now says so honestly instead of
+                  // silently presenting as an empty-but-fine state.
+                  <motion.div key="intel-error" {...blurFade} transition={{ duration: 0.2 }} className="flex items-center gap-2 text-xs text-amber-400/80">
+                    <AlertTriangle size={13} /> Couldn't load your track record for this company.
                   </motion.div>
                 ) : companyIntel?.sampleSize > 0 ? (
                   <motion.div key="loaded" {...blurFade} transition={{ duration: 0.2 }} className="space-y-3">
@@ -622,6 +662,13 @@ export default function Dashboard({ onStart, user, onGoBack }) {
                       <span className="font-bold text-white tabular-nums">{s.score != null ? `${s.score}/100` : "—"}</span>
                     </div>
                   ))}
+                </div>
+              </DeepGlassCard>
+            )}
+            {sessionsError && (
+              <DeepGlassCard className="p-4" delay={0.21}>
+                <div className="flex items-center gap-2 text-xs text-amber-400/80">
+                  <AlertTriangle size={13} /> Couldn't load recent sessions for this company.
                 </div>
               </DeepGlassCard>
             )}
@@ -677,7 +724,11 @@ export default function Dashboard({ onStart, user, onGoBack }) {
             <span className="text-white font-bold capitalize">{persona}</span>
           </div>
           <div className="w-full sm:w-72 flex flex-col gap-1.5">
-            {launchError && <p className="text-[11px] text-rose-400 flex items-center gap-1.5"><AlertTriangle size={11} /> Couldn't start session — try again.</p>}
+            {launchError && (
+              <p className="text-[11px] text-rose-400 flex items-center gap-1.5">
+                <AlertTriangle size={11} /> {authHeaders() ? "Couldn't start session — try again." : "Sign in to start a session."}
+              </p>
+            )}
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={handleLaunch} disabled={isBooting}
               className="relative overflow-hidden w-full h-12 rounded-xl bg-white text-black text-xs font-extrabold uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50 group">
               <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />

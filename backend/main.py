@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import Optional
 from database import get_db, create_tables, SessionLocal
-from models import InterviewSession, Answer, Topic, ScoringJob, CodingProblem, CodingTestCase, CodingSubmission, ReplayManifest
+from models import InterviewSession, Answer, Topic, TopicPrerequisite, ScoringJob, CodingProblem, CodingTestCase, CodingSubmission, ReplayManifest
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -206,6 +206,86 @@ def list_topics():
                 for t in topics
             ]
         }
+    finally:
+        db.close()
+
+
+@app.get("/topics/status")
+def get_topics_status(user_id: int = Depends(get_current_user_id)):
+    """
+    Real per-topic status, assembled from data that already exists but was
+    never combined into one payload:
+      - "gap":         topic name appears in this user's Answer.gaps_identified
+      - "passed":      topic appears in Answer.topics_covered but was never
+                        flagged as a gap
+      - "locked":      topic has a prerequisite (TopicPrerequisite) that this
+                        user has not touched yet
+      - "unattempted": everything else — honest default, not fabricated
+
+    If the caller isn't logged in, every topic is "unattempted" since there's
+    no user history to derive status from.
+    """
+    db = SessionLocal()
+    try:
+        all_topics = db.query(Topic).order_by(Topic.category, Topic.name).all()
+        base = [{"name": t.name, "category": t.category, "difficulty": t.difficulty_level} for t in all_topics]
+
+        if not user_id:
+            return {"topics": [{**t, "status": "unattempted"} for t in base]}
+
+        answers = db.query(Answer).join(
+            InterviewSession, Answer.session_id == InterviewSession.id
+        ).filter(InterviewSession.user_id == user_id).all()
+
+        touched = set()
+        gapped = set()
+        gap_urgency = {}  # topic name -> highest urgency seen ("critical" > "high" > "medium" > "low")
+        urgency_rank = {"critical": 3, "high": 2, "medium": 1, "low": 0}
+        for a in answers:
+            for t in (a.topics_covered or []):
+                if isinstance(t, str):
+                    touched.add(t)
+            for g in (a.gaps_identified or []):
+                if not isinstance(g, dict):
+                    continue  # malformed entry — skip rather than crash the whole route
+                name = g.get("gap")
+                if not name:
+                    continue
+                gapped.add(name)
+                u = g.get("urgency", "low")
+                if urgency_rank.get(u, 0) > urgency_rank.get(gap_urgency.get(name, "low"), 0):
+                    gap_urgency[name] = u
+
+        topic_by_id = {t.id: t.name for t in all_topics}
+        prereqs = db.query(TopicPrerequisite).all()
+        locked = set()
+        prereq_map = {}  # topic name -> list of real prerequisite names
+        for p in prereqs:
+            topic_name = topic_by_id.get(p.topic_id)
+            prereq_name = topic_by_id.get(p.prerequisite_id)
+            if not topic_name or not prereq_name:
+                continue
+            prereq_map.setdefault(topic_name, []).append(prereq_name)
+            if prereq_name not in touched:
+                locked.add(topic_name)
+
+        result = []
+        for t in base:
+            name = t["name"]
+            if name in gapped:
+                status = "gap"
+            elif name in locked:
+                status = "locked"
+            elif name in touched:
+                status = "passed"
+            else:
+                status = "unattempted"
+            entry = {**t, "status": status, "prerequisites": prereq_map.get(name, [])}
+            if status == "gap":
+                entry["urgency"] = gap_urgency.get(name, "low")
+            result.append(entry)
+
+        return {"topics": result}
     finally:
         db.close()
 
@@ -595,6 +675,34 @@ def list_replays(user_id: int = Depends(get_current_user_id)):
 
     all_replays = replay_system.list_replays()
     return {"replays": [r for r in all_replays if r["session_id"] in own_session_ids]}
+@app.post("/replay/{session_id}/end")
+def end_session(session_id: int, user_id: int = Depends(get_current_user_id)):
+    """
+    Marks an InterviewSession as ended — the only place ended_at ever
+    gets set. Called by the frontend's handleFinish() on both a normal
+    "End Session" and an "Abort". Idempotent: if it's already ended,
+    calling it again is a harmless no-op rather than an error.
+    """
+    if not user_id:
+        return {"error": "Authentication required"}
+
+    db = SessionLocal()
+    try:
+        session_record = db.query(InterviewSession).filter(
+            InterviewSession.id == session_id,
+            InterviewSession.user_id == user_id
+        ).first()
+        if not session_record:
+            return {"error": "Session not found"}
+
+        if not session_record.ended_at:
+            session_record.ended_at = datetime.utcnow()
+            db.commit()
+
+        return {"status": "ended", "ended_at": session_record.ended_at.isoformat()}
+    finally:
+        db.close()
+
 class FeedbackRatingRequest(BaseModel):
     answer_id: int
     helpful: bool
@@ -874,7 +982,134 @@ def delete_my_account(user_id: int = Depends(get_current_user_id)):
         logger.error("account_deletion_failed", user_id=user_id, error=str(e))
         return {"error": "Deletion failed. Please try again or contact support."}
     finally:
-        db.close()        
+        db.close()
+
+
+class UpdateProfileRequest(BaseModel):
+    name: str
+
+class UpdatePreferenceRequest(BaseModel):
+    key: str
+    value: bool
+
+# Only these three keys can ever be written — prevents an arbitrary
+# key/value pair being stuffed into User.preferences from the request body.
+VALID_PREFERENCE_KEYS = {"sound_effects", "live_coaching_telemetry", "high_contrast_editor"}
+
+
+@app.get("/user/profile-summary")
+def get_profile_summary(user_id: int = Depends(get_current_user_id)):
+    """
+    Single real source of truth for the Settings page: identity, ELO,
+    real session/score aggregates (same math as /user/sessions), stored
+    preferences, and a role-scoped ELO bracket.
+
+    Bracket is intentionally NOT a standalone fabricated tier — ROLE_ELO_BANDS
+    is keyed by role, there's no role-agnostic tier system anywhere in this
+    codebase. So bracket is derived from the candidate's most recent
+    session's role, and is honestly null if they have no sessions yet or
+    their most recent role isn't one of the tracked bands.
+    """
+    if not user_id:
+        return {"error": "Authentication required"}
+
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return {"error": "User not found"}
+
+        sessions = db.query(InterviewSession).filter(
+            InterviewSession.user_id == user_id
+        ).order_by(InterviewSession.started_at.desc()).all()
+        total_sessions = len(sessions)
+
+        answers = db.query(Answer).join(
+            InterviewSession, Answer.session_id == InterviewSession.id
+        ).filter(InterviewSession.user_id == user_id).all()
+
+        avg_score = None
+        if answers:
+            overalls = []
+            for a in answers:
+                scores = [
+                    a.score_technical, a.score_communication,
+                    a.score_problem_solving, a.score_cultural_fit,
+                    a.score_confidence
+                ]
+                scores = [s for s in scores if s is not None]
+                if scores:
+                    overalls.append(sum(scores) / len(scores))
+            if overalls:
+                avg_score = round((sum(overalls) / len(overalls)) * 10, 1)
+
+        bracket = None
+        if sessions:
+            most_recent_role = sessions[0].role
+            band = ROLE_ELO_BANDS.get(most_recent_role)
+            if band:
+                bracket = {
+                    "role": most_recent_role,
+                    "label": band["label"],
+                    "low": band["low"],
+                    "high": band["high"],
+                }
+
+        return {
+            "name": user.name,
+            "email": user.email,
+            "elo_rating": user.elo_rating,
+            "total_sessions": total_sessions,
+            "avg_score": avg_score,
+            "preferences": user.preferences or {},
+            "bracket": bracket,
+        }
+    finally:
+        db.close()
+
+
+@app.patch("/user/profile")
+def update_profile(payload: UpdateProfileRequest, user_id: int = Depends(get_current_user_id)):
+    if not user_id:
+        return {"error": "Authentication required"}
+
+    name = payload.name.strip()
+    if not name:
+        return {"error": "Name cannot be empty"}
+    if len(name) > 100:
+        return {"error": "Name is too long"}
+
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return {"error": "User not found"}
+        user.name = name
+        db.commit()
+        return {"status": "ok", "name": user.name}
+    finally:
+        db.close()
+
+
+@app.patch("/user/preferences")
+def update_preference(payload: UpdatePreferenceRequest, user_id: int = Depends(get_current_user_id)):
+    if not user_id:
+        return {"error": "Authentication required"}
+    if payload.key not in VALID_PREFERENCE_KEYS:
+        return {"error": f"Unknown preference key: {payload.key}"}
+
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return {"error": "User not found"}
+        prefs = dict(user.preferences or {})
+        prefs[payload.key] = payload.value
+        user.preferences = prefs
+        db.commit()
+        return {"status": "ok", "preferences": user.preferences}
+    finally:
+        db.close()            
 
 # --- Coding Track (Track B) ---
 
@@ -923,6 +1158,11 @@ def get_coding_problem(slug: str):
             "starter_code": problem.starter_code,
             "difficulty": problem.difficulty,
             "topics": problem.topics,
+            "input_format": problem.input_format,
+            "output_format": problem.output_format,
+            "constraints": problem.constraints,
+            "time_complexity_target": problem.time_complexity_target,
+            "space_complexity_target": problem.space_complexity_target,
             "sample_test_cases": [
                 {"input": tc.input_data, "expected_output": tc.expected_output} for tc in visible_cases
             ],

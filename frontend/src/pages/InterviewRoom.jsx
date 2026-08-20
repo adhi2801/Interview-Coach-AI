@@ -8,11 +8,12 @@ import {
   Target, CheckCircle2, Lock, ArrowRight, ThumbsUp, ThumbsDown, Terminal,
   MessageSquare, RefreshCw, XCircle, UserCheck, Flame, Search, Coffee, Send
 } from "lucide-react";
+import { COMPANIES } from "../constants/companies";
 
 // --- ANIMATED NUMBER TICKER ---
 function AnimatedNumber({ value }) {
   const count = useMotionValue(0);
-  const rounded = useTransform(count, (v) => v.toFixed(0));
+  const rounded = useTransform(count, (v) => v.toFixed(1));
   const [display, setDisplay] = useState("0");
 
   useEffect(() => {
@@ -145,6 +146,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   const [scoringError, setScoringError] = useState("");
   const [eloBand, setEloBand] = useState(null);
   const [showAbortConfirm, setShowAbortConfirm] = useState(false);
+  const [sessionElapsed, setSessionElapsed] = useState(0); // real wall-clock time since this session mounted — not a fabricated stat
   const wsRef = useRef(null);
   const debounceRef = useRef(null);
   const timerRef = useRef(null);
@@ -162,25 +164,37 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   const isBehavioral = category?.toLowerCase().includes("behavioral") || category?.toLowerCase().includes("leadership");
   const personaMeta = getPersonaMeta(persona);
   const PersonaIcon = personaMeta.icon;
+  const TOTAL_NODES = 5;
+  const isLastNode = questionNum >= TOTAL_NODES;
 
   useEffect(() => {
     setTimeout(() => setMounted(true), 100);
+  }, []);
+
+  // Real elapsed-session clock — ticks from the moment this room mounted.
+  useEffect(() => {
+    const start = Date.now();
+    const tick = setInterval(() => setSessionElapsed(Math.floor((Date.now() - start) / 1000)), 1000);
+    return () => clearInterval(tick);
   }, []);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (phase === 'results' && (e.metaKey || e.ctrlKey) && e.key === 'Enter') {
         e.preventDefault();
-        goNextQuestion();
+        if (isLastNode) handleFinish(); else goNextQuestion();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [phase, newElo, nextQuestion]);
+  }, [phase, newElo, nextQuestion, isLastNode]);
 
   useEffect(() => {
+    // No real session yet — don't fall back to connecting on someone
+    // else's/an arbitrary session's coaching channel.
+    if (!sessionData?.session_id) return;
     const token = localStorage.getItem("access_token");
-    const ws = new WebSocket(`${WS_URL}/ws/coaching/${sessionData?.session_id || 1}?token=${token}`);
+    const ws = new WebSocket(`${WS_URL}/ws/coaching/${sessionData.session_id}?token=${token}`);
     wsRef.current = ws;
 
     ws.onopen = () => setWsConnected(true);
@@ -339,6 +353,9 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
     const finalAnswer = answer.trim() ? answer : "[No answer submitted before time expired]";
     if (!finalAnswer && !isTimeExpired) return;
 
+    // Never leave the mic hot into the results screen.
+    if (isRecording) stopRecording();
+
     setLoading(true);
     setScoringError("");
     clearInterval(timerRef.current);
@@ -373,6 +390,20 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
     }
   }
 
+ async function handleFinish() {
+  try {
+    const token = localStorage.getItem("access_token");
+    await axios.post(
+      `${API_URL}/replay/${sessionData.session_id}/end`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` }, timeout: 5000 }
+    );
+  } catch (err) {
+    console.error("Failed to close out replay:", err);
+  }
+  onFinish();
+}
+ 
   async function pollForResult(jobId) {
     const maxAttempts = 60;
     let attempts = 0;
@@ -417,6 +448,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
 
         if (res.data.status === "failed") {
           setLoading(false);
+          setScoringError("Scoring failed. Please try submitting again.");
           return;
         }
 
@@ -447,6 +479,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   }
 
   function goNextQuestion() {
+    if (isLastNode) { handleFinish(); return; } // hard stop — never silently advance past the 5th node
     if (newElo) setCurrentElo(Math.round(newElo));
     if (nextQuestion) setQuestion(nextQuestion);
     if (nextCategory) setCategory(nextCategory);
@@ -467,6 +500,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   const rawOverall = scores ? (scores.score_technical + scores.score_communication + scores.score_problem_solving + scores.score_cultural_fit + scores.score_confidence) / 5 : 0;
   const scaledScore = Math.round(rawOverall * 10);
   const company = sessionData?.company_profile;
+  const companyMeta = COMPANIES.find(c => c.id === (sessionData?.company || "").toLowerCase());
   const isPass = scaledScore >= 70;
   const verdictLabel = isPass ? "Strong Pass" : "Needs Revision";
   const eloDelta = newElo ? Math.round(newElo - currentElo) : 0;
@@ -521,7 +555,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
           <div className="w-px h-4 bg-white/10 hidden sm:block" />
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-white text-xs font-bold uppercase tracking-widest bg-white/5 border border-white/10 px-2.5 py-1 rounded flex items-center gap-1.5 shrink-0">
-              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "var(--accent)" }} />
+              {companyMeta ? <span className="shrink-0">{companyMeta.logo}</span> : <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "var(--accent)" }} />}
               {company?.name || "Target"}
             </span>
             <span className="text-slate-300 text-xs font-bold uppercase tracking-widest hidden md:inline truncate">
@@ -549,12 +583,17 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
               <div className="w-px h-4 bg-white/10 hidden sm:block" />
               <div className="flex items-center gap-2 hidden sm:flex">
                 <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Node</span>
-                <span className="text-sm font-mono font-bold text-white">{questionNum}/5</span>
+                <span className="text-sm font-mono font-bold text-white">{questionNum}/{TOTAL_NODES}</span>
+              </div>
+              <div className="w-px h-4 bg-white/10 hidden xl:block" />
+              <div className="items-center gap-2 hidden xl:flex" title="Real time elapsed since this session started">
+                <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Session</span>
+                <span className="text-sm font-mono font-bold text-slate-300 tabular-nums">{formatTime(sessionElapsed)}</span>
               </div>
               <div className="w-px h-4 bg-white/10 hidden lg:block" />
               <div className="items-center gap-2 hidden lg:flex">
                 <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">ELO</span>
-                <span className="text-sm font-mono font-bold text-slate-100">{Math.round(currentElo)}</span>
+                <span className="text-sm font-mono font-bold text-slate-100 tabular-nums">{Math.round(currentElo)}</span>
               </div>
               <div className="w-px h-4 bg-white/10" />
               <button onClick={() => setShowAbortConfirm(true)} className="text-xs font-mono font-bold text-slate-300 hover:text-white uppercase tracking-widest border border-white/10 px-3 py-1 rounded bg-white/5 transition-colors">
@@ -567,7 +606,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                 <CheckCircle2 size={16} />
                 <span className="text-xs font-bold uppercase tracking-widest hidden sm:inline">Node Logged</span>
               </div>
-              <button onClick={onFinish} className="text-slate-200 bg-white/[0.04] border border-white/10 px-4 py-1.5 rounded-lg hover:bg-white/[0.08] hover:text-white text-xs font-bold uppercase tracking-widest transition-colors flex items-center gap-1.5">
+              <button onClick={handleFinish} className="text-slate-200 bg-white/[0.04] border border-white/10 px-4 py-1.5 rounded-lg hover:bg-white/[0.08] hover:text-white text-xs font-bold uppercase tracking-widest transition-colors flex items-center gap-1.5">
                 End Session <ChevronRight size={16} />
               </button>
             </>
@@ -577,7 +616,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
 
       {/* NODE PROGRESS STRIP */}
       <div className="h-[3px] w-full flex gap-[3px] flex-shrink-0 z-40 bg-black/40">
-        {Array.from({ length: 5 }).map((_, i) => (
+        {Array.from({ length: TOTAL_NODES }).map((_, i) => (
           <div key={i} className="flex-1 h-full transition-colors duration-500"
             style={{
               background: i < questionNum - 1 ? `rgba(var(--accent-rgb), 0.6)`
@@ -868,13 +907,17 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
              ==================================================================== */
           <div className="w-full flex-1 flex flex-col relative overflow-hidden bg-[#000000]">
             <div className="flex-1 w-full h-full overflow-y-auto scrollbar-hide">
-              <div className="max-w-[1080px] mx-auto w-full px-6 py-10 flex flex-col gap-7">
+              <motion.div
+                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                className="max-w-[1080px] mx-auto w-full px-6 py-10 flex flex-col gap-7"
+              >
 
                 {/* SECTION LABEL */}
                 <div className="flex items-center gap-3">
                   <div className="w-px h-7" style={{ background: `linear-gradient(to bottom, transparent, rgba(var(--accent-rgb),0.6), transparent)` }} />
                   <span className="text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-slate-500">
-                    Session Debrief &middot; {personaMeta.name} &middot; Node {questionNum} of 5
+                    Session Debrief &middot; {personaMeta.name} &middot; Node {questionNum} of {TOTAL_NODES}
                   </span>
                 </div>
 
@@ -1107,14 +1150,14 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                       onClick={() => { setPhase("answering"); setAnswer(""); }}
                     />
                     <NextActionCard
-                      icon={ArrowRight}
+                      icon={isLastNode ? CheckCircle2 : ArrowRight}
                       color="#6ee7b7"
                       bg="rgba(16,185,129,0.1)"
                       border="rgba(16,185,129,0.22)"
-                      title={`Advance to Node ${questionNum + 1}`}
-                      body="Move on to the next node in this session."
-                      cta="Continue"
-                      onClick={goNextQuestion}
+                      title={isLastNode ? "Finish Session" : `Advance to Node ${questionNum + 1}`}
+                      body={isLastNode ? "You've completed all 5 nodes — wrap up and close out this session." : "Move on to the next node in this session."}
+                      cta={isLastNode ? "Finish" : "Continue"}
+                      onClick={isLastNode ? handleFinish : goNextQuestion}
                     />
                   </div>
                 </div>
@@ -1131,38 +1174,47 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
 
                 {/* BOTTOM CTA ROW */}
                 <div className="flex items-center gap-3 flex-wrap pt-2 pb-8">
-                  <button
-                    onClick={goNextQuestion}
-                    className="bg-white text-black px-6 py-3 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(255,255,255,0.15)] outline-none"
-                  >
-                    Next Node <kbd className="font-mono text-[9px] bg-black/10 px-1 py-0.5 rounded text-black/70">↵</kbd>
-                  </button>
+                  {isLastNode ? (
+                    <button
+                      onClick={handleFinish}
+                      className="bg-white text-black px-6 py-3 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(255,255,255,0.15)] outline-none"
+                    >
+                      Finish Session <CheckCircle2 size={14} />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={goNextQuestion}
+                      className="bg-white text-black px-6 py-3 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(255,255,255,0.15)] outline-none"
+                    >
+                      Next Node <kbd className="font-mono text-[9px] bg-black/10 px-1 py-0.5 rounded text-black/70">↵</kbd>
+                    </button>
+                  )}
                   <button
                     onClick={() => { setPhase("answering"); setAnswer(""); }}
                     className="bg-white/5 border border-white/10 hover:bg-white/10 text-white px-5 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-2 outline-none"
                   >
                     <RefreshCw size={13} /> Retry This Node
-                    {currentAnswerId && (
-                   <div className="flex items-center gap-2 mr-2">
-                   <span className="text-xs text-slate-500">Was this feedback helpful?</span>
-                  <button onClick={() => rateFeedback(true)} className={`p-2 rounded-lg border ${feedbackRating === true ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'}`}>
-                  <ThumbsUp size={14} />
                   </button>
-                  <button onClick={() => rateFeedback(false)} className={`p-2 rounded-lg border ${feedbackRating === false ? 'bg-rose-500/20 border-rose-500/40 text-rose-400' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'}`}>
-                  <ThumbsDown size={14} />
-                  </button>
-                  </div>
-                    )}
-                  </button>
+                  {currentAnswerId && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-500 hidden sm:inline">Was this feedback helpful?</span>
+                      <button onClick={() => rateFeedback(true)} className={`p-2 rounded-lg border ${feedbackRating === true ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'}`}>
+                        <ThumbsUp size={14} />
+                      </button>
+                      <button onClick={() => rateFeedback(false)} className={`p-2 rounded-lg border ${feedbackRating === false ? 'bg-rose-500/20 border-rose-500/40 text-rose-400' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'}`}>
+                        <ThumbsDown size={14} />
+                      </button>
+                    </div>
+                  )}
                   <button
-                    onClick={onFinish}
+                    onClick={handleFinish}
                     className="ml-auto bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 hover:text-white px-5 py-3 rounded-xl text-xs font-bold transition-all outline-none"
                   >
                     End Session
                   </button>
                 </div>
 
-              </div>
+              </motion.div>
             </div>
 
             {/* Overlay Modals */}
@@ -1185,7 +1237,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
               </div>
               <h3 className="text-base font-extrabold text-white mb-2">Abort this session?</h3>
               <p className="text-xs text-slate-400 leading-relaxed mb-5">Progress on this node will not be saved. Your ELO will not be affected by incomplete sessions.</p>
-              <button onClick={onFinish} className="w-full py-2.5 rounded-lg bg-rose-500/15 border border-rose-500/35 text-rose-400 font-bold text-xs hover:bg-rose-500/25 transition-colors">
+              <button onClick={handleFinish} className="w-full py-2.5 rounded-lg bg-rose-500/15 border border-rose-500/35 text-rose-400 font-bold text-xs hover:bg-rose-500/25 transition-colors">
                 End Session
               </button>
               <button onClick={() => setShowAbortConfirm(false)} className="w-full py-2.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 font-semibold text-xs mt-2 hover:bg-white/10 transition-colors">
@@ -1209,7 +1261,7 @@ function DimCard({ label, subtitle, value, colorFrom, colorTo, badgeBg, badgeBor
           <div className="text-[13px] font-bold text-slate-200">{label}</div>
           <div className="text-[10px] text-slate-500 mt-0.5">{subtitle}</div>
         </div>
-        <span className="px-2.5 py-1 rounded-lg text-xs font-mono font-extrabold" style={{ background: badgeBg, border: `1px solid ${badgeBorder}`, color: badgeColor }}>
+        <span className="px-2.5 py-1 rounded-lg text-xs font-mono font-extrabold tabular-nums" style={{ background: badgeBg, border: `1px solid ${badgeBorder}`, color: badgeColor }}>
           {value ? value.toFixed(1) : "—"}
         </span>
       </div>
@@ -1223,7 +1275,7 @@ function DimCard({ label, subtitle, value, colorFrom, colorTo, badgeBg, badgeBor
 function VoiceStat({ label, value, color }) {
   return (
     <div className="text-center px-5 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.07] min-w-[80px]">
-      <div className="text-2xl font-extrabold font-mono tracking-tight" style={{ color }}>{value}</div>
+      <div className="text-2xl font-extrabold font-mono tracking-tight tabular-nums" style={{ color }}>{value}</div>
       <div className="text-[9px] text-slate-500 font-mono mt-0.5 tracking-widest">{label.toUpperCase()}</div>
     </div>
   );

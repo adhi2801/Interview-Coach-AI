@@ -14,6 +14,11 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     elo_rating = Column(Float, default=1200.0)
     created_at = Column(DateTime, default=datetime.utcnow)
+    # Real per-user settings — sound effects, live coaching telemetry,
+    # high-contrast editor. Nullable/defaults to {} for existing users;
+    # the frontend applies its own sensible defaults for any key that
+    # isn't present yet rather than assuming NULL means "off".
+    preferences = Column(JSON, nullable=True)
 
     sessions = relationship("InterviewSession", back_populates="user")
 
@@ -112,6 +117,11 @@ class CodingProblem(Base):
     difficulty = Column(Integer, default=5)  # 1-10, same scale as Topic.difficulty_level for consistency
     topics = Column(JSON)  # ["arrays", "hash_maps"] — reuses your existing topic taxonomy where it overlaps
     companies = Column(JSON)  # ["google", "amazon"] — same pattern as seed_questions.py
+    input_format = Column(Text, nullable=True)
+    output_format = Column(Text, nullable=True)
+    constraints = Column(JSON, nullable=True)
+    time_complexity_target = Column(String, nullable=True)
+    space_complexity_target = Column(String, nullable=True)
 
     test_cases = relationship("CodingTestCase", back_populates="problem")
 
