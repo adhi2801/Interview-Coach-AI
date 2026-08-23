@@ -1,14 +1,14 @@
 import { FaAmazon } from 'react-icons/fa';
-import { siMeta, siApple, siNetflix } from 'simple-icons';
+import { SiMeta, SiApple, SiNetflix } from 'react-icons/si';
 import { Rocket } from 'lucide-react';
 
-export function BrandIcon({ icon, className = "w-4 h-4", forceWhite = false }) {
-  return (
-    <svg role="img" viewBox="0 0 24 24" className={className} fill={forceWhite ? "#ffffff" : `#${icon.hex}`}>
-      <path d={icon.path} />
-    </svg>
-  );
-}
+// Previously this file used simple-icons (a separate, large icon
+// library) for Meta/Apple/Netflix while UserDashboard.jsx used
+// react-icons for the same five companies — two icon libraries drawing
+// the same logos in different places, and paying the bundle cost for
+// both. react-icons/si already ships Meta, Apple, and Netflix, so this
+// now matches UserDashboard.jsx exactly and simple-icons can be removed
+// from package.json entirely.
 
 export const COMPANIES = [
   {
@@ -23,7 +23,7 @@ export const COMPANIES = [
     )
   },
   { id: "amazon", name: "Amazon", color: "#FF9900", logo: <FaAmazon size={14} color="#FF9900" /> },
-  { id: "meta", name: "Meta", color: "#0866FF", logo: <BrandIcon icon={siMeta} className="w-3.5 h-3.5" /> },
+  { id: "meta", name: "Meta", color: "#0866FF", logo: <SiMeta size={14} color="#0866FF" /> },
   {
     id: "microsoft", name: "Microsoft", color: "#00A4EF",
     logo: (
@@ -33,7 +33,7 @@ export const COMPANIES = [
       </svg>
     )
   },
-  { id: "apple", name: "Apple", color: "#e2e8f0", logo: <BrandIcon icon={siApple} className="w-3.5 h-3.5" forceWhite /> },
-  { id: "netflix", name: "Netflix", color: "#E50914", logo: <BrandIcon icon={siNetflix} className="w-3.5 h-3.5" /> },
+  { id: "apple", name: "Apple", color: "#e2e8f0", logo: <SiApple size={14} color="#e2e8f0" /> },
+  { id: "netflix", name: "Netflix", color: "#E50914", logo: <SiNetflix size={14} color="#E50914" /> },
   { id: "startup", name: "Startup", color: "#10b981", logo: <Rocket size={14} className="text-emerald-400" /> },
 ];

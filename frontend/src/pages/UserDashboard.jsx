@@ -213,12 +213,29 @@ export default function UserDashboard({
         const res = await axios.get(`${API_URL}/user/sessions`, { headers: { Authorization: `Bearer ${token}` } });
         const sessions = res.data.sessions || [];
 
+        // Real chronological ELO delta — sort oldest→newest, diff each
+        // session against the one right before it. The oldest session in
+        // this window has no prior session to diff against, so it gets no
+        // delta at all rather than a fabricated one (same fix already
+        // applied to Flight Ledger).
+        const chronological = [...sessions]
+          .filter((s) => s.elo_after != null)
+          .sort((a, b) => new Date(a.started_at || 0) - new Date(b.started_at || 0));
+        const deltaBySessionId = {};
+        chronological.forEach((s, i) => {
+          if (i === 0) return;
+          const prev = chronological[i - 1].elo_after;
+          deltaBySessionId[s.id] = Math.round(s.elo_after - prev);
+        });
+
         const ledger = sessions.map((s) => ({
           id: s.id,
           date: s.started_at ? new Date(s.started_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—",
           type: s.role || "Session",
           company: s.company_target || "—",
-          eloDelta: s.elo_after ? `${s.elo_after >= (user?.elo_rating || 1200) ? "+" : ""}${Math.round(s.elo_after - (user?.elo_rating || 1200))}` : "",
+          eloDelta: deltaBySessionId[s.id] != null
+            ? `${deltaBySessionId[s.id] >= 0 ? "+" : ""}${deltaBySessionId[s.id]}`
+            : "",
           score: s.score != null ? s.score : null,
           persona: (s.persona || "").toLowerCase(),
         }));
@@ -227,6 +244,7 @@ export default function UserDashboard({
 
         const trend = sessions.filter((s) => s.elo_after).slice().reverse().map((s) => ({
           date: s.started_at ? new Date(s.started_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "",
+          rawDate: s.started_at ? new Date(s.started_at) : null,
           elo: Math.round(s.elo_after),
         }));
         const deduped = trend.reduce((acc, point) => {
@@ -270,7 +288,13 @@ export default function UserDashboard({
   const tier = getEloTier(currentElo);
   const streak = useMemo(() => computeStreak(sessionDates), [sessionDates]);
   const heatmap = useMemo(() => buildHeatmap(sessionDates), [sessionDates]);
-  const recentDelta = eloHistory.length > 1 ? Math.round(eloHistory[eloHistory.length - 1].elo - eloHistory[0].elo) : null;
+  const recentDelta = useMemo(() => {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  const inWindow = eloHistory.filter((p) => p.rawDate && p.rawDate >= cutoff);
+  if (inWindow.length < 2) return null; // honestly show nothing rather than a delta that isn't really 30-day
+  return Math.round(inWindow[inWindow.length - 1].elo - inWindow[0].elo);
+}, [eloHistory]);
   const personalBest = eloHistory.length > 0 ? eloHistory.reduce((a, b) => (b.elo > a.elo ? b : a)) : null;
 
   let strongest = null, weakest = null;

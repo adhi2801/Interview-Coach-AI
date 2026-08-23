@@ -1112,18 +1112,89 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
           </div>
         </section>
 
-        {/* ABOUT / WHY I BUILT THIS */}
+{/* ABOUT / WHY I BUILT THIS */}
         <section className="px-6 max-w-4xl mx-auto mb-32">
-          <GlassCard className="p-8 md:p-10">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400 mb-3 block">About this project</span>
-            <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white mb-4">I built this to prepare myself.</h2>
-            <p className="text-sm text-slate-400 leading-relaxed font-medium mb-4">
-              This is a solo full-stack portfolio project, not a funded company — built to practice for real technical interviews and to demonstrate the kind of systems work that's hard to show on a resume alone: adaptive question generation, a custom RAG pipeline, sandboxed code execution, and a scoring engine that actually adjusts to how you answer.
-            </p>
-            <p className="text-sm text-slate-400 leading-relaxed font-medium">
-              It's still growing — more coding problems are being added, and a few pieces (like OAuth login) are intentionally left as placeholders for now. What's live today is fully functional and worth trying.
-            </p>
-          </GlassCard>
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: "-60px" }}
+          >
+            <GlassCard className="p-8 md:p-10 border-amber-500/[0.12]" tilt>
+              <motion.div variants={staggerItem} className="flex items-center gap-2 mb-3">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-amber-400/90">About this project</span>
+              </motion.div>
+
+              <motion.h2 variants={staggerItem} className="text-2xl md:text-3xl font-extrabold tracking-tight text-white mb-4">
+                I built this to prepare myself.
+              </motion.h2>
+
+              <motion.p variants={staggerItem} className="text-sm text-slate-400 leading-relaxed font-medium mb-4">
+                This is a solo full-stack portfolio project, not a funded company — built to practice for real technical interviews and to demonstrate the kind of systems work that's hard to show on a resume alone: adaptive question generation, a custom RAG pipeline, sandboxed code execution, and a scoring engine that actually adjusts to how you answer.
+              </motion.p>
+
+              <motion.p variants={staggerItem} className="text-sm text-slate-400 leading-relaxed font-medium mb-6">
+                It's still growing — more coding problems are being added, and a few pieces (like OAuth login) are intentionally left as visibly-disabled placeholders rather than dead buttons that pretend to work.
+              </motion.p>
+
+              {/* Real problems hit and fixed during the build — specific,
+                  not generic "learned a lot" filler. Every item here is a
+                  real bug or migration this codebase actually went through. */}
+              <motion.div variants={staggerItem} className="border-t border-white/[0.06] pt-6">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 block mb-4">
+                  A few real problems this project made me solve
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    {
+                      title: "Ephemeral disk killed the RAG store",
+                      body: "Railway wipes local disk on every redeploy, so the original disk-based ChromaDB vector store lost its embeddings constantly. Migrated to cosine similarity computed in-process against PostgreSQL — no vector DB, just Postgres.",
+                    },
+                    {
+                      title: "A silent WPM inflation bug",
+                      body: "The confidence coach's word count compounded on every debounced chunk instead of replacing it, since the frontend sends the full current answer each time — reported WPM would inflate from 200 to 560+ the longer someone typed. One-line fix, real regression until caught.",
+                    },
+                    {
+                      title: "A code sandbox's public API disappeared",
+                      body: "The original execution sandbox (Piston) discontinued public access mid-build. Rebuilt the whole coding track on Judge0 instead, including a Pydantic v2 validation cascade that broke along the way.",
+                    },
+                    {
+                      title: "One ELO system, two very different tracks",
+                      body: "System-design interviews and coding submissions are graded completely differently, but they share one formula for updating ELO — so a candidate's skill rating means the same thing whether they just solved a problem or just answered a design question.",
+                    },
+                  ].map((item) => (
+                    <div key={item.title} className="bg-[#050508] border border-white/[0.07] rounded-xl p-4 transition-all duration-300 hover:border-white/[0.16] hover:-translate-y-0.5">
+                      <span className="block text-xs font-bold text-slate-200 mb-1.5">{item.title}</span>
+                      <span className="block text-[11.5px] text-slate-500 leading-relaxed">{item.body}</span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+
+              {/* Personal signature — an anchor to an actual person, not
+                  just a copyright line buried in the footer. */}
+              <motion.div variants={staggerItem} className="border-t border-white/[0.06] pt-6 mt-6 flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-500 to-rose-500 flex items-center justify-center text-white text-xs font-extrabold shrink-0">
+                    A
+                  </div>
+                  <div>
+                    <span className="block text-xs font-bold text-white">Adhiswauran</span>
+                    <span className="block text-[10.5px] text-slate-500">Solo-built, end to end — backend, frontend, and infra</span>
+                  </div>
+                </div>
+                <a
+                  href="https://github.com/adhi2801/Interview-Coach-AI/commits"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1"
+                >
+                  See the real commit history <ArrowRight size={12} />
+                </a>
+              </motion.div>
+            </GlassCard>
+          </motion.div>
         </section>
 
         {/* FINAL CTA */}

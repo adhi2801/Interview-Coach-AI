@@ -870,7 +870,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
               <div className="mt-6 pt-5 border-t border-white/[0.06]">
                 <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300 block mb-3">Score Preview</span>
                 <div className="space-y-2.5">
-                  {["Accuracy", "Scalability", "Communication", "Culture Fit", "Confidence"].map((label) => (
+                  {["Technical Accuracy", "Problem Solving", "Communication", "Culture Fit", "Confidence"].map((label) => (
                     <div key={label} className="flex items-center justify-between">
                       <span className="text-[11px] font-medium text-slate-400">{label}</span>
                       <span className="text-[10px] font-mono font-bold text-slate-600 uppercase tracking-wider">Pending</span>
@@ -1030,11 +1030,10 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                     <span className="text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-slate-500 block mb-3.5">5-Dimension Score Breakdown</span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                       {[
-                        { label: "Technical Accuracy", subtitle: "Correctness of approach", value: scores.score_technical, colorFrom: "#6366f1", colorTo: "#8b5cf6", badgeBg: "rgba(99,102,241,0.14)", badgeBorder: "rgba(99,102,241,0.28)", badgeColor: "#a5b4fc" },
-                        { label: "Problem Solving", subtitle: "Trade-off & structural thinking", value: scores.score_problem_solving, colorFrom: "#10b981", colorTo: "#6366f1", badgeBg: "rgba(16,185,129,0.12)", badgeBorder: "rgba(16,185,129,0.25)", badgeColor: "#6ee7b7" },
-                        { label: "Communication", subtitle: "Clarity of explanation", value: scores.score_communication, colorFrom: "#f59e0b", colorTo: "#10b981", badgeBg: "rgba(245,158,11,0.12)", badgeBorder: "rgba(245,158,11,0.25)", badgeColor: "#fbbf24" },
-                        { label: "Culture Fit", subtitle: `${company?.name || "Company"}-specific behaviours`, value: scores.score_cultural_fit, colorFrom: "#ec4899", colorTo: "#8b5cf6", badgeBg: "rgba(236,72,153,0.1)", badgeBorder: "rgba(236,72,153,0.22)", badgeColor: "#f9a8d4" },
-                      ].map((d, i) => (
+                        { label: "Technical Accuracy", subtitle: "Correctness of approach", value: scores.score_technical, feedback: scores.technical_feedback, colorFrom: "#6366f1", colorTo: "#8b5cf6", badgeBg: "rgba(99,102,241,0.14)", badgeBorder: "rgba(99,102,241,0.28)", badgeColor: "#a5b4fc" },
+                        { label: "Problem Solving", subtitle: "Trade-off & structural thinking", value: scores.score_problem_solving, feedback: scores.problem_solving_feedback, colorFrom: "#10b981", colorTo: "#6366f1", badgeBg: "rgba(16,185,129,0.12)", badgeBorder: "rgba(16,185,129,0.25)", badgeColor: "#6ee7b7" },
+                        { label: "Communication", subtitle: "Clarity of explanation", value: scores.score_communication, feedback: scores.communication_feedback, colorFrom: "#f59e0b", colorTo: "#10b981", badgeBg: "rgba(245,158,11,0.12)", badgeBorder: "rgba(245,158,11,0.25)", badgeColor: "#fbbf24" },
+                        { label: "Culture Fit", subtitle: `${company?.name || "Company"}-specific behaviours`, value: scores.score_cultural_fit, colorFrom: "#ec4899", colorTo: "#8b5cf6", badgeBg: "rgba(236,72,153,0.1)", badgeBorder: "rgba(236,72,153,0.22)", badgeColor: "#f9a8d4" },                      ].map((d, i) => (
                         <motion.div key={d.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
                           <DimCard {...d} />
                         </motion.div>
@@ -1218,9 +1217,11 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
             </div>
 
             {/* Overlay Modals */}
+            <AnimatePresence>
             {studyPlanTopic && (
-              <StudyPlan topicName={studyPlanTopic} company={company?.name?.toLowerCase()} onClose={() => setStudyPlanTopic(null)} />
-            )}
+             <StudyPlan topicName={studyPlanTopic} company={company?.name?.toLowerCase()} onClose={() => setStudyPlanTopic(null)} />
+             )}
+          </AnimatePresence>
 
           </div>
         )}
@@ -1252,7 +1253,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
 }
 
 // Helpers
-function DimCard({ label, subtitle, value, colorFrom, colorTo, badgeBg, badgeBorder, badgeColor }) {
+function DimCard({ label, subtitle, value, feedback, colorFrom, colorTo, badgeBg, badgeBorder, badgeColor }) {
   const pct = Math.max(4, Math.min(100, Math.round((value || 0) * 10)));
   return (
     <div className="bg-[#050507] border border-white/[0.08] rounded-2xl p-5">
@@ -1268,6 +1269,9 @@ function DimCard({ label, subtitle, value, colorFrom, colorTo, badgeBg, badgeBor
       <div className="h-[5px] w-full bg-white/[0.06] rounded-full overflow-hidden">
         <div className="h-full rounded-full" style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${colorFrom}, ${colorTo})` }} />
       </div>
+      {feedback && (
+        <p className="text-[11px] text-slate-400 leading-relaxed mt-3 pt-3 border-t border-white/[0.05]">{feedback}</p>
+      )}
     </div>
   );
 }

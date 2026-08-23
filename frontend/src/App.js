@@ -1,32 +1,40 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Terminal, LayoutGrid, Code2, LogOut, Settings as SettingsIcon, Play, Database } from "lucide-react";
-
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import TermsOfService from "./pages/TermsOfService";
-import Landing from "./pages/Landing";
-import Dashboard from "./pages/Dashboard";
-import UserDashboard from "./pages/UserDashboard";
-import PreflightCheck from "./pages/PreflightCheck";
-import InterviewRoom from "./pages/InterviewRoom";
-import ReplayViewer from "./pages/ReplayViewer";
-import CodingRoom from "./pages/CodingRoom";
-import Settings from "./pages/Settings";
-import StudyPlanBrowser from "./pages/StudyPlanBrowser";
-
-import "./components/ui/Button.css";
-import "./components/ui/Card.css";
-import "./components/ui/Input.css";
-import "./components/ui/Select.css";
-import "./components/ui/Modal.css";
-import "./components/ui/Toast.css";
-import "./styles/Tokens.css";
-import "./styles/Glass.css";
-import "./styles/Noise.css";
+import { Search, LayoutGrid, Code2, LogOut, Settings as SettingsIcon, Play, Database, AlertTriangle } from "lucide-react";
 import "./App.css";
+
+// Every route-level page is now code-split. Previously all 13 pages were
+// eagerly imported at the top of this file, meaning a first-time visitor
+// to Landing downloaded the entire app in one 422 kB gzipped bundle —
+// including Monaco (CodingRoom) and every authenticated-only page —
+// before ever seeing the hero. Each of these now becomes its own chunk,
+// only fetched when the user actually navigates to that route.
+const Login = lazy(() => import("./pages/Login"));
+const Signup = lazy(() => import("./pages/Signup"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const Landing = lazy(() => import("./pages/Landing"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const UserDashboard = lazy(() => import("./pages/UserDashboard"));
+const PreflightCheck = lazy(() => import("./pages/PreflightCheck"));
+const InterviewRoom = lazy(() => import("./pages/InterviewRoom"));
+const ReplayViewer = lazy(() => import("./pages/ReplayViewer"));
+const CodingRoom = lazy(() => import("./pages/CodingRoom"));
+const Settings = lazy(() => import("./pages/Settings"));
+const StudyPlanBrowser = lazy(() => import("./pages/StudyPlanBrowser"));
+
+// Lightweight fallback shown only while a route's chunk is actually being
+// fetched over the network — on a warm cache or fast connection this is
+// often invisible. Deliberately simpler than AuthBootloader, which is for
+// the one-time initial auth check, not per-route navigation.
+function RouteLoadingFallback() {
+  return (
+    <div className="h-screen w-full bg-[#000000] flex items-center justify-center">
+      <div className="w-8 h-8 border-[3px] border-white/10 border-t-indigo-500 rounded-full animate-spin" />
+    </div>
+  );
+}
 
 function CommandPalette({ isOpen, onClose, navigate, onLogout }) {
   const [search, setSearch] = useState("");
@@ -47,11 +55,11 @@ function CommandPalette({ isOpen, onClose, navigate, onLogout }) {
 
   const actions = [
     { icon: Play, label: "Start New Interview", shortcut: "⌘ Enter", action: () => { navigate("/setup"); onClose(); } },
-    { icon: Code2, label: "Launch Coding Sandbox", shortcut: "⌘ Shift C", action: () => { navigate("/coding"); onClose(); } },
-    { icon: Database, label: "View Knowledge Graph", shortcut: "⌘ K", action: () => { navigate("/study-plan"); onClose(); } },
+    { icon: Code2, label: "Launch Coding Sandbox", shortcut: "⌘ Shift E", action: () => { navigate("/coding"); onClose(); } },
+    { icon: Database, label: "View Knowledge Graph", shortcut: "⌘ G", action: () => { navigate("/study-plan"); onClose(); } },
     { icon: LayoutGrid, label: "Go to Dashboard", shortcut: "⌘ D", action: () => { navigate("/"); onClose(); } },
     { icon: SettingsIcon, label: "Account Settings", shortcut: "⌘ ,", action: () => { navigate("/settings"); onClose(); } },
-    { icon: LogOut, label: "Log Out", shortcut: "⌘ Q", action: () => { onLogout(); onClose(); }, danger: true },
+    { icon: LogOut, label: "Log Out", shortcut: "⌘ ⇧ X", action: () => { onLogout(); onClose(); }, danger: true },
   ];
 
   const filteredActions = actions.filter(a => a.label.toLowerCase().includes(search.toLowerCase()));
@@ -117,11 +125,9 @@ function AuthBootloader() {
   
   useEffect(() => {
     const sequence = [
-      "> Initializing WebRTC Context...",
-      "> Establishing secure socket...",
-      "> Verifying JWT Token Signature...",
-      "> Restoring ELO State...",
-      "> System Ready [16ms]"
+      "> Checking for saved session...",
+      "> Loading your account...",
+      "> Ready."
     ];
     let i = 0;
     const interval = setInterval(() => {
@@ -188,24 +194,26 @@ function AuthenticatedRoutes({ user, onLogout, onEloUpdate, sessionData, setSess
         transition={{ type: "spring", stiffness: 300, damping: 30, mass: 0.9 }}
         className="w-full h-full"
       >
-        <Routes location={location}>
-          <Route path="/" element={<UserDashboard user={user} onLogout={onLogout} onStartNew={() => navigate("/setup")} onNavigateHistory={() => navigate("/replay")} onStartCoding={() => navigate("/coding")} onNavigateSettings={() => navigate("/settings")} onNavigateStudyPlan={() => navigate("/study-plan")} onOpenCommandPalette={onOpenCommandPalette} />} />
-          <Route path="/setup" element={<Dashboard user={user} onLogout={onLogout} onGoBack={() => navigate("/")} onStart={(data) => { setSessionData(data); navigate("/preflight"); }} />} />
-          <Route path="/preflight" element={<PreflightCheck onReady={() => navigate("/interview")} onSkip={() => navigate("/interview")} />} />
-          <Route path="/interview" element={
-            <RequireSession sessionData={sessionData}>
-              <InterviewRoom sessionData={sessionData} onFinish={() => navigate("/replay")} onEloUpdate={onEloUpdate} />
-            </RequireSession>
-          } />
-          <Route path="/coding" element={<CodingRoom sessionId={sessionData?.session_id} user={user} onFinish={() => navigate("/")} />} />
-          <Route path="/replay" element={<ReplayViewer sessionId={sessionData?.session_id} onExit={() => navigate("/")} onSelectSession={(id) => navigate(`/replay/${id}`)} />} />
-          <Route path="/replay/:id" element={<ReplayViewerWithParam onExit={() => navigate("/")} />} />
-          <Route path="/study-plan" element={<StudyPlanBrowser onGoBack={() => navigate("/")} />} />
-          <Route path="/settings" element={<Settings user={user} onLogout={onLogout} onGoBack={() => navigate("/")} />} />
-          <Route path="/privacy" element={<PrivacyPolicy onGoBack={() => navigate("/")} />} />
-          <Route path="/terms" element={<TermsOfService onGoBack={() => navigate("/")} />} />  
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <Suspense fallback={<RouteLoadingFallback />}>
+          <Routes location={location}>
+            <Route path="/" element={<UserDashboard user={user} onLogout={onLogout} onStartNew={() => navigate("/setup")} onNavigateHistory={() => navigate("/replay")} onStartCoding={() => navigate("/coding")} onNavigateSettings={() => navigate("/settings")} onNavigateStudyPlan={() => navigate("/study-plan")} onOpenCommandPalette={onOpenCommandPalette} />} />
+            <Route path="/setup" element={<Dashboard user={user} onLogout={onLogout} onGoBack={() => navigate("/")} onStart={(data) => { setSessionData(data); navigate("/preflight"); }} />} />
+            <Route path="/preflight" element={<PreflightCheck sessionData={sessionData} onReady={() => navigate("/interview")} onSkip={() => navigate("/interview")} />} />
+            <Route path="/interview" element={
+              <RequireSession sessionData={sessionData}>
+                <InterviewRoom sessionData={sessionData} onFinish={() => navigate("/replay")} onEloUpdate={onEloUpdate} />
+              </RequireSession>
+            } />
+            <Route path="/coding" element={<CodingRoom sessionId={sessionData?.session_id} user={user} onFinish={() => navigate("/")} />} />
+            <Route path="/replay" element={<ReplayViewer sessionId={sessionData?.session_id} onExit={() => navigate("/")} onSelectSession={(id) => navigate(`/replay/${id}`)} />} />
+            <Route path="/replay/:id" element={<ReplayViewerWithParam onExit={() => navigate("/")} />} />
+            <Route path="/study-plan" element={<StudyPlanBrowser onGoBack={() => navigate("/")} />} />
+            <Route path="/settings" element={<Settings user={user} onLogout={onLogout} onGoBack={() => navigate("/")} />} />
+            <Route path="/privacy" element={<PrivacyPolicy onGoBack={() => navigate("/")} />} />
+            <Route path="/terms" element={<TermsOfService onGoBack={() => navigate("/")} />} />  
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </motion.div>
     </AnimatePresence>
   );
@@ -225,21 +233,23 @@ function UnauthenticatedRoutes({ onAuth }) {
         transition={{ duration: 0.3, ease: "easeInOut" }}
         className="w-full h-full"
       >
-        <Routes location={location}>
-          <Route path="/" element={
-            <Landing 
-              onGetStarted={() => navigate("/signup")} 
-              onSignIn={() => navigate("/login")} 
-              onNavigatePrivacy={() => navigate("/privacy")}
-              onNavigateTerms={() => navigate("/terms")}
-            />
-          } />
-          <Route path="/login" element={<Login onAuth={onAuth} onSwitchToSignup={() => navigate("/signup")} onBackToHome={() => navigate("/")} />} />
-          <Route path="/signup" element={<Signup onAuth={onAuth} onSwitchToLogin={() => navigate("/login")} onBackToHome={() => navigate("/")} />} />
-          <Route path="/privacy" element={<PrivacyPolicy onGoBack={() => navigate("/")} />} />
-          <Route path="/terms" element={<TermsOfService onGoBack={() => navigate("/")} />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <Suspense fallback={<RouteLoadingFallback />}>
+          <Routes location={location}>
+            <Route path="/" element={
+              <Landing 
+                onGetStarted={() => navigate("/signup")} 
+                onSignIn={() => navigate("/login")} 
+                onNavigatePrivacy={() => navigate("/privacy")}
+                onNavigateTerms={() => navigate("/terms")}
+              />
+            } />
+            <Route path="/login" element={<Login onAuth={onAuth} onSwitchToSignup={() => navigate("/signup")} onBackToHome={() => navigate("/")} />} />
+            <Route path="/signup" element={<Signup onAuth={onAuth} onSwitchToLogin={() => navigate("/login")} onBackToHome={() => navigate("/")} />} />
+            <Route path="/privacy" element={<PrivacyPolicy onGoBack={() => navigate("/")} />} />
+            <Route path="/terms" element={<TermsOfService onGoBack={() => navigate("/")} />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </motion.div>
     </AnimatePresence>
   );
@@ -252,18 +262,88 @@ function ReplayViewerWithParam({ onExit }) {
 
 function AppContent({ user, checkingAuth, handleAuth, handleLogout, handleEloUpdate, sessionData, setSessionData }) {
   const [cmdOpen, setCmdOpen] = useState(false);
+  const [logoutConfirming, setLogoutConfirming] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const logoutConfirmTimerRef = React.useRef(null);
 
   useEffect(() => {
+    // Global shortcuts are suppressed entirely while inside an active
+    // interview or coding session — a stray ⌘D (bookmark muscle memory)
+    // or ⌘Enter shouldn't be able to yank someone out of an in-progress
+    // answer with zero warning. InterviewRoom already has a deliberate,
+    // confirmed Abort flow for leaving mid-session; global shortcuts
+    // must not bypass it.
+    const inActiveSession = location.pathname.startsWith("/interview") || location.pathname.startsWith("/coding");
+
     const handleKeyDown = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      const isTypingTarget = e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable;
+      const mod = e.metaKey || e.ctrlKey;
+
+      // ⌘K — open/close command palette. Always available, even mid-session,
+      // since it's a non-destructive overlay, not a navigation away from work.
+      if (mod && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        if (user) setCmdOpen(open => !open);
+        if (user) setCmdOpen((open) => !open);
+        return;
+      }
+
+      if (!user || inActiveSession || isTypingTarget) return;
+
+      // ⌘Enter — Start New Interview
+      if (mod && e.key === "Enter") {
+        e.preventDefault();
+        navigate("/setup");
+        return;
+      }
+      // ⌘⇧E — Launch Coding Sandbox (not ⌘⇧C — that's the browser's
+      // built-in "Inspect Element" shortcut in Chrome/Firefox)
+      if (mod && e.shiftKey && e.key.toLowerCase() === "e") {
+        e.preventDefault();
+        navigate("/coding");
+        return;
+      }
+      // ⌘G — View Knowledge Graph
+      if (mod && e.key.toLowerCase() === "g") {
+        e.preventDefault();
+        navigate("/study-plan");
+        return;
+      }
+      // ⌘D — Go to Dashboard
+      if (mod && e.key.toLowerCase() === "d") {
+        e.preventDefault();
+        navigate("/");
+        return;
+      }
+      // ⌘, — Account Settings
+      if (mod && e.key === ",") {
+        e.preventDefault();
+        navigate("/settings");
+        return;
+      }
+      // ⌘⇧X — Log Out (not ⌘Q — that's the OS-level "Quit Browser"
+      // shortcut on Mac, and would close the whole browser, not log out).
+      // Requires pressing it twice within 2.5s — a stray hit shouldn't
+      // instantly end the session with no way back.
+      if (mod && e.shiftKey && e.key.toLowerCase() === "x") {
+        e.preventDefault();
+        if (logoutConfirming) {
+          clearTimeout(logoutConfirmTimerRef.current);
+          setLogoutConfirming(false);
+          handleLogout();
+        } else {
+          setLogoutConfirming(true);
+          logoutConfirmTimerRef.current = setTimeout(() => setLogoutConfirming(false), 2500);
+        }
+        return;
       }
     };
+
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [user]);
+  }, [user, location.pathname, logoutConfirming, navigate, handleLogout]);
+
+  useEffect(() => () => clearTimeout(logoutConfirmTimerRef.current), []);
 
   if (checkingAuth) {
     return <AuthBootloader />;
@@ -280,6 +360,22 @@ function AppContent({ user, checkingAuth, handleAuth, handleLogout, handleEloUpd
       </div>
       <AnimatePresence>
         {cmdOpen && <CommandPalette isOpen={cmdOpen} onClose={() => setCmdOpen(false)} navigate={navigate} onLogout={handleLogout} />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {logoutConfirming && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-2.5 bg-[#0A0A0C]/95 backdrop-blur-2xl border border-rose-500/25 rounded-xl px-4 py-3 shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
+          >
+            <AlertTriangle size={15} className="text-rose-400 shrink-0" />
+            <span className="text-xs font-semibold text-slate-200">
+              Press <kbd className="font-mono text-[10px] bg-white/10 px-1.5 py-0.5 rounded mx-1 text-rose-300">⌘⇧X</kbd> again to log out
+            </span>
+          </motion.div>
+        )}
       </AnimatePresence>
     </>
   );
@@ -298,8 +394,7 @@ function App() {
     }
     setTimeout(() => {
       setCheckingAuth(false);
-    }, 1000);
-  }, []);
+    }, 400);  }, []);
 
   function handleAuth(userData) {
     setUser(userData);

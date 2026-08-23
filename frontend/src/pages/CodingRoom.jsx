@@ -46,6 +46,19 @@ function formatClock(ts) {
 // Parses a real "12.4ms" style string from the backend into a number for
 // the per-test bar visual. Returns null (not 0) when unparseable, so we
 // never silently draw a fake zero-width bar for missing data.
+// Extracts a real line number from a real stderr/traceback string.
+// Covers Python ("line 12"), and generic compiler-style "file:12:" formats
+// used by JS/Java/C++. Returns null (not a guess) if nothing matches —
+// the UI only ever offers "Jump to Error" when this genuinely finds one.
+function parseErrorLine(stderr) {
+  if (!stderr) return null;
+  const pyMatch = stderr.match(/line (\d+)/i);
+  if (pyMatch) return parseInt(pyMatch[1], 10);
+  const genericMatch = stderr.match(/:(\d+):\d*/);
+  if (genericMatch) return parseInt(genericMatch[1], 10);
+  return null;
+}
+
 function parseMs(execTimeStr) {
   if (!execTimeStr) return null;
   const match = String(execTimeStr).match(/([\d.]+)\s*ms/i);
@@ -645,9 +658,6 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
           </div>
 
           <div className="absolute bottom-0 left-0 right-0 h-14 bg-black/70 backdrop-blur-lg shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] border-t border-white/[0.08] flex items-center justify-between px-6 z-20">
-            <button className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold border outline-none bg-white/[0.03] text-slate-400 border-white/10 hover:text-white hover:bg-white/10 transition-all">
-              <Mic size={12} /> <span className="hidden xl:inline">Voice Walkthrough</span>
-            </button>
             <div className="flex items-center gap-3">
               <motion.button whileHover={{ scale: 0.99 }} whileTap={{ scale: 0.95 }} onClick={runCode} disabled={runState === "running"}
                 className="relative overflow-hidden px-4 py-1.5 rounded-md text-xs font-bold bg-white/[0.05] hover:bg-white/10 border border-white/10 text-white flex items-center gap-2 transition-all outline-none disabled:opacity-40 group">
@@ -732,7 +742,17 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
                                     <div className="flex items-start gap-2.5">
                                       {r.passed ? <CheckCircle2 size={12} className="text-emerald-500 mt-0.5 shrink-0" /> : <XCircle size={12} className="text-rose-500 mt-0.5 shrink-0" />}
                                       <div className="flex-1 min-w-0">
-                                        <span className={r.passed ? "text-slate-300" : "text-rose-400"}>Test 0{idx + 1} · Output: {r.actual}</span>
+                                        <div className="flex items-center justify-between gap-2">
+                                          <span className={r.passed ? "text-slate-300" : "text-rose-400"}>Test 0{idx + 1} · Output: {r.actual}</span>
+                                          {!r.passed && parseErrorLine(r.stderr) && (
+                                            <button
+                                              onClick={() => focusLineInEditor(parseErrorLine(r.stderr))}
+                                              className="shrink-0 text-[9px] font-bold uppercase tracking-widest text-blue-400 hover:text-blue-300 flex items-center gap-1 font-sans"
+                                            >
+                                              Jump to Error →
+                                            </button>
+                                          )}
+                                        </div>
                                         <div className="flex items-center gap-2 mt-1">
                                           {ms !== null ? (
                                             <>

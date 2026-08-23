@@ -2,11 +2,24 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { API_URL } from "../config";
 import { motion, AnimatePresence } from "framer-motion";
-import { Network, X, ChevronRight, Activity, AlertTriangle } from "lucide-react";
+import { Network, X, ChevronRight, Activity, AlertTriangle, RotateCcw, CheckCircle2, Lock } from "lucide-react";
+
+// Honest per-step progress badges, sourced from the same /topics/status
+// endpoint UserDashboard/StudyPlanBrowser already use — not invented here.
+// Requires a token; if there's none (or the fetch fails), badges are
+// simply omitted rather than showing a fabricated default.
+function statusBadge(status) {
+  if (status === "passed") return { label: "Passed", icon: CheckCircle2, cls: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" };
+  if (status === "gap") return { label: "Gap", icon: AlertTriangle, cls: "text-rose-400 border-rose-500/30 bg-rose-500/10" };
+  if (status === "locked") return { label: "Locked", icon: Lock, cls: "text-slate-500 border-white/10 bg-white/5" };
+  return null; // "unattempted" — no badge, nothing to signal yet
+}
 
 export default function StudyPlan({ topicName, company, onClose }) {
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [statusByTopic, setStatusByTopic] = useState(null); // null = not available, not "all unattempted"
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -16,32 +29,57 @@ export default function StudyPlan({ topicName, company, onClose }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
+  // Lock background scroll while the modal is open.
   useEffect(() => {
-    async function fetchPlan() {
-      try {
-        const res = await axios.get(`${API_URL}/study-plan/${topicName}`, {
-          params: { company }
-        });
-        setPlan(res.data);
-      } catch (err) {
-        console.error("Failed to load study plan:", err);
-      }
-      setLoading(false);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prevOverflow; };
+  }, []);
+
+  async function fetchPlan() {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const res = await axios.get(`${API_URL}/study-plan/${topicName}`, {
+        params: { company }
+      });
+      if (!res.data?.steps) throw new Error("Empty plan");
+      setPlan(res.data);
+    } catch (err) {
+      console.error("Failed to load study plan:", err);
+      setLoadError(true);
     }
+    setLoading(false);
+  }
+
+  useEffect(() => {
     fetchPlan();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [topicName, company]);
+
+  // Real per-step progress, only if a token exists. Silently skipped
+  // (not faked) if there's no session or the call fails.
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (!token) return;
+    axios.get(`${API_URL}/topics/status`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => {
+        const map = {};
+        (res.data?.topics || []).forEach((t) => { map[t.name] = t.status; });
+        setStatusByTopic(map);
+      })
+      .catch(() => setStatusByTopic(null));
+  }, []);
 
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 sm:p-6" onClick={onClose}>
-        
-        {/* Deep Glass Backdrop Blur */}
-        <motion.div 
+
+        <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
           className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         />
 
-        {/* The Diagnostic Inspector Vault */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -55,10 +93,16 @@ export default function StudyPlan({ topicName, company, onClose }) {
               <div className="w-8 h-8 border-[3px] border-slate-800 border-t-indigo-500 rounded-full animate-spin" />
               <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest animate-pulse">Calculating Dependency Chain...</span>
             </div>
-          ) : !plan || !plan.steps?.length ? (
-            <div className="flex flex-col items-center justify-center py-20">
-               <AlertTriangle size={32} className="text-rose-500 mb-4" />
+          ) : loadError || !plan || !plan.steps?.length ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+               <AlertTriangle size={32} className="text-rose-500" />
                <span className="text-sm font-medium text-slate-400">Failed to load study plan.</span>
+               <button
+                 onClick={fetchPlan}
+                 className="flex items-center gap-1.5 text-xs font-bold text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-4 py-2 rounded-lg transition-colors"
+               >
+                 <RotateCcw size={13} /> Retry
+               </button>
             </div>
           ) : (
             <>
@@ -93,39 +137,38 @@ export default function StudyPlan({ topicName, company, onClose }) {
                       step.company_relevance <= 0.6 ? { label: "Standard Foundation", color: "text-slate-400 border-white/10 bg-white/5" } :
                       { label: "Core Concept", color: "text-indigo-400 border-indigo-500/30 bg-indigo-500/10" };
 
+                    const progress = statusByTopic ? statusBadge(statusByTopic[step.name]) : null;
+
                     return (
-                      <motion.div 
-                        key={step.name} 
+                      <motion.div
+                        key={step.name}
                         initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1, duration: 0.4 }}
                         className="flex gap-6 relative group"
                       >
                         {/* The Animated SVG Spine & Node Indicator */}
                         <div className="flex flex-col items-center flex-shrink-0 relative">
-                          {/* Top Spine connecting to previous */}
                           {!isFirst && (
                             <div className="absolute top-0 bottom-1/2 w-0.5 -mt-6">
-                              <motion.div 
+                              <motion.div
                                 initial={{ height: 0 }} animate={{ height: "100%" }} transition={{ duration: 0.5, delay: (i - 1) * 0.1 + 0.2 }}
-                                className={`w-full ${isTarget ? "bg-gradient-to-b from-indigo-500/30 to-amber-500/50" : "bg-indigo-500/30"}`} 
+                                className={`w-full ${isTarget ? "bg-gradient-to-b from-indigo-500/30 to-amber-500/50" : "bg-indigo-500/30"}`}
                               />
                             </div>
                           )}
-                          
-                          {/* The Node Circle */}
+
                           <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold tabular-nums transition-colors duration-300 mt-0.5 ${
-                            isTarget 
-                              ? "bg-amber-500/10 border-2 border-amber-500/50 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.2)] group-hover:border-amber-400" 
+                            isTarget
+                              ? "bg-amber-500/10 border-2 border-amber-500/50 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.2)] group-hover:border-amber-400"
                               : "bg-[#0A0A0C] border-2 border-indigo-500/30 text-indigo-400 group-hover:border-indigo-400"
                           }`}>
                             {i + 1}
                           </div>
 
-                          {/* Bottom Spine connecting to next */}
                           {!isTarget && (
                             <div className="absolute top-8 bottom-[-24px] w-0.5">
-                              <motion.div 
+                              <motion.div
                                 initial={{ height: 0 }} animate={{ height: "100%" }} transition={{ duration: 0.5, delay: i * 0.1 + 0.2 }}
-                                className="w-full bg-indigo-500/30" 
+                                className="w-full bg-indigo-500/30"
                               />
                             </div>
                           )}
@@ -138,8 +181,8 @@ export default function StudyPlan({ topicName, company, onClose }) {
                               {step.name.replace(/_/g, " ")}
                             </span>
                           </div>
-                          
-                          <div className="flex items-center gap-2 mb-3">
+
+                          <div className="flex items-center gap-2 mb-3 flex-wrap">
                             <span className="bg-[#050505] border border-white/10 shadow-inner text-slate-400 text-[10px] font-bold px-2 py-1 rounded tabular-nums uppercase tracking-widest">
                               Level {step.difficulty}
                             </span>
@@ -153,8 +196,13 @@ export default function StudyPlan({ topicName, company, onClose }) {
                                 <Activity size={10} /> Target Node
                               </span>
                             )}
+                            {progress && (
+                              <span className={`text-[9px] font-bold px-2 py-1 rounded border uppercase tracking-widest flex items-center gap-1 ${progress.cls}`}>
+                                <progress.icon size={10} /> {progress.label}
+                              </span>
+                            )}
                           </div>
-                          
+
                           <p className="text-slate-400 text-sm leading-relaxed font-medium">
                             {step.description}
                           </p>
@@ -168,7 +216,7 @@ export default function StudyPlan({ topicName, company, onClose }) {
               {/* Action Footer */}
               <div className="p-6 border-t border-white/[0.06] bg-[#050505] flex-shrink-0 flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden sm:inline-block">End of Dependency Chain</span>
-                <motion.button 
+                <motion.button
                   whileTap={{ scale: 0.96 }}
                   onClick={onClose}
                   className="w-full sm:w-auto relative group overflow-hidden bg-white text-black px-8 py-3 rounded-lg text-sm font-bold active:scale-95 transition-all duration-150 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_30px_rgba(255,255,255,0.25)]"
