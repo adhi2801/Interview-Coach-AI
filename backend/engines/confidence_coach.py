@@ -34,32 +34,24 @@ class ConfidenceCoach:
         word_count = len(words)
         self.total_words += word_count
 
-        # Count filler words
         fillers_found = []
+        total_filler_occurrences = 0
         for filler in FILLER_WORDS:
             pattern = r'\b' + re.escape(filler) + r'\b'
             count = len(re.findall(pattern, text_lower))
             if count > 0:
                 fillers_found.append(f"{filler} (x{count})")
+                total_filler_occurrences += count
                 self.filler_counts[filler] = self.filler_counts.get(filler, 0) + count
 
-        # Calculate words per minute. IMPORTANT: the frontend sends the
-        # FULL current answer on every debounced chunk, not just new words
-        # since the last chunk — so total_words must be SET to the current
-        # word_count, not incremented on top of previous chunks' counts.
-        # The old `+=` here compounded every pause into an ever-inflating
-        # total, which is why WPM climbed unrealistically (200 -> 560+)
-        # the longer someone kept typing.
         self.total_words = word_count
         elapsed_minutes = (time.time() - self.session_start) / 60
         wpm = self.total_words / max(elapsed_minutes, 0.01)
 
-        # Generate suggestion
         suggestion = self._generate_suggestion(wpm, fillers_found, elapsed_minutes)
 
-        # Calculate confidence score
         confidence = 10.0
-        confidence -= len(fillers_found) * 0.8
+        confidence -= min(total_filler_occurrences * 0.3, 5.0)
         if wpm > 170:
             confidence -= 2.0
         elif wpm < 80:
@@ -67,17 +59,13 @@ class ConfidenceCoach:
         if elapsed_minutes > 3:
             confidence -= 1.0
 
-        # Content sanity check: pace and filler metrics alone can't tell
-        # the difference between a real answer and low-effort/gibberish text.
-        # This catches the obvious cases without trying to judge correctness —
-        # that job belongs to the 5D scoring engine, not this one.
         content_penalty = self._content_quality_penalty(text)
         confidence -= content_penalty
 
         confidence = max(0.0, min(10.0, confidence))
 
         return CoachingFeedback(
-            hesitations=len(fillers_found),
+            hesitations=total_filler_occurrences,
             fillers_found=fillers_found,
             words_per_minute=round(wpm, 1),
             confidence_score=round(confidence, 1),

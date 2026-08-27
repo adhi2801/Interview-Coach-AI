@@ -359,8 +359,21 @@ def preview_session(payload: StartSessionRequest, request: Request, user_id: int
     reuse the EXACT SAME question instead of generating a different one
     if the user goes on to actually launch.
     """
+    if not user_id:
+        return {"error": "You must be logged in to preview a question"}
+    
+    real_elo = payload.elo
+    if user_id:
+        db = SessionLocal()
+        try:
+            user = db.query(User).filter(User.id == user_id).first()
+            if user:
+                real_elo = user.elo_rating
+        finally:
+            db.close()
+
     question_data = difficulty_engine.select_question(
-        elo=payload.elo, company=payload.company, role=payload.role, persona=payload.persona
+        elo=real_elo, company=payload.company, role=payload.role, persona=payload.persona
     )
     preview_id = str(uuid.uuid4())
     if redis_client:
@@ -371,16 +384,24 @@ def preview_session(payload: StartSessionRequest, request: Request, user_id: int
 @app.post("/session/start")
 @limiter.limit("10/minute")
 def start_session(payload: StartSessionRequest, request: Request, user_id: int = Depends(get_current_user_id)):
+    if not user_id:
+        return {"error": "You must be logged in to start a session"}
     logger.info("session_start_requested", company=payload.company, role=payload.role, user_id=user_id)
 
+    real_elo = payload.elo
     db = SessionLocal()
     try:
+        if user_id:
+            user = db.query(User).filter(User.id == user_id).first()
+            if user:
+                real_elo = user.elo_rating
+
         session_record = InterviewSession(
             user_id=user_id,
             company_target=payload.company,
             role=payload.role,
             persona=payload.persona,
-            difficulty_level=min(10, max(1, int((payload.elo - 800) / 100)))
+            difficulty_level=min(10, max(1, int((real_elo - 800) / 100)))
         )
         db.add(session_record)
         db.commit()
@@ -403,12 +424,12 @@ def start_session(payload: StartSessionRequest, request: Request, user_id: int =
         question_data = json_module.loads(cached_preview)
     else:
         question_data = difficulty_engine.select_question(
-            elo=payload.elo,
+            elo=real_elo,
             company=payload.company,
             role=payload.role,
             persona=payload.persona
         )
-    difficulty = min(10, max(1, int((payload.elo - 800) / 100)))
+    difficulty = min(10, max(1, int((real_elo - 800) / 100)))
     replay_system.log_event(new_session_id, "question_asked", question_data)
 
     return {
@@ -431,6 +452,26 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
     the original HTTP request.
     """
     db = SessionLocal()
+    session_for_elo = db.query(InterviewSession).filter(InterviewSession.id == payload.session_id).first()
+    real_elo = payload.elo
+    if session_for_elo and session_for_elo.user_id:
+        owning_user = db.query(User).filter(User.id == session_for_elo.user_id).first()
+        if owning_user:
+            real_elo = owning_user.elo_rating
+
+    # Real difficulty — same trust-boundary category as the ELO fix above.
+    # payload.difficulty is client-supplied and was being passed straight
+    # into BOTH peer comparison AND the ELO formula below, meaning a caller
+    # could lie about difficulty to inflate their real ELO, not just skew
+    # the "top X% globally" stat. session_for_elo.difficulty_level is the
+    # real value, set server-side once at /session/start and never touched
+    # by the client again. Falls back to payload.difficulty only in the
+    # rare case where the session record itself is missing (see the
+    # session_record_missing_fallback_triggered path below).
+    real_difficulty = payload.difficulty
+    if session_for_elo and session_for_elo.difficulty_level is not None:
+        real_difficulty = session_for_elo.difficulty_level
+
     try:
         has_profanity = contains_profanity(payload.answer)
         clean_answer = sanitize_for_storage(payload.answer) if has_profanity else payload.answer
@@ -456,11 +497,11 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
         topics_addressed = gap_engine.identify_topics_addressed(
             question=payload.question, answer=clean_answer
         )
-        peer = peer_engine.get_percentile(your_score=overall, difficulty=payload.difficulty)
-        
+        peer = peer_engine.get_percentile(your_score=overall, difficulty=real_difficulty)
+
         # 1. Compute new ELO
         new_elo = difficulty_engine.update_elo(
-            current_elo=payload.elo, question_difficulty=payload.difficulty, score=overall
+            current_elo=real_elo, question_difficulty=real_difficulty, score=overall
         )
 
         replay_system.log_event(payload.session_id, "answer_submitted", {"text": clean_answer})
@@ -638,6 +679,8 @@ class HintRequest(BaseModel):
 @app.post("/coding/hint")
 @limiter.limit("15/minute")
 def get_coding_hint(payload: HintRequest, request: Request, user_id: int = Depends(get_current_user_id)):
+    if not user_id:
+        return {"error": "You must be logged in to get a hint"}
     return coding_engine.get_hint(payload.problem, payload.current_code, payload.language)
 
 @app.get("/replay/{session_id}")
@@ -735,12 +778,18 @@ def get_study_plan(topic_name: str, company: str = None):
     relevance weighting if a company is specified.
     """
     path = gap_engine.get_full_study_path(topic_name)
-
     db = SessionLocal()
     try:
+        # Batched: one query for every topic in the path instead of one
+        # query PER step (same fix as /user/sessions, /coding/submissions).
+        topics_by_name = {}
+        if path:
+            all_topics = db.query(Topic).filter(Topic.name.in_(path)).all()
+            topics_by_name = {t.name: t for t in all_topics}
+
         steps = []
         for step_name in path:
-            topic = db.query(Topic).filter(Topic.name == step_name).first()
+            topic = topics_by_name.get(step_name)
             if not topic:
                 continue
             weight = gap_engine._get_company_weight(db, topic.id, company)
@@ -765,9 +814,18 @@ def get_user_sessions(user_id: int = Depends(get_current_user_id)):
             InterviewSession.user_id == user_id
         ).order_by(InterviewSession.started_at.desc()).limit(20).all()
 
+        # Batched: one query for every session's answers instead of one
+        # query PER session (same fix as /user/activity).
+        session_ids = [s.id for s in sessions]
+        answers_by_session = {}
+        if session_ids:
+            all_answers = db.query(Answer).filter(Answer.session_id.in_(session_ids)).all()
+            for a in all_answers:
+                answers_by_session.setdefault(a.session_id, []).append(a)
+
         result = []
         for session in sessions:
-            answers = db.query(Answer).filter(Answer.session_id == session.id).all()
+            answers = answers_by_session.get(session.id, [])
             answer_count = len(answers)
 
             # Average overall score across all answers in this session, out of 100
@@ -802,6 +860,115 @@ def get_user_sessions(user_id: int = Depends(get_current_user_id)):
 
  # Paste these two endpoints into backend/main.py, directly after
 # the existing @app.get("/user/sessions") endpoint.
+
+
+@app.get("/user/activity")
+def get_user_activity(user_id: int = Depends(get_current_user_id)):
+    """
+    Real unified activity feed across BOTH tracks — interview sessions and
+    coding submissions write to the same User.elo_rating, so a per-track
+    history alone is misleading (it ignores ELO changes that happened on
+    the OTHER track in between). This merges both, sorted chronologically,
+    and computes each entry's delta against whatever genuinely happened
+    right before it, regardless of which track it was.
+
+    Coding submissions made before elo_after existed on that table are
+    honestly excluded from delta math (their real prior value is lost to
+    history) — shown with delta=None, never a fabricated number.
+
+    Previously this looped over each session/submission and fired one
+    Answer/CodingProblem query PER ITEM — up to ~40 sequential DB round
+    trips for 20 sessions + 20 submissions. Now batched into 2 queries
+    total (Answer.session_id.in_(...), CodingProblem.id.in_(...)) and
+    grouped in Python, same result, a fraction of the round trips.
+    """
+    if not user_id:
+        return {"activity": []}
+
+    db = SessionLocal()
+    try:
+        sessions = db.query(InterviewSession).filter(
+            InterviewSession.user_id == user_id
+        ).order_by(InterviewSession.started_at.desc()).limit(20).all()
+
+        submissions = db.query(CodingSubmission).filter(
+            CodingSubmission.user_id == user_id
+        ).order_by(CodingSubmission.submitted_at.desc()).limit(20).all()
+
+        # Batch 1: every Answer for every session in this page, in one query,
+        # then group by session_id in Python — replaces 20 separate queries.
+        session_ids = [s.id for s in sessions]
+        answers_by_session = {}
+        if session_ids:
+            all_answers = db.query(Answer).filter(Answer.session_id.in_(session_ids)).all()
+            for a in all_answers:
+                answers_by_session.setdefault(a.session_id, []).append(a)
+
+        # Batch 2: every CodingProblem referenced by this page's submissions,
+        # in one query — replaces up to 20 separate queries.
+        problem_ids = [sub.problem_id for sub in submissions if sub.problem_id is not None]
+        problems_by_id = {}
+        if problem_ids:
+            all_problems = db.query(CodingProblem).filter(CodingProblem.id.in_(problem_ids)).all()
+            problems_by_id = {p.id: p for p in all_problems}
+
+        events = []
+        for s in sessions:
+            answers = answers_by_session.get(s.id, [])
+            avg_score = None
+            if answers:
+                overalls = []
+                for a in answers:
+                    scores = [a.score_technical, a.score_communication, a.score_problem_solving, a.score_cultural_fit, a.score_confidence]
+                    scores = [x for x in scores if x is not None]
+                    if scores:
+                        overalls.append(sum(scores) / len(scores))
+                if overalls:
+                    avg_score = round((sum(overalls) / len(overalls)) * 10)
+
+            events.append({
+                "track": "interview",
+                "id": s.id,
+                "timestamp": s.started_at,
+                "elo_after": s.elo_after,
+                "company_target": s.company_target,
+                "role": s.role,
+                "persona": s.persona,
+                "score": avg_score,
+                "question_count": len(answers),
+            })
+
+        for sub in submissions:
+            problem = problems_by_id.get(sub.problem_id)
+            events.append({
+                "track": "coding",
+                "id": sub.id,
+                "timestamp": sub.submitted_at,
+                "elo_after": sub.elo_after,
+                "problem_title": problem.title if problem else "Unknown problem",
+                "problem_slug": problem.slug if problem else None,
+                "tests_passed": sub.tests_passed,
+                "tests_total": sub.tests_total,
+                "language": sub.language,
+            })
+
+        events.sort(key=lambda e: e["timestamp"] or datetime.min)
+
+        prev_elo = None
+        for e in events:
+            e["elo_before"] = prev_elo
+            if e["elo_after"] is not None and prev_elo is not None:
+                e["elo_delta"] = round(e["elo_after"] - prev_elo)
+            else:
+                e["elo_delta"] = None
+            if e["elo_after"] is not None:
+                prev_elo = e["elo_after"]
+            e["timestamp"] = e["timestamp"].isoformat() if e["timestamp"] else None
+
+        events.sort(key=lambda e: e["timestamp"] or "", reverse=True)
+        return {"activity": events[:20]}
+    finally:
+        db.close()
 
 @app.get("/user/skill-radar")
 def get_skill_radar(session_id: Optional[int] = None, company: Optional[str] = None, user_id: int = Depends(get_current_user_id)):
@@ -1272,6 +1439,7 @@ def submit_code(request: Request, payload: SubmitCodeRequest, user_id: int = Dep
             cleanliness_score=grading.get("cleanliness_score"),
             naming_score=grading.get("naming_score"),
             feedback=grading.get("feedback"),
+            elo_after=new_elo,
         )
         db.add(submission)
         db.commit()
@@ -1355,9 +1523,17 @@ def get_coding_submissions(user_id: int = Depends(get_current_user_id)):
             CodingSubmission.user_id == user_id
         ).order_by(CodingSubmission.submitted_at.desc()).limit(20).all()
 
+        # Batched: one query for every submission's problem instead of one
+        # query PER submission (same fix as /user/sessions, /user/activity).
+        problem_ids = [s.problem_id for s in submissions if s.problem_id]
+        problems_by_id = {}
+        if problem_ids:
+            all_problems = db.query(CodingProblem).filter(CodingProblem.id.in_(problem_ids)).all()
+            problems_by_id = {p.id: p for p in all_problems}
+
         result = []
         for s in submissions:
-            problem = db.query(CodingProblem).filter(CodingProblem.id == s.problem_id).first()
+            problem = problems_by_id.get(s.problem_id)
             result.append({
                 "id": s.id,
                 "problem_title": problem.title if problem else "Unknown problem",
@@ -1455,6 +1631,17 @@ async def coaching_websocket(websocket: WebSocket, session_id: int, token: str =
                         "fillers_found": feedback.fillers_found,
                         "suggestion": feedback.suggestion
                     })
+                    # Persist to the replay — without this, coaching_moments
+                    # stays permanently empty in every replay even though
+                    # real feedback happened live during the session.
+                    replay_system.log_event(session_id, "coaching_feedback", {
+                        "source": "audio",
+                        "text": transcribed_text,
+                        "confidence_score": feedback.confidence_score,
+                        "words_per_minute": feedback.words_per_minute,
+                        "fillers_found": feedback.fillers_found,
+                        "suggestion": feedback.suggestion,
+                    })
 
             # Text path: typed answer
             elif "text" in message and message["text"]:
@@ -1476,6 +1663,16 @@ async def coaching_websocket(websocket: WebSocket, session_id: int, token: str =
                             "fillers_found": feedback.fillers_found,
                             "suggestion": feedback.suggestion,
                             "intervention": intervention
+                        })
+                        # Same persistence fix as the audio path above.
+                        replay_system.log_event(session_id, "coaching_feedback", {
+                            "source": "text",
+                            "text": text,
+                            "confidence_score": feedback.confidence_score,
+                            "words_per_minute": feedback.words_per_minute,
+                            "fillers_found": feedback.fillers_found,
+                            "suggestion": feedback.suggestion,
+                            "intervention": intervention,
                         })
 
                 elif msg_type == "reset":

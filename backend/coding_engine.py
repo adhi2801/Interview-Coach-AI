@@ -1,13 +1,15 @@
 import os
 import json
+import re
+import time
+import structlog
 import anthropic
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# Track B is a SEPARATE evaluation engine from Track A on purpose — a
-# behavioral/system-design interviewer and a pair-programmer are different
-# jobs with different failure modes. Don't merge these prompts later.
+logger = structlog.get_logger()
+
 SOCRATIC_SYSTEM_PROMPT = """You are a senior pair programmer conducting a live coding interview.
 
 STRICT RULES:
@@ -25,19 +27,29 @@ class CodingEngine:
     def __init__(self):
         self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), timeout=30.0)
 
+    def _strip_markdown_fence(self, raw: str) -> str:
+        match = re.search(r"```(?:json)?\s*(.*?)\s*```", raw, re.DOTALL)
+        return match.group(1).strip() if match else raw
+
     def _call_claude_json(self, **create_kwargs) -> dict:
         last_err = None
         for attempt in range(2):
             try:
                 response = self.client.messages.create(**create_kwargs)
                 raw = response.content[0].text.strip()
-                if raw.startswith("```"):
-                    raw = raw.split("```")[1]
-                    if raw.startswith("json"):
-                        raw = raw[4:]
-                return json.loads(raw.strip())
+                raw = self._strip_markdown_fence(raw)
+                return json.loads(raw)
             except Exception as e:
                 last_err = e
+                logger.warning(
+                    "coding_engine_claude_call_failed",
+                    attempt=attempt + 1,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
+                if attempt == 0:
+                    time.sleep(1.5)
+        logger.error("coding_engine_claude_call_all_attempts_failed", error=str(last_err))
         raise last_err
 
     def get_hint(self, problem: str, current_code: str, language: str) -> dict:
@@ -52,11 +64,6 @@ class CodingEngine:
         )
 
     def grade_submission(self, problem: str, code: str, test_results: list) -> dict:
-        """
-        test_results: list of {"passed": bool, "input": ..., "expected": ..., "actual": ...}
-        from the execution sandbox (Judge0), not from Claude — Claude grades
-        QUALITY on top of objective pass/fail, it doesn't decide correctness.
-        """
         passed_count = sum(1 for t in test_results if t["passed"])
 
         quality = self._call_claude_json(
@@ -72,6 +79,18 @@ class CodingEngine:
                 "content": f"Problem: {problem}\n\nCode:\n{code}\n\nTest results: {passed_count}/{len(test_results)} passed"
             }]
         )
+
+        for key in ["cleanliness_score", "naming_score"]:
+            value = quality.get(key)
+            if isinstance(value, str):
+                try:
+                    value = float(value)
+                except ValueError:
+                    value = None
+            if isinstance(value, (int, float)):
+                quality[key] = max(0.0, min(10.0, float(value)))
+            else:
+                quality[key] = None
 
         return {
             "tests_passed": passed_count,

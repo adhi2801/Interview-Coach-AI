@@ -1,5 +1,8 @@
 import os
+import re
+import time
 import json
+import structlog
 import anthropic
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
@@ -8,26 +11,35 @@ from models import Topic, TopicPrerequisite, CompanyTopicWeight
 
 load_dotenv()
 
+logger = structlog.get_logger()
 
-def _call_claude_topic_list(client, **create_kwargs) -> list:
-    """
-    Calls Claude and parses a JSON list response, with one retry.
-    Used by both extract_gaps and identify_topics_addressed so the
-    'strip markdown fences, parse JSON' logic exists in exactly one
-    place instead of being copy-pasted per call site.
-    """
+
+def _strip_markdown_fence(raw: str) -> str:
+    match = re.search(r"```(?:json)?\s*(.*?)\s*```", raw, re.DOTALL)
+    return match.group(1).strip() if match else raw
+
+
+def _call_claude_topic_list(client, context: str, **create_kwargs) -> list:
+    last_err = None
     for attempt in range(2):
         try:
             response = client.messages.create(**create_kwargs)
             raw = response.content[0].text.strip()
-            if raw.startswith("```"):
-                raw = raw.split("```")[1]
-                if raw.startswith("json"):
-                    raw = raw[4:]
-            return json.loads(raw.strip())
-        except Exception:
-            if attempt == 1:
-                return []
+            raw = _strip_markdown_fence(raw)
+            return json.loads(raw)
+        except Exception as e:
+            last_err = e
+            logger.warning(
+                "knowledge_graph_claude_call_failed",
+                context=context,
+                attempt=attempt + 1,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+            if attempt == 0:
+                time.sleep(1.5)
+
+    logger.error("knowledge_graph_claude_call_all_attempts_failed", context=context, error=str(last_err))
     return []
 
 
@@ -58,6 +70,7 @@ class KnowledgeGapGraph:
 
         failed_topics = _call_claude_topic_list(
             self.client,
+            "extract_gaps",
             model="claude-sonnet-4-6",
             max_tokens=200,
             system=f"""Return only a JSON list of topic strings. No explanation. No markdown.
@@ -94,19 +107,12 @@ class KnowledgeGapGraph:
         return study_plan
 
     def identify_topics_addressed(self, question: str, answer: str) -> list:
-        """
-        Identifies which CS topics this answer meaningfully engaged with —
-        regardless of whether the answer was strong or weak. Unlike
-        extract_gaps (which only fires below a 7.0 technical score and
-        only reports topics the candidate got WRONG), this runs on every
-        answer and powers real knowledge-graph coverage tracking via
-        Answer.topics_covered.
-        """
         db_topics = _get_cached_topic_names()
         topic_list_str = ", ".join(db_topics)
 
         topics = _call_claude_topic_list(
             self.client,
+            "identify_topics_addressed",
             model="claude-sonnet-4-6",
             max_tokens=150,
             system=f"""Return only a JSON list of topic strings. No explanation. No markdown.
@@ -125,17 +131,14 @@ class KnowledgeGapGraph:
     def _get_company_weight(self, db: Session, topic_id: int, company: str = None) -> float:
         if not company:
             return 1.0
-
         entry = db.query(CompanyTopicWeight).filter(
             CompanyTopicWeight.topic_id == topic_id,
             CompanyTopicWeight.company == company.lower()
         ).first()
-
         return entry.weight if entry else 1.0
 
     def _compute_urgency(self, technical_score: float, company_weight: float) -> str:
         severity = (10 - technical_score) * company_weight
-
         if severity >= 14:
             return "critical"
         elif severity >= 9:

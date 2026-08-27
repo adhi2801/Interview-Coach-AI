@@ -26,7 +26,6 @@ const PREFERENCE_ROWS = [
 
 export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) {
   const [activeTab, setActiveTab] = useState("profile");
-  const [mousePos, setMousePos] = useState({ x: -1000, y: -1000 });
 
   // Real profile summary — name, email, ELO, real session/score
   // aggregates, stored preferences, role-scoped bracket. Fetched once
@@ -86,9 +85,6 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
 
   useEffect(() => {
     fetchProfile();
-    const handleMouseMove = (e) => setMousePos({ x: e.clientX, y: e.clientY });
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
   }, [fetchProfile]);
 
   // Real device enumeration — only fetched when the Hardware tab is
@@ -333,7 +329,7 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
             >
               {activeTab === "profile" && (
                 <>
-                  <GlassCard mousePos={mousePos} className="p-8">
+                  <GlassCard className="p-8">
                     {profileLoading ? (
                       <div className="space-y-3">
                         <div className="h-6 w-40 bg-white/[0.06] rounded-md animate-pulse" />
@@ -439,7 +435,7 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
                     </div>
                   </GlassCard>
 
-                  <GlassCard mousePos={mousePos} className="p-8">
+                  <GlassCard className="p-8">
                     <h3 className="text-xs font-bold uppercase tracking-widest text-slate-300 mb-6 flex items-center gap-2">
                       <Settings2 size={16} className="text-slate-400" /> Interview Preferences
                     </h3>
@@ -460,7 +456,7 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
               )}
 
               {activeTab === "telemetry" && (
-                <GlassCard mousePos={mousePos} className="p-8">
+                <GlassCard className="p-8">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-slate-300 mb-6 flex items-center gap-2 font-mono">
                     <Activity size={16} className="text-emerald-400" /> Real Rating & Session Stats
                   </h3>
@@ -506,7 +502,7 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
               )}
 
               {activeTab === "hardware" && (
-                <GlassCard mousePos={mousePos} className="p-8">
+                <GlassCard className="p-8">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-slate-300 mb-6 flex items-center gap-2 font-mono">
                     <Mic size={16} className="text-indigo-400" /> Audio Configuration
                   </h3>
@@ -568,7 +564,7 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
               )}
 
               {activeTab === "danger" && (
-                <GlassCard mousePos={mousePos} className="p-8 border-rose-500/20 bg-rose-950/10">
+                <GlassCard className="p-8 border-rose-500/20 bg-rose-950/10">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-rose-400 mb-6 flex items-center gap-2 font-mono">
                     <ShieldAlert size={16} /> Danger Zone
                   </h3>
@@ -642,21 +638,25 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
   );
 }
 
-function GlassCard({ children, className = "", mousePos }) {
-  const [rect, setRect] = useState(null);
+function GlassCard({ children, className = "" }) {
   const cardRef = useRef(null);
+  const [cursorX, setCursorX] = useState(0);
+  const [cursorY, setCursorY] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
 
-  useEffect(() => {
-    if (cardRef.current) setRect(cardRef.current.getBoundingClientRect());
-  }, []);
-
-  const isHovered = rect && mousePos.x >= rect.left && mousePos.x <= rect.right && mousePos.y >= rect.top && mousePos.y <= rect.bottom;
-  const cursorX = rect ? mousePos.x - rect.left : 0;
-  const cursorY = rect ? mousePos.y - rect.top : 0;
+  const handleMouseMove = (e) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    setCursorX(e.clientX - rect.left);
+    setCursorY(e.clientY - rect.top);
+  };
 
   return (
     <div
       ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       className={`relative rounded-3xl bg-[#08080C] border border-white/[0.06] overflow-hidden backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),_0_20px_40px_-10px_rgba(0,0,0,0.8)] ${className}`}
     >
       <div

@@ -196,7 +196,7 @@ function AuthenticatedRoutes({ user, onLogout, onEloUpdate, sessionData, setSess
       >
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes location={location}>
-            <Route path="/" element={<UserDashboard user={user} onLogout={onLogout} onStartNew={() => navigate("/setup")} onNavigateHistory={() => navigate("/replay")} onStartCoding={() => navigate("/coding")} onNavigateSettings={() => navigate("/settings")} onNavigateStudyPlan={() => navigate("/study-plan")} onOpenCommandPalette={onOpenCommandPalette} />} />
+            <Route path="/" element={<UserDashboard user={user} onLogout={onLogout} onStartNew={() => navigate("/setup")} onNavigateHistory={() => navigate("/replay")} onStartCoding={() => navigate("/coding")} onNavigateSettings={() => navigate("/settings")} onNavigateStudyPlan={() => navigate("/study-plan")} onOpenCommandPalette={onOpenCommandPalette} onEloUpdate={onEloUpdate} />} />
             <Route path="/setup" element={<Dashboard user={user} onLogout={onLogout} onGoBack={() => navigate("/")} onStart={(data) => { setSessionData(data); navigate("/preflight"); }} />} />
             <Route path="/preflight" element={<PreflightCheck sessionData={sessionData} onReady={() => navigate("/interview")} onSkip={() => navigate("/interview")} />} />
             <Route path="/interview" element={

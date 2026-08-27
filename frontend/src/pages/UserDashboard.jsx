@@ -158,7 +158,7 @@ const fadeUp = {
 
 export default function UserDashboard({
   user, onStartNew, onStartCoding, onNavigateHistory,
-  onNavigateSettings, onNavigateStudyPlan, onLogout, onOpenCommandPalette
+  onNavigateSettings, onNavigateStudyPlan, onLogout, onOpenCommandPalette, onEloUpdate
 }) {
   const [companies, setCompanies] = useState(TARGET_COMPANIES_FALLBACK);
   const [activeTarget, setActiveTarget] = useState("Meta");
@@ -188,6 +188,20 @@ export default function UserDashboard({
       .catch(() => setSystemStatus("degraded"));
   }, []);
 
+    useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (!token) return;
+    axios.get(`${API_URL}/user/profile-summary`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => {
+        const realElo = res.data?.elo_rating;
+        if (typeof realElo === "number" && Math.round(realElo) !== Math.round(user?.elo_rating || 1200)) {
+          onEloUpdate?.(realElo);
+        }
+      })
+      .catch((err) => console.warn("Could not verify current ELO:", err));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     async function fetchCompanies() {
       try {
@@ -207,46 +221,37 @@ export default function UserDashboard({
   }, []);
 
   useEffect(() => {
-    async function fetchSessions() {
+        async function fetchSessions() {
       try {
         const token = localStorage.getItem("access_token");
-        const res = await axios.get(`${API_URL}/user/sessions`, { headers: { Authorization: `Bearer ${token}` } });
-        const sessions = res.data.sessions || [];
+        const res = await axios.get(`${API_URL}/user/activity`, { headers: { Authorization: `Bearer ${token}` } });
+        const activity = res.data.activity || [];
 
-        // Real chronological ELO delta — sort oldest→newest, diff each
-        // session against the one right before it. The oldest session in
-        // this window has no prior session to diff against, so it gets no
-        // delta at all rather than a fabricated one (same fix already
-        // applied to Flight Ledger).
-        const chronological = [...sessions]
-          .filter((s) => s.elo_after != null)
-          .sort((a, b) => new Date(a.started_at || 0) - new Date(b.started_at || 0));
-        const deltaBySessionId = {};
-        chronological.forEach((s, i) => {
-          if (i === 0) return;
-          const prev = chronological[i - 1].elo_after;
-          deltaBySessionId[s.id] = Math.round(s.elo_after - prev);
-        });
-
-        const ledger = sessions.map((s) => ({
-          id: s.id,
-          date: s.started_at ? new Date(s.started_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—",
-          type: s.role || "Session",
-          company: s.company_target || "—",
-          eloDelta: deltaBySessionId[s.id] != null
-            ? `${deltaBySessionId[s.id] >= 0 ? "+" : ""}${deltaBySessionId[s.id]}`
-            : "",
-          score: s.score != null ? s.score : null,
-          persona: (s.persona || "").toLowerCase(),
+        const ledger = activity.map((e) => ({
+          id: `${e.track}-${e.id}`,
+          track: e.track,
+          date: e.timestamp ? new Date(e.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—",
+          type: e.track === "interview" ? (e.role || "Session") : (e.problem_title || "Coding"),
+          company: e.track === "interview" ? (e.company_target || "—") : "—",
+          eloDelta: e.elo_delta != null ? `${e.elo_delta >= 0 ? "+" : ""}${e.elo_delta}` : "",
+          eloBefore: e.elo_before,
+          eloAfter: e.elo_after,
+          score: e.track === "interview" ? e.score : (e.tests_total ? Math.round((e.tests_passed / e.tests_total) * 100) : null),
+          persona: e.track === "interview" ? (e.persona || "").toLowerCase() : null,
+          language: e.track === "coding" ? e.language : null,
         }));
         setFlightLedger(ledger);
-        setSessionDates(sessions.filter((s) => s.started_at).map((s) => new Date(s.started_at)));
+        setSessionDates(activity.filter((e) => e.timestamp).map((e) => new Date(e.timestamp)));
 
-        const trend = sessions.filter((s) => s.elo_after).slice().reverse().map((s) => ({
-          date: s.started_at ? new Date(s.started_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "",
-          rawDate: s.started_at ? new Date(s.started_at) : null,
-          elo: Math.round(s.elo_after),
-        }));
+        const trend = activity
+          .filter((e) => e.elo_after != null)
+          .slice()
+          .reverse()
+          .map((e) => ({
+            date: e.timestamp ? new Date(e.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "",
+            rawDate: e.timestamp ? new Date(e.timestamp) : null,
+            elo: Math.round(e.elo_after),
+          }));
         const deduped = trend.reduce((acc, point) => {
           if (acc.length > 0 && acc[acc.length - 1].date === point.date) acc[acc.length - 1] = point;
           else acc.push(point);
@@ -254,7 +259,7 @@ export default function UserDashboard({
         }, []);
         setEloHistory(deduped);
       } catch (err) {
-        console.warn("Could not load session history:", err);
+        console.warn("Could not load activity history:", err);
       }
       setLoadingSessions(false);
     }
@@ -858,10 +863,10 @@ export default function UserDashboard({
                 </div>
                 <div className="flex flex-col gap-0.5">
                   {recentFive.map((session, idx) => {
-                    const persona = PERSONA_STYLE[session.persona] || PERSONA_STYLE.standard;
-                    const PersonaIcon = persona.icon;
-                    const companyDisplay = session.company.charAt(0).toUpperCase() + session.company.slice(1);
-                    const dotColor = COMPANY_GLOW[companyDisplay] || DEFAULT_GLOW;
+                    const isCoding = session.track === "coding";
+                    const persona = !isCoding ? (PERSONA_STYLE[session.persona] || PERSONA_STYLE.standard) : null;
+                    const PersonaIcon = persona?.icon;
+                    const companyDisplay = isCoding ? "Coding" : session.company.charAt(0).toUpperCase() + session.company.slice(1);
                     return (
                       <motion.div
                         key={session.id}
@@ -877,12 +882,13 @@ export default function UserDashboard({
                           {/* Colored accent ring using each company's real
                               brand-adjacent color — no ambiguous single
                               letters, and no trademarked logos pulled in
-                              without licensing. */}
-                          <div
+                              without licensing. */}                          <div
                             className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 ring-1 ring-white/10"
-                            style={{ background: COMPANY_ICONS[session.company.toLowerCase()] ? `${COMPANY_ICONS[session.company.toLowerCase()].color}1A` : "rgba(99,102,241,0.1)" }}
+                            style={{ background: isCoding ? "rgba(168,85,247,0.15)" : (COMPANY_ICONS[session.company.toLowerCase()] ? `${COMPANY_ICONS[session.company.toLowerCase()].color}1A` : "rgba(99,102,241,0.1)") }}
                           >
-                            {COMPANY_ICONS[session.company.toLowerCase()] ? (
+                            {isCoding ? (
+                              <Code2 size={12} className="text-purple-300" />
+                            ) : COMPANY_ICONS[session.company.toLowerCase()] ? (
                               React.createElement(COMPANY_ICONS[session.company.toLowerCase()].Icon, { size: 12, color: COMPANY_ICONS[session.company.toLowerCase()].color })
                             ) : (
                               <span className="text-[9px] font-bold text-slate-400">{companyDisplay.charAt(0)}</span>
@@ -894,11 +900,26 @@ export default function UserDashboard({
                           </div>
                         </div>
                         <div className="hidden md:flex md:justify-center">
-                          <span className={`inline-flex items-center gap-1.5 text-[9px] font-mono font-bold uppercase tracking-wide px-2 py-1 rounded-full border bg-white/[0.04] whitespace-nowrap ${persona.color}`}>
-                            <PersonaIcon size={10} className="shrink-0" /> {session.persona || "—"}
-                          </span>
+                          {isCoding ? (
+                            <span className="text-[9px] font-mono font-bold uppercase tracking-wide px-2 py-1 rounded-full border bg-purple-500/[0.08] border-purple-500/20 text-purple-300 whitespace-nowrap">
+                              {session.language || "—"}
+                            </span>
+                          ) : (
+                            <span className={`inline-flex items-center gap-1.5 text-[9px] font-mono font-bold uppercase tracking-wide px-2 py-1 rounded-full border bg-white/[0.04] whitespace-nowrap ${persona.color}`}>
+                              <PersonaIcon size={10} className="shrink-0" /> {session.persona || "—"}
+                            </span>
+                          )}
                         </div>
-                        <span className={`hidden md:block font-mono text-[13px] font-bold md:text-right tabular-nums ${session.eloDelta.includes('+') ? 'text-emerald-400' : session.eloDelta.includes('-') ? 'text-rose-400' : 'text-slate-600'}`}>{session.eloDelta || "—"}</span>
+                        <div className="hidden md:flex md:flex-col md:items-end">
+                          {session.eloBefore != null && session.eloAfter != null ? (
+                            <>
+                              <span className={`font-mono text-[13px] font-bold tabular-nums ${session.eloDelta.includes('+') ? 'text-emerald-400' : session.eloDelta.includes('-') ? 'text-rose-400' : 'text-slate-600'}`}>{session.eloDelta}</span>
+                              <span className="font-mono text-[9px] text-slate-600 tabular-nums">{Math.round(session.eloBefore)} → {Math.round(session.eloAfter)}</span>
+                            </>
+                          ) : (
+                            <span className="font-mono text-[13px] font-bold text-slate-600">—</span>
+                          )}
+                        </div>
                         <span className="hidden md:block font-mono text-[13px] font-bold md:text-right tabular-nums">{session.score != null ? <>{session.score}<span className="text-[10px] text-slate-500">/100</span></> : <span className="text-slate-600">—</span>}</span>
                         <span className="hidden md:flex md:text-right text-[11px] font-semibold text-slate-500 hover:text-white transition-colors items-center gap-1 md:justify-end">Debrief <ArrowRight size={9} /></span>
                       </motion.div>
@@ -965,9 +986,11 @@ export default function UserDashboard({
         </footer>
       </main>
 
-      {studyPlanTopic && (
-        <StudyPlan topicName={studyPlanTopic} company={activeTarget.toLowerCase()} onClose={() => setStudyPlanTopic(null)} />
-      )}
+      <AnimatePresence>
+        {studyPlanTopic && (
+          <StudyPlan topicName={studyPlanTopic} company={activeTarget.toLowerCase()} onClose={() => setStudyPlanTopic(null)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

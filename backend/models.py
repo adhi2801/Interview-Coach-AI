@@ -156,6 +156,7 @@ class CodingSubmission(Base):
     cleanliness_score = Column(Float, nullable=True)
     naming_score = Column(Float, nullable=True)
     feedback = Column(Text, nullable=True)
+    elo_after = Column(Float, nullable=True)
 
     submitted_at = Column(DateTime, default=datetime.utcnow)    
 

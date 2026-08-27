@@ -648,7 +648,7 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
                 </div>
                 <span className="text-[9px] font-mono text-slate-600 uppercase tracking-widest hidden sm:inline">Rotates automatically</span>
               </div>
-              <p className="text-sm text-slate-200 font-medium leading-relaxed font-mono min-h-[68px]">
+              <p className="text-sm text-slate-200 font-medium leading-relaxed font-mono h-[68px] sm:h-[54px] overflow-hidden">
                 {typedText}<span className="typing-cursor" />
               </p>
               <div className="flex items-center justify-between flex-wrap gap-3 mt-4 pt-3 border-t border-white/[0.06]">
@@ -1120,7 +1120,7 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
             whileInView="show"
             viewport={{ once: true, margin: "-60px" }}
           >
-            <GlassCard className="p-8 md:p-10 border-amber-500/[0.12]" tilt>
+            <GlassCard className="p-8 md:p-10 border-amber-500/[0.12]">
               <motion.div variants={staggerItem} className="flex items-center gap-2 mb-3">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                 <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-amber-400/90">About this project</span>
@@ -1237,8 +1237,8 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
             <ul className="space-y-3 text-sm text-slate-400 font-medium">
               <li><a href="#architecture" onClick={(e) => handleScrollTo(e, 'architecture')} className="hover:text-white transition-colors">FastAPI / Python</a></li>
               <li><a href="#architecture" onClick={(e) => handleScrollTo(e, 'architecture')} className="hover:text-white transition-colors">PostgreSQL (cosine similarity)</a></li>
-              <li><a href="#" onClick={(e) => { e.preventDefault(); if (onNavigatePrivacy) onNavigatePrivacy(); }} className="hover:text-white transition-colors">Privacy Policy</a></li>
-              <li><a href="#" onClick={(e) => { e.preventDefault(); if (onNavigateTerms) onNavigateTerms(); }} className="hover:text-white transition-colors">Terms of Service</a></li>
+              <li><button onClick={() => onNavigatePrivacy?.()} className="hover:text-white transition-colors text-left">Privacy Policy</button></li>
+              <li><button onClick={() => onNavigateTerms?.()} className="hover:text-white transition-colors text-left">Terms of Service</button></li>
             </ul>
           </div>
 

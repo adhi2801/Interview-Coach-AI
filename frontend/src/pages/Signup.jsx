@@ -58,7 +58,6 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [mousePos, setMousePos] = useState({ x: -1000, y: -1000 });
   const [emailTouched, setEmailTouched] = useState(false);
   const nameInputRef = useRef(null);
 
@@ -76,9 +75,6 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
   useEffect(() => {
     setMounted(true);
     nameInputRef.current?.focus();
-    const handleMouseMove = (e) => setMousePos({ x: e.clientX, y: e.clientY });
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
   const noiseSvg = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`;
@@ -237,7 +233,7 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
 
           <div className={`w-full max-w-[420px] transition-all duration-700 ease-out transform ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-12'}`}>
 
-            <GlassCard mousePos={mousePos}>
+            <GlassCard>
 
               <div className="flex items-center justify-between gap-3 mb-8 pb-6 border-b border-white/10">
                 <div className="flex items-center gap-3 lg:hidden">
@@ -464,24 +460,25 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
   );
 }
 
-function GlassCard({ children, className = "", mousePos }) {
-  const [rect, setRect] = useState(null);
+function GlassCard({ children, className = "" }) {
   const cardRef = useRef(null);
+  const [cursorX, setCursorX] = useState(0);
+  const [cursorY, setCursorY] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
 
-  useEffect(() => {
-    if (cardRef.current) setRect(cardRef.current.getBoundingClientRect());
-  }, []);
-
-  const isHovered = rect && mousePos &&
-    mousePos.x >= rect.left && mousePos.x <= rect.right &&
-    mousePos.y >= rect.top && mousePos.y <= rect.bottom;
-
-  const cursorX = rect && mousePos ? mousePos.x - rect.left : 0;
-  const cursorY = rect && mousePos ? mousePos.y - rect.top : 0;
+  const handleMouseMove = (e) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    setCursorX(e.clientX - rect.left);
+    setCursorY(e.clientY - rect.top);
+  };
 
   return (
     <div
       ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       className={`relative rounded-2xl bg-[#050508] border border-white/[0.08] p-8 md:p-10 overflow-hidden backdrop-blur-2xl transition-all duration-300 ${className}`}
       style={{
         boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.12), 0 25px 50px -12px rgba(0,0,0,0.9)'
