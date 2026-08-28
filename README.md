@@ -12,9 +12,9 @@
 
 ## Demo
 
-*(60-second walkthrough — real-time WPM/filler-word telemetry, Socratic vs. Hostile interviewer mutation, and the Judge0 sandboxed code execution pipeline)*
+*(Walkthrough — real-time WPM/filler-word telemetry, Socratic vs. Hostile interviewer mutation, and the Judge0 sandboxed code execution pipeline)*
 
-`[Loom/GIF link goes here]`
+[Watch the demo](https://www.loom.com/share/c3711b231d614d26995cf5b2a0ba922f)
 
 ---
 
