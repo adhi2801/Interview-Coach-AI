@@ -5,7 +5,45 @@
 ### Live Demo
 - Frontend: https://interview-coach-ai-three.vercel.app
 - Backend API: https://interview-coach-ai-production.up.railway.app
+- API Docs (Swagger): https://interview-coach-ai-production.up.railway.app/docs
 - Repository: https://github.com/adhi2801/Interview-Coach-AI
+
+---
+
+## Demo
+
+*(60-second walkthrough — real-time WPM/filler-word telemetry, Socratic vs. Hostile interviewer mutation, and the Judge0 sandboxed code execution pipeline)*
+
+`[Loom/GIF link goes here]`
+
+---
+
+## System Architecture
+
+```mermaid
+flowchart TB
+    User[Browser — React + Framer Motion]
+    API[FastAPI REST API]
+    WS[WebSocket Coaching Engine]
+    DB[(PostgreSQL<br/>data + RAG question store)]
+    Cache[(Redis Cache)]
+    Claude[Claude API<br/>question generation + scoring]
+    Whisper[Whisper<br/>speech transcription]
+    Judge0[Judge0 Sandbox<br/>code execution]
+
+    User -->|HTTPS| API
+    User -->|WS| WS
+    API --> DB
+    API --> Cache
+    API --> Claude
+    WS --> Whisper
+    WS --> Claude
+    API --> Judge0
+
+    style User fill:#1a1a2e,stroke:#6366f1,color:#fff
+    style API fill:#0f3460,stroke:#6366f1,color:#fff
+    style Claude fill:#16213e,stroke:#f59e0b,color:#fff
+```
 
 ---
 
@@ -73,25 +111,12 @@
 
 ---
 
-## System Architecture
+## API Documentation
 
-```text
-Browser (React)
-        |
-        +---- FastAPI REST API
-        |
-        +---- PostgreSQL (data + RAG question store)
-        |
-        +---- Redis Cache
-        |
-        +---- Claude API
-        |
-        +---- Whisper
-        |
-        +---- Judge0 Sandbox
-        |
-        +---- WebSocket Coaching Engine
-```
+Every endpoint is documented via FastAPI's auto-generated OpenAPI schema — no separate docs to maintain, always in sync with the actual code:
+
+- **Interactive Swagger UI:** https://interview-coach-ai-production.up.railway.app/docs
+- **Raw OpenAPI JSON:** https://interview-coach-ai-production.up.railway.app/openapi.json
 
 ---
 
@@ -137,15 +162,15 @@ npm start
 pytest
 ```
 
-Current coverage includes:
-- ELO rating calculations.
+Current coverage (41 tests) includes:
+- ELO rating calculations and edge cases.
+- Interview category classification.
 - Knowledge graph traversal.
 - Knowledge gap extraction.
 
 ---
 
 ## Future Improvements
-
 - Streaming voice transcription.
 - PostgreSQL Row-Level Security.
 - Expanded automated test coverage.
@@ -158,7 +183,7 @@ Current coverage includes:
 
 ## Author
 
-Adhiswauran V
+**Adhiswauran V**
 - B.Tech Computer Science (AI)
 - Portfolio Project
 
