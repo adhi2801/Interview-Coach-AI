@@ -110,6 +110,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   const [answer, setAnswer] = useState("");
   const [scores, setScores] = useState(null);
   const [gaps, setGaps] = useState([]);
+  const [gapAnalysisUnavailable, setGapAnalysisUnavailable] = useState(false);
   const [peer, setPeer] = useState(null);
   const [newElo, setNewElo] = useState(null);
   const [currentElo, setCurrentElo] = useState(sessionData?.elo || 1200);
@@ -419,6 +420,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
         if (res.data.status === "done") {
           setScores(res.data.scores);
           setGaps(res.data.gaps || []);
+          setGapAnalysisUnavailable(res.data.gap_analysis_unavailable || false);
           setPeer(res.data.peer_comparison);
           setNewElo(res.data.new_elo);
           setNextQuestion(res.data.next_question || "");
@@ -489,6 +491,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
     setAnswer("");
     setScores(null);
     setGaps([]);
+    setGapAnalysisUnavailable(false);
     setPeer(null);
     setLiveCoaching(null);
     setNewElo(null);
@@ -1097,6 +1100,16 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                       <button onClick={() => setStudyPlanTopic(gaps[0].gap)} className="text-xs font-mono font-bold text-blue-400 hover:underline flex items-center gap-1 pt-1">
                         Study Path Graph →
                       </button>
+                    </div>
+                  ) : gapAnalysisUnavailable ? (
+                    <div className="bg-[#0c0906] border border-amber-500/20 rounded-2xl p-5 space-y-2">
+                      <div className="flex items-center gap-2 text-amber-400">
+                        <AlertTriangle size={16} />
+                        <h4 className="text-sm font-bold tracking-tight">Gap analysis unavailable</h4>
+                      </div>
+                      <p className="text-xs md:text-sm text-slate-300 leading-relaxed font-medium">
+                        The gap-detection service didn't return a result for this answer. This is not the same as a clean pass — it means gap detection genuinely failed and no analysis was possible.
+                      </p>
                     </div>
                   ) : (
                     <div className="bg-[#050507] border border-white/[0.08] rounded-2xl p-5 text-xs text-slate-300">

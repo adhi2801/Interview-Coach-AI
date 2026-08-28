@@ -31,14 +31,30 @@ class CodingEngine:
         match = re.search(r"```(?:json)?\s*(.*?)\s*```", raw, re.DOTALL)
         return match.group(1).strip() if match else raw
 
-    def _call_claude_json(self, **create_kwargs) -> dict:
+    def _call_claude_json(self, required_keys=None, **create_kwargs) -> dict:
+        """
+        Same retry pattern as scoring.py's score(), now with the same
+        contract-enforcement scoring.py already has: if Claude's response
+        is missing a key this call site actually needs, that's treated as
+        a failed attempt (triggers the same retry-then-raise path as a
+        malformed JSON response), not silently returned as a dict with a
+        hole in it. required_keys is deliberately per-call, not global —
+        get_hint and grade_submission need different fields present.
+        """
         last_err = None
         for attempt in range(2):
             try:
                 response = self.client.messages.create(**create_kwargs)
                 raw = response.content[0].text.strip()
                 raw = self._strip_markdown_fence(raw)
-                return json.loads(raw)
+                result = json.loads(raw)
+
+                if required_keys:
+                    missing = [k for k in required_keys if result.get(k) is None]
+                    if missing:
+                        raise ValueError(f"Claude response missing required key(s): {missing}")
+
+                return result
             except Exception as e:
                 last_err = e
                 logger.warning(
@@ -54,6 +70,7 @@ class CodingEngine:
 
     def get_hint(self, problem: str, current_code: str, language: str) -> dict:
         return self._call_claude_json(
+            required_keys=["hint"],
             model="claude-sonnet-4-6",
             max_tokens=200,
             system=SOCRATIC_SYSTEM_PROMPT,
@@ -67,6 +84,7 @@ class CodingEngine:
         passed_count = sum(1 for t in test_results if t["passed"])
 
         quality = self._call_claude_json(
+            required_keys=["complexity_estimate", "cleanliness_score", "naming_score", "feedback"],
             model="claude-sonnet-4-6",
             max_tokens=500,
             system="""You are grading a coding interview submission. Test results are already

@@ -1,5 +1,7 @@
 import os
 import json
+import re
+import time
 import anthropic
 from dotenv import load_dotenv
 from rag.vector_store import QuestionVectorStore
@@ -56,14 +58,20 @@ ROLE_ELO_BANDS = {
 }
 
 
+def _strip_markdown_fence(raw: str) -> str:
+    # Same regex-based extraction as scoring.py and coding_engine.py — finds
+    # a fenced block ANYWHERE in the text, not just at the very start. The
+    # previous version here only handled the fence if the response began
+    # with it, so any preamble text from Claude ("Here's the JSON:") would
+    # make it fall through and crash on json.loads.
+    match = re.search(r"```(?:json)?\s*(.*?)\s*```", raw, re.DOTALL)
+    return match.group(1).strip() if match else raw
+
+
 def _parse_json_response(raw: str) -> dict:
     """Claude sometimes wraps JSON in ```json fences despite instructions. Strip defensively."""
-    clean = raw.strip()
-    if clean.startswith("```"):
-        clean = clean.split("```")[1]
-        if clean.startswith("json"):
-            clean = clean[4:]
-    return json.loads(clean.strip())
+    clean = _strip_markdown_fence(raw.strip())
+    return json.loads(clean)
 
 
 class AdaptiveDifficultyEngine:
@@ -72,6 +80,10 @@ class AdaptiveDifficultyEngine:
         self.vector_store = QuestionVectorStore()
 
     def _call_claude_json(self, **create_kwargs) -> dict:
+        # Same retry+backoff pattern as scoring.py/coding_engine.py — the
+        # previous version here retried twice with zero delay between
+        # attempts, which is the worst way to handle a transient rate-limit
+        # error (you hit the same limit again immediately).
         last_err = None
         for attempt in range(2):
             try:
@@ -79,6 +91,8 @@ class AdaptiveDifficultyEngine:
                 return _parse_json_response(response.content[0].text)
             except Exception as e:
                 last_err = e
+                if attempt == 0:
+                    time.sleep(1.5)
         raise last_err
 
     def select_question(self, elo: float, company: str, role: str, failed_topic: str = None,

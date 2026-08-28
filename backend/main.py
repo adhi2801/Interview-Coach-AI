@@ -490,11 +490,11 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
             scores["score_confidence"]
         ) / 5, 1)
 
-        gaps = gap_engine.extract_gaps(
+        gaps, gap_analysis_failed = gap_engine.extract_gaps(
             question=payload.question, answer=clean_answer,
             technical_score=technical_score, company=payload.company
         )
-        topics_addressed = gap_engine.identify_topics_addressed(
+        topics_addressed, topics_analysis_failed = gap_engine.identify_topics_addressed(
             question=payload.question, answer=clean_answer
         )
         peer = peer_engine.get_percentile(your_score=overall, difficulty=real_difficulty)
@@ -588,6 +588,7 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
         result = {
             "scores": scores, "overall_score": overall, "gaps": gaps,
             "peer_comparison": peer, "new_elo": new_elo,
+            "gap_analysis_unavailable": gap_analysis_failed,
             "next_question": next_question_data["question"],
             "next_scenario": next_question_data.get("scenario", ""),
             "next_constraints": next_question_data.get("constraints", []),

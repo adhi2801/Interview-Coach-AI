@@ -1135,7 +1135,7 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
               </motion.p>
 
               <motion.p variants={staggerItem} className="text-sm text-slate-400 leading-relaxed font-medium mb-6">
-                It's still growing — more coding problems are being added, and a few pieces (like OAuth login) are intentionally left as visibly-disabled placeholders rather than dead buttons that pretend to work.
+                The coding bank currently has 25 problems across arrays, strings, caching, and sliding-window patterns, with more being added as I go. OAuth login (Google, GitHub) is the one piece intentionally left as a visibly-disabled placeholder with a "Coming soon" tooltip, rather than a dead button that pretends to work. This runs on free-tier hosting, so the first request after a period of inactivity can take a few extra seconds to spin back up — that's an infrastructure trade-off I've made knowingly, not a bug I've missed. I'm one person building and maintaining all of this, so response times, edge cases, and polish are still catching up to where I want them — but nothing here is faked to look further along than it is.
               </motion.p>
 
               {/* Real problems hit and fixed during the build — specific,

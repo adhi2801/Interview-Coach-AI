@@ -19,14 +19,23 @@ def _strip_markdown_fence(raw: str) -> str:
     return match.group(1).strip() if match else raw
 
 
-def _call_claude_topic_list(client, context: str, **create_kwargs) -> list:
+def _call_claude_topic_list(client, context: str, **create_kwargs) -> tuple:
+    """
+    Returns (topics: list, failed: bool). This distinction is the whole
+    point — a real empty answer from Claude ([], failed=False) and Claude
+    failing after both retries ([], failed=True) used to be indistinguishable
+    to every caller, which meant a genuine "no gaps found" and "the gap
+    detector broke" rendered identically to the candidate. failed=True lets
+    callers propagate that honestly instead of quietly presenting a failure
+    as a clean result.
+    """
     last_err = None
     for attempt in range(2):
         try:
             response = client.messages.create(**create_kwargs)
             raw = response.content[0].text.strip()
             raw = _strip_markdown_fence(raw)
-            return json.loads(raw)
+            return json.loads(raw), False
         except Exception as e:
             last_err = e
             logger.warning(
@@ -40,7 +49,7 @@ def _call_claude_topic_list(client, context: str, **create_kwargs) -> list:
                 time.sleep(1.5)
 
     logger.error("knowledge_graph_claude_call_all_attempts_failed", context=context, error=str(last_err))
-    return []
+    return [], True
 
 
 _topic_names_cache = None
@@ -61,14 +70,19 @@ class KnowledgeGapGraph:
     def __init__(self):
         self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), timeout=30.0)
 
-    def extract_gaps(self, question: str, answer: str, technical_score: float, company: str = None) -> list:
+    def extract_gaps(self, question: str, answer: str, technical_score: float, company: str = None) -> tuple:
+        """
+        Returns (study_plan: list, gap_analysis_failed: bool). A score >= 7.0
+        skipping gap analysis is an honest, deliberate skip (failed=False) —
+        only a genuine Claude failure after retries sets failed=True.
+        """
         if technical_score >= 7.0:
-            return []
+            return [], False
 
         db_topics = _get_cached_topic_names()
         topic_list_str = ", ".join(db_topics)
 
-        failed_topics = _call_claude_topic_list(
+        failed_topics, call_failed = _call_claude_topic_list(
             self.client,
             "extract_gaps",
             model="claude-sonnet-4-6",
@@ -82,6 +96,9 @@ class KnowledgeGapGraph:
                 f"Question: {question}\nAnswer: {answer}\n"
                 f"Return maximum 3 topics as a JSON list like: [\"topic_name\", \"topic_name\"]"}]
         )
+
+        if call_failed:
+            return [], True
 
         db = SessionLocal()
         study_plan = []
@@ -104,13 +121,14 @@ class KnowledgeGapGraph:
         finally:
             db.close()
 
-        return study_plan
+        return study_plan, False
 
-    def identify_topics_addressed(self, question: str, answer: str) -> list:
+    def identify_topics_addressed(self, question: str, answer: str) -> tuple:
+        """Returns (topics: list, call_failed: bool) — same honest-failure pattern as extract_gaps."""
         db_topics = _get_cached_topic_names()
         topic_list_str = ", ".join(db_topics)
 
-        topics = _call_claude_topic_list(
+        topics, call_failed = _call_claude_topic_list(
             self.client,
             "identify_topics_addressed",
             model="claude-sonnet-4-6",
@@ -126,7 +144,7 @@ class KnowledgeGapGraph:
                 f"Return maximum 4 topics as a JSON list like: [\"topic_name\", \"topic_name\"]"}]
         )
 
-        return [t.lower().replace(" ", "_") for t in topics if isinstance(t, str)]
+        return [t.lower().replace(" ", "_") for t in topics if isinstance(t, str)], call_failed
 
     def _get_company_weight(self, db: Session, topic_id: int, company: str = None) -> float:
         if not company:
