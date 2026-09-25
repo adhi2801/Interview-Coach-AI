@@ -388,3 +388,44 @@
 
 /* Frozen aurora (signed-in app): no per-frame backdrop changes. */
 .aurora-still .aurora-blob, .aurora-still .aurora-grain { animation: none; }
+
+/* =====================================================================
+   Landing v3 — blueprint system helpers
+   ===================================================================== */
+/* Pastel iridescent headline gradient (static: no per-frame repaint). */
+.text-iridescent {
+  background: linear-gradient(95deg, #c7d2fe 0%, #a5b4fc 18%, #d8b4fe 38%, #f5d0fe 52%, #fde68a 70%, #a7f3d0 88%, #c7d2fe 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Voice level bars: transform-only keyframes, staggered per bar. */
+.voice-bar {
+  height: 100%;
+  transform-origin: 50% 50%;
+  transform: scaleY(0.18);
+  animation: voice 0.9s ease-in-out infinite alternate;
+}
+@keyframes voice {
+  0% { transform: scaleY(0.12); }
+  35% { transform: scaleY(0.75); }
+  60% { transform: scaleY(0.3); }
+  100% { transform: scaleY(0.95); }
+}
+
+/* Feature-tab progress rail. */
+.tab-progress { transform: scaleX(0); animation: tab-progress linear forwards; }
+@keyframes tab-progress { to { transform: scaleX(1); } }
+
+/* The one live-blur surface on the landing page. Touch devices get an
+   opaque bar instead (fixed + backdrop-filter janks on iOS Safari). */
+.nav-glass { background: rgba(5, 5, 7, 0.8); backdrop-filter: blur(14px) saturate(160%); -webkit-backdrop-filter: blur(14px) saturate(160%); }
+@media (hover: none) and (pointer: coarse) {
+  .nav-glass { background: rgba(5, 5, 7, 0.96); backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-bar { animation: none; transform: scaleY(0.5); }
+  .tab-progress { animation: none; transform: scaleX(1); }
+}
