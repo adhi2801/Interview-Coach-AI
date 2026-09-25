@@ -48,18 +48,16 @@ export default function TermsOfService({ onGoBack }) {
   }
 
   return (
-    <div className="min-h-screen w-full bg-[#000000] text-slate-300 font-sans px-6 py-16 relative overflow-hidden flex flex-col justify-center items-center">
+    <div className="min-h-screen w-full bg-transparent text-slate-300 font-sans px-6 py-16 relative overflow-hidden flex flex-col justify-center items-center">
 
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute top-[-10%] left-[20%] w-[50vw] h-[50vw] bg-indigo-900/10 blur-[150px] rounded-full mix-blend-screen" />
-        <div className="absolute bottom-[-10%] right-[20%] w-[40vw] h-[40vw] bg-blue-900/10 blur-[150px] rounded-full mix-blend-screen" />
       </div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="max-w-3xl w-full bg-[#08080C]/90 border border-white/[0.08] p-8 md:p-10 rounded-3xl backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),0_20px_40px_-10px_rgba(0,0,0,0.8)] relative z-10"
+        className="max-w-3xl w-full bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.08] p-8 md:p-10 rounded-3xl backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),0_20px_40px_-10px_rgba(0,0,0,0.8)] relative z-10"
       >
 
         <button
@@ -86,7 +84,7 @@ export default function TermsOfService({ onGoBack }) {
             <motion.div
               key={section.title}
               variants={staggerItem}
-              className="bg-[#050508] border border-white/[0.06] p-5 rounded-2xl space-y-1.5 transition-all duration-300 hover:border-white/[0.14] hover:-translate-y-0.5"
+              className="bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.06] p-5 rounded-2xl space-y-1.5 transition-all duration-300 hover:border-white/[0.14] hover:-translate-y-0.5"
             >
               <div className="flex items-center gap-2 text-white font-bold text-sm">
                 <section.icon size={16} className={section.color} /> {section.title}

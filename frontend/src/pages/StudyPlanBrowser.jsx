@@ -7,6 +7,7 @@ import {
   CheckCircle2, Lock, AlertTriangle, MessageSquare, Database, 
   HardDrive, Shield, LayoutTemplate, LayoutGrid, ChevronRight 
 } from "lucide-react";
+import { LiquidGlass } from "../components/fx/LiquidGlass";
 
 export default function StudyPlanBrowser({ onGoBack }) {
   const [topics, setTopics] = useState([]);
@@ -128,14 +129,12 @@ export default function StudyPlanBrowser({ onGoBack }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#050508] text-slate-200 font-sans selection:bg-indigo-500/30 overflow-hidden relative flex flex-col">
+    <div className="min-h-screen bg-transparent text-slate-200 font-sans selection:bg-indigo-500/30 overflow-hidden relative flex flex-col">
       {/* Ambient Spotlights */}
-      <div className="fixed top-[-10%] left-[20%] w-[40vw] h-[40vw] bg-indigo-900/10 blur-[150px] pointer-events-none mix-blend-screen rounded-full z-0" />
-      <div className="fixed bottom-[-10%] right-[-10%] w-[30vw] h-[30vw] bg-blue-900/10 blur-[120px] pointer-events-none mix-blend-screen rounded-full z-0" />
       <div className="fixed inset-0 z-10 pointer-events-none opacity-[0.03] mix-blend-soft-light" style={{ backgroundImage: noiseSvg }} />
 
       {/* Top Header */}
-      <header className="h-16 border-b border-white/[0.06] bg-[#050508]/80 backdrop-blur-2xl flex items-center justify-between px-6 z-30 shrink-0">
+      <header className="h-16 border-b border-white/[0.06] bg-[#08080d]/75 backdrop-blur-xl0 backdrop-blur-2xl flex items-center justify-between px-6 z-30 shrink-0">
         <div className="flex items-center gap-4">
           <div className="w-6 h-6 rounded bg-indigo-600 text-white flex items-center justify-center font-bold text-[10px] shadow-[0_0_15px_rgba(79,70,229,0.5)]">IC</div>
           <span className="font-semibold text-white tracking-tight text-sm flex items-center gap-2">
@@ -160,7 +159,7 @@ export default function StudyPlanBrowser({ onGoBack }) {
                placeholder="Search topics..."
                value={searchQuery}
                onChange={(e) => setSearchQuery(e.target.value)}
-               className="w-full bg-[#0A0A0F] border border-white/10 rounded-lg py-1.5 pl-9 pr-8 text-xs font-medium text-white focus:outline-none focus:border-indigo-500 transition-all placeholder-slate-600 shadow-inner"
+               className="w-full bg-[#08080d]/75 backdrop-blur-xl border border-white/10 rounded-lg py-1.5 pl-9 pr-8 text-xs font-medium text-white focus:outline-none focus:border-indigo-500 transition-all placeholder-slate-600 shadow-inner"
              />
              <kbd className="absolute right-2 top-1/2 -translate-y-1/2 font-mono text-[9px] bg-white/5 border border-white/10 px-1.5 py-0.5 rounded text-slate-500">⌘K</kbd>
            </div>
@@ -380,7 +379,7 @@ export default function StudyPlanBrowser({ onGoBack }) {
                                   {t.name.replace(/_/g, " ")}
                                 </h3>
                                 <div className="flex items-center gap-2 mb-4">
-                                  <span className="bg-[#050508] border border-white/10 text-slate-400 text-[10px] font-bold px-2 py-0.5 rounded tabular-nums tracking-widest uppercase shadow-inner">
+                                  <span className="bg-[#08080d]/75 backdrop-blur-xl border border-white/10 text-slate-400 text-[10px] font-bold px-2 py-0.5 rounded tabular-nums tracking-widest uppercase shadow-inner">
                                     L{t.difficulty || 3}
                                   </span>
                                 </div>
@@ -430,35 +429,20 @@ export default function StudyPlanBrowser({ onGoBack }) {
   );
 }
 
-function GlassCard({ children, mousePos, onClick, urgent }) {
-  const [rect, setRect] = useState(null);
-  const cardRef = useRef(null);
-
-  useEffect(() => {
-    if (cardRef.current) setRect(cardRef.current.getBoundingClientRect());
-  }, []);
-
-  const isHovered = rect && mousePos.x >= rect.left && mousePos.x <= rect.right && mousePos.y >= rect.top && mousePos.y <= rect.bottom;
-  const cursorX = rect ? mousePos.x - rect.left : 0;
-  const cursorY = rect ? mousePos.y - rect.top : 0;
-
+function GlassCard({ children, onClick, urgent }) {
   return (
-    <motion.button 
-      ref={cardRef}
-      whileTap={{ scale: 0.96 }}
+    <LiquidGlass
+      as="button"
       onClick={onClick}
-      className={`relative text-left rounded-xl bg-[#0B0C10] border border-white/[0.08] hover:border-indigo-500/30 cursor-pointer shadow-[0_10px_20px_-10px_rgba(0,0,0,0.5)] p-5 overflow-hidden transition-all duration-200 group outline-none h-44 ${urgent ? "shadow-[inset_0_0_0_1px_rgba(245,158,11,0.15),0_0_20px_rgba(245,158,11,0.08)]" : ""}`}
+      interactive
+      tilt
+      tone={urgent ? "amber" : "dark"}
+      radius={16}
+      frost={18}
+      className={`text-left p-5 h-44 w-full outline-none group ${urgent ? "shadow-[0_0_40px_-12px_rgba(245,158,11,0.45)]" : ""}`}
+      contentClassName="relative z-10 w-full h-full flex flex-col"
     >
-      <div 
-        className="absolute inset-0 pointer-events-none transition-opacity duration-300 z-0"
-        style={{
-          background: `radial-gradient(300px circle at ${cursorX}px ${cursorY}px, rgba(255,255,255,0.03), transparent 40%)`,
-          opacity: isHovered ? 1 : 0
-        }}
-      />
-      <div className="relative z-10 w-full h-full flex flex-col">
-        {children}
-      </div>
-    </motion.button>
+      {children}
+    </LiquidGlass>
   );
 }

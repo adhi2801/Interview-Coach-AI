@@ -523,7 +523,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
 
   return (
     <div
-      className="h-screen w-full bg-[#000000] text-slate-100 font-sans flex flex-col overflow-hidden selection:bg-blue-500/30 relative"
+      className="h-screen w-full bg-transparent text-slate-100 font-sans flex flex-col overflow-hidden selection:bg-blue-500/30 relative"
       style={personaStyleVars}
     >
 
@@ -645,7 +645,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
           >
 
             {/* LEFT PANE: PROMPT INSPECTOR */}
-            <div className="w-full lg:w-[30%] lg:h-full overflow-y-auto border-b lg:border-b-0 lg:border-r border-white/[0.08] bg-[#020204] p-6 lg:p-8 flex flex-col shrink-0">
+            <div className="w-full lg:w-[30%] lg:h-full overflow-y-auto border-b lg:border-b-0 lg:border-r border-white/[0.08] bg-[#08080d]/75 backdrop-blur-xl p-6 lg:p-8 flex flex-col shrink-0">
               <div className="flex items-center gap-2 border-b border-white/[0.08] pb-3.5 mb-6">
                 <Terminal size={16} className="shrink-0" style={{ color: "var(--accent)" }} />
                 <h3 className="text-xs font-bold uppercase tracking-widest text-slate-300">The Question</h3>
@@ -755,7 +755,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
               </div>
 
               {/* Action Dock */}
-              <div className="lg:absolute lg:bottom-5 lg:left-5 lg:right-5 flex items-center justify-between z-20 bg-[#08080C] border border-white/10 p-3 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.8)] m-4 lg:m-0">
+              <div className="lg:absolute lg:bottom-5 lg:left-5 lg:right-5 flex items-center justify-between z-20 bg-[#08080d]/75 backdrop-blur-xl border border-white/10 p-3 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.8)] m-4 lg:m-0">
                 <div className="flex items-center gap-2">
                   <button
                     onClick={isRecording ? stopRecording : startRecording}
@@ -779,7 +779,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                     onClick={() => submitAnswer()}
                     disabled={loading}
                     className={`relative overflow-hidden px-6 py-2.5 rounded-xl text-xs md:text-sm font-bold flex items-center gap-2 transition-transform active:scale-95 outline-none ${
-                      loading ? "bg-white/10 text-slate-500 cursor-wait" : "bg-white text-black hover:bg-slate-200 shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+                      loading ? "bg-white/10 text-slate-500 cursor-wait" : "btn-liquid shadow-[0_0_20px_rgba(255,255,255,0.15)]"
                     }`}
                   >
                     {loading ? (
@@ -793,7 +793,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
             </div>
 
             {/* RIGHT PANE: SESSION TELEMETRY — real data only, no simulated scores */}
-            <div className="w-full lg:w-[22%] lg:min-w-[240px] bg-[#020204] p-6 flex flex-col shrink-0">
+            <div className="w-full lg:w-[22%] lg:min-w-[240px] bg-[#08080d]/75 backdrop-blur-xl p-6 flex flex-col shrink-0">
               <div className="flex items-center justify-between border-b border-white/[0.08] pb-3.5 mb-6">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-slate-300">Session Telemetry</h3>
                 <Activity size={16} style={{ color: "var(--accent)" }} />
@@ -1045,7 +1045,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
 
                       {/* Confidence + real voice telemetry — from actual liveCoaching captured
                           during this node, not simulated. Falls back honestly if no data. */}
-                      <div className="sm:col-span-2 bg-[#050507] border border-white/[0.08] rounded-2xl p-5">
+                      <div className="sm:col-span-2 bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.08] rounded-2xl p-5">
                         <div className="flex items-start gap-6 flex-wrap">
                           <div className="flex-1 min-w-[200px]">
                             <div className="flex items-center justify-between mb-3.5">
@@ -1113,7 +1113,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                       </p>
                     </div>
                   ) : (
-                    <div className="bg-[#050507] border border-white/[0.08] rounded-2xl p-5 text-xs text-slate-300">
+                    <div className="bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.08] rounded-2xl p-5 text-xs text-slate-300">
                       No critical knowledge gaps detected for this response.
                     </div>
                   )}
@@ -1122,7 +1122,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                 {/* ANNOTATED ANSWER TRANSCRIPT — raw answer only, no fabricated tags */}
                 <div>
                   <span className="text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-slate-500 block mb-3.5">Your Answer</span>
-                  <div className="bg-[#030305] border border-white/[0.08] p-5 rounded-2xl space-y-3">
+                  <div className="bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.08] p-5 rounded-2xl space-y-3">
                     <p className="text-xs md:text-sm font-mono text-slate-200 leading-[1.8] whitespace-pre-wrap">
                       {answer || "[No response recorded]"}
                     </p>
@@ -1177,7 +1177,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
 
                 {/* PEER BENCHMARK — only shown when real peer data exists */}
                 {peer && peer.percentile != null && !hasProfanityFlag && (
-                  <div className="bg-[#050507] border border-white/[0.08] rounded-2xl p-5 space-y-2 max-w-md">
+                  <div className="bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.08] rounded-2xl p-5 space-y-2 max-w-md">
                     <span className="text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-slate-500 block mb-1">Peer Benchmark</span>
                     <span className="text-xs font-mono text-slate-300 block">
                       You scored top {Math.max(1, 100 - peer.percentile)}% globally on this scenario type.
@@ -1190,14 +1190,14 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                   {isLastNode ? (
                     <button
                       onClick={handleFinish}
-                      className="bg-white text-black px-6 py-3 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(255,255,255,0.15)] outline-none"
+                      className="btn-liquid px-6 py-3 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(255,255,255,0.15)] outline-none"
                     >
                       Finish Session <CheckCircle2 size={14} />
                     </button>
                   ) : (
                     <button
                       onClick={goNextQuestion}
-                      className="bg-white text-black px-6 py-3 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(255,255,255,0.15)] outline-none"
+                      className="btn-liquid px-6 py-3 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(255,255,255,0.15)] outline-none"
                     >
                       Next Node <kbd className="font-mono text-[9px] bg-black/10 px-1 py-0.5 rounded text-black/70">↵</kbd>
                     </button>
@@ -1246,7 +1246,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-200 bg-black/70 backdrop-blur-md flex items-center justify-center">
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#0A0A12] border border-white/[0.12] rounded-2xl p-8 max-w-[360px] w-[calc(100%-40px)] text-center shadow-[0_24px_80px_rgba(0,0,0,0.7)]">
+              className="bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.12] rounded-2xl p-8 max-w-[360px] w-[calc(100%-40px)] text-center shadow-[0_24px_80px_rgba(0,0,0,0.7)]">
               <div className="w-11 h-11 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mx-auto mb-4">
                 <AlertTriangle size={18} className="text-rose-400" />
               </div>
@@ -1270,7 +1270,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
 function DimCard({ label, subtitle, value, feedback, colorFrom, colorTo, badgeBg, badgeBorder, badgeColor }) {
   const pct = Math.max(4, Math.min(100, Math.round((value || 0) * 10)));
   return (
-    <div className="bg-[#050507] border border-white/[0.08] rounded-2xl p-5">
+    <div className="bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.08] rounded-2xl p-5">
       <div className="flex items-center justify-between mb-3.5">
         <div>
           <div className="text-[13px] font-bold text-slate-200">{label}</div>
@@ -1303,7 +1303,7 @@ function NextActionCard({ icon: Icon, color, bg, border, title, body, cta, onCli
   return (
     <button
       onClick={onClick}
-      className="text-left bg-[#050507] border border-white/[0.08] hover:border-white/20 rounded-2xl p-5 transition-all hover:-translate-y-0.5"
+      className="text-left bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.08] hover:border-white/20 rounded-2xl p-5 transition-all hover:-translate-y-0.5"
     >
       <div className="w-9 h-9 rounded-[10px] flex items-center justify-center mb-3 border" style={{ background: bg, borderColor: border }}>
         <Icon size={15} style={{ color }} />

@@ -7,6 +7,7 @@ import {
   Volume2, Settings2, Check, X, AlertTriangle,
   RotateCcw, Pencil, Square
 } from "lucide-react";
+import { GlassCard as LiquidCard } from "../components/fx/LiquidGlass";
 
 // Sensible app defaults for any preference key not yet present on the
 // user record — NOT what gets sent to the backend, only what's shown
@@ -221,11 +222,9 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
   ];
 
   return (
-    <div className="min-h-screen bg-[#000000] text-slate-200 font-sans selection:bg-indigo-500/30 overflow-x-hidden relative flex flex-col">
+    <div className="min-h-screen bg-transparent text-slate-200 font-sans selection:bg-indigo-500/30 overflow-x-hidden relative flex flex-col">
 
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full blur-[150px] mix-blend-screen bg-indigo-900/15" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] rounded-full blur-[120px] mix-blend-screen bg-blue-900/10" />
       </div>
 
       <div className="fixed inset-0 z-10 pointer-events-none opacity-[0.03] mix-blend-soft-light" style={{ backgroundImage: noiseSvg }} />
@@ -238,7 +237,7 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
           <ArrowLeft size={14} /> Dashboard
         </button>
 
-        <div className="hidden sm:flex items-center gap-2 bg-[#08080C] border border-white/[0.08] px-3.5 py-1.5 rounded-xl text-xs font-medium text-slate-400 shadow-inner">
+        <div className="hidden sm:flex items-center gap-2 bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.08] px-3.5 py-1.5 rounded-xl text-xs font-medium text-slate-400 shadow-inner">
           <Search size={14} /> Search Settings
           <kbd className="ml-2 font-mono text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-slate-300">⌘K</kbd>
         </div>
@@ -394,7 +393,7 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
                     <div className="space-y-1 font-mono text-xs">
                       <ConfigRow
                         label="EMAIL ADDRESS"
-                        value={<span className="flex items-center gap-2">{profile?.email || user?.email || "—"} <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[9px] uppercase tracking-widest font-bold">VERIFIED</span></span>}
+                        value={<span className="flex items-center gap-2">{profile?.email || user?.email || "—"}</span>}
                         managedNote="Not editable — tied to your login"
                       />
                       <ConfigRow
@@ -431,19 +430,19 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
                     <Activity size={16} className="text-emerald-400" /> Real Rating & Session Stats
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                    <div className="bg-[#050508] border border-white/[0.06] p-6 rounded-2xl shadow-inner">
+                    <div className="bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.06] p-6 rounded-2xl shadow-inner">
                       <span className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-2">Current Rating</span>
                       <span className="text-4xl font-extrabold text-white tabular-nums tracking-tighter font-mono">
                         {Math.round(profile?.elo_rating ?? 1200)}
                       </span>
                     </div>
-                    <div className="bg-[#050508] border border-white/[0.06] p-6 rounded-2xl shadow-inner">
+                    <div className="bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.06] p-6 rounded-2xl shadow-inner">
                       <span className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-2">Total Sessions</span>
                       <span className="text-4xl font-extrabold text-white tabular-nums tracking-tighter font-mono">
                         {profile?.total_sessions ?? 0}
                       </span>
                     </div>
-                    <div className="bg-[#050508] border border-white/[0.06] p-6 rounded-2xl shadow-inner">
+                    <div className="bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.06] p-6 rounded-2xl shadow-inner">
                       <span className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-2">Average Score</span>
                       <span className="text-4xl font-extrabold text-emerald-400 tabular-nums tracking-tighter font-mono">
                         {profile?.avg_score != null ? profile.avg_score.toFixed(1) : "—"}
@@ -488,7 +487,7 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
                         <select
                           value={selectedDeviceId}
                           onChange={(e) => setSelectedDeviceId(e.target.value)}
-                          className="w-full bg-[#050508] border border-white/10 rounded-xl px-4 py-3 text-sm font-semibold text-white outline-none focus:border-indigo-500 appearance-none shadow-inner cursor-pointer"
+                          className="w-full bg-[#08080d]/75 backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3 text-sm font-semibold text-white outline-none focus:border-indigo-500 appearance-none shadow-inner cursor-pointer"
                         >
                           {devices.map((d, i) => (
                             <option key={d.deviceId || i} value={d.deviceId}>
@@ -516,7 +515,7 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
                         </button>
                       </div>
                       {micError && <p className="text-xs text-rose-400 mb-2">{micError}</p>}
-                      <div className="flex items-end gap-1 h-12 w-full p-2.5 bg-[#050508] border border-white/10 rounded-xl shadow-inner overflow-hidden">
+                      <div className="flex items-end gap-1 h-12 w-full p-2.5 bg-[#08080d]/75 backdrop-blur-xl border border-white/10 rounded-xl shadow-inner overflow-hidden">
                         {levels.map((h, i) => (
                           <div
                             key={i}
@@ -609,35 +608,10 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
 }
 
 function GlassCard({ children, className = "" }) {
-  const cardRef = useRef(null);
-  const [cursorX, setCursorX] = useState(0);
-  const [cursorY, setCursorY] = useState(0);
-  const [isHovered, setIsHovered] = useState(false);
-
-  const handleMouseMove = (e) => {
-    if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    setCursorX(e.clientX - rect.left);
-    setCursorY(e.clientY - rect.top);
-  };
-
   return (
-    <div
-      ref={cardRef}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      className={`relative rounded-3xl bg-[#08080C] border border-white/[0.06] overflow-hidden backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),0_20px_40px_-10px_rgba(0,0,0,0.8)] ${className}`}
-    >
-      <div
-        className="absolute inset-0 pointer-events-none transition-opacity duration-300 z-0"
-        style={{
-          background: `radial-gradient(500px circle at ${cursorX}px ${cursorY}px, rgba(255,255,255,0.04), transparent 40%)`,
-          opacity: isHovered ? 1 : 0
-        }}
-      />
-      <div className="relative z-10">{children}</div>
-    </div>
+    <LiquidCard radius={26} className={className}>
+      {children}
+    </LiquidCard>
   );
 }
 

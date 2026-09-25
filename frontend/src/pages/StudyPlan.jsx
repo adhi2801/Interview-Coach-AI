@@ -83,7 +83,7 @@ export default function StudyPlan({ topicName, company, onClose }) {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: "spring", stiffness: 400, damping: 30 }}
-          className="relative w-full max-w-2xl bg-[#0A0A0C]/95 border border-white/[0.08] rounded-2xl shadow-[0_40px_80px_rgba(0,0,0,0.9),inset_0_1px_0_0_rgba(255,255,255,0.08)] overflow-hidden flex flex-col max-h-[85vh]"
+          className="relative w-full max-w-2xl bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[0_40px_80px_rgba(0,0,0,0.9),inset_0_1px_0_0_rgba(255,255,255,0.08)] overflow-hidden flex flex-col max-h-[85vh]"
           onClick={(e) => e.stopPropagation()}
         >
           {loading ? (
@@ -157,7 +157,7 @@ export default function StudyPlan({ topicName, company, onClose }) {
                           <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold tabular-nums transition-colors duration-300 mt-0.5 ${
                             isTarget
                               ? "bg-amber-500/10 border-2 border-amber-500/50 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.2)] group-hover:border-amber-400"
-                              : "bg-[#0A0A0C] border-2 border-indigo-500/30 text-indigo-400 group-hover:border-indigo-400"
+                              : "bg-[#08080d]/75 backdrop-blur-xl border-2 border-indigo-500/30 text-indigo-400 group-hover:border-indigo-400"
                           }`}>
                             {i + 1}
                           </div>
@@ -217,7 +217,7 @@ export default function StudyPlan({ topicName, company, onClose }) {
                 <motion.button
                   whileTap={{ scale: 0.96 }}
                   onClick={onClose}
-                  className="w-full sm:w-auto relative group overflow-hidden bg-white text-black px-8 py-3 rounded-lg text-sm font-bold active:scale-95 transition-all duration-150 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_30px_rgba(255,255,255,0.25)]"
+                  className="w-full sm:w-auto relative group overflow-hidden btn-liquid px-8 py-3 rounded-lg text-sm font-bold active:scale-95 transition-all duration-150 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_30px_rgba(255,255,255,0.25)]"
                 >
                   <div className="absolute inset-0 w-full h-full bg-linear-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
                   Acknowledge Path <ChevronRight size={16} />

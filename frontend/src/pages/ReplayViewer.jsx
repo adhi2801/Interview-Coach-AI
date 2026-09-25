@@ -98,7 +98,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
 
   if (loading) {
     return (
-      <div className="h-screen w-full bg-[#000000] flex items-center justify-center font-sans">
+      <div className="h-screen w-full bg-transparent flex items-center justify-center font-sans">
         <div className="flex flex-col items-center gap-4 text-slate-500">
           <span className="w-8 h-8 border-2 border-slate-700 border-t-indigo-500 rounded-full animate-spin" />
           <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400">Loading Session Ledger...</span>
@@ -161,9 +161,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
     const companies = Array.from(new Set((sessionList || []).map((s) => s.company_target).filter(Boolean)));
 
     return (
-      <div className="min-h-screen w-full bg-[#000000] text-slate-200 font-sans flex flex-col relative overflow-hidden">
-        <div className="fixed top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-indigo-900/15 blur-[150px] pointer-events-none rounded-full z-0" />
-        <div className="fixed bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-blue-900/10 blur-[120px] pointer-events-none rounded-full z-0" />
+      <div className="min-h-screen w-full bg-transparent text-slate-200 font-sans flex flex-col relative overflow-hidden">
         <div className="fixed inset-0 z-10 pointer-events-none opacity-[0.03] mix-blend-soft-light" style={{ backgroundImage: noiseSvg }} />
         <header className="h-16 border-b border-white/[0.04] bg-[#000000]/60 backdrop-blur-2xl flex items-center justify-between px-6 lg:px-10 z-30">
           <div className="flex items-center gap-3">
@@ -261,7 +259,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                     transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
                     whileHover={{ y: -3 }}
                     onClick={() => onSelectSession?.(featured.id)}
-                    className={`relative rounded-2xl bg-[#08080C] border border-white/[0.06] border-l-[3px] ${style.border} p-6 lg:p-7 mb-4 cursor-pointer backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_50px_-10px_rgba(0,0,0,0.6)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),0_28px_60px_-10px_rgba(0,0,0,0.7)] transition-shadow group`}
+                    className={`relative rounded-2xl bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.06] border-l-[3px] ${style.border} p-6 lg:p-7 mb-4 cursor-pointer backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_50px_-10px_rgba(0,0,0,0.6)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),0_28px_60px_-10px_rgba(0,0,0,0.7)] transition-shadow group`}
                   >
                     <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
                       <div className="flex items-center gap-4">
@@ -311,7 +309,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                     )}
 
                     <div className="flex items-center gap-3 mt-5">
-                      <button className="relative overflow-hidden flex items-center gap-2 bg-white text-black font-bold text-xs px-4 py-2 rounded-lg hover:bg-slate-200 active:scale-[0.98] transition-all group/btn">
+                      <button className="relative overflow-hidden flex items-center gap-2 btn-liquid font-bold text-xs px-4 py-2 rounded-lg hover:bg-slate-200 active:scale-[0.98] transition-all group/btn">
                         <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-500 bg-linear-to-r from-transparent via-black/10 to-transparent" />
                         <span className="relative">Continue Reviewing</span>
                         <ArrowRight size={12} className="relative" />
@@ -334,7 +332,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                         initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96 }}
                         transition={{ duration: 0.4, delay: 0.05 + i * 0.04, ease: [0.16, 1, 0.3, 1] }}
                         whileHover={{ y: -4 }} whileTap={{ scale: 0.98 }} onClick={() => onSelectSession?.(s.id)}
-                        className={`relative rounded-2xl bg-[#08080C] border border-white/[0.06] border-l-[3px] ${style.border} p-5 flex flex-col justify-between h-[152px] group cursor-pointer overflow-hidden backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)] hover:border-white/[0.12] transition-colors`}
+                        className={`relative rounded-2xl bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.06] border-l-[3px] ${style.border} p-5 flex flex-col justify-between h-[152px] group cursor-pointer overflow-hidden backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)] hover:border-white/[0.12] transition-colors`}
                       >
                         <div className="flex justify-between items-start w-full">
                           <div className="flex items-center gap-3">
@@ -383,7 +381,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
 
   if (!replay || replay.error || !replay.questions?.length) {
     return (
-      <div className="h-screen w-full bg-[#000000] flex items-center justify-center font-sans">
+      <div className="h-screen w-full bg-transparent flex items-center justify-center font-sans">
         <div className="text-center space-y-4 max-w-md px-6">
           <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 mx-auto"><AlertTriangle size={24} /></div>
           <h2 className="text-lg font-bold text-white tracking-tight">Session Not Found</h2>
@@ -420,9 +418,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
   const hasElo = replay.elo_before != null && replay.elo_after != null;
 
   return (
-    <div className="h-screen w-full bg-[#000000] text-slate-100 font-sans flex flex-col overflow-hidden selection:bg-indigo-500/30 relative">
-      <div className="fixed top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-indigo-900/10 blur-[150px] pointer-events-none rounded-full z-0" />
-      <div className="fixed bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-blue-900/10 blur-[120px] pointer-events-none rounded-full z-0" />
+    <div className="h-screen w-full bg-transparent text-slate-100 font-sans flex flex-col overflow-hidden selection:bg-indigo-500/30 relative">
       <div className="fixed inset-0 z-10 pointer-events-none opacity-[0.03] mix-blend-soft-light" style={{ backgroundImage: noiseSvg }} />
 
       <header className="h-14 border-b border-white/[0.04] bg-[#000000]/60 backdrop-blur-2xl flex items-center justify-between px-6 z-50 shrink-0 sticky top-0">
@@ -486,7 +482,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
 
                 {/* SCORE CARD — single instance, real dimension breakdown */}
                 <motion.div variants={fadeUp} initial="hidden" animate="show" custom={1}
-                  className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-6 md:p-8 relative overflow-hidden backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)]">
+                  className="rounded-2xl bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.08] p-6 md:p-8 relative overflow-hidden backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)]">
                   {q.scores ? (
                     <div className="flex flex-col md:flex-row gap-8">
                       <div className="flex-1">
@@ -543,7 +539,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
 
                 {/* QUESTION */}
                 <motion.div variants={fadeUp} initial="hidden" animate="show" custom={2}
-                  className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-6 md:p-8 space-y-5 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)]">
+                  className="rounded-2xl bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.08] p-6 md:p-8 space-y-5 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)]">
                   <div className="flex items-center justify-between border-b border-white/[0.04] pb-4">
                     <div className="flex items-center gap-2.5">
                       <Terminal size={16} className="text-indigo-400" />
@@ -582,7 +578,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
 
                 {/* SUBMITTED ANSWER */}
                 <motion.div variants={fadeUp} initial="hidden" animate="show" custom={3}
-                  className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-6 md:p-8 space-y-4 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)]">
+                  className="rounded-2xl bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.08] p-6 md:p-8 space-y-4 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)]">
                   <div className="flex items-center justify-between border-b border-white/[0.04] pb-4">
                     <div className="flex items-center gap-2.5">
                       <MessageSquare size={16} className="text-slate-400" />
@@ -592,14 +588,14 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                       {q.answer ? `${q.answer.length.toLocaleString()} CHARS` : "NO SIGNAL"}
                     </span>
                   </div>
-                  <div className="bg-[#020204] border border-white/[0.05] p-5 rounded-xl font-mono text-sm text-slate-200 leading-[1.8] whitespace-pre-wrap shadow-inner max-h-[340px] overflow-y-auto scrollbar-hide">
+                  <div className="bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.05] p-5 rounded-xl font-mono text-sm text-slate-200 leading-[1.8] whitespace-pre-wrap shadow-inner max-h-[340px] overflow-y-auto scrollbar-hide">
                     {q.answer || "[No candidate response recorded for this node]"}
                   </div>
                 </motion.div>
 
                 {/* DETECTED GAPS — single location on the page */}
                 <motion.div variants={fadeUp} initial="hidden" animate="show" custom={4}
-                  className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-6 md:p-8 space-y-5 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)]">
+                  className="rounded-2xl bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.08] p-6 md:p-8 space-y-5 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)]">
                   <div className="flex items-center justify-between border-b border-white/[0.04] pb-4">
                     <div>
                       <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-300 flex items-center gap-2.5">
@@ -626,7 +622,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                     <div className="space-y-3">
                       {realGaps.map((gap, idx) => (
                         <div key={idx} onClick={() => setStudyPlanTopic(gap.title)}
-                          className="bg-[#0A0A0E] border border-rose-500/20 p-4 rounded-xl space-y-2 relative overflow-hidden group cursor-pointer hover:border-rose-500/35 transition-colors">
+                          className="bg-[#08080d]/75 backdrop-blur-xl border border-rose-500/20 p-4 rounded-xl space-y-2 relative overflow-hidden group cursor-pointer hover:border-rose-500/35 transition-colors">
                           <div className="absolute left-0 top-0 bottom-0 w-1 bg-rose-500/50" />
                           <div className="flex items-center justify-between pl-2">
                             <span className="text-sm font-bold text-white flex items-center gap-2 capitalize">
@@ -674,7 +670,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
             className="w-full lg:w-[35%] flex flex-col gap-5 lg:sticky lg:top-6 pb-32">
 
             {q.scores && (
-              <div className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-5 space-y-2 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)]">
+              <div className="rounded-2xl bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.08] p-5 space-y-2 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)]">
                 <div className="flex items-center justify-between mb-1">
                   <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">5D Skill Profile</h3>
                   <span className="text-[9px] font-mono bg-white/5 text-slate-400 border border-white/10 px-2 py-0.5 rounded font-bold uppercase tracking-widest">NODE {selected + 1}</span>
@@ -719,7 +715,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
               </div>
             )}
 
-            <div className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-5 space-y-1 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)]">
+            <div className="rounded-2xl bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.08] p-5 space-y-1 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)]">
               <div className="flex items-center justify-between mb-1">
                 <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Session Trajectory</h3>
                 <span className="text-[10px] font-mono text-white font-bold bg-white/5 border border-white/10 px-2 py-0.5 rounded">{avgScore ? `AVG ${avgScore}` : "AVG —"}</span>
@@ -741,7 +737,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
             </div>
 
             {hasElo && (
-              <div className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-5 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)]">
+              <div className="rounded-2xl bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.08] p-5 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)]">
                 <p className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400 mb-2.5">ELO This Session</p>
                 <div className="flex items-center justify-between">
                   <span className="text-2xl font-black font-mono text-white">{Math.round(replay.elo_after)}</span>
@@ -769,7 +765,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
             <ChevronLeft size={14} /> Previous
           </button>
           <button onClick={() => setSelected(s => Math.min(totalNodes - 1, s + 1))} disabled={selected === totalNodes - 1}
-            className="px-5 py-2.5 rounded-lg bg-white text-black hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold transition-all outline-none flex items-center gap-2 shadow-[0_0_15px_rgba(255,255,255,0.15)]">
+            className="px-5 py-2.5 rounded-lg btn-liquid disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold transition-all outline-none flex items-center gap-2 shadow-[0_0_15px_rgba(255,255,255,0.15)]">
             Next Node <ChevronRight size={14} />
           </button>
         </div>

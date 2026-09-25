@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { COMPANIES } from "../constants/companies";
+import { LiquidGlass } from "../components/fx/LiquidGlass";
 
 const ROLES = [
   "Software Engineer — L3", "Senior Engineer — L4", "Staff Engineer — L5",
@@ -56,30 +57,24 @@ function RollingNumber({ value, className = "" }) {
 }
 
 function DeepGlassCard({ children, className = "", accent, interactive = false, onClick, delay = 0 }) {
-  const [mx, setMx] = useState(50);
-  const [my, setMy] = useState(50);
-  const cardRef = useRef(null);
-
-  function handleMouseMove(e) {
-    const r = cardRef.current?.getBoundingClientRect();
-    if (!r) return;
-    setMx(((e.clientX - r.left) / r.width) * 100);
-    setMy(((e.clientY - r.top) / r.height) * 100);
-  }
-
-  const accentBorder = accent ? { borderLeftColor: accent, borderLeftWidth: "3px" } : {};
-
   return (
-    <motion.div ref={cardRef} onMouseMove={handleMouseMove} onClick={onClick}
-      initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
-      transition={{ type: "spring", stiffness: 260, damping: 28, delay }}
-      whileHover={interactive ? { y: -3, boxShadow: "0 20px 40px -12px rgba(0,0,0,0.6)" } : undefined}
-      whileTap={interactive ? { scale: 0.98 } : undefined}
-      style={{ boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.1), 0 20px 40px -10px rgba(0,0,0,0.5)', ...accentBorder }}
-      className={`relative rounded-2xl bg-[#0A0A0F]/80 border border-white/[0.08] overflow-hidden backdrop-blur-2xl transition-[border-color] duration-300 hover:border-white/[0.16] ${interactive ? "cursor-pointer" : ""} ${className}`}>
-      <div className="absolute inset-0 pointer-events-none transition-opacity duration-300 z-0 opacity-0 hover:opacity-100"
-        style={{ background: `radial-gradient(300px circle at ${mx}% ${my}%, rgba(255,255,255,0.05), transparent 45%)` }} />
-      <div className="relative z-10 w-full h-full">{children}</div>
+    <motion.div
+      initial={{ opacity: 0, y: 22, filter: "blur(8px)" }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay }}
+      className="h-full"
+    >
+      <LiquidGlass
+        interactive={interactive}
+        tilt={interactive}
+        onClick={onClick}
+        radius={20}
+        className={`overflow-hidden h-full ${className}`}
+        style={accent ? { boxShadow: `inset 3px 0 0 0 ${accent}, inset 0 1px 0 0 rgba(255,255,255,0.16), 0 24px 60px -24px rgba(0,0,0,0.85)` } : undefined}
+        contentClassName="relative z-10 w-full h-full"
+      >
+        {children}
+      </LiquidGlass>
     </motion.div>
   );
 }
@@ -111,12 +106,12 @@ function EloGauge({ elo, size = 96 }) {
 function CinematicSelect({ value, onChange, options }) {
   return (
     <SelectPrimitive.Root value={value} onValueChange={onChange}>
-      <SelectPrimitive.Trigger className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#08080C] border border-white/10 text-sm font-semibold text-white tracking-wide shadow-inner outline-none hover:border-white/20 transition-colors">
+      <SelectPrimitive.Trigger className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#08080d]/75 backdrop-blur-xl border border-white/10 text-sm font-semibold text-white tracking-wide shadow-inner outline-none hover:border-white/20 transition-colors">
         <SelectPrimitive.Value />
         <SelectPrimitive.Icon><ChevronDown size={14} className="text-slate-400" /></SelectPrimitive.Icon>
       </SelectPrimitive.Trigger>
       <SelectPrimitive.Portal>
-        <SelectPrimitive.Content className="overflow-hidden bg-[#0A0A0C]/95 backdrop-blur-3xl border border-white/10 rounded-xl shadow-[0_40px_80px_rgba(0,0,0,0.8)] z-9999" position="popper" sideOffset={6}>
+        <SelectPrimitive.Content className="overflow-hidden bg-[#08080d]/75 backdrop-blur-xl5 backdrop-blur-3xl border border-white/10 rounded-xl shadow-[0_40px_80px_rgba(0,0,0,0.8)] z-9999" position="popper" sideOffset={6}>
           <SelectPrimitive.Viewport className="p-1.5">
             {options.map((opt) => (
               <SelectPrimitive.Item key={opt} value={opt} className="relative flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all outline-none text-slate-300 hover:bg-white/[0.05] hover:text-white cursor-pointer data-[highlighted]:bg-blue-500/10 data-[highlighted]:text-blue-400">
@@ -303,7 +298,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
   };
 
   return (
-    <div ref={mainRef} className="min-h-screen bg-[#000000] text-slate-200 font-sans selection:bg-blue-500/30 overflow-x-hidden flex flex-col relative">
+    <div ref={mainRef} className="min-h-screen bg-transparent text-slate-200 font-sans selection:bg-blue-500/30 overflow-x-hidden flex flex-col relative">
 
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <motion.div style={{ y: orbYA }} animate={{ backgroundColor: activeComp.color, opacity: 0.13 }}
@@ -317,7 +312,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
       <AnimatePresence>
         {isBooting && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
-            <div className="w-[90vw] max-w-[500px] bg-[#0A0A0C] border border-white/10 p-6 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.9)] font-mono text-sm">
+            <div className="w-[90vw] max-w-[500px] bg-[#08080d]/75 backdrop-blur-xl border border-white/10 p-6 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.9)] font-mono text-sm">
               <div className="flex items-center gap-3 mb-6 border-b border-white/10 pb-4">
                 <Terminal size={18} className="text-blue-400" />
                 <span className="text-white font-bold tracking-tight">LAUNCHING SESSION</span>
@@ -416,7 +411,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
                             className="absolute inset-0 rounded-xl bg-white/[0.04] border border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.07)]" />
                         )}
                         <div className="relative z-10 flex items-center gap-2.5">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center border shrink-0 ${isActive ? "bg-[#0A0A0C] border-white/20" : "bg-white/5 border-white/10"}`}>
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center border shrink-0 ${isActive ? "bg-[#08080d]/75 backdrop-blur-xl border-white/20" : "bg-white/5 border-white/10"}`}>
                             <Icon size={14} color={isActive ? p.color : "#94a3b8"} />
                           </div>
                           <div>
@@ -479,16 +474,16 @@ export default function Dashboard({ onStart, user, onGoBack }) {
                     </div>
 
                     <div className="flex flex-wrap gap-3">
-                      <div className="bg-[#0A0A0C] border border-white/10 rounded-lg p-3.5 shadow-inner">
+                      <div className="bg-[#08080d]/75 backdrop-blur-xl border border-white/10 rounded-lg p-3.5 shadow-inner">
                         <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Interview Style</span>
                         <span className="text-xs font-bold text-white">{companyProfile.question_style}</span>
                       </div>
-                      <div className="bg-[#0A0A0C] border border-white/10 rounded-lg p-3.5 shadow-inner">
+                      <div className="bg-[#08080d]/75 backdrop-blur-xl border border-white/10 rounded-lg p-3.5 shadow-inner">
                         <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Difficulty Bias</span>
                         <span className="text-xs font-bold text-emerald-400 font-mono">{companyProfile.difficulty_bias}×</span>
                       </div>
                       {companyProfile.typical_rounds && (
-                        <div className="bg-[#0A0A0C] border border-white/10 rounded-lg p-3.5 shadow-inner">
+                        <div className="bg-[#08080d]/75 backdrop-blur-xl border border-white/10 rounded-lg p-3.5 shadow-inner">
                           <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Typical Rounds</span>
                           <span className="text-xs font-bold text-white">{companyProfile.typical_rounds}</span>
                         </div>
@@ -705,7 +700,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
         </div>
       </main>
 
-      <footer className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/[0.08] bg-[#050508]/90 backdrop-blur-2xl px-6 lg:px-10 py-4">
+      <footer className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/[0.08] bg-[#08080d]/75 backdrop-blur-xl0 backdrop-blur-2xl px-6 lg:px-10 py-4">
         <div className="max-w-[1560px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 flex-wrap text-[11px] font-mono">
             <span className="text-slate-600 uppercase tracking-widest text-[9px]">Active</span>
@@ -720,7 +715,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
               </p>
             )}
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={handleLaunch} disabled={isBooting}
-              className="relative overflow-hidden w-full h-12 rounded-xl bg-white text-black text-xs font-extrabold uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50 group">
+              className="relative overflow-hidden w-full h-12 rounded-xl btn-liquid text-xs font-extrabold uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50 group">
               <div className="absolute inset-0 w-full h-full bg-linear-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
               <span className="relative z-10 flex items-center gap-2">Cross Threshold <ArrowRight size={16} /></span>
             </motion.button>

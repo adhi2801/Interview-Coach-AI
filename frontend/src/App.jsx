@@ -7,6 +7,7 @@ import { AUTH_EXPIRED_EVENT, clearAuth, getToken, isTokenExpired, loadSavedUser 
 import { useTransitionNavigate } from "./lib/navigation";
 import SmoothScroll, { getLenis } from "./components/fx/SmoothScroll";
 import { LiquidGlass } from "./components/fx/LiquidGlass";
+import Aurora from "./components/fx/Aurora";
 
 // Every route-level page is now code-split. Previously all 13 pages were
 // eagerly imported at the top of this file, meaning a first-time visitor
@@ -186,6 +187,9 @@ function AuthenticatedRoutes({ user, onLogout, onEloUpdate, onUserPatch, session
 
   return (
     <div className="w-full h-full">
+      {/* One living backdrop behind every signed-in page; pages are transparent over it. */}
+      {/* Dimmer on work surfaces (interview, coding) so focus stays on the task. */}
+      <Aurora intensity={/^\/(interview|coding)/.test(location.pathname) ? 0.35 : 0.9} />
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes location={location}>
             <Route path="/" element={<UserDashboard user={user} onLogout={onLogout} onStartNew={() => navigate("/setup")} onNavigateHistory={() => navigate("/replay")} onStartCoding={() => navigate("/coding")} onNavigateSettings={() => navigate("/settings")} onNavigateStudyPlan={() => navigate("/study-plan")} onOpenCommandPalette={onOpenCommandPalette} onEloUpdate={onEloUpdate} />} />

@@ -18,6 +18,7 @@ import { SiMeta, SiNetflix } from 'react-icons/si';
 import StudyPlan from './StudyPlan';
 
 import { COMPANIES as SHARED_COMPANIES } from '../constants/companies';
+import { GlassCard as LiquidCard } from "../components/fx/LiquidGlass";
 
 const TARGET_COMPANIES_FALLBACK = ["Google", "Amazon", "Meta", "Microsoft", "Apple"];
 
@@ -133,16 +134,9 @@ function RollingNumber({ value, className = "" }) {
 // a mouse-following light show.
 function GlassCard({ children, className = "", onClick, interactive = false, layout = false }) {
   return (
-    <motion.div
-      layout={layout}
-      onClick={onClick}
-      whileHover={interactive ? { y: -3, boxShadow: "0 20px 40px -12px rgba(0,0,0,0.6)" } : undefined}
-      whileTap={interactive ? { scale: 0.98 } : undefined}
-      transition={{ type: "spring", stiffness: 320, damping: 26 }}
-      className={`relative rounded-2xl bg-white/[0.035] border border-white/[0.08] overflow-hidden backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.07),0_2px_24px_rgba(0,0,0,0.45)] transition-[border-color] duration-300 hover:border-white/[0.16] ${interactive ? "cursor-pointer" : ""} ${className}`}
-    >
-      <div className="relative z-10 h-full">{children}</div>
-    </motion.div>
+    <LiquidCard tilt={interactive} interactive={interactive} layout={layout} onClick={onClick} radius={20} className={className}>
+      {children}
+    </LiquidCard>
   );
 }
 
@@ -347,7 +341,7 @@ export default function UserDashboard({
   const firstName = user?.name?.split(" ")[0] || "there";
 
   return (
-    <div ref={mainRef} className="min-h-screen bg-[#000000] text-slate-200 font-sans selection:bg-blue-500/30 overflow-x-hidden relative">
+    <div ref={mainRef} className="min-h-screen bg-transparent text-slate-200 font-sans selection:bg-blue-500/30 overflow-x-hidden relative">
 
       <style>{`
         @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
@@ -419,7 +413,7 @@ export default function UserDashboard({
               </button>
               <AnimatePresence>
                 {userMenuOpen && (
-                  <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className="absolute right-0 top-full mt-3 w-56 bg-[#0A0A0C] border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] p-2 z-50 space-y-1">
+                  <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className="absolute right-0 top-full mt-3 w-56 bg-[#08080d]/75 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] p-2 z-50 space-y-1">
                     <div className="p-3 border-b border-white/5">
                       <p className="text-xs font-bold text-white truncate">{user?.name || "Candidate"}</p>
                       <p className="text-[10px] font-mono text-slate-400 truncate">{user?.email || ""}</p>
@@ -539,7 +533,7 @@ export default function UserDashboard({
                 whileTap={{ scale: 0.96 }}
                 transition={{ type: "spring", stiffness: 400, damping: 20 }}
                 onClick={() => gapData.critical_gap ? handleStudyClick(gapData.critical_gap.gap) : onStartNew?.()}
-                className="relative overflow-hidden w-full bg-white text-black py-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.12)]"
+                className="relative overflow-hidden w-full btn-liquid py-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.12)]"
               >
                 <div className="absolute inset-0 w-full h-full bg-linear-to-r from-transparent via-black/10 to-transparent -translate-x-full hover:animate-shimmer" />
                 <Play size={11} className="fill-current" /> {gapData.critical_gap ? "Study This Gap" : "Launch Session"}
@@ -584,7 +578,7 @@ export default function UserDashboard({
                     whileTap={{ scale: 0.95 }}
                     transition={{ type: "spring", stiffness: 400, damping: 20 }}
                     onClick={() => handleStudyClick(gapData.critical_gap.gap)}
-                    className="relative w-full bg-white text-black py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 mt-4"
+                    className="relative w-full btn-liquid py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 mt-4"
                   >
                     <AnimatePresence mode="wait">
                       {confirmPulse ? (
