@@ -19,9 +19,9 @@ const LANGUAGES = [
 // Difficulty tiering — derived from the real problem.difficulty number (1-10),
 // not fabricated. Drives the ambient glow and badge color.
 const DIFF_TOKENS = {
-  easy:   { label: "EASY",   hue: "#10b981", glowA: "rgba(16,185,129,.16)",  glowB: "rgba(16,185,129,.09)",  badgeBg: "rgba(16,185,129,.12)",  badgeBorder: "rgba(16,185,129,.28)" },
-  medium: { label: "MEDIUM", hue: "#f59e0b", glowA: "rgba(245,158,11,.17)",  glowB: "rgba(245,158,11,.09)",  badgeBg: "rgba(245,158,11,.12)",  badgeBorder: "rgba(245,158,11,.28)" },
-  hard:   { label: "HARD",   hue: "#f43f5e", glowA: "rgba(244,63,94,.18)",   glowB: "rgba(244,63,94,.10)",   badgeBg: "rgba(244,63,94,.12)",   badgeBorder: "rgba(244,63,94,.28)" },
+  easy:   { label: "Easy",   hue: "#10b981", glowA: "rgba(16,185,129,.16)",  glowB: "rgba(16,185,129,.09)",  badgeBg: "rgba(16,185,129,.12)",  badgeBorder: "rgba(16,185,129,.28)" },
+  medium: { label: "Medium", hue: "#f59e0b", glowA: "rgba(245,158,11,.17)",  glowB: "rgba(245,158,11,.09)",  badgeBg: "rgba(245,158,11,.12)",  badgeBorder: "rgba(245,158,11,.28)" },
+  hard:   { label: "Hard",   hue: "#f43f5e", glowA: "rgba(244,63,94,.18)",   glowB: "rgba(244,63,94,.10)",   badgeBg: "rgba(244,63,94,.12)",   badgeBorder: "rgba(244,63,94,.28)" },
 };
 function diffTier(difficulty) {
   if (!difficulty) return DIFF_TOKENS.medium;
@@ -131,20 +131,20 @@ function CustomDropdown({ value, options, onChange, icon: Icon, placeholder, cla
         type="button"
         whileTap={{ scale: 0.98 }}
         onClick={openDropdown}
-        className="w-full flex items-center justify-between bg-[#08080C] border border-white/10 hover:border-white/20 rounded-xl px-3.5 py-1.5 text-xs font-bold text-slate-200 transition-all outline-none shadow-inner"
+        className="w-full flex items-center justify-between bg-surface border border-hairline hover:border-white/20 rounded-xl px-3.5 py-1.5 text-xs font-bold text-label transition-all outline-none shadow-inner"
       >
         <div className="flex items-center gap-2 truncate">
           {Icon && <Icon size={14} className="text-blue-400 shrink-0" />}
           <span className="truncate">{selectedOption ? selectedOption.label || selectedOption.title : placeholder}</span>
         </div>
-        <ChevronDown size={14} className={`text-slate-500 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+        <ChevronDown size={14} className={`text-label-3 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
       </motion.button>
       {typeof document !== "undefined" && createPortal(
         <AnimatePresence>
           {isOpen && (
             <motion.div ref={menuRef} initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }}
               transition={{ duration: 0.15 }} style={{ position: "fixed", top: coords.top, left: coords.left, width: coords.width, zIndex: 99999 }}
-              className="bg-[#0A0A0E]/95 border border-white/10 rounded-xl shadow-[0_25px_50px_rgba(0,0,0,0.9),_inset_0_1px_0_0_rgba(255,255,255,0.1)] backdrop-blur-2xl overflow-hidden p-1.5">
+              className="bg-surface/95 border border-hairline rounded-xl shadow-[0_25px_50px_rgba(0,0,0,0.9),_inset_0_1px_0_0_rgba(255,255,255,0.1)] backdrop-blur-2xl overflow-hidden p-1.5">
               <div className="max-h-60 overflow-y-auto space-y-1 scrollbar-hide">
                 {options.map((opt) => {
                   const isSelected = opt.id === value || opt.slug === value;
@@ -152,7 +152,7 @@ function CustomDropdown({ value, options, onChange, icon: Icon, placeholder, cla
                     <button key={opt.id || opt.slug} type="button"
                       onClick={(e) => { e.stopPropagation(); onChange(opt.id || opt.slug); setIsOpen(false); }}
                       className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-left transition-all ${
-                        isSelected ? "bg-blue-500/15 text-blue-400 font-bold border border-blue-500/20" : "text-slate-300 hover:bg-white/[0.05] hover:text-white"
+                        isSelected ? "bg-blue-500/15 text-blue-400 font-bold border border-blue-500/20" : "text-label-2 hover:bg-white/[0.05] hover:text-white"
                       }`}>
                       <span className="truncate">{opt.label || opt.title} {opt.difficulty ? `(L${opt.difficulty})` : ""}</span>
                       {isSelected && <Check size={14} className="text-blue-400 shrink-0 ml-2" />}
@@ -171,7 +171,7 @@ function CustomDropdown({ value, options, onChange, icon: Icon, placeholder, cla
 
 function GlassPanel({ children, className = "" }) {
   return (
-    <div className={`bg-[#08080A]/90 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_4px_32px_rgba(0,0,0,0.5)] transition-colors duration-300 hover:border-white/[0.14] ${className}`}>
+    <div className={`bg-surface/90 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_4px_32px_rgba(0,0,0,0.5)] transition-colors duration-300 hover:border-white/[0.14] ${className}`}>
       {children}
     </div>
   );
@@ -403,25 +403,25 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
 
   if (problemLoading) {
     return (
-      <div className="h-screen w-full bg-[#000000] flex flex-col items-center justify-center font-mono">
-        <div className="w-10 h-10 border-2 border-white/10 border-t-blue-500 rounded-full animate-spin mb-4" />
-        <span className="text-slate-400 text-xs font-bold uppercase tracking-widest animate-pulse">&gt; Initializing Sandboxed Runtime Environment...</span>
+      <div className="h-screen w-full bg-canvas flex flex-col items-center justify-center font-mono">
+        <div className="w-10 h-10 border-2 border-hairline border-t-blue-500 rounded-full animate-spin mb-4" />
+        <span className="text-label-2 text-xs font-medium animate-pulse">Loading problem…</span>
       </div>
     );
   }
 
   if (problemError || !problem) {
     return (
-      <div className="h-screen w-full bg-[#000000] flex items-center justify-center font-sans">
+      <div className="h-screen w-full bg-canvas flex items-center justify-center font-sans">
         <div className="text-center space-y-4 max-w-md px-6">
           <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 mx-auto"><AlertTriangle size={24} /></div>
           <h2 className="text-lg font-bold text-white tracking-tight">Couldn't load a problem</h2>
-          <p className="text-xs text-slate-400 font-medium leading-relaxed">The adaptive problem-selection engine didn't return a result. No fallback problem is shown — retry below.</p>
+          <p className="text-xs text-label-2 font-medium leading-relaxed">The adaptive problem-selection engine didn't return a result. No fallback problem is shown — retry below.</p>
           <div className="flex items-center justify-center gap-3 pt-2">
             <button onClick={fetchProblem} className="px-6 py-2.5 bg-white text-black hover:bg-slate-200 rounded-xl text-xs font-bold transition-all flex items-center gap-2">
               <RotateCcw size={13} /> Retry
             </button>
-            {onFinish && <button onClick={onFinish} className="px-6 py-2.5 bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 rounded-xl text-xs font-bold text-white transition-all">Exit</button>}
+            {onFinish && <button onClick={onFinish} className="px-6 py-2.5 bg-white/[0.05] hover:bg-white/[0.1] border border-hairline rounded-xl text-xs font-bold text-white transition-all">Exit</button>}
           </div>
         </div>
       </div>
@@ -429,7 +429,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
   }
 
   return (
-    <div className="flex flex-col h-screen w-full bg-[#000000] text-slate-100 font-sans selection:bg-blue-500/30 overflow-hidden relative">
+    <div className="flex flex-col h-screen w-full bg-canvas text-label font-sans selection:bg-blue-500/30 overflow-hidden relative">
 
       {/* Difficulty-reactive ambient glow */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
@@ -440,7 +440,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
       </div>
 
       {/* HEADER */}
-      <header className="h-12 bg-black/70 backdrop-blur-xl border-b border-white/[0.08] shadow-[inset_0_-1px_0_rgba(255,255,255,0.04)] flex items-center justify-between px-6 z-50 shrink-0 relative">
+      <header className="h-12 bg-black/70 backdrop-blur-xl border-b border-hairline shadow-[inset_0_-1px_0_rgba(255,255,255,0.04)] flex items-center justify-between px-6 z-50 shrink-0 relative">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2.5">
             <div className="w-5 h-5 rounded bg-white flex items-center justify-center text-[9px] font-extrabold text-black">IC</div>
@@ -448,14 +448,14 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
           </div>
           <div className="w-px h-4 bg-white/10 hidden sm:block" />
           <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase tracking-widest transition-colors duration-700 ease-out"
+            <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-caption font-medium transition-colors duration-700 ease-out"
               style={{ background: tier.badgeBg, borderColor: tier.badgeBorder, color: tier.hue, border: "1px solid" }}>
               <span className="w-1.5 h-1.5 rounded-full animate-pulse transition-colors duration-700 ease-out" style={{ background: tier.hue }} /> {tier.label}
             </span>
-            <span className="hidden md:flex items-center gap-1.5 bg-white/5 border border-white/10 text-slate-400 px-2 py-0.5 rounded-full text-[9px] font-mono font-bold tabular-nums" title="Time on this problem">
+            <span className="hidden md:flex items-center gap-1.5 bg-white/5 border border-hairline text-label-2 px-2 py-0.5 rounded-full text-[9px] font-mono font-bold tabular-nums" title="Time on this problem">
               {formatElapsed(elapsedSeconds)}
             </span>
-            <span className="bg-white/5 border border-white/10 text-slate-400 px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase tracking-widest flex items-center gap-1.5">
+            <span className="bg-white/5 border border-hairline text-label-2 px-2 py-0.5 rounded-full text-caption font-medium flex items-center gap-1.5">
               <ShieldCheck size={10} /> Sandbox
             </span>
           </div>
@@ -465,7 +465,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
 
         <div className="flex items-center gap-4">
           <motion.button whileTap={{ scale: 0.95 }} onClick={() => setFocusMode(!focusMode)}
-            className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-colors px-3 py-1.5 rounded-md border ${focusMode ? "bg-blue-500/10 text-blue-400 border-blue-500/20" : "bg-white/5 text-slate-400 border-white/10 hover:text-white"}`}
+            className={`flex items-center gap-2 text-caption font-medium transition-colors px-3 py-1.5 rounded-md border ${focusMode ? "bg-blue-500/10 text-blue-400 border-blue-500/20" : "bg-white/5 text-label-2 border-hairline hover:text-white"}`}
             title="Toggle Focus Mode (⌘B)">
             {focusMode ? <PanelRightOpen size={13} /> : <PanelRightClose size={13} />}
             <span className="hidden sm:inline">Focus</span>
@@ -481,13 +481,13 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
 
           <div className="w-px h-4 bg-white/10 hidden sm:block" />
           <div className="flex items-center gap-2 hidden sm:flex font-mono">
-            <span className="text-slate-500 text-[9px] font-bold uppercase tracking-widest">ELO</span>
+            <span className="text-label-3 text-caption font-medium">ELO</span>
             <span className="text-white text-xs font-bold tabular-nums">{realElo ?? "—"}</span>
           </div>
 
           {onFinish && (
             <motion.button whileTap={{ scale: 0.95 }} onClick={onFinish}
-              className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors bg-white/5 border border-white/10 px-3 py-1.5 rounded-md">
+              className="flex items-center gap-1.5 text-caption font-medium text-label-2 hover:text-white transition-colors bg-white/5 border border-hairline px-3 py-1.5 rounded-md">
               <ArrowLeft size={12} /> Exit
             </motion.button>
           )}
@@ -497,11 +497,11 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
       <main className="flex-1 w-full flex overflow-hidden relative z-10">
 
         {/* LEFT: SPEC */}
-        <GlassPanel className="w-full md:w-[25%] min-w-[300px] border-r border-white/[0.08] flex flex-col h-full overflow-hidden shrink-0">
-          <div className="h-10 border-b border-white/[0.08] flex items-center px-4 gap-2 shrink-0">
-            {[{ id: "spec", label: "01 Specification", icon: FileText }, { id: "tests", label: "02 Test Suite", icon: Hash }, { id: "targets", label: "03 Complexity", icon: Gauge }].map((tab) => (
+        <GlassPanel className="w-full md:w-[25%] min-w-[300px] border-r border-hairline flex flex-col h-full overflow-hidden shrink-0">
+          <div className="h-10 border-b border-hairline flex items-center px-4 gap-2 shrink-0">
+            {[{ id: "spec", label: "Problem", icon: FileText }, { id: "tests", label: "Tests", icon: Hash }, { id: "targets", label: "Complexity", icon: Gauge }].map((tab) => (
               <button key={tab.id} onClick={() => setActiveLeftTab(tab.id)}
-                className={`flex items-center gap-1.5 px-3 h-full text-[10px] font-mono font-bold transition-all outline-none border-b-2 ${activeLeftTab === tab.id ? "text-white border-blue-500 bg-white/[0.03]" : "text-slate-500 border-transparent hover:text-slate-300"}`}>
+                className={`flex items-center gap-1.5 px-3 h-full text-[10px] font-mono font-bold transition-all outline-none border-b-2 ${activeLeftTab === tab.id ? "text-white border-blue-500 bg-white/[0.03]" : "text-label-3 border-transparent hover:text-label-2"}`}>
                 <tab.icon size={12} className={activeLeftTab === tab.id ? "text-blue-400" : ""} />{tab.label}
               </button>
             ))}
@@ -516,32 +516,32 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
                   <h1 className="text-[22px] font-black tracking-tight text-white mb-3 leading-snug">{problem.title}</h1>
                   <div className="flex flex-wrap gap-2 mb-4">
                     {problem.time_complexity_target ? (
-                      <span className="text-[9.5px] font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-1 rounded-md uppercase tracking-widest">TARGET: {problem.time_complexity_target} TIME</span>
+                      <span className="text-[9.5px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-1 rounded-md">Target time {problem.time_complexity_target}</span>
                     ) : (
-                      <span className="text-[9.5px] font-mono font-bold text-slate-600 bg-white/[0.03] border border-white/10 px-2.5 py-1 rounded-md uppercase tracking-widest italic">Time target unavailable</span>
+                      <span className="text-[9.5px] font-medium text-label-3 bg-white/[0.03] border border-hairline px-2.5 py-1 rounded-md italic">Time target unavailable</span>
                     )}
                     {problem.space_complexity_target ? (
-                      <span className="text-[9.5px] font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-1 rounded-md uppercase tracking-widest">TARGET: {problem.space_complexity_target} SPACE</span>
+                      <span className="text-[9.5px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-1 rounded-md">Target space {problem.space_complexity_target}</span>
                     ) : (
-                      <span className="text-[9.5px] font-mono font-bold text-slate-600 bg-white/[0.03] border border-white/10 px-2.5 py-1 rounded-md uppercase tracking-widest italic">Space target unavailable</span>
+                      <span className="text-[9.5px] font-medium text-label-3 bg-white/[0.03] border border-hairline px-2.5 py-1 rounded-md italic">Space target unavailable</span>
                     )}
                   </div>
-                  <p className="text-xs text-slate-300 leading-[1.7] font-medium whitespace-pre-line border-l-2 border-white/10 pl-3">{problem.description}</p>
+                  <p className="text-xs text-label-2 leading-[1.7] font-medium whitespace-pre-line border-l-2 border-hairline pl-3">{problem.description}</p>
                 </motion.div>
 
                 {(problem.input_format || problem.output_format) && (
-                  <motion.div variants={staggerItem} className="bg-[#050507] border border-white/[0.08] rounded-xl p-4 space-y-3 font-mono text-[11px]">
-                    <div><span className="text-[9px] uppercase font-bold text-slate-500 block mb-0.5">Input Format</span><span className="text-slate-300">{problem.input_format}</span></div>
-                    <div className="border-t border-white/[0.06] pt-3"><span className="text-[9px] uppercase font-bold text-slate-500 block mb-0.5">Output Format</span><span className="text-slate-300">{problem.output_format}</span></div>
+                  <motion.div variants={staggerItem} className="bg-surface border border-hairline rounded-xl p-4 space-y-3 font-mono text-[11px]">
+                    <div><span className="text-caption font-medium text-label-3 block mb-0.5">Input Format</span><span className="text-label-2">{problem.input_format}</span></div>
+                    <div className="border-t border-hairline pt-3"><span className="text-caption font-medium text-label-3 block mb-0.5">Output Format</span><span className="text-label-2">{problem.output_format}</span></div>
                   </motion.div>
                 )}
 
                 {problem.constraints?.length > 0 && (
                   <motion.div variants={staggerItem}>
-                    <h3 className="text-[9px] font-mono font-bold uppercase tracking-widest text-slate-500 mb-2">Constraints</h3>
-                    <ul className="space-y-1.5 bg-[#050507] border border-white/[0.08] p-4 rounded-xl">
+                    <h3 className="text-caption font-medium text-label-3 mb-2">Constraints</h3>
+                    <ul className="space-y-1.5 bg-surface border border-hairline p-4 rounded-xl">
                       {problem.constraints.map((c, i) => (
-                        <li key={i} className="text-[11px] font-mono text-slate-400 flex items-start gap-2"><span className="text-blue-500 mt-0.5">{">"}</span> {c}</li>
+                        <li key={i} className="text-[11px] font-mono text-label-2 flex items-start gap-2"><span className="text-blue-500 mt-0.5">{">"}</span> {c}</li>
                       ))}
                     </ul>
                   </motion.div>
@@ -551,16 +551,16 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
 
             {activeLeftTab === "tests" && (
               <motion.div variants={staggerContainer} initial="hidden" animate="show" className="space-y-4">
-                <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400">Sample Test Suite</span>
-                  <span className="text-[10px] font-mono text-slate-500">{problem.sample_test_cases?.length || 0} Cases</span>
+                <div className="flex items-center justify-between border-b border-hairline pb-2">
+                  <span className="text-caption font-medium text-label-2">Sample Test Suite</span>
+                  <span className="text-[10px] font-mono text-label-3">{problem.sample_test_cases?.length || 0} Cases</span>
                 </div>
                 <div className="space-y-3">
                   {(problem.sample_test_cases || []).map((tc, idx) => (
-                    <motion.div key={idx} variants={staggerItem} className="bg-[#050507] border border-white/[0.08] p-3.5 rounded-xl space-y-1.5 font-mono text-xs">
-                      <div className="flex justify-between items-center text-[10px] text-slate-500 font-bold uppercase"><span>Case 0{idx + 1}</span></div>
-                      <div><span className="text-slate-500">Input:</span> <span className="text-white font-bold">{tc.input}</span></div>
-                      <div><span className="text-slate-500">Expected:</span> <span className="text-indigo-400 font-bold">{tc.expected_output}</span></div>
+                    <motion.div key={idx} variants={staggerItem} className="bg-surface border border-hairline p-3.5 rounded-xl space-y-1.5 font-mono text-xs">
+                      <div className="flex justify-between items-center text-caption text-label-3 font-medium"><span>Case 0{idx + 1}</span></div>
+                      <div><span className="text-label-3">Input:</span> <span className="text-white font-bold">{tc.input}</span></div>
+                      <div><span className="text-label-3">Expected:</span> <span className="text-accent font-bold">{tc.expected_output}</span></div>
                     </motion.div>
                   ))}
                 </div>
@@ -569,17 +569,17 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
 
             {activeLeftTab === "targets" && (
               <motion.div variants={staggerContainer} initial="hidden" animate="show" className="space-y-6">
-                <motion.div variants={staggerItem} className="bg-[#050507] border border-white/[0.08] p-5 rounded-2xl space-y-4">
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-slate-300 flex items-center gap-2"><Gauge size={14} className="text-blue-400" /> Complexity Bounds</h3>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">Specific to this problem's constraints — not a default applied to every problem.</p>
+                <motion.div variants={staggerItem} className="bg-surface border border-hairline p-5 rounded-2xl space-y-4">
+                  <h3 className="text-xs font-medium text-label-2 flex items-center gap-2"><Gauge size={14} className="text-blue-400" /> Complexity Bounds</h3>
+                  <p className="text-[11px] text-label-3 leading-relaxed">Specific to this problem's constraints — not a default applied to every problem.</p>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-400 font-medium">Time Target</span>
+                      <span className="text-label-2 font-medium">Time Target</span>
                       <span className="text-emerald-400 font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">{problem.time_complexity_target || "—"}</span>
                     </div>
                     <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-400 font-medium">Space Target</span>
-                      <span className="text-indigo-400 font-mono font-bold px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20">{problem.space_complexity_target || "—"}</span>
+                      <span className="text-label-2 font-medium">Space Target</span>
+                      <span className="text-accent font-mono font-bold px-2 py-0.5 rounded bg-accent/10 border border-accent/20">{problem.space_complexity_target || "—"}</span>
                     </div>
                   </div>
                 </motion.div>
@@ -587,14 +587,14 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
             )}
 
             {/* Hints */}
-            <div className="pt-4 border-t border-white/[0.08] space-y-2">
+            <div className="pt-4 border-t border-hairline space-y-2">
               {hintCards.length === 0 && !hintLoading && !hintError && (
-                <button onClick={generateHint} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-dashed border-white/[0.14] bg-transparent hover:bg-white/[0.04] text-[11px] font-bold text-slate-400 hover:text-white transition-all outline-none">
+                <button onClick={generateHint} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-dashed border-white/[0.14] bg-transparent hover:bg-white/[0.04] text-[11px] font-bold text-label-2 hover:text-white transition-all outline-none">
                   <Lightbulb size={14} className="text-blue-400" /> Generate first hint
                 </button>
               )}
               {hintLoading && (
-                <div className="flex items-center gap-2.5 p-3 rounded-lg bg-white/[0.03] border border-white/10 text-xs text-slate-400">
+                <div className="flex items-center gap-2.5 p-3 rounded-lg bg-white/[0.03] border border-hairline text-xs text-label-2">
                   <Activity size={13} className="animate-spin text-amber-400" /> Generating Socratic hint for this problem…
                 </div>
               )}
@@ -608,11 +608,11 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
               {hintCards.map((hint, i) => (
                 <motion.div key={i} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
                   className="bg-blue-500/10 border border-blue-500/20 text-blue-200 text-xs p-3 rounded-lg font-medium leading-relaxed">
-                  <span className="block text-[9px] font-bold uppercase tracking-widest text-blue-400 mb-1.5">Hint {i + 1}</span>"{hint}"
+                  <span className="block text-caption font-medium text-blue-400 mb-1.5">Hint {i + 1}</span>"{hint}"
                 </motion.div>
               ))}
               {hintCards.length > 0 && !hintLoading && (
-                <button onClick={generateHint} className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-dashed border-white/[0.14] bg-transparent hover:bg-white/[0.04] text-[10px] font-bold text-slate-500 hover:text-white transition-all">
+                <button onClick={generateHint} className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-dashed border-white/[0.14] bg-transparent hover:bg-white/[0.04] text-[10px] font-bold text-label-3 hover:text-white transition-all">
                   Next hint
                 </button>
               )}
@@ -620,16 +620,16 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
           </div>
           </div>
 
-          <div className="h-8 border-t border-white/[0.08] flex justify-between items-center px-4 text-[9px] font-mono text-slate-500 shrink-0">
-            <span>ISOLATED LINUX SANDBOX</span>
-            <span className="text-emerald-400 font-bold">READY</span>
+          <div className="h-8 border-t border-hairline flex justify-between items-center px-4 text-[9px] font-mono text-label-3 shrink-0">
+            <span>Runs in an isolated sandbox</span>
+            <span className="text-emerald-400 font-bold">Ready</span>
           </div>
         </GlassPanel>
 
         {/* CENTER: EDITOR */}
-        <div className={`h-full flex flex-col relative bg-[#0a0a0c] transition-all duration-300 ease-in-out border-r border-white/[0.08] ${focusMode ? "w-[75%]" : "w-[50%]"}`}>
-          <div className="h-10 bg-black/70 backdrop-blur-xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] flex items-center justify-between px-4 border-b border-white/[0.08] shrink-0 relative z-30">
-            <div className="h-full flex items-center gap-2 px-4 text-xs font-mono font-bold border-t-2 border-t-blue-500 text-white bg-white/[0.03] border-x border-white/[0.08]">
+        <div className={`h-full flex flex-col relative bg-surface transition-all duration-300 ease-in-out border-r border-hairline ${focusMode ? "w-[75%]" : "w-[50%]"}`}>
+          <div className="h-10 bg-black/70 backdrop-blur-xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] flex items-center justify-between px-4 border-b border-hairline shrink-0 relative z-30">
+            <div className="h-full flex items-center gap-2 px-4 text-xs font-mono font-bold border-t-2 border-t-blue-500 text-white bg-white/[0.03] border-x border-hairline">
               <Code2 size={13} className="text-blue-400" /> solution.{currentLangObj.ext}
             </div>
             <div className="w-44">
@@ -649,14 +649,14 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
               options={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false, lineHeight: 24, padding: { top: 16, bottom: 60 }, overviewRulerBorder: false, hideCursorInOverviewRuler: true, renderLineHighlight: "all", cursorBlinking: "smooth" }} />
           </div>
 
-          <div className="absolute bottom-0 left-0 right-0 h-14 bg-black/70 backdrop-blur-lg shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] border-t border-white/[0.08] flex items-center justify-between px-6 z-20">
+          <div className="absolute bottom-0 left-0 right-0 h-14 bg-black/70 backdrop-blur-lg shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] border-t border-hairline flex items-center justify-between px-6 z-20">
             <div className="flex items-center gap-3">
               <motion.button whileHover={{ scale: 0.99 }} whileTap={{ scale: 0.95 }} onClick={runCode} disabled={runState === "running"}
-                className="relative overflow-hidden px-4 py-1.5 rounded-md text-xs font-bold bg-white/[0.05] hover:bg-white/10 border border-white/10 text-white flex items-center gap-2 transition-all outline-none disabled:opacity-40 group">
+                className="relative overflow-hidden px-4 py-1.5 rounded-md text-xs font-bold bg-white/[0.05] hover:bg-white/10 border border-hairline text-white flex items-center gap-2 transition-all outline-none disabled:opacity-40 group">
                 <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-500 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
                 {runState === "running" ? <Activity size={12} className="animate-spin" /> : <Play size={12} fill="currentColor" />}
                 <span className="relative">Run Code</span>
-                <kbd className="hidden lg:inline-block font-mono text-[9px] bg-black/40 border border-white/10 px-1.5 py-0.5 rounded text-slate-400 relative">⌘↵</kbd>
+                <kbd className="hidden lg:inline-block font-mono text-[9px] bg-black/40 border border-hairline px-1.5 py-0.5 rounded text-label-2 relative">⌘↵</kbd>
               </motion.button>
               <motion.button whileHover={{ scale: 0.99 }} whileTap={{ scale: 0.95 }} onClick={submitCode} disabled={runState === "running"}
                 className="relative overflow-hidden px-6 py-1.5 rounded-md text-xs font-bold bg-white text-black hover:bg-slate-200 flex items-center gap-2 transition-all outline-none disabled:opacity-40 group">
@@ -669,11 +669,11 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
         </div>
 
         {/* RIGHT: RESULTS/REVIEW/HINTS */}
-        <GlassPanel className={`h-full flex flex-col shrink-0 transition-all duration-300 ease-in-out ${focusMode ? "w-0 opacity-0 border-none" : "w-[25%] opacity-100 min-w-[300px] border-l border-white/[0.08]"}`}>
-          <div className="h-10 border-b border-white/[0.08] flex items-center px-4 gap-2 shrink-0">
-            {[{ id: "terminal", label: "CI/CD Logs", icon: Terminal }, { id: "review", label: "AI Review", icon: Sparkles }, { id: "hints", label: "Hints", icon: Lightbulb }].map((tab) => (
+        <GlassPanel className={`h-full flex flex-col shrink-0 transition-all duration-300 ease-in-out ${focusMode ? "w-0 opacity-0 border-none" : "w-[25%] opacity-100 min-w-[300px] border-l border-hairline"}`}>
+          <div className="h-10 border-b border-hairline flex items-center px-4 gap-2 shrink-0">
+            {[{ id: "terminal", label: "Output", icon: Terminal }, { id: "review", label: "AI Review", icon: Sparkles }, { id: "hints", label: "Hints", icon: Lightbulb }].map((tab) => (
               <button key={tab.id} onClick={() => setActiveRightTab(tab.id)}
-                className={`flex items-center gap-1.5 px-3 h-full text-[10px] font-mono font-bold transition-all outline-none border-b-2 ${activeRightTab === tab.id ? "text-blue-400 border-blue-500 bg-blue-500/5" : "text-slate-500 border-transparent hover:text-slate-300"}`}>
+                className={`flex items-center gap-1.5 px-3 h-full text-[10px] font-mono font-bold transition-all outline-none border-b-2 ${activeRightTab === tab.id ? "text-blue-400 border-blue-500 bg-blue-500/5" : "text-label-3 border-transparent hover:text-label-2"}`}>
                 <tab.icon size={12} />{tab.label}
               </button>
             ))}
@@ -681,12 +681,12 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
 
           <div className="relative flex-1 overflow-hidden">
           <div className="pointer-events-none absolute top-0 inset-x-0 h-6 bg-gradient-to-b from-[#08080A] to-transparent z-10" />
-          <div className="h-full p-6 overflow-y-auto font-mono text-xs text-slate-300 scrollbar-hide">
+          <div className="h-full p-6 overflow-y-auto font-mono text-xs text-label-2 scrollbar-hide">
             <AnimatePresence mode="wait">
               {activeRightTab === "terminal" && (
                 <motion.div key="terminal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="space-y-4">
                   {runHistory.length > 0 && (
-                    <div className="flex items-center gap-1.5 pb-3 mb-1 border-b border-white/[0.06] overflow-x-auto scrollbar-hide">
+                    <div className="flex items-center gap-1.5 pb-3 mb-1 border-b border-hairline overflow-x-auto scrollbar-hide">
                       {runHistory.map((h, i) => (
                         <span key={i} title={`${h.type === "submit" ? "Submit" : "Run"} at ${formatClock(h.at)}`}
                           className={`shrink-0 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border tabular-nums ${h.passed === h.total ? "text-emerald-400 border-emerald-500/20 bg-emerald-500/5" : "text-rose-400 border-rose-500/20 bg-rose-500/5"}`}>
@@ -696,9 +696,9 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
                     </div>
                   )}
                   {runState === "idle" && (
-                    <div className="flex flex-col items-center text-center gap-2 py-10 border border-dashed border-white/[0.08] rounded-xl">
-                      <Terminal size={20} className="text-slate-700" />
-                      <p className="text-slate-500 text-[11px]">Sandbox initialized. Awaiting execution command.</p>
+                    <div className="flex flex-col items-center text-center gap-2 py-10 border border-dashed border-hairline rounded-xl">
+                      <Terminal size={20} className="text-label-3" />
+                      <p className="text-label-3 text-[11px]">Run your code to see results here.</p>
                     </div>
                   )}
                   {runState === "running" && (
@@ -708,15 +708,15 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
                     <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/25 space-y-3">
                       <div className="flex items-center gap-2 text-rose-400 font-sans font-bold text-[13px]"><XCircle size={16} /> Execution failed</div>
                       <p className="text-[11px] text-rose-200/70 font-sans leading-relaxed">Your code was not evaluated — no fabricated result is shown. Details below.</p>
-                      <div className="bg-black/40 border border-white/[0.07] rounded-lg p-3 text-[10.5px] text-rose-300">{runError}</div>
+                      <div className="bg-black/40 border border-hairline rounded-lg p-3 text-[10.5px] text-rose-300">{runError}</div>
                       <button onClick={runCode} className="text-[11px] font-bold text-rose-400 hover:text-rose-300 flex items-center gap-1 font-sans"><RotateCcw size={11} /> Retry Execution</button>
                     </div>
                   )}
                                    {runState === "output" && runResults && (
                     <>
                       <div className="flex items-center justify-between mb-2">
-                        <div className="text-[10px] text-slate-500">$ {currentLangObj.label} · sandbox execution</div>
-                        <span className={`text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border ${resultsSource === "submit" ? "text-white bg-white/10 border-white/20" : "text-slate-400 bg-white/[0.03] border-white/10"}`}>
+                        <div className="text-[10px] text-label-3">$ {currentLangObj.label} · sandbox execution</div>
+                        <span className={`text-caption font-medium px-1.5 py-0.5 rounded border ${resultsSource === "submit" ? "text-white bg-white/10 border-white/20" : "text-label-2 bg-white/[0.03] border-hairline"}`}>
                           {resultsSource === "submit" ? "Submit result" : "Run result"}
                         </span>
                       </div>
@@ -735,11 +735,11 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
                                       {r.passed ? <CheckCircle2 size={12} className="text-emerald-500 mt-0.5 shrink-0" /> : <XCircle size={12} className="text-rose-500 mt-0.5 shrink-0" />}
                                       <div className="flex-1 min-w-0">
                                         <div className="flex items-center justify-between gap-2">
-                                          <span className={r.passed ? "text-slate-300" : "text-rose-400"}>Test 0{idx + 1} · Output: {r.actual}</span>
+                                          <span className={r.passed ? "text-label-2" : "text-rose-400"}>Test 0{idx + 1} · Output: {r.actual}</span>
                                           {!r.passed && parseErrorLine(r.stderr) && (
                                             <button
                                               onClick={() => focusLineInEditor(parseErrorLine(r.stderr))}
-                                              className="shrink-0 text-[9px] font-bold uppercase tracking-widest text-blue-400 hover:text-blue-300 flex items-center gap-1 font-sans"
+                                              className="shrink-0 text-caption font-medium text-blue-400 hover:text-blue-300 flex items-center gap-1 font-sans"
                                             >
                                               Jump to Error →
                                             </button>
@@ -752,10 +752,10 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
                                                 <motion.div initial={{ width: 0 }} animate={{ width: `${Math.max(6, (ms / maxMs) * 100)}%` }} transition={{ duration: 0.4 }}
                                                   className={`h-full rounded-full ${r.passed ? "bg-emerald-500/70" : "bg-rose-500/70"}`} />
                                               </div>
-                                              <span className="text-[9px] text-slate-500 tabular-nums">{r.execution_time}</span>
+                                              <span className="text-[9px] text-label-3 tabular-nums">{r.execution_time}</span>
                                             </>
                                           ) : (
-                                            <span className="text-[9px] text-slate-600 italic">timing unavailable</span>
+                                            <span className="text-[9px] text-label-3 italic">timing unavailable</span>
                                           )}
                                         </div>
                                       </div>
@@ -767,20 +767,20 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
                           );
                         })()
                       ) : (
-                        <div className="p-3.5 rounded-lg bg-white/[0.03] border border-white/[0.08] space-y-1">
-                          <p className="text-[10px] text-slate-500 leading-relaxed">
+                        <div className="p-3.5 rounded-lg bg-white/[0.03] border border-hairline space-y-1">
+                          <p className="text-[10px] text-label-3 leading-relaxed">
                             Hidden test detail isn't returned by design — only the aggregate result is shown.
                           </p>
                         </div>
                       )}
 
-                      <div className="pt-4 mt-4 border-t border-white/[0.08] text-[10px] flex gap-6">
+                      <div className="pt-4 mt-4 border-t border-hairline text-[10px] flex gap-6">
                         {resultsSource === "submit" ? (
                           <span className="text-emerald-400 tabular-nums">{runResults.tests_passed}/{runResults.tests_total} passing</span>
                         ) : (
                           <span className="text-emerald-400 tabular-nums">{runResults.passed_count}/{runResults.total} passing</span>
                         )}
-                        {runResults.execution_time && <span className="text-slate-500 tabular-nums">{runResults.execution_time}</span>}
+                        {runResults.execution_time && <span className="text-label-3 tabular-nums">{runResults.execution_time}</span>}
                       </div>
                     </>
                   )}
@@ -792,12 +792,12 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
                   {reviewState === "idle" && (
                     <div className="text-center py-10 font-sans flex flex-col items-center gap-3">
                       <Sparkles size={20} className="text-blue-400/50" />
-                      <span className="text-xs font-medium text-slate-500">Submit your code to receive a real review, tied to your actual submission.</span>
+                      <span className="text-xs font-medium text-label-3">Submit your code to receive a real review, tied to your actual submission.</span>
                     </div>
                   )}
                   {reviewState === "loading" && (
                     <div className="space-y-2.5 font-sans">
-                      <div className="flex items-center gap-2 text-slate-400 mb-2"><Activity size={13} className="animate-spin text-amber-400" /> Generating review for your submission…</div>
+                      <div className="flex items-center gap-2 text-label-2 mb-2"><Activity size={13} className="animate-spin text-amber-400" /> Generating review for your submission…</div>
                       {[90, 75, 82, 60].map((w, i) => <div key={i} className="h-3 rounded bg-white/[0.06] animate-pulse" style={{ width: `${w}%` }} />)}
                     </div>
                   )}
@@ -809,44 +809,44 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
                   )}
                   {reviewState === "content" && reviewData && (
                     <div className="space-y-4 font-sans">
-                      <div className="flex items-center gap-4 pb-3 border-b border-white/[0.06]">
+                      <div className="flex items-center gap-4 pb-3 border-b border-hairline">
                         <div className="text-center">
                           <p className="text-lg font-extrabold text-white tabular-nums">{reviewData.tests_passed}/{reviewData.tests_total}</p>
-                          <p className="text-[8.5px] font-bold uppercase tracking-widest text-slate-500">Tests</p>
+                          <p className="text-[8.5px] font-medium text-label-3">Tests</p>
                         </div>
                         {typeof reviewData.new_elo === "number" && (
                           <div className="text-center">
-                            <p className="text-lg font-extrabold text-indigo-400 tabular-nums">{Math.round(reviewData.new_elo)}</p>
-                            <p className="text-[8.5px] font-bold uppercase tracking-widest text-slate-500">New ELO</p>
+                            <p className="text-lg font-extrabold text-accent tabular-nums">{Math.round(reviewData.new_elo)}</p>
+                            <p className="text-[8.5px] font-medium text-label-3">New ELO</p>
                           </div>
                         )}
                         {reviewData.cleanliness_score != null && (
                           <div className="text-center">
                             <p className="text-lg font-extrabold text-emerald-400 tabular-nums">{reviewData.cleanliness_score}</p>
-                            <p className="text-[8.5px] font-bold uppercase tracking-widest text-slate-500">Cleanliness</p>
+                            <p className="text-[8.5px] font-medium text-label-3">Cleanliness</p>
                           </div>
                         )}
                         {reviewData.naming_score != null && (
                           <div className="text-center">
                             <p className="text-lg font-extrabold text-emerald-400 tabular-nums">{reviewData.naming_score}</p>
-                            <p className="text-[8.5px] font-bold uppercase tracking-widest text-slate-500">Naming</p>
+                            <p className="text-[8.5px] font-medium text-label-3">Naming</p>
                           </div>
                         )}
                       </div>
                       {reviewData.complexity_estimate && (
                         <div>
-                          <p className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest mb-1.5">Complexity Estimate</p>
-                          <p className="text-xs text-slate-300 leading-relaxed font-mono">{reviewData.complexity_estimate}</p>
+                          <p className="text-caption font-medium text-emerald-400 mb-1.5">Complexity Estimate</p>
+                          <p className="text-xs text-label-2 leading-relaxed font-mono">{reviewData.complexity_estimate}</p>
                         </div>
                       )}
                       {reviewData.feedback && (
                         <div>
-                          <p className="text-[9px] font-bold text-blue-400 uppercase tracking-widest mb-1.5">Feedback</p>
-                          <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-line">{reviewData.feedback}</p>
+                          <p className="text-caption font-medium text-blue-400 mb-1.5">Feedback</p>
+                          <p className="text-xs text-label-2 leading-relaxed whitespace-pre-line">{reviewData.feedback}</p>
                         </div>
                       )}
                       {!reviewData.complexity_estimate && !reviewData.feedback && (
-                        <p className="text-xs text-slate-500 italic">This submission was graded, but no qualitative feedback came back for it.</p>
+                        <p className="text-xs text-label-3 italic">This submission was graded, but no qualitative feedback came back for it.</p>
                       )}
                     </div>
                   )}
@@ -855,7 +855,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
 
               {activeRightTab === "hints" && (
                 <motion.div key="hints" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="text-center py-10 font-sans">
-                  <p className="text-xs text-slate-500">Hints are shown in the left panel — generate one anytime while working.</p>
+                  <p className="text-xs text-label-3">Hints are shown in the left panel — generate one anytime while working.</p>
                 </motion.div>
               )}
             </AnimatePresence>

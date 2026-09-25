@@ -175,9 +175,16 @@ def check_and_charge_token_budget(user_id: int, estimated_tokens: int) -> bool:
     pipe.execute()
     return True
 
+# Extra exact origins (comma-separated) can be added per environment via
+# CORS_ALLOW_ORIGINS — e.g. a custom domain or a local preview port —
+# without a code change. Local dev on :3000 is always allowed.
+CORS_ALLOW_ORIGINS = ["http://localhost:3000"] + [
+    o.strip() for o in os.getenv("CORS_ALLOW_ORIGINS", "").split(",") if o.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=CORS_ALLOW_ORIGINS,
     allow_origin_regex=r"https://.*\.up\.railway\.app|https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],

@@ -61,7 +61,7 @@ const PERSONA_META = {
     icon: UserCheck,
     accentRgb: "16,185,129",
     accentHex: "#10b981",
-    askLabel: "THE ASK",
+    askLabel: "The ask",
   },
   hostile: {
     label: "Hostile",
@@ -71,7 +71,7 @@ const PERSONA_META = {
     icon: Flame,
     accentRgb: "239,68,68",
     accentHex: "#ef4444",
-    askLabel: "DEFEND THIS",
+    askLabel: "Defend this",
   },
   socratic: {
     label: "Socratic",
@@ -80,8 +80,8 @@ const PERSONA_META = {
     moodDesc: "First-principles — questions back",
     icon: Search,
     accentRgb: "99,102,241",
-    accentHex: "#818cf8",
-    askLabel: "THE DEEPER QUESTION",
+    accentHex: "#64B5FF",
+    askLabel: "The deeper question",
   },
   exhausted: {
     label: "Exhausted",
@@ -91,7 +91,7 @@ const PERSONA_META = {
     icon: Coffee,
     accentRgb: "245,158,11",
     accentHex: "#f59e0b",
-    askLabel: "BE CONCISE",
+    askLabel: "Be concise",
   },
 };
 
@@ -523,7 +523,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
 
   return (
     <div
-      className="h-screen w-full bg-[#000000] text-slate-100 font-sans flex flex-col overflow-hidden selection:bg-blue-500/30 relative"
+      className="h-screen w-full bg-canvas text-label font-sans flex flex-col overflow-hidden selection:bg-blue-500/30 relative"
       style={personaStyleVars}
     >
 
@@ -550,7 +550,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
       </div>
 
       {/* TOP HUD HEADER */}
-      <header className="h-14 border-b border-white/[0.08] bg-[#000000] flex items-center justify-between px-4 md:px-6 z-50 flex-shrink-0 sticky top-0">
+      <header className="h-14 border-b border-hairline bg-canvas flex items-center justify-between px-4 md:px-6 z-50 flex-shrink-0 sticky top-0">
         <div className="flex items-center gap-3 md:gap-4 min-w-0">
           <div className="flex items-center gap-2 shrink-0">
             <div className="w-6 h-6 rounded bg-white flex items-center justify-center font-bold text-black text-xs">IC</div>
@@ -558,15 +558,15 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
           </div>
           <div className="w-px h-4 bg-white/10 hidden sm:block" />
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-white text-xs font-bold uppercase tracking-widest bg-white/5 border border-white/10 px-2.5 py-1 rounded flex items-center gap-1.5 shrink-0">
+            <span className="text-white text-xs font-medium bg-white/5 border border-hairline px-2.5 py-1 rounded flex items-center gap-1.5 shrink-0">
               {companyMeta ? <span className="shrink-0">{companyMeta.logo}</span> : <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "var(--accent)" }} />}
               {company?.name || "Target"}
             </span>
-            <span className="text-slate-300 text-xs font-bold uppercase tracking-widest hidden md:inline truncate">
+            <span className="text-label-2 text-xs font-medium hidden md:inline truncate">
               &middot; {sessionData?.role || "SWE L4"}
             </span>
             <span
-              className="text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded ml-1 border hidden sm:flex items-center gap-1.5 shrink-0"
+              className="text-xs font-medium px-2.5 py-1 rounded ml-1 border hidden sm:flex items-center gap-1.5 shrink-0"
               style={{ background: `rgba(var(--accent-rgb), 0.1)`, borderColor: `rgba(var(--accent-rgb), 0.25)`, color: "var(--accent)" }}
             >
               <PersonaIcon size={11} />
@@ -579,28 +579,28 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
           {phase === "answering" ? (
             <>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-widest text-slate-300 hidden sm:block">Time</span>
-                <span className={`text-base font-bold tabular-nums font-mono ${timeLeft <= 20 ? "text-rose-400 animate-pulse" : timeLeft <= 60 ? "text-amber-400" : "text-white"}`}>
+                <span className="text-xs font-medium text-label-2 hidden sm:block">Time</span>
+                <span className={`text-base font-bold tabular-nums ${timeLeft <= 20 ? "text-rose-400 animate-pulse" : timeLeft <= 60 ? "text-amber-400" : "text-white"}`}>
                   {formatTime(timeLeft)}
                 </span>
               </div>
               <div className="w-px h-4 bg-white/10 hidden sm:block" />
               <div className="flex items-center gap-2 hidden sm:flex">
-                <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Node</span>
-                <span className="text-sm font-mono font-bold text-white">{questionNum}/{TOTAL_NODES}</span>
+                <span className="text-label-2 text-xs font-medium">Question</span>
+                <span className="text-sm tabular-nums font-bold text-white">{questionNum}/{TOTAL_NODES}</span>
               </div>
               <div className="w-px h-4 bg-white/10 hidden xl:block" />
               <div className="items-center gap-2 hidden xl:flex" title="Real time elapsed since this session started">
-                <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Session</span>
-                <span className="text-sm font-mono font-bold text-slate-300 tabular-nums">{formatTime(sessionElapsed)}</span>
+                <span className="text-label-2 text-xs font-medium">Session</span>
+                <span className="text-sm tabular-nums font-bold text-label-2 tabular-nums">{formatTime(sessionElapsed)}</span>
               </div>
               <div className="w-px h-4 bg-white/10 hidden lg:block" />
               <div className="items-center gap-2 hidden lg:flex">
-                <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">ELO</span>
-                <span className="text-sm font-mono font-bold text-slate-100 tabular-nums">{Math.round(currentElo)}</span>
+                <span className="text-label-2 text-xs font-medium">ELO</span>
+                <span className="text-sm tabular-nums font-bold text-label tabular-nums">{Math.round(currentElo)}</span>
               </div>
               <div className="w-px h-4 bg-white/10" />
-              <button onClick={() => setShowAbortConfirm(true)} className="text-xs font-mono font-bold text-slate-300 hover:text-white uppercase tracking-widest border border-white/10 px-3 py-1 rounded bg-white/5 transition-colors">
+              <button onClick={() => setShowAbortConfirm(true)} className="text-xs font-medium text-label-2 hover:text-white border border-hairline px-3 py-1 rounded bg-white/5 transition-colors">
                 Abort
               </button>
             </>
@@ -608,9 +608,9 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
             <>
               <div className="flex items-center gap-2 text-emerald-400">
                 <CheckCircle2 size={16} />
-                <span className="text-xs font-bold uppercase tracking-widest hidden sm:inline">Node Logged</span>
+                <span className="text-xs font-medium hidden sm:inline">Answer saved</span>
               </div>
-              <button onClick={handleFinish} className="text-slate-200 bg-white/[0.04] border border-white/10 px-4 py-1.5 rounded-lg hover:bg-white/[0.08] hover:text-white text-xs font-bold uppercase tracking-widest transition-colors flex items-center gap-1.5">
+              <button onClick={handleFinish} className="text-label bg-white/[0.04] border border-hairline px-4 py-1.5 rounded-lg hover:bg-white/[0.08] hover:text-white text-xs font-medium transition-colors flex items-center gap-1.5">
                 End Session <ChevronRight size={16} />
               </button>
             </>
@@ -633,7 +633,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
       </div>
 
       {/* MAIN WORKSPACE SHELL */}
-      <main className="flex-1 w-full flex flex-col overflow-hidden relative z-10 bg-[#000000] min-h-0">
+      <main className="flex-1 w-full flex flex-col overflow-hidden relative z-10 bg-canvas min-h-0">
 
         {phase === "answering" ? (
           /* ====================================================================
@@ -645,11 +645,11 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
           >
 
             {/* LEFT PANE: PROMPT INSPECTOR */}
-            <div className="w-full lg:w-[30%] lg:h-full overflow-y-auto border-b lg:border-b-0 lg:border-r border-white/[0.08] bg-[#020204] p-6 lg:p-8 flex flex-col shrink-0">
-              <div className="flex items-center gap-2 border-b border-white/[0.08] pb-3.5 mb-6">
+            <div className="w-full lg:w-[30%] lg:h-full overflow-y-auto border-b lg:border-b-0 lg:border-r border-hairline bg-surface p-6 lg:p-8 flex flex-col shrink-0">
+              <div className="flex items-center gap-2 border-b border-hairline pb-3.5 mb-6">
                 <Terminal size={16} className="shrink-0" style={{ color: "var(--accent)" }} />
-                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-300">The Question</h3>
-                <span className="ml-auto bg-white/5 border border-white/10 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest text-slate-300">
+                <h3 className="text-xs font-medium text-label-2">The Question</h3>
+                <span className="ml-auto bg-white/5 border border-hairline px-2.5 py-0.5 rounded text-caption font-medium text-label-2">
                   {formatCategory(category)}
                 </span>
               </div>
@@ -657,16 +657,16 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
               {scenario ? (
                 <div className="flex-1 flex flex-col space-y-7">
                   <div>
-                    <h4 className="text-[10px] font-bold tracking-widest text-slate-300 uppercase mb-2.5">Context</h4>
-                    <p className="text-sm text-slate-200 leading-[1.7] font-medium">{scenario}</p>
+                    <h4 className="text-caption font-medium text-label-2 mb-2.5">Context</h4>
+                    <p className="text-sm text-label leading-[1.7] font-medium">{scenario}</p>
                   </div>
 
                   {constraints?.length > 0 && (
                     <div>
-                      <h4 className="text-[10px] font-bold tracking-widest text-slate-300 uppercase mb-2.5">Constraints</h4>
+                      <h4 className="text-caption font-medium text-label-2 mb-2.5">Constraints</h4>
                       <ul className="space-y-3">
                         {constraints.map((c, i) => (
-                          <li key={i} className="text-sm text-slate-200 font-medium flex items-start gap-2.5 leading-[1.6]">
+                          <li key={i} className="text-sm text-label font-medium flex items-start gap-2.5 leading-[1.6]">
                             <span className="w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0" style={{ background: "var(--accent)" }} />
                             <span>{c}</span>
                           </li>
@@ -680,7 +680,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                       className="mt-auto pt-5 border-t rounded-xl p-4 -mx-1"
                       style={{ borderColor: "transparent", background: `rgba(var(--accent-rgb), 0.06)` }}
                     >
-                      <h4 className="text-[10px] font-bold tracking-widest uppercase mb-2 px-1" style={{ color: "var(--accent)" }}>
+                      <h4 className="text-caption font-medium mb-2 px-1" style={{ color: "var(--accent)" }}>
                         {personaMeta.askLabel}
                       </h4>
                       <p className="text-sm md:text-[15px] font-bold text-white leading-[1.7] px-1">{ask}</p>
@@ -688,21 +688,21 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                   )}
                 </div>
               ) : (
-                <p className="text-sm md:text-[15px] text-slate-200 leading-[1.7] font-medium">{question}</p>
+                <p className="text-sm md:text-[15px] text-label leading-[1.7] font-medium">{question}</p>
               )}
             </div>
 
             {/* CENTER PANE: ZEN WRITING CANVAS */}
-            <div className="w-full lg:w-[48%] min-h-[420px] lg:h-full relative bg-[#000000] flex flex-col border-r border-white/[0.08] shrink-0">
+            <div className="w-full lg:w-[48%] min-h-[420px] lg:h-full relative bg-canvas flex flex-col border-r border-hairline shrink-0">
 
               {/* Evaluator identity bar — reflects real session persona */}
-              <div className="h-12 border-b border-white/[0.05] bg-black/60 flex items-center px-4 md:px-6 gap-3 shrink-0">
+              <div className="h-12 border-b border-hairline bg-black/60 flex items-center px-4 md:px-6 gap-3 shrink-0">
                 <span
                   className="w-2 h-2 rounded-full"
                   style={{ background: "var(--accent)", animation: "evalPulse 2s ease-in-out infinite" }}
                 />
                 <span className="text-sm font-bold text-white tracking-wide truncate">{personaMeta.name}</span>
-                <span className="text-xs font-mono text-slate-400 italic ml-2 hidden sm:inline truncate">"{personaMeta.quote}"</span>
+                <span className="text-xs tabular-nums text-label-2 italic ml-2 hidden sm:inline truncate">"{personaMeta.quote}"</span>
                 {isRecording && (
                   <div className="ml-auto flex items-end gap-[2px] h-4 shrink-0">
                     {waveLevels.map((h, i) => (
@@ -717,7 +717,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
               </div>
 
               {/* Text Area */}
-              <div className="flex-1 relative w-full min-h-[280px] bg-[#000000]">
+              <div className="flex-1 relative w-full min-h-[280px] bg-canvas">
                 {scoringError && (
                   <div className="absolute top-2 left-8 right-8 z-20 bg-rose-500/10 border border-rose-500/20 rounded-lg p-3 text-xs text-rose-300 flex items-center justify-between gap-3">
                     <span>{scoringError}</span>
@@ -733,10 +733,10 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                   className="absolute top-8 left-8 pointer-events-none select-none transition-opacity duration-300"
                   style={{ opacity: answer ? 0 : 1 }}
                 >
-                  <span className="block text-[9px] font-mono font-bold uppercase tracking-widest text-slate-700 mb-2">
+                  <span className="block text-caption font-medium text-label-3 mb-2">
                     Response Template — Generic, Not Personalized
                   </span>
-                  <pre className="text-slate-500 text-sm md:text-base font-mono font-medium leading-[1.8] m-0">
+                  <pre className="text-label-3 text-sm md:text-base tabular-nums font-medium leading-[1.8] m-0">
                     {isBehavioral ? (
                       <>// 1. Situation & Ownership...<br/><br/>// 2. Key Actions & Stakeholder Alignment...<br/><br/>// 3. Root Cause Analysis...</>
                     ) : (
@@ -749,43 +749,43 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                   onChange={(e) => handleAnswerChange(e.target.value)}
                   disabled={timeLeft === 0}
                   spellCheck="false"
-                  className="w-full h-full bg-transparent text-slate-100 text-base font-mono leading-[1.8] p-8 pb-32 resize-none outline-none z-10 relative scrollbar-hide"
+                  className="w-full h-full bg-transparent text-label text-base tabular-nums leading-[1.8] p-8 pb-32 resize-none outline-none z-10 relative scrollbar-hide"
                   style={{ caretColor: "var(--accent)" }}
                 />
               </div>
 
               {/* Action Dock */}
-              <div className="lg:absolute lg:bottom-5 lg:left-5 lg:right-5 flex items-center justify-between z-20 bg-[#08080C] border border-white/10 p-3 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.8)] m-4 lg:m-0">
+              <div className="lg:absolute lg:bottom-5 lg:left-5 lg:right-5 flex items-center justify-between z-20 bg-surface border border-hairline p-3 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.8)] m-4 lg:m-0">
                 <div className="flex items-center gap-2">
                   <button
                     onClick={isRecording ? stopRecording : startRecording}
                     className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all outline-none ${
-                      isRecording ? 'bg-red-500/10 text-red-400 border border-red-500/30' : 'bg-white/[0.04] border border-white/10 text-slate-200 hover:text-white'
+                      isRecording ? 'bg-red-500/10 text-red-400 border border-red-500/30' : 'bg-white/[0.04] border border-hairline text-label hover:text-white'
                     }`}
                   >
                     {isRecording ? <Square fill="currentColor" size={14}/> : <Mic size={14}/>}
                     <span className="hidden sm:inline">{isRecording ? 'Stop Voice' : 'Hold to Speak'}</span>
                   </button>
-                  <button onClick={() => setShowHint(!showHint)} className="text-xs font-mono font-bold text-slate-300 hover:text-white transition-colors bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl">
+                  <button onClick={() => setShowHint(!showHint)} className="text-xs tabular-nums font-bold text-label-2 hover:text-white transition-colors bg-white/5 border border-hairline px-3.5 py-2 rounded-xl">
                   <Lightbulb size={13} className="inline mr-1" /> Hint
                   </button>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <span className="text-xs font-mono text-slate-400 hidden xl:block">
+                  <span className="text-xs tabular-nums text-label-2 hidden xl:block">
                     {answer.trim() ? answer.trim().split(/\s+/).length : 0} words · {answer.length} chars
                   </span>
                   <button
                     onClick={() => submitAnswer()}
                     disabled={loading}
                     className={`relative overflow-hidden px-6 py-2.5 rounded-xl text-xs md:text-sm font-bold flex items-center gap-2 transition-transform active:scale-95 outline-none ${
-                      loading ? "bg-white/10 text-slate-500 cursor-wait" : "bg-white text-black hover:bg-slate-200 shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+                      loading ? "bg-white/10 text-label-3 cursor-wait" : "bg-white text-black hover:bg-slate-200 shadow-[0_0_20px_rgba(255,255,255,0.15)]"
                     }`}
                   >
                     {loading ? (
                       <><span className="w-3.5 h-3.5 border-2 border-slate-600 border-t-slate-400 rounded-full animate-spin inline-block" /> Evaluating...</>
                     ) : (
-                      <><Send size={13} /> Submit Answer <kbd className="font-mono text-[10px] bg-black/10 px-1.5 py-0.5 rounded ml-1 opacity-60">↵</kbd></>
+                      <><Send size={13} /> Submit Answer <kbd className="tabular-nums text-[10px] bg-black/10 px-1.5 py-0.5 rounded ml-1 opacity-60">↵</kbd></>
                     )}
                   </button>
                 </div>
@@ -793,15 +793,15 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
             </div>
 
             {/* RIGHT PANE: SESSION TELEMETRY — real data only, no simulated scores */}
-            <div className="w-full lg:w-[22%] lg:min-w-[240px] bg-[#020204] p-6 flex flex-col shrink-0">
-              <div className="flex items-center justify-between border-b border-white/[0.08] pb-3.5 mb-6">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-300">Session Telemetry</h3>
+            <div className="w-full lg:w-[22%] lg:min-w-[240px] bg-surface p-6 flex flex-col shrink-0">
+              <div className="flex items-center justify-between border-b border-hairline pb-3.5 mb-6">
+                <h3 className="text-xs font-medium text-label-2">Live coaching</h3>
                 <Activity size={16} style={{ color: "var(--accent)" }} />
               </div>
 
               <div className="space-y-6">
                 {/* Room mood — reflects real persona, not a live-changeable state */}
-                <div className="flex items-center gap-3 pb-5 border-b border-white/[0.06]">
+                <div className="flex items-center gap-3 pb-5 border-b border-hairline">
                   <div
                     className="w-9 h-9 rounded-lg flex items-center justify-center border shrink-0"
                     style={{ background: `rgba(var(--accent-rgb), 0.12)`, borderColor: `rgba(var(--accent-rgb), 0.25)` }}
@@ -810,20 +810,20 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                   </div>
                   <div className="min-w-0">
                     <div className="text-sm font-bold text-white truncate">{personaMeta.label}</div>
-                    <div className="text-[10px] text-slate-400 truncate">{personaMeta.moodDesc}</div>
+                    <div className="text-[10px] text-label-2 truncate">{personaMeta.moodDesc}</div>
                   </div>
                 </div>
 
                 {/* Confidence Widget */}
                 <div>
                   <div className="flex justify-between items-end mb-1.5">
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300">Confidence</span>
+                    <span className="text-caption font-medium text-label-2">Confidence</span>
                     <span className="text-sm font-bold text-white tabular-nums">{liveCoaching?.confidence_score || '--'}/10</span>
                   </div>
                   <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                     <motion.div className="h-full" style={{ background: "var(--accent)" }} animate={{ width: `${(liveCoaching?.confidence_score || 0) * 10}%` }} transition={{ type: "spring", stiffness: 100 }} />
                   </div>
-                  <p className="text-[9.5px] text-slate-600 mt-1">
+                  <p className="text-[9.5px] text-label-3 mt-1">
                     {isRecording ? "Measuring from audio signal…" : "Measured from voice input · not yet active"}
                   </p>
                 </div>
@@ -831,13 +831,13 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                 {/* Pace Widget */}
                 <div>
                   <div className="flex justify-between items-end mb-1.5">
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300">Pace (WPM)</span>
+                    <span className="text-caption font-medium text-label-2">Pace (WPM)</span>
                     <span className="text-sm font-bold text-white tabular-nums">{liveCoaching?.words_per_minute || '--'}</span>
                   </div>
                   <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                     <motion.div className="h-full bg-blue-400" animate={{ width: `${Math.min((liveCoaching?.words_per_minute || 0) / 2, 100)}%` }} transition={{ type: "spring", stiffness: 100 }} />
                   </div>
-                  <p className="text-[9.5px] text-slate-600 mt-1">
+                  <p className="text-[9.5px] text-label-3 mt-1">
                     {liveCoaching?.words_per_minute ? "Live from typed/spoken input" : "Measured as you type or speak"}
                   </p>
                 </div>
@@ -845,10 +845,10 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                 {/* Fillers Detected */}
                 <div>
                   <div className="flex justify-between items-end mb-1.5">
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300">Fillers Detected</span>
+                    <span className="text-caption font-medium text-label-2">Fillers Detected</span>
                     <span className={`text-sm font-bold tabular-nums ${(liveCoaching?.fillers_found || 0) > 3 ? 'text-amber-400' : 'text-white'}`}>{liveCoaching?.fillers_found || 0}</span>
                   </div>
-                  <p className="text-[9.5px] text-slate-600">"um", "uh", "like", "basically", "actually"</p>
+                  <p className="text-[9.5px] text-label-3">"um", "uh", "like", "basically", "actually"</p>
                 </div>
 
                 {/* Intervention Toast */}
@@ -860,7 +860,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                     >
                       <div className="flex items-center gap-2 mb-1.5">
                         <AlertTriangle size={14} className="text-amber-400" />
-                        <span className="text-[11px] font-bold uppercase tracking-widest text-amber-400">Coach Probe</span>
+                        <span className="text-caption font-medium text-amber-400">Coach Probe</span>
                       </div>
                       <p className="text-xs md:text-sm font-medium text-amber-200/90 leading-relaxed">{intervention}</p>
                     </motion.div>
@@ -871,30 +871,30 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
               {/* Score Preview — labels shown for visual parity with the
                   design, but every value stays "Pending" until scoring
                   actually returns real numbers. No simulated/fake scores. */}
-              <div className="mt-6 pt-5 border-t border-white/[0.06]">
-                <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300 block mb-3">Score Preview</span>
+              <div className="mt-6 pt-5 border-t border-hairline">
+                <span className="text-caption font-medium text-label-2 block mb-3">Score Preview</span>
                 <div className="space-y-2.5">
                   {["Technical Accuracy", "Problem Solving", "Communication", "Culture Fit", "Confidence"].map((label) => (
                     <div key={label} className="flex items-center justify-between">
-                      <span className="text-[11px] font-medium text-slate-400">{label}</span>
-                      <span className="text-[10px] font-mono font-bold text-slate-600 uppercase tracking-wider">Pending</span>
+                      <span className="text-[11px] font-medium text-label-2">{label}</span>
+                      <span className="text-caption font-medium text-label-3">Pending</span>
                     </div>
                   ))}
                 </div>
-                <p className="text-[10px] text-slate-600 italic mt-3">Scores are computed after you submit — not simulated live.</p>
+                <p className="text-[10px] text-label-3 italic mt-3">Scores are computed after you submit — not simulated live.</p>
               </div>
 
               {/* Bottom Target ELO — same real /roles/elo-bands source as
                   Session Setup. Omitted entirely if no real band exists for
                   this role, rather than showing an invented threshold. */}
               {eloBand && (
-                <div className="mt-6 lg:mt-auto pt-5 border-t border-white/[0.08]">
+                <div className="mt-6 lg:mt-auto pt-5 border-t border-hairline">
                   <div className="flex justify-between items-center mb-1.5">
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300">{eloBand.label}</span>
-                    <span className="text-sm font-mono font-bold text-white">{eloBand.low}–{eloBand.high}</span>
+                    <span className="text-caption font-medium text-label-2">{eloBand.label}</span>
+                    <span className="text-sm tabular-nums font-bold text-white">{eloBand.low}–{eloBand.high}</span>
                   </div>
                   <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
+                    <div className="h-full bg-gradient-to-r from-accent to-accent rounded-full"
                       style={{ width: `${Math.max(0, Math.min(100, ((currentElo - eloBand.low) / (eloBand.high - eloBand.low)) * 100))}%` }} />
                   </div>
                 </div>
@@ -909,7 +909,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
              from the old version were fabricated (not backed by any
              backend field) and have been removed rather than reused.
              ==================================================================== */
-          <div className="w-full flex-1 flex flex-col relative overflow-hidden bg-[#000000]">
+          <div className="w-full flex-1 flex flex-col relative overflow-hidden bg-canvas">
             <div className="flex-1 w-full h-full overflow-y-auto scrollbar-hide">
               <motion.div
                 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
@@ -920,7 +920,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                 {/* SECTION LABEL */}
                 <div className="flex items-center gap-3">
                   <div className="w-px h-7" style={{ background: `linear-gradient(to bottom, transparent, rgba(var(--accent-rgb),0.6), transparent)` }} />
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-slate-500">
+                  <span className="text-caption font-medium text-label-3">
                     Session Debrief &middot; {personaMeta.name} &middot; Node {questionNum} of {TOTAL_NODES}
                   </span>
                 </div>
@@ -931,11 +931,11 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                     <div className="flex items-center gap-3 text-rose-400">
                       <ShieldAlert size={20} className="shrink-0" />
                       <div>
-                        <h4 className="text-xs font-bold uppercase tracking-widest">Policy Violation Detected</h4>
+                        <h4 className="text-xs font-medium">Policy Violation Detected</h4>
                         <p className="text-xs text-rose-200/80 font-medium">Unprofessional or inappropriate language was flagged in your answer. Score penalized across technical dimensions.</p>
                       </div>
                     </div>
-                    <span className="text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 px-3 py-1 rounded-md uppercase tracking-wider shrink-0">
+                    <span className="text-caption font-medium bg-rose-500/20 text-rose-300 border border-rose-500/30 px-3 py-1 rounded-md shrink-0">
                       Non-Compliant
                     </span>
                   </div>
@@ -965,7 +965,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                       <svg width="110" height="110" viewBox="0 0 120 120" style={{ transform: "rotate(-90deg)" }}>
                         <defs>
                           <linearGradient id="debriefRingGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#6366f1" />
+                            <stop offset="0%" stopColor="#2997FF" />
                             <stop offset="100%" stopColor={isPass && !hasProfanityFlag ? "#10b981" : "#ef4444"} />
                           </linearGradient>
                         </defs>
@@ -979,10 +979,10 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                         />
                       </svg>
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-[26px] font-black font-mono tracking-tight text-white leading-none">
+                        <span className="text-[26px] font-black tabular-nums tracking-tight text-white leading-none">
                           <AnimatedNumber value={Math.round(rawOverall * 10) / 10} />
                         </span>
-                        <span className="text-[10px] text-slate-500 font-mono mt-0.5">/10</span>
+                        <span className="text-[10px] text-label-3 tabular-nums mt-0.5">/10</span>
                       </div>
                     </div>
 
@@ -990,7 +990,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                     <div className="flex-1 min-w-[220px]">
                       <div className="flex items-center gap-2.5 mb-3.5 flex-wrap">
                         <span
-                          className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest border"
+                          className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border"
                           style={{
                             background: hasProfanityFlag ? "rgba(239,68,68,0.14)" : isPass ? "rgba(16,185,129,0.14)" : "rgba(239,68,68,0.12)",
                             borderColor: hasProfanityFlag ? "rgba(239,68,68,0.3)" : isPass ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.25)",
@@ -1000,14 +1000,14 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                           {hasProfanityFlag ? "Disqualifying Conduct" : verdictLabel}
                         </span>
                         {newElo && (
-                          <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-sm font-extrabold font-mono bg-white/5 border border-white/10 text-white">
+                          <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-sm font-extrabold tabular-nums bg-white/5 border border-hairline text-white">
                             {eloDelta >= 0 ? <ArrowRight size={13} className="-rotate-90 text-emerald-400" /> : <ArrowRight size={13} className="rotate-90 text-rose-400" />}
                             {eloDelta >= 0 ? `+${eloDelta}` : eloDelta} ELO
                           </span>
                         )}
                         {newElo && (
-                          <span className="text-xs font-mono text-slate-500">
-                            {Math.round(currentElo)} <ArrowRight size={11} className="inline -mt-0.5 mx-1" /> <span className="text-slate-200 font-bold">{Math.round(newElo)}</span>
+                          <span className="text-xs tabular-nums text-label-3">
+                            {Math.round(currentElo)} <ArrowRight size={11} className="inline -mt-0.5 mx-1" /> <span className="text-label font-bold">{Math.round(newElo)}</span>
                           </span>
                         )}
                       </div>
@@ -1016,11 +1016,11 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                         {hasProfanityFlag ? "Response flagged for conduct." : isPass ? "Strong pass on this node." : "This one needs another pass."}
                       </h2>
 
-                      <div className="bg-black/50 border border-white/5 p-4 rounded-xl mt-2">
-                        <p className="text-xs md:text-sm text-slate-200 leading-relaxed font-medium italic">
+                      <div className="bg-black/50 border border-hairline p-4 rounded-xl mt-2">
+                        <p className="text-xs md:text-sm text-label leading-relaxed font-medium italic">
                           "{scores?.overall_summary || "Diagnostic review complete for this interview node."}"
                         </p>
-                        <p className="text-[10px] font-mono text-slate-500 mt-2 not-italic">
+                        <p className="text-[10px] tabular-nums text-label-3 mt-2 not-italic">
                           — {personaMeta.name} &middot; scored across 5 dimensions
                         </p>
                       </div>
@@ -1031,13 +1031,13 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                 {/* 5D SCORE BREAKDOWN — real scores only, no fabricated per-dimension commentary */}
                 {scores && (
                   <div>
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-slate-500 block mb-3.5">5-Dimension Score Breakdown</span>
+                    <span className="text-caption font-medium text-label-3 block mb-3.5">5-Dimension Score Breakdown</span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                       {[
-                        { label: "Technical Accuracy", subtitle: "Correctness of approach", value: scores.score_technical, feedback: scores.technical_feedback, colorFrom: "#6366f1", colorTo: "#8b5cf6", badgeBg: "rgba(99,102,241,0.14)", badgeBorder: "rgba(99,102,241,0.28)", badgeColor: "#a5b4fc" },
-                        { label: "Problem Solving", subtitle: "Trade-off & structural thinking", value: scores.score_problem_solving, feedback: scores.problem_solving_feedback, colorFrom: "#10b981", colorTo: "#6366f1", badgeBg: "rgba(16,185,129,0.12)", badgeBorder: "rgba(16,185,129,0.25)", badgeColor: "#6ee7b7" },
+                        { label: "Technical Accuracy", subtitle: "Correctness of approach", value: scores.score_technical, feedback: scores.technical_feedback, colorFrom: "#2997FF", colorTo: "#2997FF", badgeBg: "rgba(99,102,241,0.14)", badgeBorder: "rgba(99,102,241,0.28)", badgeColor: "#9CCBFF" },
+                        { label: "Problem Solving", subtitle: "Trade-off & structural thinking", value: scores.score_problem_solving, feedback: scores.problem_solving_feedback, colorFrom: "#10b981", colorTo: "#2997FF", badgeBg: "rgba(16,185,129,0.12)", badgeBorder: "rgba(16,185,129,0.25)", badgeColor: "#6ee7b7" },
                         { label: "Communication", subtitle: "Clarity of explanation", value: scores.score_communication, feedback: scores.communication_feedback, colorFrom: "#f59e0b", colorTo: "#10b981", badgeBg: "rgba(245,158,11,0.12)", badgeBorder: "rgba(245,158,11,0.25)", badgeColor: "#fbbf24" },
-                        { label: "Culture Fit", subtitle: `${company?.name || "Company"}-specific behaviours`, value: scores.score_cultural_fit, colorFrom: "#ec4899", colorTo: "#8b5cf6", badgeBg: "rgba(236,72,153,0.1)", badgeBorder: "rgba(236,72,153,0.22)", badgeColor: "#f9a8d4" },                      ].map((d, i) => (
+                        { label: "Culture Fit", subtitle: `${company?.name || "Company"}-specific behaviours`, value: scores.score_cultural_fit, colorFrom: "#ec4899", colorTo: "#2997FF", badgeBg: "rgba(236,72,153,0.1)", badgeBorder: "rgba(236,72,153,0.22)", badgeColor: "#f9a8d4" },                      ].map((d, i) => (
                         <motion.div key={d.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
                           <DimCard {...d} />
                         </motion.div>
@@ -1045,20 +1045,20 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
 
                       {/* Confidence + real voice telemetry — from actual liveCoaching captured
                           during this node, not simulated. Falls back honestly if no data. */}
-                      <div className="sm:col-span-2 bg-[#050507] border border-white/[0.08] rounded-2xl p-5">
+                      <div className="sm:col-span-2 bg-surface border border-hairline rounded-2xl p-5">
                         <div className="flex items-start gap-6 flex-wrap">
                           <div className="flex-1 min-w-[200px]">
                             <div className="flex items-center justify-between mb-3.5">
                               <div>
-                                <div className="text-[13px] font-bold text-slate-200">Confidence Signal</div>
-                                <div className="text-[10px] text-slate-500 mt-0.5">Voice &amp; speech telemetry</div>
+                                <div className="text-[13px] font-bold text-label">Confidence Signal</div>
+                                <div className="text-[10px] text-label-3 mt-0.5">Voice &amp; speech telemetry</div>
                               </div>
-                              <span className="px-2.5 py-1 rounded-lg text-xs font-mono font-extrabold" style={{ background: "rgba(14,165,233,0.1)", border: "1px solid rgba(14,165,233,0.22)", color: "#7dd3fc" }}>
+                              <span className="px-2.5 py-1 rounded-lg text-xs tabular-nums font-extrabold" style={{ background: "rgba(14,165,233,0.1)", border: "1px solid rgba(14,165,233,0.22)", color: "#7dd3fc" }}>
                                 {scores.score_confidence ? scores.score_confidence.toFixed(1) : "—"}
                               </span>
                             </div>
                             <div className="h-[5px] w-full bg-white/[0.06] rounded-full overflow-hidden">
-                              <div className="h-full rounded-full" style={{ width: `${Math.max(4, Math.min(100, Math.round((scores.score_confidence || 0) * 10)))}%`, background: "linear-gradient(90deg, #0ea5e9, #6366f1)" }} />
+                              <div className="h-full rounded-full" style={{ width: `${Math.max(4, Math.min(100, Math.round((scores.score_confidence || 0) * 10)))}%`, background: "linear-gradient(90deg, #0ea5e9, #2997FF)" }} />
                             </div>
                           </div>
                           <div className="flex gap-3 flex-wrap shrink-0">
@@ -1067,7 +1067,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                           </div>
                         </div>
                         {!liveCoaching && (
-                          <p className="text-[10px] text-slate-600 italic mt-3">No live voice telemetry was captured for this answer.</p>
+                          <p className="text-[10px] text-label-3 italic mt-3">No live voice telemetry was captured for this answer.</p>
                         )}
                       </div>
                     </div>
@@ -1076,44 +1076,44 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
 
                 {/* CRITICAL GAP — real gaps/prerequisites only */}
                 <div>
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-rose-400/80 block mb-3.5">Critical Gap</span>
+                  <span className="text-caption font-medium text-rose-400/80 block mb-3.5">Critical Gap</span>
                   {hasProfanityFlag ? (
-                    <div className="bg-[#0c0606] border border-rose-500/30 rounded-2xl p-5 space-y-2">
+                    <div className="bg-surface border border-rose-500/30 rounded-2xl p-5 space-y-2">
                       <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
                         <XCircle size={16} /> Unprofessional Communication Boundary
                       </div>
-                      <p className="text-xs md:text-sm text-slate-200 leading-relaxed font-medium">
+                      <p className="text-xs md:text-sm text-label leading-relaxed font-medium">
                         Responses containing vulgarity or casual dismissals automatically disqualify senior engineering candidates. Focus on structured, objective problem-solving language.
                       </p>
                     </div>
                   ) : gaps?.length > 0 ? (
-                    <div className="bg-[#0c0606] border border-rose-500/20 rounded-2xl p-5 space-y-3">
+                    <div className="bg-surface border border-rose-500/20 rounded-2xl p-5 space-y-3">
                       <div className="flex items-center gap-2 text-rose-400">
                         <ShieldAlert size={16} />
                         <h4 className="text-sm font-bold tracking-tight capitalize">{gaps[0].gap.replace(/_/g, " ")}</h4>
                       </div>
-                      <p className="text-xs md:text-sm text-slate-200 leading-relaxed font-medium">
+                      <p className="text-xs md:text-sm text-label leading-relaxed font-medium">
                         {gaps[0].prerequisites_to_study_first?.length > 0
                           ? `Prerequisite dependencies detected: ${gaps[0].prerequisites_to_study_first.join(", ")}.`
                           : "Trade-off reasoning was underdeveloped — you named constraints but did not show rejected alternatives."
                         }
                       </p>
-                      <button onClick={() => setStudyPlanTopic(gaps[0].gap)} className="text-xs font-mono font-bold text-blue-400 hover:underline flex items-center gap-1 pt-1">
+                      <button onClick={() => setStudyPlanTopic(gaps[0].gap)} className="text-xs tabular-nums font-bold text-blue-400 hover:underline flex items-center gap-1 pt-1">
                         Study Path Graph →
                       </button>
                     </div>
                   ) : gapAnalysisUnavailable ? (
-                    <div className="bg-[#0c0906] border border-amber-500/20 rounded-2xl p-5 space-y-2">
+                    <div className="bg-surface border border-amber-500/20 rounded-2xl p-5 space-y-2">
                       <div className="flex items-center gap-2 text-amber-400">
                         <AlertTriangle size={16} />
                         <h4 className="text-sm font-bold tracking-tight">Gap analysis unavailable</h4>
                       </div>
-                      <p className="text-xs md:text-sm text-slate-300 leading-relaxed font-medium">
+                      <p className="text-xs md:text-sm text-label-2 leading-relaxed font-medium">
                         The gap-detection service didn't return a result for this answer. This is not the same as a clean pass — it means gap detection genuinely failed and no analysis was possible.
                       </p>
                     </div>
                   ) : (
-                    <div className="bg-[#050507] border border-white/[0.08] rounded-2xl p-5 text-xs text-slate-300">
+                    <div className="bg-surface border border-hairline rounded-2xl p-5 text-xs text-label-2">
                       No critical knowledge gaps detected for this response.
                     </div>
                   )}
@@ -1121,14 +1121,14 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
 
                 {/* ANNOTATED ANSWER TRANSCRIPT — raw answer only, no fabricated tags */}
                 <div>
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-slate-500 block mb-3.5">Your Answer</span>
-                  <div className="bg-[#030305] border border-white/[0.08] p-5 rounded-2xl space-y-3">
-                    <p className="text-xs md:text-sm font-mono text-slate-200 leading-[1.8] whitespace-pre-wrap">
+                  <span className="text-caption font-medium text-label-3 block mb-3.5">Your Answer</span>
+                  <div className="bg-surface border border-hairline p-5 rounded-2xl space-y-3">
+                    <p className="text-xs md:text-sm tabular-nums text-label leading-[1.8] whitespace-pre-wrap">
                       {answer || "[No response recorded]"}
                     </p>
                     {hasProfanityFlag && (
-                      <div className="flex flex-wrap gap-2 pt-2 border-t border-white/5">
-                        <span className="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-1 rounded text-xs font-mono font-bold">
+                      <div className="flex flex-wrap gap-2 pt-2 border-t border-hairline">
+                        <span className="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-1 rounded text-xs tabular-nums font-bold">
                           Disqualifying Language Flagged
                         </span>
                       </div>
@@ -1138,7 +1138,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
 
                 {/* NEXT ACTIONS — real, functional */}
                 <div>
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-slate-500 block mb-3.5">Next Actions</span>
+                  <span className="text-caption font-medium text-label-3 block mb-3.5">Next Actions</span>
                   <div className={`grid grid-cols-1 ${gaps?.length > 0 && !hasProfanityFlag ? "sm:grid-cols-3" : "sm:grid-cols-2"} gap-3`}>
                     {gaps?.length > 0 && !hasProfanityFlag && (
                       <NextActionCard
@@ -1177,9 +1177,9 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
 
                 {/* PEER BENCHMARK — only shown when real peer data exists */}
                 {peer && peer.percentile != null && !hasProfanityFlag && (
-                  <div className="bg-[#050507] border border-white/[0.08] rounded-2xl p-5 space-y-2 max-w-md">
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-slate-500 block mb-1">Peer Benchmark</span>
-                    <span className="text-xs font-mono text-slate-300 block">
+                  <div className="bg-surface border border-hairline rounded-2xl p-5 space-y-2 max-w-md">
+                    <span className="text-caption font-medium text-label-3 block mb-1">Peer Benchmark</span>
+                    <span className="text-xs tabular-nums text-label-2 block">
                       You scored top {Math.max(1, 100 - peer.percentile)}% globally on this scenario type.
                     </span>
                   </div>
@@ -1199,29 +1199,29 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                       onClick={goNextQuestion}
                       className="bg-white text-black px-6 py-3 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(255,255,255,0.15)] outline-none"
                     >
-                      Next Node <kbd className="font-mono text-[9px] bg-black/10 px-1 py-0.5 rounded text-black/70">↵</kbd>
+                      Next Node <kbd className="tabular-nums text-[9px] bg-black/10 px-1 py-0.5 rounded text-black/70">↵</kbd>
                     </button>
                   )}
                   <button
                     onClick={() => { setPhase("answering"); setAnswer(""); }}
-                    className="bg-white/5 border border-white/10 hover:bg-white/10 text-white px-5 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-2 outline-none"
+                    className="bg-white/5 border border-hairline hover:bg-white/10 text-white px-5 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-2 outline-none"
                   >
                     <RefreshCw size={13} /> Retry This Node
                   </button>
                   {currentAnswerId && (
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-500 hidden sm:inline">Was this feedback helpful?</span>
-                      <button onClick={() => rateFeedback(true)} className={`p-2 rounded-lg border ${feedbackRating === true ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'}`}>
+                      <span className="text-xs text-label-3 hidden sm:inline">Was this feedback helpful?</span>
+                      <button onClick={() => rateFeedback(true)} className={`p-2 rounded-lg border ${feedbackRating === true ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' : 'bg-white/5 border-hairline text-label-2 hover:text-white'}`}>
                         <ThumbsUp size={14} />
                       </button>
-                      <button onClick={() => rateFeedback(false)} className={`p-2 rounded-lg border ${feedbackRating === false ? 'bg-rose-500/20 border-rose-500/40 text-rose-400' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'}`}>
+                      <button onClick={() => rateFeedback(false)} className={`p-2 rounded-lg border ${feedbackRating === false ? 'bg-rose-500/20 border-rose-500/40 text-rose-400' : 'bg-white/5 border-hairline text-label-2 hover:text-white'}`}>
                         <ThumbsDown size={14} />
                       </button>
                     </div>
                   )}
                   <button
                     onClick={handleFinish}
-                    className="ml-auto bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 hover:text-white px-5 py-3 rounded-xl text-xs font-bold transition-all outline-none"
+                    className="ml-auto bg-white/5 border border-hairline hover:bg-white/10 text-label-2 hover:text-white px-5 py-3 rounded-xl text-xs font-bold transition-all outline-none"
                   >
                     End Session
                   </button>
@@ -1246,16 +1246,16 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-md flex items-center justify-center">
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#0A0A12] border border-white/[0.12] rounded-2xl p-8 max-w-[360px] w-[calc(100%-40px)] text-center shadow-[0_24px_80px_rgba(0,0,0,0.7)]">
+              className="bg-surface border border-white/[0.12] rounded-2xl p-8 max-w-[360px] w-[calc(100%-40px)] text-center shadow-[0_24px_80px_rgba(0,0,0,0.7)]">
               <div className="w-11 h-11 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mx-auto mb-4">
                 <AlertTriangle size={18} className="text-rose-400" />
               </div>
               <h3 className="text-base font-extrabold text-white mb-2">Abort this session?</h3>
-              <p className="text-xs text-slate-400 leading-relaxed mb-5">Progress on this node will not be saved. Your ELO will not be affected by incomplete sessions.</p>
+              <p className="text-xs text-label-2 leading-relaxed mb-5">Progress on this node will not be saved. Your ELO will not be affected by incomplete sessions.</p>
               <button onClick={handleFinish} className="w-full py-2.5 rounded-lg bg-rose-500/15 border border-rose-500/35 text-rose-400 font-bold text-xs hover:bg-rose-500/25 transition-colors">
                 End Session
               </button>
-              <button onClick={() => setShowAbortConfirm(false)} className="w-full py-2.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 font-semibold text-xs mt-2 hover:bg-white/10 transition-colors">
+              <button onClick={() => setShowAbortConfirm(false)} className="w-full py-2.5 rounded-lg bg-white/5 border border-hairline text-label-2 font-semibold text-xs mt-2 hover:bg-white/10 transition-colors">
                 Keep Going
               </button>
             </motion.div>
@@ -1270,13 +1270,13 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
 function DimCard({ label, subtitle, value, feedback, colorFrom, colorTo, badgeBg, badgeBorder, badgeColor }) {
   const pct = Math.max(4, Math.min(100, Math.round((value || 0) * 10)));
   return (
-    <div className="bg-[#050507] border border-white/[0.08] rounded-2xl p-5">
+    <div className="bg-surface border border-hairline rounded-2xl p-5">
       <div className="flex items-center justify-between mb-3.5">
         <div>
-          <div className="text-[13px] font-bold text-slate-200">{label}</div>
-          <div className="text-[10px] text-slate-500 mt-0.5">{subtitle}</div>
+          <div className="text-[13px] font-bold text-label">{label}</div>
+          <div className="text-[10px] text-label-3 mt-0.5">{subtitle}</div>
         </div>
-        <span className="px-2.5 py-1 rounded-lg text-xs font-mono font-extrabold tabular-nums" style={{ background: badgeBg, border: `1px solid ${badgeBorder}`, color: badgeColor }}>
+        <span className="px-2.5 py-1 rounded-lg text-xs tabular-nums font-extrabold tabular-nums" style={{ background: badgeBg, border: `1px solid ${badgeBorder}`, color: badgeColor }}>
           {value ? value.toFixed(1) : "—"}
         </span>
       </div>
@@ -1284,7 +1284,7 @@ function DimCard({ label, subtitle, value, feedback, colorFrom, colorTo, badgeBg
         <div className="h-full rounded-full" style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${colorFrom}, ${colorTo})` }} />
       </div>
       {feedback && (
-        <p className="text-[11px] text-slate-400 leading-relaxed mt-3 pt-3 border-t border-white/[0.05]">{feedback}</p>
+        <p className="text-[11px] text-label-2 leading-relaxed mt-3 pt-3 border-t border-hairline">{feedback}</p>
       )}
     </div>
   );
@@ -1292,9 +1292,9 @@ function DimCard({ label, subtitle, value, feedback, colorFrom, colorTo, badgeBg
 
 function VoiceStat({ label, value, color }) {
   return (
-    <div className="text-center px-5 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.07] min-w-[80px]">
-      <div className="text-2xl font-extrabold font-mono tracking-tight tabular-nums" style={{ color }}>{value}</div>
-      <div className="text-[9px] text-slate-500 font-mono mt-0.5 tracking-widest">{label.toUpperCase()}</div>
+    <div className="text-center px-5 py-3.5 rounded-xl bg-white/[0.04] border border-hairline min-w-[80px]">
+      <div className="text-2xl font-extrabold tabular-nums tracking-tight tabular-nums" style={{ color }}>{value}</div>
+      <div className="text-[9px] text-label-3 tabular-nums mt-0.5 tracking-widest">{label.toUpperCase()}</div>
     </div>
   );
 }
@@ -1303,14 +1303,14 @@ function NextActionCard({ icon: Icon, color, bg, border, title, body, cta, onCli
   return (
     <button
       onClick={onClick}
-      className="text-left bg-[#050507] border border-white/[0.08] hover:border-white/20 rounded-2xl p-5 transition-all hover:-translate-y-0.5"
+      className="text-left bg-surface border border-hairline hover:border-white/20 rounded-2xl p-5 transition-all hover:-translate-y-0.5"
     >
       <div className="w-9 h-9 rounded-[10px] flex items-center justify-center mb-3 border" style={{ background: bg, borderColor: border }}>
         <Icon size={15} style={{ color }} />
       </div>
-      <div className="text-[13.5px] font-bold text-slate-200 mb-1">{title}</div>
-      <p className="text-xs text-slate-500 leading-relaxed mb-3">{body}</p>
-      <span className="text-xs font-mono font-bold" style={{ color }}>{cta} →</span>
+      <div className="text-[13.5px] font-bold text-label mb-1">{title}</div>
+      <p className="text-xs text-label-3 leading-relaxed mb-3">{body}</p>
+      <span className="text-xs tabular-nums font-bold" style={{ color }}>{cta} →</span>
     </button>
   );
 }
