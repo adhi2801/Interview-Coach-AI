@@ -25,7 +25,7 @@ const TERMS_SECTIONS = [
   },
   {
     icon: Scale,
-    color: "text-accent",
+    color: "text-indigo-400",
     title: "Availability & Service Changes",
     body: "This application may be updated, modified, or taken offline at any time without prior notice as part of active development.",
   },
@@ -48,21 +48,23 @@ export default function TermsOfService({ onGoBack }) {
   }
 
   return (
-    <div className="min-h-screen w-full bg-canvas text-label-2 font-sans px-6 py-16 relative overflow-hidden flex flex-col justify-center items-center">
+    <div className="min-h-screen w-full bg-[#000000] text-slate-300 font-sans px-6 py-16 relative overflow-hidden flex flex-col justify-center items-center">
 
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute top-[-10%] left-[20%] w-[50vw] h-[50vw] bg-indigo-900/10 blur-[150px] rounded-full mix-blend-screen" />
+        <div className="absolute bottom-[-10%] right-[20%] w-[40vw] h-[40vw] bg-blue-900/10 blur-[150px] rounded-full mix-blend-screen" />
       </div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="max-w-3xl w-full bg-surface/90 border border-hairline p-8 md:p-10 rounded-3xl backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),_0_20px_40px_-10px_rgba(0,0,0,0.8)] relative z-10"
+        className="max-w-3xl w-full bg-[#08080C]/90 border border-white/[0.08] p-8 md:p-10 rounded-3xl backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),_0_20px_40px_-10px_rgba(0,0,0,0.8)] relative z-10"
       >
 
         <button
           onClick={onGoBack}
-          className={`flex items-center gap-2 text-xs font-medium text-label-2 hover:text-white transition-colors mb-8 bg-white/[0.03] border border-hairline px-4 py-2 rounded-xl outline-none ${FOCUS_RING}`}
+          className={`flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors mb-8 bg-white/[0.03] border border-white/[0.08] px-4 py-2 rounded-xl outline-none ${FOCUS_RING}`}
         >
           <ArrowLeft size={14} /> Back
         </button>
@@ -84,20 +86,20 @@ export default function TermsOfService({ onGoBack }) {
             <motion.div
               key={section.title}
               variants={staggerItem}
-              className="bg-surface border border-hairline p-5 rounded-2xl space-y-1.5 transition-all duration-300 hover:border-white/[0.14] hover:-translate-y-0.5"
+              className="bg-[#050508] border border-white/[0.06] p-5 rounded-2xl space-y-1.5 transition-all duration-300 hover:border-white/[0.14] hover:-translate-y-0.5"
             >
               <div className="flex items-center gap-2 text-white font-bold text-sm">
                 <section.icon size={16} className={section.color} /> {section.title}
               </div>
-              <p className="text-xs text-label-2 leading-relaxed">{section.body}</p>
+              <p className="text-xs text-slate-400 leading-relaxed">{section.body}</p>
             </motion.div>
           ))}
         </motion.div>
 
-        <div className="mt-8 pt-6 border-t border-hairline flex items-center justify-between text-xs text-label-3 tabular-nums">
+        <div className="mt-8 pt-6 border-t border-white/[0.06] flex items-center justify-between text-xs text-slate-500 font-mono">
           <button
             onClick={handleCopy}
-            className={`flex items-center gap-1.5 text-[11px] font-bold text-label-2 hover:text-white transition-colors outline-none rounded ${FOCUS_RING}`}
+            className={`flex items-center gap-1.5 text-[11px] font-bold text-slate-400 hover:text-white transition-colors outline-none rounded ${FOCUS_RING}`}
           >
             {copied ? <><Check size={12} className="text-emerald-400" /> Copied</> : <><Copy size={12} /> Copy terms text</>}
           </button>

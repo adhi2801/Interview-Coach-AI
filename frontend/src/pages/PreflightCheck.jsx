@@ -9,7 +9,7 @@ import { COMPANIES } from "../constants/companies";
 const PERSONA_ACCENT = {
   standard: "#10b981",
   hostile: "#ef4444",
-  socratic: "#64B5FF",
+  socratic: "#818cf8",
   exhausted: "#f59e0b",
 };
 
@@ -32,17 +32,17 @@ function HardwareDropdown({ value, onChange, options, disabled }) {
       <button
         disabled={disabled}
         onClick={() => setOpen(!open)}
-        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl bg-surface border transition-all text-xs font-semibold shadow-inner outline-none ${
+        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#08080C] border transition-all text-xs font-semibold shadow-inner outline-none ${
           open
-            ? "border-accent/50 ring-1 ring-accent/30 text-white"
-            : "border-hairline hover:border-white/20 text-label"
+            ? "border-indigo-500/50 ring-1 ring-indigo-500/30 text-white"
+            : "border-white/10 hover:border-white/20 text-slate-200"
         } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
       >
         <div className="flex items-center gap-2.5 truncate">
-          <Mic size={14} className="text-accent shrink-0" />
+          <Mic size={14} className="text-indigo-400 shrink-0" />
           <span className="truncate">{selectedOpt ? selectedOpt.label : "Detecting Microphones..."}</span>
         </div>
-        <ChevronDown size={14} className={`text-label-3 transition-transform duration-300 ${open ? "rotate-180" : ""}`} />
+        <ChevronDown size={14} className={`text-slate-500 transition-transform duration-300 ${open ? "rotate-180" : ""}`} />
       </button>
 
       <AnimatePresence>
@@ -52,7 +52,7 @@ function HardwareDropdown({ value, onChange, options, disabled }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.98 }}
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className="absolute top-full left-0 w-full mt-2 p-1.5 bg-surface/95 backdrop-blur-3xl border border-hairline rounded-xl shadow-[0_25px_50px_rgba(0,0,0,0.9),_inset_0_1px_0_0_rgba(255,255,255,0.1)] z-50 overflow-hidden"
+            className="absolute top-full left-0 w-full mt-2 p-1.5 bg-[#0A0A0C]/95 backdrop-blur-3xl border border-white/10 rounded-xl shadow-[0_25px_50px_rgba(0,0,0,0.9),_inset_0_1px_0_0_rgba(255,255,255,0.1)] z-50 overflow-hidden"
           >
             <div className="max-h-48 overflow-y-auto space-y-1 scrollbar-hide">
               {options.map((opt) => (
@@ -61,12 +61,12 @@ function HardwareDropdown({ value, onChange, options, disabled }) {
                   onClick={() => { onChange(opt.id); setOpen(false); }}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium text-left transition-all outline-none ${
                     value === opt.id
-                      ? "bg-accent/15 text-accent font-bold border border-accent/30"
-                      : "text-label-2 hover:bg-white/[0.05] hover:text-white"
+                      ? "bg-indigo-500/15 text-indigo-300 font-bold border border-indigo-500/30"
+                      : "text-slate-300 hover:bg-white/[0.05] hover:text-white"
                   }`}
                 >
                   <span className="truncate">{opt.label}</span>
-                  {value === opt.id && <Check size={14} className="text-accent shrink-0 ml-2" />}
+                  {value === opt.id && <Check size={14} className="text-indigo-400 shrink-0 ml-2" />}
                 </button>
               ))}
             </div>
@@ -83,7 +83,7 @@ function GlassPanel({ children, className = "", delay = 0 }) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.65, delay, ease: [0.22, 0.68, 0, 1] }}
-      className={`relative rounded-2xl bg-surface/90 border border-hairline backdrop-blur-2xl overflow-hidden ${className}`}
+      className={`relative rounded-2xl bg-[#050508]/90 border border-white/[0.08] backdrop-blur-2xl overflow-hidden ${className}`}
       style={{ boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.08), 0 20px 50px -12px rgba(0,0,0,0.7)" }}
     >
       {children}
@@ -110,7 +110,7 @@ export default function PreflightCheck({ onReady, onSkip, sessionData }) {
   const hasContext = Boolean(sessionData?.company && sessionData?.role && sessionData?.persona);
   const activeComp = hasContext ? COMPANIES.find((c) => c.id === sessionData.company?.toLowerCase()) : null;
   const personaKey = hasContext ? sessionData.persona?.toLowerCase() : null;
-  const personaAccent = personaKey ? PERSONA_ACCENT[personaKey] || "#64B5FF" : "#64B5FF";
+  const personaAccent = personaKey ? PERSONA_ACCENT[personaKey] || "#818cf8" : "#818cf8";
 
   useEffect(() => {
     checkMicrophone();
@@ -238,9 +238,11 @@ export default function PreflightCheck({ onReady, onSkip, sessionData }) {
   const isSignalActive = decibels > -38;
 
   return (
-    <div className="min-h-screen bg-canvas text-label font-sans selection:bg-accent/30 overflow-hidden flex items-center justify-center p-6 relative">
+    <div className="min-h-screen bg-[#000000] text-slate-100 font-sans selection:bg-indigo-500/30 overflow-hidden flex items-center justify-center p-6 relative">
 
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] max-w-[700px] max-h-[700px] rounded-full bg-indigo-600/10 blur-[160px] mix-blend-screen" />
+        <div className="absolute top-[-10%] right-[-5%] w-[40vw] h-[40vw] rounded-full bg-blue-600/10 blur-[140px] mix-blend-screen" />
       </div>
       <div className="fixed inset-0 z-10 pointer-events-none opacity-[0.035] mix-blend-soft-light" style={{ backgroundImage: noiseSvg }} />
 
@@ -248,25 +250,25 @@ export default function PreflightCheck({ onReady, onSkip, sessionData }) {
 
         <GlassPanel delay={0.03} className="p-6">
           <div className="flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl bg-white/[0.05] border border-hairline flex items-center justify-center shrink-0">
-              {hasContext && activeComp ? activeComp.logo : <Mic size={18} className="text-label-3" />}
+            <div className="w-11 h-11 rounded-xl bg-white/[0.05] border border-white/10 flex items-center justify-center shrink-0">
+              {hasContext && activeComp ? activeComp.logo : <Mic size={18} className="text-slate-500" />}
             </div>
             <div className="min-w-0">
               {hasContext ? (
                 <>
                   <p className="text-[17px] font-extrabold tracking-tight text-white leading-snug">
-                    Calibrating for your <span className="text-accent">{activeComp?.name || sessionData.company}</span> ·{" "}
-                    <span className="text-accent">{sessionData.role}</span> ·{" "}
+                    Calibrating for your <span className="text-indigo-300">{activeComp?.name || sessionData.company}</span> ·{" "}
+                    <span className="text-indigo-300">{sessionData.role}</span> ·{" "}
                     <span style={{ color: personaAccent }}>{sessionData.persona}</span> interview
                   </p>
-                  <span className="text-caption font-medium text-label-3">
+                  <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-slate-500">
                     Session context loaded from setup
                   </span>
                 </>
               ) : (
                 <>
-                  <p className="text-[17px] font-extrabold tracking-tight text-label-2 italic">Audio calibration</p>
-                  <span className="text-caption font-medium text-label-3">
+                  <p className="text-[17px] font-extrabold tracking-tight text-slate-400 italic">Audio calibration</p>
+                  <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-slate-600">
                     No session context available — generic calibration
                   </span>
                 </>
@@ -277,15 +279,15 @@ export default function PreflightCheck({ onReady, onSkip, sessionData }) {
 
         <GlassPanel delay={0.1} className="p-5">
           <div className="flex justify-between items-center mb-2.5 ml-1">
-            <span className="text-caption font-medium text-label-2">Input Source</span>
+            <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400">Input Source</span>
             {micStatus === "granted" && (
-              <span className={`text-caption font-medium flex items-center gap-1.5 ${isSignalActive ? "text-emerald-400" : "text-accent"}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${isSignalActive ? "bg-emerald-400 animate-pulse" : "bg-accent"}`} />
+              <span className={`text-[10px] font-mono font-bold uppercase tracking-widest flex items-center gap-1.5 ${isSignalActive ? "text-emerald-400" : "text-indigo-400"}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${isSignalActive ? "bg-emerald-400 animate-pulse" : "bg-indigo-400"}`} />
                 {isSignalActive ? "Signal Locked" : "Mic Standby"}
               </span>
             )}
             {micStatus === "denied" && (
-              <span className="text-caption font-medium flex items-center gap-1.5 text-rose-400">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest flex items-center gap-1.5 text-rose-400">
                 <span className="w-1.5 h-1.5 rounded-full bg-rose-400" /> Access Denied
               </span>
             )}
@@ -300,10 +302,10 @@ export default function PreflightCheck({ onReady, onSkip, sessionData }) {
 
         <GlassPanel delay={0.17} className="p-6">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-caption font-medium text-label-2">Acoustic Calibration Test</span>
-            <span className="text-[10px] text-label-3">Read aloud, naturally</span>
+            <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400">Acoustic Calibration Test</span>
+            <span className="text-[10px] text-slate-600">Read aloud, naturally</span>
           </div>
-          <p className="text-[17px] md:text-[19px] font-bold italic leading-relaxed text-slate-100/90 pl-4 border-l-2 border-accent/40">
+          <p className="text-[17px] md:text-[19px] font-bold italic leading-relaxed text-slate-100/90 pl-4 border-l-2 border-indigo-400/40">
             "Speak naturally: 'The architecture requires a resilient, partitioned data store.'"
           </p>
         </GlassPanel>
@@ -311,17 +313,17 @@ export default function PreflightCheck({ onReady, onSkip, sessionData }) {
         <GlassPanel delay={0.24} className="p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <Activity size={13} className={isSignalActive ? "text-emerald-400" : "text-accent"} />
-              <span className="text-caption font-medium text-label-2">Live Signal — AnalyserNode</span>
+              <Activity size={13} className={isSignalActive ? "text-emerald-400" : "text-indigo-400"} />
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400">Live Signal — AnalyserNode</span>
             </div>
             <div className="flex items-baseline gap-1">
               <span className={`text-base font-extrabold tabular-nums transition-colors ${isSignalActive ? "text-emerald-400" : "text-white"}`}>
                 {displayDb}
               </span>
-              <span className="text-caption font-medium text-label-3">dB</span>
+              <span className="text-[10px] font-bold text-slate-500 uppercase">dB</span>
             </div>
           </div>
-          <div className="w-full h-40 relative overflow-hidden rounded-xl bg-black/40 border border-hairline">
+          <div className="w-full h-40 relative overflow-hidden rounded-xl bg-black/40 border border-white/[0.06]">
             <canvas ref={canvasRef} className="w-full h-full block" />
           </div>
         </GlassPanel>
@@ -335,7 +337,7 @@ export default function PreflightCheck({ onReady, onSkip, sessionData }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-rose-400 mb-1">Microphone access denied</p>
-                  <p className="text-xs text-label-2 leading-relaxed mb-3">
+                  <p className="text-xs text-slate-400 leading-relaxed mb-3">
                     Your browser blocked microphone access for this site. You can still take this interview in text-only mode, or grant access and retry.
                   </p>
                   <ol className="space-y-1.5 mb-3.5">
@@ -344,8 +346,8 @@ export default function PreflightCheck({ onReady, onSkip, sessionData }) {
                       'Set Microphone permission to "Allow"',
                       "Reload this page and try again",
                     ].map((step, i) => (
-                      <li key={i} className="flex items-start gap-2 text-xs text-label-2 leading-relaxed">
-                        <span className="tabular-nums font-bold text-rose-400 text-[10px] mt-0.5 shrink-0">0{i + 1}</span>
+                      <li key={i} className="flex items-start gap-2 text-xs text-slate-400 leading-relaxed">
+                        <span className="font-mono font-bold text-rose-400 text-[10px] mt-0.5 shrink-0">0{i + 1}</span>
                         {step}
                       </li>
                     ))}
@@ -372,7 +374,7 @@ export default function PreflightCheck({ onReady, onSkip, sessionData }) {
             whileTap={{ scale: 0.97 }}
             onClick={onSkip}
             type="button"
-            className="px-5 py-3 rounded-xl text-xs font-bold text-label-2 hover:text-white bg-white/[0.03] hover:bg-white/[0.08] border border-hairline transition-all outline-none flex items-center gap-2"
+            className="px-5 py-3 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 transition-all outline-none flex items-center gap-2"
           >
             <Keyboard size={14} /> Skip (Text Only)
           </motion.button>
@@ -382,10 +384,10 @@ export default function PreflightCheck({ onReady, onSkip, sessionData }) {
             onClick={onReady}
             disabled={micStatus !== "granted"}
             type="button"
-            className={`relative flex-1 flex items-center justify-center py-3 px-6 rounded-xl text-xs font-medium transition-all overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black focus:ring-blue-500 group ${
+            className={`relative flex-1 flex items-center justify-center py-3 px-6 rounded-xl text-xs font-extrabold uppercase tracking-widest transition-all overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black focus:ring-blue-500 group ${
               micStatus === "granted"
                 ? "bg-white text-black hover:bg-slate-200 shadow-[0_0_25px_rgba(255,255,255,0.15)] hover:shadow-[0_0_35px_rgba(255,255,255,0.25)]"
-                : "bg-surface border border-hairline text-label-3 cursor-not-allowed"
+                : "bg-[#111111] border border-white/10 text-slate-600 cursor-not-allowed"
             }`}
           >
             {micStatus === "granted" ? (

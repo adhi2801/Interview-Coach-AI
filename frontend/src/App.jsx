@@ -1,11 +1,9 @@
 import React, { useState, useEffect, Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useParams } from "react-router-dom";
-import { motion, AnimatePresence, MotionConfig } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Search, LayoutGrid, Code2, LogOut, Settings as SettingsIcon, Play, Database, AlertTriangle } from "lucide-react";
 import "./App.css";
 import { AUTH_EXPIRED_EVENT, clearAuth, getToken, isTokenExpired, loadSavedUser } from "./lib/api";
-import { pageTransition, spring } from "./lib/motion";
-import { Spinner } from "./components/ui";
 
 // Every route-level page is now code-split. Previously all 13 pages were
 // eagerly imported at the top of this file, meaning a first-time visitor
@@ -32,8 +30,8 @@ const StudyPlanBrowser = lazy(() => import("./pages/StudyPlanBrowser"));
 // often invisible.
 function RouteLoadingFallback() {
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-canvas text-label-3">
-      <Spinner />
+    <div className="h-screen w-full bg-[#000000] flex items-center justify-center">
+      <div className="w-8 h-8 border-[3px] border-white/10 border-t-indigo-500 rounded-full animate-spin" />
     </div>
   );
 }
@@ -68,50 +66,50 @@ function CommandPalette({ isOpen, onClose, navigate, onLogout }) {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[15vh]">
-      <motion.div
+      <motion.div 
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
-
-      <motion.div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Command menu"
-        initial={{ opacity: 0, scale: 0.97, y: -8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98, y: -4 }}
-        transition={spring.gentle}
-        className="relative mx-4 flex w-full max-w-xl flex-col overflow-hidden rounded-panel border border-hairline bg-surface/95 shadow-[0_24px_80px_rgba(0,0,0,0.6)] backdrop-blur-2xl"
+      
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: -20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: -20 }}
+        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+        className="relative w-full max-w-2xl bg-[#0A0A0C]/95 backdrop-blur-2xl border border-white/[0.1] rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.8),_inset_0_1px_0_0_rgba(255,255,255,0.05)] overflow-hidden flex flex-col"
       >
-        <div className="flex items-center border-b border-hairline px-4">
-          <Search size={17} className="mr-3 text-label-3" aria-hidden="true" />
-          <input
+        <div className="flex items-center px-4 border-b border-white/[0.08]">
+          <Search size={18} className="text-slate-400 mr-3" />
+          <input 
             autoFocus
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search actions"
-            aria-label="Search actions"
-            className="w-full bg-transparent py-4 text-body text-label outline-none placeholder:text-label-3"
+            placeholder="Type a command or search..."
+            className="w-full bg-transparent text-slate-200 text-lg py-5 outline-none placeholder-slate-500 font-medium"
             spellCheck={false}
           />
-          <kbd className="rounded-md bg-surface-2 px-1.5 py-0.5 text-caption text-label-3">esc</kbd>
+          <div className="flex items-center gap-1">
+            <kbd className="font-mono text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-slate-400 border border-white/5">ESC</kbd>
+          </div>
         </div>
 
         <div className="max-h-[60vh] overflow-y-auto p-2 scrollbar-hide">
           {filteredActions.length === 0 ? (
-            <div className="px-4 py-8 text-center text-callout text-label-3">No actions match "{search}".</div>
+            <div className="px-4 py-8 text-center text-sm text-slate-500 font-medium">No commands found.</div>
           ) : (
             filteredActions.map((action, i) => (
               <button
                 key={i}
                 onClick={action.action}
-                className="group flex w-full items-center justify-between rounded-control px-3 py-2.5 text-left outline-none transition-colors hover:bg-surface-2 focus-visible:bg-surface-2"
+                className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-left transition-colors outline-none focus:bg-white/[0.06] hover:bg-white/[0.04] group ${action.danger ? 'hover:bg-rose-500/10 focus:bg-rose-500/10' : ''}`}
               >
                 <div className="flex items-center gap-3">
-                  <action.icon size={17} className={action.danger ? "text-critical" : "text-label-2"} aria-hidden="true" />
-                  <span className={`text-callout ${action.danger ? "text-critical" : "text-label"}`}>{action.label}</span>
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-colors ${action.danger ? 'bg-rose-500/10 border-rose-500/20 text-rose-400 group-hover:bg-rose-500/20' : 'bg-white/[0.03] border-white/[0.08] text-slate-400 group-hover:text-white group-focus:text-white'}`}>
+                    <action.icon size={16} />
+                  </div>
+                  <span className={`text-sm font-semibold transition-colors ${action.danger ? 'text-rose-400' : 'text-slate-300 group-hover:text-white group-focus:text-white'}`}>{action.label}</span>
                 </div>
                 {action.shortcut && (
-                  <span className="text-footnote text-label-3">{action.shortcut}</span>
+                  <span className="font-mono text-[10px] text-slate-500 tracking-widest uppercase">{action.shortcut}</span>
                 )}
               </button>
             ))
@@ -140,7 +138,14 @@ function AuthenticatedRoutes({ user, onLogout, onEloUpdate, onUserPatch, session
 
   return (
     <AnimatePresence mode="wait">
-      <motion.div key={location.pathname} {...pageTransition} className="w-full h-full">
+      <motion.div 
+        key={location.pathname}
+        initial={{ opacity: 0, y: 12, scale: 0.99 }} 
+        animate={{ opacity: 1, y: 0, scale: 1 }} 
+        exit={{ opacity: 0, y: -12, scale: 0.99 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30, mass: 0.9 }}
+        className="w-full h-full"
+      >
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes location={location}>
             <Route path="/" element={<UserDashboard user={user} onLogout={onLogout} onStartNew={() => navigate("/setup")} onNavigateHistory={() => navigate("/replay")} onStartCoding={() => navigate("/coding")} onNavigateSettings={() => navigate("/settings")} onNavigateStudyPlan={() => navigate("/study-plan")} onOpenCommandPalette={onOpenCommandPalette} onEloUpdate={onEloUpdate} />} />
@@ -172,7 +177,14 @@ function UnauthenticatedRoutes({ onAuth }) {
 
   return (
     <AnimatePresence mode="wait">
-      <motion.div key={location.pathname} {...pageTransition} className="w-full h-full">
+      <motion.div 
+        key={location.pathname}
+        initial={{ opacity: 0, y: 15 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        exit={{ opacity: 0, y: -15 }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        className="w-full h-full"
+      >
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes location={location}>
             <Route path="/" element={
@@ -184,7 +196,7 @@ function UnauthenticatedRoutes({ onAuth }) {
               />
             } />
             <Route path="/login" element={<Login onAuth={onAuth} onSwitchToSignup={() => navigate("/signup")} onBackToHome={() => navigate("/")} />} />
-            <Route path="/signup" element={<Signup onAuth={onAuth} onSwitchToLogin={() => navigate("/login")} onBackToHome={() => navigate("/")} onNavigatePrivacy={() => navigate("/privacy")} onNavigateTerms={() => navigate("/terms")} />} />
+            <Route path="/signup" element={<Signup onAuth={onAuth} onSwitchToLogin={() => navigate("/login")} onBackToHome={() => navigate("/")} />} />
             <Route path="/privacy" element={<PrivacyPolicy onGoBack={() => navigate("/")} />} />
             <Route path="/terms" element={<TermsOfService onGoBack={() => navigate("/")} />} />
             <Route path="*" element={<Navigate to="/" replace />} />
@@ -409,8 +421,7 @@ function App() {
   }
 
   return (
-    <div className="relative min-h-screen w-full bg-canvas font-sans text-label">
-      <MotionConfig reducedMotion="user">
+    <div className="min-h-screen w-full bg-[#000000] text-slate-200 font-sans selection:bg-indigo-500/30 relative">
       <BrowserRouter>
         <AppContent
           user={user}
@@ -429,13 +440,13 @@ function App() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="fixed bottom-6 left-1/2 z-[9999] flex -translate-x-1/2 items-center gap-3 rounded-full border border-hairline bg-surface/95 py-2.5 pl-4 pr-2 shadow-[0_20px_50px_rgba(0,0,0,0.6)] backdrop-blur-2xl"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-3 bg-[#0A0A0C]/95 backdrop-blur-2xl border border-amber-500/25 rounded-xl px-4 py-3 shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
           >
-            <AlertTriangle size={15} className="shrink-0 text-caution" aria-hidden="true" />
-            <span className="text-footnote text-label">Your session expired. Log in again to continue.</span>
+            <AlertTriangle size={15} className="text-amber-400 shrink-0" />
+            <span className="text-xs font-semibold text-slate-200">Your session expired. Please log in again.</span>
             <button
               onClick={() => setSessionExpired(false)}
-              className="rounded-full px-3 py-1 text-footnote text-label-2 transition-colors hover:bg-surface-2 hover:text-label"
+              className="text-[11px] font-semibold text-slate-400 hover:text-white transition-colors"
               aria-label="Dismiss"
             >
               Dismiss
@@ -443,7 +454,6 @@ function App() {
           </motion.div>
         )}
       </AnimatePresence>
-      </MotionConfig>
     </div>
   );
 }
