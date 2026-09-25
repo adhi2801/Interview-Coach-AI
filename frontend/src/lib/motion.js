@@ -1,46 +1,74 @@
 // frontend/src/lib/motion.js
 //
-// Shared motion vocabulary. Motion in this product has two jobs only:
-//   1. answer a person's action (open, confirm, expand) — `spring.snappy`
-//   2. one orchestrated reveal per page — `reveal` + `ease.apple`
-// Nothing loops for decoration. <MotionConfig reducedMotion="user"> in App
-// turns all transform animation off for people who ask their OS for that.
+// One motion vocabulary for the whole app. Two engines, each doing what it
+// is best at:
+//   - Motion (motion/react): component state, gestures, springs, layout,
+//     scroll-linked values (runs on the native ScrollTimeline when it can).
+//   - GSAP + ScrollTrigger + SplitText: choreographed, scroll-scrubbed and
+//     per-line/per-word text sequences.
+// Lenis drives the scroll itself and feeds ScrollTrigger (see SmoothScroll).
 
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { SplitText } from "gsap/SplitText";
+import { useGSAP } from "@gsap/react";
+
+gsap.registerPlugin(ScrollTrigger, SplitText, useGSAP);
+
+export { gsap, ScrollTrigger, SplitText, useGSAP };
+
+// Easing curves, as cubic-bezier arrays for Motion and names for GSAP.
 export const ease = {
-  // Apple's standard curve: quick departure, long gentle settle.
+  // Apple's signature curve: quick departure, long gentle settle.
   apple: [0.28, 0.11, 0.32, 1],
-  out: [0.25, 0.1, 0.25, 1],
-  inOut: [0.42, 0, 0.58, 1],
+  // Expressive "expo out" for reveals.
+  expo: [0.16, 1, 0.3, 1],
+  // Snappy UI response.
+  out: [0.22, 1, 0.36, 1],
+  inOut: [0.65, 0, 0.35, 1],
 };
 
-export const duration = {
-  quick: 0.2,
-  base: 0.4,
-  slow: 0.8,
+export const gsapEase = {
+  reveal: "expo.out",
+  apple: "power3.out",
+  scrub: "none",
 };
 
 export const spring = {
-  // Buttons, toggles, small surfaces.
-  snappy: { type: "spring", stiffness: 520, damping: 38, mass: 0.8 },
-  // Sheets, dialogs, panels.
-  gentle: { type: "spring", stiffness: 260, damping: 32, mass: 1 },
+  // Buttons, toggles, chips — immediate and crisp.
+  snappy: { type: "spring", stiffness: 520, damping: 34, mass: 0.7 },
+  // Cards, panels, sheets — soft landing.
+  soft: { type: "spring", stiffness: 240, damping: 28, mass: 1 },
+  // Magnetic pull / cursor following — floaty.
+  float: { type: "spring", stiffness: 150, damping: 15, mass: 0.2 },
+  // Glass tilt.
+  tilt: { stiffness: 220, damping: 20, mass: 0.6 },
 };
 
-// Page-level entrance: content rises a short distance and sharpens.
-export const reveal = {
-  hidden: { opacity: 0, y: 24, filter: "blur(6px)" },
+export const duration = { fast: 0.2, base: 0.45, slow: 0.9, cinematic: 1.4 };
+
+// Shared entrance variants: rise + de-blur. `custom` = stagger index.
+export const riseIn = {
+  hidden: { opacity: 0, y: 28, filter: "blur(10px)" },
   show: (i = 0) => ({
     opacity: 1,
     y: 0,
     filter: "blur(0px)",
-    transition: { duration: duration.slow, ease: ease.apple, delay: i * 0.08 },
+    transition: { duration: duration.slow, ease: ease.expo, delay: i * 0.08 },
   }),
 };
 
-// Route transitions: a quick crossfade, no sliding — navigation should
-// feel instant, not theatrical.
-export const pageTransition = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1, transition: { duration: 0.28, ease: ease.out } },
-  exit: { opacity: 0, transition: { duration: 0.16, ease: ease.out } },
-};
+export const staggerParent = (stagger = 0.08, delayChildren = 0) => ({
+  hidden: {},
+  show: { transition: { staggerChildren: stagger, delayChildren } },
+});
+
+export function prefersReducedMotion() {
+  return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+}
+
+// Fine pointer = a real mouse/trackpad. Hover-driven effects (tilt, magnetic
+// pull, cursor light) are skipped on touch, where they'd only get in the way.
+export function hasFinePointer() {
+  return typeof window !== "undefined" && window.matchMedia?.("(hover: hover) and (pointer: fine)").matches;
+}

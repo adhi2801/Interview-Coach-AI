@@ -3,7 +3,7 @@ import api from "../lib/api";
 import {
   motion, AnimatePresence, useMotionValue, useTransform, animate,
   useScroll
-} from 'framer-motion';
+} from "motion/react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid,
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ReferenceDot
@@ -18,6 +18,7 @@ import { SiMeta, SiNetflix } from 'react-icons/si';
 import StudyPlan from './StudyPlan';
 
 import { COMPANIES as SHARED_COMPANIES } from '../constants/companies';
+import { GlassCard as LiquidCard } from "../components/fx/LiquidGlass";
 
 const TARGET_COMPANIES_FALLBACK = ["Google", "Amazon", "Meta", "Microsoft", "Apple"];
 
@@ -39,9 +40,9 @@ const COMPANY_ICONS = {
 };
 
 const PERSONA_STYLE = {
-  standard: { color: "text-label-2 border-hairline", icon: UserCheck },
+  standard: { color: "text-slate-400 border-white/10", icon: UserCheck },
   hostile: { color: "text-orange-400 border-orange-500/20", icon: Flame },
-  socratic: { color: "text-accent border-accent/20", icon: SearchIcon },
+  socratic: { color: "text-indigo-300 border-indigo-500/20", icon: SearchIcon },
   exhausted: { color: "text-amber-400 border-amber-500/20", icon: Coffee },
 };
 
@@ -133,16 +134,9 @@ function RollingNumber({ value, className = "" }) {
 // a mouse-following light show.
 function GlassCard({ children, className = "", onClick, interactive = false, layout = false }) {
   return (
-    <motion.div
-      layout={layout}
-      onClick={onClick}
-      whileHover={interactive ? { y: -3, boxShadow: "0 20px 40px -12px rgba(0,0,0,0.6)" } : undefined}
-      whileTap={interactive ? { scale: 0.98 } : undefined}
-      transition={{ type: "spring", stiffness: 320, damping: 26 }}
-      className={`relative rounded-2xl bg-white/[0.035] border border-hairline overflow-hidden backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.07),_0_2px_24px_rgba(0,0,0,0.45)] transition-[border-color] duration-300 hover:border-white/[0.16] ${interactive ? "cursor-pointer" : ""} ${className}`}
-    >
-      <div className="relative z-10 h-full">{children}</div>
-    </motion.div>
+    <LiquidCard tilt={interactive} interactive={interactive} layout={layout} onClick={onClick} radius={20} className={className}>
+      {children}
+    </LiquidCard>
   );
 }
 
@@ -347,54 +341,55 @@ export default function UserDashboard({
   const firstName = user?.name?.split(" ")[0] || "there";
 
   return (
-    <div ref={mainRef} className="min-h-screen bg-canvas text-label font-sans selection:bg-blue-500/30 overflow-x-hidden relative">
+    <div ref={mainRef} className="min-h-screen bg-transparent text-slate-200 font-sans selection:bg-blue-500/30 overflow-x-hidden relative">
 
       <style>{`
         @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
         .animate-shimmer { animation: shimmer 2s infinite linear; }
+        .font-display { font-family: 'Georgia', 'Times New Roman', serif; font-weight: 600; letter-spacing: -0.02em; }
       `}</style>
 
       {/* Subtle vignette — corners darken slightly, center stays lit,
           gives the page a focus pull instead of flat black */}
-      <div className="fixed inset-0 z-[1] pointer-events-none" style={{ background: "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.55) 100%)" }} />
+      <div className="fixed inset-0 z-1 pointer-events-none" style={{ background: "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.55) 100%)" }} />
 
       {/* AMBIENT ORBS — color shifts with company, drifts gently with scroll */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <motion.div style={{ y: orbYA, background: orbColor }} animate={{ background: orbColor }} transition={{ duration: 1.1, ease: "easeInOut" }}
-          className="absolute -top-[12%] -left-[10%] w-[500px] h-[500px] blur-[130px] rounded-full" />
-        <motion.div style={{ y: orbYB }} className="absolute bottom-[10%] -right-[8%] w-[380px] h-[380px] bg-accent/10 blur-[120px] rounded-full" />
+          className="absolute top-[-12%] left-[-10%] w-[500px] h-[500px] blur-[130px] rounded-full" />
+        <motion.div style={{ y: orbYB }} className="absolute bottom-[10%] right-[-8%] w-[380px] h-[380px] bg-purple-900/10 blur-[120px] rounded-full" />
         <div className="absolute inset-0 opacity-[0.025] mix-blend-soft-light" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }} />
       </div>
 
       {/* HEADER */}
-      <header className="fixed top-0 left-0 right-0 h-15 bg-black/55 backdrop-blur-2xl border-b border-hairline z-50">
+      <header className="fixed top-0 left-0 right-0 h-15 bg-black/55 backdrop-blur-2xl border-b border-white/[0.06] z-50">
         <div className="max-w-[1320px] mx-auto px-4 md:px-6 h-[60px] flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 md:gap-8 min-w-0 shrink-0">
             <div className="flex items-center gap-2.5 cursor-pointer shrink-0">
-              <div className="w-[30px] h-[30px] rounded-lg bg-gradient-to-br from-accent to-accent flex items-center justify-center shadow-[0_0_16px_rgba(41,151,255,0.35)]">
+              <div className="w-[30px] h-[30px] rounded-lg bg-linear-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-[0_0_16px_rgba(99,102,241,0.35)]">
                 <span className="text-white font-black text-xs">IC</span>
               </div>
               <span className="font-extrabold text-sm tracking-tight hidden sm:inline">InterviewCoach</span>
             </div>
             <nav className="hidden lg:flex items-center gap-6 shrink-0">
               <span className="text-[13px] font-medium text-white border-b border-white pb-1.5">Overview</span>
-              <button onClick={onNavigateHistory} className="text-[13px] font-medium text-label-3 hover:text-white transition-colors pb-1.5 border-b border-transparent whitespace-nowrap">Sessions</button>
-              <button onClick={onNavigateStudyPlan} className="text-[13px] font-medium text-label-3 hover:text-white transition-colors pb-1.5 border-b border-transparent whitespace-nowrap">Knowledge Graph</button>
-              <button onClick={onNavigateSettings} className="text-[13px] font-medium text-label-3 hover:text-white transition-colors pb-1.5 border-b border-transparent whitespace-nowrap">Settings</button>
+              <button onClick={onNavigateHistory} className="text-[13px] font-medium text-slate-500 hover:text-white transition-colors pb-1.5 border-b border-transparent whitespace-nowrap">Sessions</button>
+              <button onClick={onNavigateStudyPlan} className="text-[13px] font-medium text-slate-500 hover:text-white transition-colors pb-1.5 border-b border-transparent whitespace-nowrap">Knowledge Graph</button>
+              <button onClick={onNavigateSettings} className="text-[13px] font-medium text-slate-500 hover:text-white transition-colors pb-1.5 border-b border-transparent whitespace-nowrap">Settings</button>
             </nav>
           </div>
 
           <div className="flex items-center gap-3 md:gap-5 min-w-0 flex-1 justify-end">
             <div className="hidden md:flex items-center gap-2 min-w-0">
-              <span className="text-caption font-medium text-label-3 shrink-0">Target</span>
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 shrink-0">Target</span>
               <div className="flex gap-1.5 overflow-x-auto scrollbar-hide max-w-[280px] lg:max-w-[380px]">
                 {companies.map((c) => {
                   const isActive = activeTarget === c;
                   return (
                     <button
                       key={c} onClick={() => setActiveTarget(c)}
-                      className={`shrink-0 text-caption font-medium px-2.5 py-1 rounded-full border transition-all ${
-                        isActive ? "text-white border-white/[0.22] bg-white/10 shadow-[0_0_12px_rgba(255,255,255,0.06)]" : "text-label-3 border-hairline bg-white/[0.03] hover:text-label-2"
+                      className={`shrink-0 text-[10px] font-mono font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border transition-all ${
+                        isActive ? "text-white border-white/[0.22] bg-white/10 shadow-[0_0_12px_rgba(255,255,255,0.06)]" : "text-slate-500 border-white/[0.09] bg-white/[0.03] hover:text-slate-300"
                       }`}
                     >
                       {c}
@@ -407,33 +402,33 @@ export default function UserDashboard({
                 wires it up — see App.js integration note. */}
             <button
               onClick={() => onOpenCommandPalette?.()}
-              className="hidden xl:flex items-center gap-2 bg-white/[0.03] border border-hairline hover:border-white/20 transition-colors px-3 py-1.5 rounded-lg text-xs font-medium text-label-3 cursor-pointer shrink-0"
+              className="hidden xl:flex items-center gap-2 bg-white/[0.03] border border-white/[0.08] hover:border-white/20 transition-colors px-3 py-1.5 rounded-lg text-xs font-medium text-slate-500 cursor-pointer shrink-0"
             >
               <Search size={13} /> Search...
-              <kbd className="ml-3 tabular-nums text-[9px] bg-black/40 border border-hairline px-1.5 py-0.5 rounded text-label-3">⌘K</kbd>
+              <kbd className="ml-3 font-mono text-[9px] bg-black/40 border border-white/10 px-1.5 py-0.5 rounded text-slate-500">⌘K</kbd>
             </button>
             <div className="relative shrink-0">
-              <button onClick={() => setUserMenuOpen(!userMenuOpen)} className="w-8 h-8 rounded-full bg-gradient-to-tr from-accent to-accent border border-white/15 flex items-center justify-center hover:border-white/30 transition-all">
+              <button onClick={() => setUserMenuOpen(!userMenuOpen)} className="w-8 h-8 rounded-full bg-linear-to-tr from-indigo-500 to-purple-500 border border-white/15 flex items-center justify-center hover:border-white/30 transition-all">
                 <span className="text-white text-xs font-bold">{user?.name?.charAt(0) || "T"}</span>
               </button>
               <AnimatePresence>
                 {userMenuOpen && (
-                  <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className="absolute right-0 top-full mt-3 w-56 bg-surface border border-hairline rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] p-2 z-50 space-y-1">
-                    <div className="p-3 border-b border-hairline">
+                  <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className="absolute right-0 top-full mt-3 w-56 bg-[#08080d]/75 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] p-2 z-50 space-y-1">
+                    <div className="p-3 border-b border-white/5">
                       <p className="text-xs font-bold text-white truncate">{user?.name || "Candidate"}</p>
-                      <p className="text-[10px] tabular-nums text-label-2 truncate">{user?.email || ""}</p>
+                      <p className="text-[10px] font-mono text-slate-400 truncate">{user?.email || ""}</p>
                     </div>
-                    <button onClick={() => { setUserMenuOpen(false); onNavigateHistory?.(); }} className="w-full flex lg:hidden items-center gap-2 px-3 py-2 text-xs font-semibold text-label-2 hover:text-white hover:bg-white/5 rounded-xl transition-colors text-left">Sessions</button>
-                    <button onClick={() => { setUserMenuOpen(false); onNavigateStudyPlan?.(); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-label-2 hover:text-white hover:bg-white/5 rounded-xl transition-colors text-left">
+                    <button onClick={() => { setUserMenuOpen(false); onNavigateHistory?.(); }} className="w-full flex lg:hidden items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors text-left">Sessions</button>
+                    <button onClick={() => { setUserMenuOpen(false); onNavigateStudyPlan?.(); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors text-left">
                       <BookOpen size={14} /> Knowledge Graph
                     </button>
-                    <button onClick={() => { setUserMenuOpen(false); onStartCoding?.(); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-label-2 hover:text-white hover:bg-white/5 rounded-xl transition-colors text-left">
+                    <button onClick={() => { setUserMenuOpen(false); onStartCoding?.(); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors text-left">
                       <Code2 size={14} className="text-amber-400" /> Coding Sandbox IDE
                     </button>
-                    <button onClick={() => { setUserMenuOpen(false); onNavigateSettings?.(); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-label-2 hover:text-white hover:bg-white/5 rounded-xl transition-colors text-left">
+                    <button onClick={() => { setUserMenuOpen(false); onNavigateSettings?.(); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors text-left">
                       <Settings size={14} /> Settings
                     </button>
-                    <div className="border-t border-hairline pt-1">
+                    <div className="border-t border-white/5 pt-1">
                       <button onClick={() => { setUserMenuOpen(false); onLogout?.(); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors text-left">
                         <LogOut size={14} /> Log Out
                       </button>
@@ -451,15 +446,16 @@ export default function UserDashboard({
         {/* TITLE ROW — coach-voice greeting, real weakest dimension when known */}
         <motion.div variants={fadeUp} initial="hidden" animate="show" custom={0} className="mb-8 flex items-end justify-between flex-wrap gap-3">
           <div>
-                        <h1 className="font-display text-title font-semibold text-label">
+            <p className="text-[9.5px] font-mono font-bold uppercase tracking-[0.16em] text-slate-500 mb-2">Mission Control</p>
+            <h1 className="font-display text-[19px] text-white leading-snug" style={{ fontSize: '19px' }}>
               {getGreeting()}, {firstName}.
-              {weakest && <span className="text-label-2 font-normal"> Let's work on <span className="text-accent">{weakest.dim}</span> today.</span>}
+              {weakest && <span className="text-slate-400 font-normal"> Let's work on <span className="text-indigo-300">{weakest.dim}</span> today.</span>}
             </h1>
           </div>
           <div className="flex items-center gap-2">
             <span className={`w-[7px] h-[7px] rounded-full ${systemStatus === "ok" ? "bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.7)]" : systemStatus === "degraded" ? "bg-rose-400" : "bg-slate-500"}`} />
-            <span className="text-caption text-label-3">
-              {systemStatus === "ok" ? "Online" : systemStatus === "degraded" ? "Service issues" : "Checking…"}
+            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">
+              {systemStatus === "ok" ? "Systems Nominal" : systemStatus === "degraded" ? "Systems Degraded" : "Checking..."}
             </span>
           </div>
         </motion.div>
@@ -474,15 +470,15 @@ export default function UserDashboard({
 
           {/* LEFT: ELO hero + Recommended Action, stacked */}
           <div className="w-full md:w-2/3 flex flex-col gap-5">
-            <GlassCard className="p-6">
+            <GlassCard className="p-6 border-l-[3px]! !border-l-indigo-500/50">
               <div className="flex items-start justify-between mb-3.5 flex-wrap gap-2">
-                <p className="text-[9.5px] font-medium text-label-3">Current ELO</p>
+                <p className="text-[9.5px] font-mono font-bold uppercase tracking-[0.16em] text-slate-500">Current ELO</p>
                 <div className="flex items-center gap-2">
-                  <span className="text-caption font-medium px-2 py-0.5 rounded-full border" style={{ color: tier.color, background: tier.bg, borderColor: tier.border }}>
+                  <span className="text-[9px] font-mono font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border" style={{ color: tier.color, background: tier.bg, borderColor: tier.border }}>
                     {tier.name}
                   </span>
                   {streak > 0 && (
-                    <span className="inline-flex items-center gap-1 text-caption font-medium px-2 py-0.5 rounded-full border bg-orange-500/[0.1] text-orange-400 border-orange-500/25">
+                    <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border bg-orange-500/[0.1] text-orange-400 border-orange-500/25">
                       <FlameIcon size={10} /> {streak} day{streak === 1 ? "" : "s"}
                     </span>
                   )}
@@ -491,11 +487,11 @@ export default function UserDashboard({
               <div className="flex items-end gap-3 mb-3">
                 <span className="font-display text-[28px] leading-none text-white" style={{ fontSize: '28px' }}><RollingNumber value={currentElo} /></span>
                 {recentDelta !== null ? (
-                  <span className={`tabular-nums text-[11px] font-bold px-2 py-0.5 rounded-md mb-1.5 tabular-nums ${recentDelta >= 0 ? "bg-emerald-500/[0.14] text-emerald-400 border border-emerald-500/25" : "bg-rose-500/[0.14] text-rose-400 border border-rose-500/25"}`}>
+                  <span className={`font-mono text-[11px] font-bold px-2 py-0.5 rounded-md mb-1.5 tabular-nums ${recentDelta >= 0 ? "bg-emerald-500/[0.14] text-emerald-400 border border-emerald-500/25" : "bg-rose-500/[0.14] text-rose-400 border border-rose-500/25"}`}>
                     {recentDelta >= 0 ? `+${recentDelta}` : recentDelta} (30d)
                   </span>
                 ) : (
-                  <span className="tabular-nums text-[11px] font-bold px-2 py-0.5 rounded-md mb-1.5 bg-white/[0.07] text-label-3 border border-hairline">—</span>
+                  <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded-md mb-1.5 bg-white/[0.07] text-slate-500 border border-white/10">—</span>
                 )}
               </div>
               {loadingSessions ? (
@@ -506,40 +502,40 @@ export default function UserDashboard({
                     <AreaChart data={eloHistory.slice(-10)} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                       <defs>
                         <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#2997FF" stopOpacity={0.4} />
-                          <stop offset="100%" stopColor="#2997FF" stopOpacity={0} />
+                          <stop offset="0%" stopColor="#6366f1" stopOpacity={0.4} />
+                          <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <Area type="monotone" dataKey="elo" stroke="#2997FF" strokeWidth={1.8} fill="url(#sparkGrad)" isAnimationActive animationDuration={1000} animationEasing="ease-out" />
+                      <Area type="monotone" dataKey="elo" stroke="#6366f1" strokeWidth={1.8} fill="url(#sparkGrad)" isAnimationActive animationDuration={1000} animationEasing="ease-out" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
               ) : (
                 <div className="h-9 mb-1.5" />
               )}
-              <p className="text-caption font-medium text-label-3">
+              <p className="text-[9px] font-mono font-bold uppercase tracking-widest text-slate-500">
                 {flightLedger.length > 0 ? `${flightLedger.length} sessions logged` : "Your training log starts here."}
               </p>
             </GlassCard>
 
-            <GlassCard className="p-6">
-              <p className="text-[9.5px] font-medium text-accent/70 mb-3.5">Recommended Action</p>
+            <GlassCard className="p-6 border-l-[3px]! !border-l-white">
+              <p className="text-[9.5px] font-mono font-bold uppercase tracking-[0.16em] text-indigo-300/70 mb-3.5">Recommended Action</p>
               {gapData.critical_gap ? (
                 <p className="text-sm font-medium leading-relaxed text-slate-200/90 mb-4">
-                  Your <span className="text-accent">{activeTarget}</span> sessions show a recurring gap — drill <span className="text-accent capitalize">{gapData.critical_gap.gap.replace(/_/g, " ")}</span> before your next mock.
+                  Your <span className="text-indigo-300">{activeTarget}</span> sessions show a recurring gap — drill <span className="text-indigo-300 capitalize">{gapData.critical_gap.gap.replace(/_/g, " ")}</span> before your next mock.
                 </p>
               ) : (
                 <p className="text-sm font-medium leading-relaxed text-slate-200/90 mb-4">
-                  No gaps found yet for <span className="text-accent">{activeTarget}</span> — start a session to begin tracking.
+                  No gaps found yet for <span className="text-indigo-300">{activeTarget}</span> — start a session to begin tracking.
                 </p>
               )}
               <motion.button
                 whileTap={{ scale: 0.96 }}
                 transition={{ type: "spring", stiffness: 400, damping: 20 }}
                 onClick={() => gapData.critical_gap ? handleStudyClick(gapData.critical_gap.gap) : onStartNew?.()}
-                className="relative overflow-hidden w-full bg-white text-black py-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.12)]"
+                className="relative overflow-hidden w-full btn-liquid py-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.12)]"
               >
-                <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full hover:animate-shimmer" />
+                <div className="absolute inset-0 w-full h-full bg-linear-to-r from-transparent via-black/10 to-transparent -translate-x-full hover:animate-shimmer" />
                 <Play size={11} className="fill-current" /> {gapData.critical_gap ? "Study This Gap" : "Launch Session"}
               </motion.button>
             </GlassCard>
@@ -549,8 +545,8 @@ export default function UserDashboard({
               now genuinely matches the left column via flex stretch,
               no more forced dead space */}
           <div className="w-full md:w-1/3">
-            <GlassCard layout className="p-6 !bg-amber-500/[0.045] !border-amber-500/25 shadow-[0_0_30px_-10px_rgba(245,158,11,0.15)]">
-              <p className="text-[9.5px] font-medium text-amber-400/80 mb-3.5">Critical Gap</p>
+            <GlassCard layout className="p-6 !bg-amber-500/[0.045] !border-amber-500/25 border-l-[3px]! !border-l-amber-500 shadow-[0_0_30px_-10px_rgba(245,158,11,0.15)]">
+              <p className="text-[9.5px] font-mono font-bold uppercase tracking-[0.16em] text-amber-400/80 mb-3.5">Critical Gap</p>
               {gapLoading ? (
                 <div className="space-y-2">
                   <SkeletonLine className="h-5 w-3/4" />
@@ -561,17 +557,17 @@ export default function UserDashboard({
                 <>
                   <div className="flex items-start justify-between gap-2.5 mb-2.5">
                     <span className="text-base font-bold leading-snug capitalize">{gapData.critical_gap.gap.replace(/_/g, " ")}</span>
-                    <span className={`text-caption font-medium px-2 py-0.5 rounded-md whitespace-nowrap border shrink-0 ${gapData.critical_gap.urgency === "critical" ? "bg-rose-500/[0.15] text-rose-400 border-rose-500/30" : "bg-amber-500/[0.15] text-amber-400 border-amber-500/30"}`}>
+                    <span className={`text-[9px] font-mono font-bold uppercase tracking-widest px-2 py-0.5 rounded-md whitespace-nowrap border shrink-0 ${gapData.critical_gap.urgency === "critical" ? "bg-rose-500/[0.15] text-rose-400 border-rose-500/30" : "bg-amber-500/[0.15] text-amber-400 border-amber-500/30"}`}>
                       {gapData.critical_gap.urgency}
                     </span>
                   </div>
-                  <p className="text-xs text-label-2 leading-relaxed mb-3.5">
+                  <p className="text-xs text-slate-400 leading-relaxed mb-3.5">
                     Detected in {gapData.critical_gap.occurrences} {activeTarget} answer{gapData.critical_gap.occurrences === 1 ? "" : "s"}
                     {gapData.critical_gap.prerequisites_to_study_first?.length > 0 && <> · Prerequisite: {gapData.critical_gap.prerequisites_to_study_first.join(", ")}</>}
                   </p>
                   {gapData.critical_gap.category && (
                     <div className="bg-black/20 rounded-md px-2.5 py-2 border border-amber-500/10 mb-4">
-                      <p className="text-caption font-medium text-label-3 mb-1">Category</p>
+                      <p className="text-[9px] font-mono font-bold uppercase tracking-widest text-slate-500 mb-1">Category</p>
                       <p className="text-xs font-semibold capitalize">{gapData.critical_gap.category.replace(/_/g, " ")}</p>
                     </div>
                   )}
@@ -582,7 +578,7 @@ export default function UserDashboard({
                     whileTap={{ scale: 0.95 }}
                     transition={{ type: "spring", stiffness: 400, damping: 20 }}
                     onClick={() => handleStudyClick(gapData.critical_gap.gap)}
-                    className="relative w-full bg-white text-black py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 mt-4"
+                    className="relative w-full btn-liquid py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 mt-4"
                   >
                     <AnimatePresence mode="wait">
                       {confirmPulse ? (
@@ -594,7 +590,7 @@ export default function UserDashboard({
                   </motion.button>
                 </>
               ) : (
-                <p className="text-xs text-label-3">No gaps detected for {activeTarget} yet.</p>
+                <p className="text-xs text-slate-500">No gaps detected for {activeTarget} yet.</p>
               )}
             </GlassCard>
           </div>
@@ -604,9 +600,9 @@ export default function UserDashboard({
             pattern exists in real history; never fabricated */}
         {personaInsight && (
           <motion.div variants={fadeUp} initial="hidden" animate="show" custom={4} className="mb-8">
-            <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-accent/[0.06] border border-accent/[0.15]">
-              <ChartNoAxesCombined size={14} className="text-accent shrink-0" />
-              <p className="text-xs text-accent/80">{personaInsight}</p>
+            <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-indigo-500/[0.06] border border-indigo-500/[0.15]">
+              <ChartNoAxesCombined size={14} className="text-indigo-300 shrink-0" />
+              <p className="text-xs text-indigo-200/80">{personaInsight}</p>
             </div>
           </motion.div>
         )}
@@ -616,11 +612,11 @@ export default function UserDashboard({
           <GlassCard className="p-6 mb-8">
             <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
               <div>
-                <p className="text-[9.5px] font-medium text-label-3 mb-1">ELO Trajectory</p>
-                <p className="text-xs text-label-3">{eloHistory.length > 0 ? `${eloHistory.length} scored session${eloHistory.length === 1 ? "" : "s"}` : "No scored sessions yet"}</p>
+                <p className="text-[9.5px] font-mono font-bold uppercase tracking-[0.16em] text-slate-500 mb-1">ELO Trajectory</p>
+                <p className="text-xs text-slate-500">{eloHistory.length > 0 ? `${eloHistory.length} scored session${eloHistory.length === 1 ? "" : "s"}` : "No scored sessions yet"}</p>
               </div>
               {personalBest && (
-                <span className="text-caption font-medium text-emerald-400 bg-emerald-500/[0.1] border border-emerald-500/25 px-2.5 py-1 rounded-full">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-emerald-400 bg-emerald-500/[0.1] border border-emerald-500/25 px-2.5 py-1 rounded-full">
                   Personal Best: {personalBest.elo}
                 </span>
               )}
@@ -633,15 +629,15 @@ export default function UserDashboard({
                   <AreaChart data={eloHistory} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="mainEloGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#2997FF" stopOpacity={0.28} />
-                        <stop offset="95%" stopColor="#2997FF" stopOpacity={0} />
+                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.28} />
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <YAxis domain={['dataMin - 20', 'dataMax + 20']} hide />
-                    <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 9.5, fontFamily: "inherit" }} axisLine={false} tickLine={false} dy={10} />
+                    <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 9.5, fontFamily: "monospace" }} axisLine={false} tickLine={false} dy={10} />
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.04)" />
-                    <RechartsTooltip contentStyle={{ backgroundColor: "#0A0A12", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "8px" }} labelStyle={{ color: "#94A3B8", fontSize: "10px" }} itemStyle={{ color: "#fff", fontWeight: "bold", fontSize: "13px", fontFamily: "inherit" }} cursor={{ stroke: 'rgba(255,255,255,0.15)', strokeDasharray: '4 4' }} />
-                    <Area type="monotone" dataKey="elo" stroke="#2997FF" strokeWidth={2.5} fill="url(#mainEloGrad)" isAnimationActive animationDuration={1400} animationEasing="ease-out" activeDot={{ r: 5, fill: "#fff", stroke: "#2997FF", strokeWidth: 2 }} />
+                    <RechartsTooltip contentStyle={{ backgroundColor: "#0A0A12", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "8px" }} labelStyle={{ color: "#94A3B8", fontSize: "10px" }} itemStyle={{ color: "#fff", fontWeight: "bold", fontSize: "13px", fontFamily: "monospace" }} cursor={{ stroke: 'rgba(255,255,255,0.15)', strokeDasharray: '4 4' }} />
+                    <Area type="monotone" dataKey="elo" stroke="#6366f1" strokeWidth={2.5} fill="url(#mainEloGrad)" isAnimationActive animationDuration={1400} animationEasing="ease-out" activeDot={{ r: 5, fill: "#fff", stroke: "#6366f1", strokeWidth: 2 }} />
                     {personalBest && (
                       <ReferenceDot x={personalBest.date} y={personalBest.elo} r={5} fill="#34d399" stroke="#fff" strokeWidth={1.5} />
                     )}
@@ -649,8 +645,8 @@ export default function UserDashboard({
                 </ResponsiveContainer>
               ) : (
                 <div className="h-full flex flex-col items-center justify-center gap-3 text-center">
-                  <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center"><ChartNoAxesCombined size={18} className="text-label-3" /></div>
-                  <p className="text-xs text-label-3">Complete a session to start tracking your ELO trajectory.</p>
+                  <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center"><ChartNoAxesCombined size={18} className="text-slate-600" /></div>
+                  <p className="text-xs text-slate-500">Complete a session to start tracking your ELO trajectory.</p>
                 </div>
               )}
             </div>
@@ -663,8 +659,8 @@ export default function UserDashboard({
         <motion.div variants={fadeUp} initial="hidden" animate="show" custom={6}>
           <GlassCard className="p-6 mb-8">
             <div className="flex items-center justify-between mb-5">
-              <p className="text-[9.5px] font-medium text-label-3">Practice Activity — Last 12 Weeks</p>
-              <span className="text-[10px] tabular-nums text-label-3">{sessionDates.length} total sessions</span>
+              <p className="text-[9.5px] font-mono font-bold uppercase tracking-[0.16em] text-slate-500">Practice Activity — Last 12 Weeks</p>
+              <span className="text-[10px] font-mono text-slate-600">{sessionDates.length} total sessions</span>
             </div>
             {loadingSessions ? (
               <SkeletonLine className="h-28 w-full" />
@@ -675,7 +671,7 @@ export default function UserDashboard({
                   <div className="flex flex-col gap-[3px] pt-[18px] shrink-0">
                     {["", "Mon", "", "Wed", "", "Fri", ""].map((label, i) => (
                       <div key={i} className="h-[14px] flex items-center">
-                        <span className="text-[8px] tabular-nums text-label-3 w-6">{label}</span>
+                        <span className="text-[8px] font-mono text-slate-600 w-6">{label}</span>
                       </div>
                     ))}
                   </div>
@@ -694,7 +690,7 @@ export default function UserDashboard({
                           lastMonth = month;
                         }
                         return labels.map((m, i) => (
-                          <span key={i} className="text-[8px] tabular-nums text-label-3" style={{ width: "14px" }}>{m}</span>
+                          <span key={i} className="text-[8px] font-mono text-slate-600" style={{ width: "14px" }}>{m}</span>
                         ));
                       })()}
                     </div>
@@ -715,11 +711,11 @@ export default function UserDashboard({
                 </div>
                 {/* Legend */}
                 <div className="flex items-center gap-1.5 mt-3 justify-end">
-                  <span className="text-[9px] tabular-nums text-label-3">Less</span>
+                  <span className="text-[9px] font-mono text-slate-600">Less</span>
                   {[0, 1, 2, 3].map((n) => (
                     <div key={n} className="w-[10px] h-[10px] rounded-[2px]" style={{ background: heatCellColor(n) }} />
                   ))}
-                  <span className="text-[9px] tabular-nums text-label-3">More</span>
+                  <span className="text-[9px] font-mono text-slate-600">More</span>
                 </div>
               </div>
             )}
@@ -731,8 +727,8 @@ export default function UserDashboard({
           <motion.div variants={fadeUp} initial="hidden" animate="show" custom={7}>
             <GlassCard layout className="p-6 h-full">
               <div className="flex items-center justify-between mb-1">
-                <p className="text-[9.5px] font-medium text-label-3">Performance DNA</p>
-                <span className="text-[9px] tabular-nums text-label-3">{activeTarget.toUpperCase()}</span>
+                <p className="text-[9.5px] font-mono font-bold uppercase tracking-[0.16em] text-slate-500">Performance DNA</p>
+                <span className="text-[9px] font-mono text-slate-600">{activeTarget.toUpperCase()}</span>
               </div>
               {!radarLoading && radar && radarSampleSize > 0 && radarSampleSize < 3 && (
                 <p className="text-[10px] text-amber-500/70 mb-1">Based on {radarSampleSize} session{radarSampleSize === 1 ? "" : "s"} — more data needed for a confident read.</p>
@@ -745,28 +741,28 @@ export default function UserDashboard({
                     <RadarChart data={radar}>
                       <defs>
                         <radialGradient id="radarFill2" cx="50%" cy="50%" r="70%">
-                          <stop offset="0%" stopColor="#64B5FF" stopOpacity={0.5} />
-                          <stop offset="100%" stopColor="#2997FF" stopOpacity={0.1} />
+                          <stop offset="0%" stopColor="#818cf8" stopOpacity={0.5} />
+                          <stop offset="100%" stopColor="#6366f1" stopOpacity={0.1} />
                         </radialGradient>
                       </defs>
                       <PolarGrid stroke="rgba(255,255,255,0.08)" />
                       <PolarAngleAxis dataKey="dim" tick={{ fill: "#94a3b8", fontSize: 9.5, fontWeight: "bold" }} />
                       <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
-                      <Radar dataKey="value" stroke="#64B5FF" fill="url(#radarFill2)" strokeWidth={2.2} isAnimationActive animationDuration={550} dot={{ r: 3, fill: "#fff", stroke: "#64B5FF", strokeWidth: 1.4 }} />
+                      <Radar dataKey="value" stroke="#818cf8" fill="url(#radarFill2)" strokeWidth={2.2} isAnimationActive animationDuration={550} dot={{ r: 3, fill: "#fff", stroke: "#818cf8", strokeWidth: 1.4 }} />
                     </RadarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-full flex items-center justify-center text-xs text-label-3 text-center px-6">No scored answers for {activeTarget} yet.</div>
+                  <div className="h-full flex items-center justify-center text-xs text-slate-500 text-center px-6">No scored answers for {activeTarget} yet.</div>
                 )}
               </div>
               {strongest && weakest && (
                 <div className="grid grid-cols-2 gap-2.5 mt-1">
-                  <div className="bg-white/[0.04] rounded-lg px-3 py-2 border border-hairline">
-                    <p className="text-caption font-medium text-label-3 mb-1">Strongest</p>
+                  <div className="bg-white/[0.04] rounded-lg px-3 py-2 border border-white/[0.07]">
+                    <p className="text-[9px] font-mono font-bold uppercase tracking-widest text-slate-500 mb-1">Strongest</p>
                     <p className="text-[12.5px] font-bold text-emerald-400">{strongest.dim}</p>
                   </div>
-                  <div className="bg-white/[0.04] rounded-lg px-3 py-2 border border-hairline">
-                    <p className="text-caption font-medium text-label-3 mb-1">Needs Work</p>
+                  <div className="bg-white/[0.04] rounded-lg px-3 py-2 border border-white/[0.07]">
+                    <p className="text-[9px] font-mono font-bold uppercase tracking-widest text-slate-500 mb-1">Needs Work</p>
                     <p className="text-[12.5px] font-bold text-rose-400">{weakest.dim}</p>
                   </div>
                 </div>
@@ -778,10 +774,10 @@ export default function UserDashboard({
             <GlassCard layout className="p-6 h-full flex flex-col">
               <div className="flex items-center justify-between mb-5">
                 <div>
-                  <p className="text-[9.5px] font-medium text-label-3 mb-1">Gap Fix Queue</p>
-                  <p className="text-xs text-label-3">Top {Math.min(3, gapData.queue.length)} priority items</p>
+                  <p className="text-[9.5px] font-mono font-bold uppercase tracking-[0.16em] text-slate-500 mb-1">Gap Fix Queue</p>
+                  <p className="text-xs text-slate-500">Top {Math.min(3, gapData.queue.length)} priority items</p>
                 </div>
-                <button onClick={onNavigateStudyPlan} className="text-[11px] font-semibold text-label-3 hover:text-white transition-colors flex items-center gap-1.5">
+                <button onClick={onNavigateStudyPlan} className="text-[11px] font-semibold text-slate-500 hover:text-white transition-colors flex items-center gap-1.5">
                   Knowledge Graph <ArrowRight size={11} />
                 </button>
               </div>
@@ -792,7 +788,7 @@ export default function UserDashboard({
                   <SkeletonLine className="h-14 w-full" />
                 </div>
               ) : gapData.queue.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center text-xs text-label-3 text-center px-6">No gaps detected for {activeTarget} yet.</div>
+                <div className="flex-1 flex items-center justify-center text-xs text-slate-500 text-center px-6">No gaps detected for {activeTarget} yet.</div>
               ) : (
                 <div className="flex flex-col gap-2.5 flex-1">
                   {gapData.queue.slice(0, 3).map((item, idx) => (
@@ -803,13 +799,13 @@ export default function UserDashboard({
                       transition={{ type: "spring", stiffness: 260, damping: 24, delay: idx * 0.06 }}
                       whileHover={{ x: 3 }}
                       onClick={() => handleStudyClick(item.gap)}
-                      className="p-3.5 rounded-xl bg-white/[0.03] border border-hairline hover:border-white/[0.14] transition-colors cursor-pointer"
+                      className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.07] hover:border-white/[0.14] transition-colors cursor-pointer"
                     >
                       <div className="flex items-center justify-between mb-1.5 gap-2">
                         <span className="text-[13.5px] font-bold capitalize">{item.gap.replace(/_/g, " ")}</span>
-                        <span className={`text-caption font-medium px-1.5 py-0.5 rounded-md shrink-0 border ${item.urgency === "critical" ? "bg-rose-500/[0.12] text-rose-400 border-rose-500/25" : item.urgency === "high" ? "bg-orange-500/[0.12] text-orange-400 border-orange-500/25" : "bg-yellow-500/[0.12] text-yellow-400 border-yellow-500/25"}`}>{item.urgency}</span>
+                        <span className={`text-[9px] font-mono font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-md shrink-0 border ${item.urgency === "critical" ? "bg-rose-500/[0.12] text-rose-400 border-rose-500/25" : item.urgency === "high" ? "bg-orange-500/[0.12] text-orange-400 border-orange-500/25" : "bg-yellow-500/[0.12] text-yellow-400 border-yellow-500/25"}`}>{item.urgency}</span>
                       </div>
-                      <p className="text-[11.5px] text-label-3 capitalize">{item.category || "General"} · seen {item.occurrences}x</p>
+                      <p className="text-[11.5px] text-slate-500 capitalize">{item.category || "General"} · seen {item.occurrences}x</p>
                     </motion.div>
                   ))}
                 </div>
@@ -823,10 +819,10 @@ export default function UserDashboard({
           <GlassCard className="p-6 mb-8">
             <div className="flex items-center justify-between mb-5">
               <div>
-                <p className="text-[9.5px] font-medium text-label-3 mb-1">Recent activity</p>
-                <p className="text-xs text-label-3">Last {Math.min(5, flightLedger.length)} session{flightLedger.length === 1 ? "" : "s"}</p>
+                <p className="text-[9.5px] font-mono font-bold uppercase tracking-[0.16em] text-slate-500 mb-1">Recent Flight Ledger</p>
+                <p className="text-xs text-slate-500">Last {Math.min(5, flightLedger.length)} session{flightLedger.length === 1 ? "" : "s"}</p>
               </div>
-              <button onClick={onNavigateHistory} className="text-[11px] font-semibold text-label-3 hover:text-white transition-colors flex items-center gap-1.5">
+              <button onClick={onNavigateHistory} className="text-[11px] font-semibold text-slate-500 hover:text-white transition-colors flex items-center gap-1.5">
                 View all sessions <ArrowRight size={11} />
               </button>
             </div>
@@ -838,19 +834,19 @@ export default function UserDashboard({
                 <SkeletonLine className="h-14 w-full" />
               </div>
             ) : recentFive.length === 0 ? (
-              <div className="py-10 flex flex-col items-center justify-center text-center gap-3 border border-dashed border-hairline rounded-xl">
-                <div className="w-11 h-11 rounded-full bg-white/5 flex items-center justify-center"><Inbox size={16} className="text-label-3" /></div>
-                <p className="text-sm text-label-2">Your training log starts here.</p>
-                <button onClick={onStartNew} className="text-xs text-accent hover:underline font-bold">Start your first interview</button>
+              <div className="py-10 flex flex-col items-center justify-center text-center gap-3 border border-dashed border-white/10 rounded-xl">
+                <div className="w-11 h-11 rounded-full bg-white/5 flex items-center justify-center"><Inbox size={16} className="text-slate-600" /></div>
+                <p className="text-sm text-slate-400">Your training log starts here.</p>
+                <button onClick={onStartNew} className="text-xs text-indigo-400 hover:underline font-bold">Start your first interview</button>
               </div>
             ) : (
               <div>
-                <div className="hidden md:grid grid-cols-[70px_1fr_100px_70px_70px_90px] gap-0 px-3 pb-2.5 border-b border-hairline mb-1">
-                  <span className="text-[8.5px] font-medium text-label-3">Date</span>
-                  <span className="text-[8.5px] font-medium text-label-3">Role · Company</span>
-                  <span className="text-[8.5px] font-medium text-label-3 text-center">Persona</span>
-                  <span className="text-[8.5px] font-medium text-label-3 text-right">ELO Δ</span>
-                  <span className="text-[8.5px] font-medium text-label-3 text-right">Score</span>
+                <div className="hidden md:grid grid-cols-[70px_1fr_100px_70px_70px_90px] gap-0 px-3 pb-2.5 border-b border-white/[0.06] mb-1">
+                  <span className="text-[8.5px] font-mono font-bold uppercase tracking-widest text-slate-600">Date</span>
+                  <span className="text-[8.5px] font-mono font-bold uppercase tracking-widest text-slate-600">Role · Company</span>
+                  <span className="text-[8.5px] font-mono font-bold uppercase tracking-widest text-slate-600 text-center">Persona</span>
+                  <span className="text-[8.5px] font-mono font-bold uppercase tracking-widest text-slate-600 text-right">ELO Δ</span>
+                  <span className="text-[8.5px] font-mono font-bold uppercase tracking-widest text-slate-600 text-right">Score</span>
                   <span />
                 </div>
                 <div className="flex flex-col gap-0.5">
@@ -869,7 +865,7 @@ export default function UserDashboard({
                         onClick={() => onNavigateHistory?.(session.id)}
                         className="grid grid-cols-[auto_1fr] md:grid-cols-[70px_1fr_100px_70px_70px_90px] gap-3 md:gap-0 items-center px-3 py-3 rounded-lg hover:bg-white/[0.03] transition-colors cursor-pointer"
                       >
-                        <span className="hidden md:block tabular-nums text-[10px] font-semibold text-label-3">{session.date}</span>
+                        <span className="hidden md:block font-mono text-[10px] font-semibold text-slate-500">{session.date}</span>
                         <div className="flex items-center gap-3 md:contents">
                           {/* Colored accent ring using each company's real
                               brand-adjacent color — no ambiguous single
@@ -879,25 +875,25 @@ export default function UserDashboard({
                             style={{ background: isCoding ? "rgba(168,85,247,0.15)" : (COMPANY_ICONS[session.company.toLowerCase()] ? `${COMPANY_ICONS[session.company.toLowerCase()].color}1A` : "rgba(99,102,241,0.1)") }}
                           >
                             {isCoding ? (
-                              <Code2 size={12} className="text-accent" />
+                              <Code2 size={12} className="text-purple-300" />
                             ) : COMPANY_ICONS[session.company.toLowerCase()] ? (
                               React.createElement(COMPANY_ICONS[session.company.toLowerCase()].Icon, { size: 12, color: COMPANY_ICONS[session.company.toLowerCase()].color })
                             ) : (
-                              <span className="text-[9px] font-bold text-label-2">{companyDisplay.charAt(0)}</span>
+                              <span className="text-[9px] font-bold text-slate-400">{companyDisplay.charAt(0)}</span>
                             )}
                           </div>
                           <div>
-                            <p className="text-[13.5px] font-bold text-white">{companyDisplay} <span className="text-label-3 font-medium capitalize">· {session.type}</span></p>
-                            <p className="text-[11px] text-label-3 md:hidden">{session.date}</p>
+                            <p className="text-[13.5px] font-bold text-white">{companyDisplay} <span className="text-slate-500 font-medium capitalize">· {session.type}</span></p>
+                            <p className="text-[11px] text-slate-500 md:hidden">{session.date}</p>
                           </div>
                         </div>
                         <div className="hidden md:flex md:justify-center">
                           {isCoding ? (
-                            <span className="text-caption font-medium px-2 py-1 rounded-full border bg-accent/[0.08] border-accent/20 text-accent whitespace-nowrap">
+                            <span className="text-[9px] font-mono font-bold uppercase tracking-wide px-2 py-1 rounded-full border bg-purple-500/[0.08] border-purple-500/20 text-purple-300 whitespace-nowrap">
                               {session.language || "—"}
                             </span>
                           ) : (
-                            <span className={`inline-flex items-center gap-1.5 text-caption font-medium px-2 py-1 rounded-full border bg-white/[0.04] whitespace-nowrap ${persona.color}`}>
+                            <span className={`inline-flex items-center gap-1.5 text-[9px] font-mono font-bold uppercase tracking-wide px-2 py-1 rounded-full border bg-white/[0.04] whitespace-nowrap ${persona.color}`}>
                               <PersonaIcon size={10} className="shrink-0" /> {session.persona || "—"}
                             </span>
                           )}
@@ -905,15 +901,15 @@ export default function UserDashboard({
                         <div className="hidden md:flex md:flex-col md:items-end">
                           {session.eloBefore != null && session.eloAfter != null ? (
                             <>
-                              <span className={`tabular-nums text-[13px] font-bold tabular-nums ${session.eloDelta.includes('+') ? 'text-emerald-400' : session.eloDelta.includes('-') ? 'text-rose-400' : 'text-label-3'}`}>{session.eloDelta}</span>
-                              <span className="tabular-nums text-[9px] text-label-3 tabular-nums">{Math.round(session.eloBefore)} → {Math.round(session.eloAfter)}</span>
+                              <span className={`font-mono text-[13px] font-bold tabular-nums ${session.eloDelta.includes('+') ? 'text-emerald-400' : session.eloDelta.includes('-') ? 'text-rose-400' : 'text-slate-600'}`}>{session.eloDelta}</span>
+                              <span className="font-mono text-[9px] text-slate-600 tabular-nums">{Math.round(session.eloBefore)} → {Math.round(session.eloAfter)}</span>
                             </>
                           ) : (
-                            <span className="tabular-nums text-[13px] font-bold text-label-3">—</span>
+                            <span className="font-mono text-[13px] font-bold text-slate-600">—</span>
                           )}
                         </div>
-                        <span className="hidden md:block tabular-nums text-[13px] font-bold md:text-right tabular-nums">{session.score != null ? <>{session.score}<span className="text-[10px] text-label-3">/100</span></> : <span className="text-label-3">—</span>}</span>
-                        <span className="hidden md:flex md:text-right text-[11px] font-semibold text-label-3 hover:text-white transition-colors items-center gap-1 md:justify-end">Debrief <ArrowRight size={9} /></span>
+                        <span className="hidden md:block font-mono text-[13px] font-bold md:text-right tabular-nums">{session.score != null ? <>{session.score}<span className="text-[10px] text-slate-500">/100</span></> : <span className="text-slate-600">—</span>}</span>
+                        <span className="hidden md:flex md:text-right text-[11px] font-semibold text-slate-500 hover:text-white transition-colors items-center gap-1 md:justify-end">Debrief <ArrowRight size={9} /></span>
                       </motion.div>
                     );
                   })}
@@ -930,17 +926,17 @@ export default function UserDashboard({
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <p className="text-[9.5px] font-medium text-label-3">Track A</p>
-                  <kbd className="tabular-nums text-[8.5px] bg-white/10 border border-hairline px-1.5 py-0.5 rounded text-label-2">A</kbd>
+                  <p className="text-[9.5px] font-mono font-bold uppercase tracking-[0.16em] text-slate-500">Track A</p>
+                  <kbd className="font-mono text-[8.5px] bg-white/10 border border-white/10 px-1.5 py-0.5 rounded text-slate-400">A</kbd>
                 </div>
                 <p className="text-lg font-extrabold tracking-tight">System Design</p>
-                <p className="text-xs text-label-3 mt-1.5">Scalability, distributed systems, architecture</p>
+                <p className="text-xs text-slate-500 mt-1.5">Scalability, distributed systems, architecture</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <div className="w-11 h-11 rounded-full bg-accent/[0.12] border border-accent/25 flex items-center justify-center">
-                  <GitBranch size={16} className="text-accent" />
+                <div className="w-11 h-11 rounded-full bg-indigo-500/[0.12] border border-indigo-500/25 flex items-center justify-center">
+                  <GitBranch size={16} className="text-indigo-300" />
                 </div>
-                <motion.div className="text-accent" animate={{ x: 0 }} whileHover={{ x: 4 }}>
+                <motion.div className="text-indigo-300" animate={{ x: 0 }} whileHover={{ x: 4 }}>
                   <ArrowRight size={16} className="opacity-0 group-hover:opacity-100 transition-opacity" />
                 </motion.div>
               </div>
@@ -950,17 +946,17 @@ export default function UserDashboard({
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <p className="text-[9.5px] font-medium text-label-3">Track B</p>
-                  <kbd className="tabular-nums text-[8.5px] bg-white/10 border border-hairline px-1.5 py-0.5 rounded text-label-2">B</kbd>
+                  <p className="text-[9.5px] font-mono font-bold uppercase tracking-[0.16em] text-slate-500">Track B</p>
+                  <kbd className="font-mono text-[8.5px] bg-white/10 border border-white/10 px-1.5 py-0.5 rounded text-slate-400">B</kbd>
                 </div>
                 <p className="text-lg font-extrabold tracking-tight">Live Coding</p>
-                <p className="text-xs text-label-3 mt-1.5">Algorithms, data structures, problem solving</p>
+                <p className="text-xs text-slate-500 mt-1.5">Algorithms, data structures, problem solving</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <div className="w-11 h-11 rounded-full bg-accent/[0.12] border border-accent/25 flex items-center justify-center">
-                  <Code2 size={16} className="text-accent" />
+                <div className="w-11 h-11 rounded-full bg-purple-500/[0.12] border border-purple-500/25 flex items-center justify-center">
+                  <Code2 size={16} className="text-purple-300" />
                 </div>
-                <motion.div className="text-accent" animate={{ x: 0 }} whileHover={{ x: 4 }}>
+                <motion.div className="text-purple-300" animate={{ x: 0 }} whileHover={{ x: 4 }}>
                   <ArrowRight size={16} className="opacity-0 group-hover:opacity-100 transition-opacity" />
                 </motion.div>
               </div>
@@ -968,9 +964,9 @@ export default function UserDashboard({
           </GlassCard>
         </motion.div>
 
-        <footer className="mt-14 pt-6 border-t border-hairline flex items-center justify-between flex-wrap gap-4">
-          <span className="text-[9.5px] text-label-3">© 2026 InterviewCoach AI</span>
-          <div className="flex items-center gap-5 text-[11px] font-semibold text-label-3">
+        <footer className="mt-14 pt-6 border-t border-white/[0.05] flex items-center justify-between flex-wrap gap-4">
+          <span className="text-[9.5px] font-mono text-slate-600 uppercase tracking-widest">© 2026 InterviewCoach AI</span>
+          <div className="flex items-center gap-5 text-[11px] font-semibold text-slate-500">
             <button onClick={onNavigateStudyPlan} className="hover:text-white transition-colors">Knowledge Graph</button>
             <button onClick={onNavigateSettings} className="hover:text-white transition-colors">Settings</button>
             <button onClick={onNavigateHistory} className="hover:text-white transition-colors">Sessions</button>

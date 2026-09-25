@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import api, { getToken } from "../lib/api";
-import { motion, AnimatePresence, LayoutGroup, useScroll, useTransform } from "framer-motion";
+import { motion, AnimatePresence, LayoutGroup, useScroll, useTransform } from "motion/react";
 import {
   Terminal, ArrowLeft, ArrowRight, Target, CheckCircle2, XCircle,
   User, ShieldAlert, Brain, Battery, ChevronDown, Check, BookOpen,
@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { COMPANIES } from "../constants/companies";
+import { LiquidGlass } from "../components/fx/LiquidGlass";
 
 const ROLES = [
   "Software Engineer — L3", "Senior Engineer — L4", "Staff Engineer — L5",
@@ -30,10 +31,10 @@ const KNOWN_COMPANIES = ["google", "amazon", "meta", "microsoft", "apple", "netf
 // the final step only ever renders once the request has genuinely
 // resolved (see bootStep logic in handleLaunch).
 const BOOT_SEQUENCE = [
-  "Sending your request…",
-  "Writing your first question…",
-  "Almost ready…",
-  "Ready."
+  "> Sending session request...",
+  "> Waiting for the server to build your interview...",
+  "> Almost there...",
+  "SESSION READY."
 ];
 
 function RollingNumber({ value, className = "" }) {
@@ -56,30 +57,24 @@ function RollingNumber({ value, className = "" }) {
 }
 
 function DeepGlassCard({ children, className = "", accent, interactive = false, onClick, delay = 0 }) {
-  const [mx, setMx] = useState(50);
-  const [my, setMy] = useState(50);
-  const cardRef = useRef(null);
-
-  function handleMouseMove(e) {
-    const r = cardRef.current?.getBoundingClientRect();
-    if (!r) return;
-    setMx(((e.clientX - r.left) / r.width) * 100);
-    setMy(((e.clientY - r.top) / r.height) * 100);
-  }
-
-  const accentBorder = accent ? { borderLeftColor: accent, borderLeftWidth: "3px" } : {};
-
   return (
-    <motion.div ref={cardRef} onMouseMove={handleMouseMove} onClick={onClick}
-      initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
-      transition={{ type: "spring", stiffness: 260, damping: 28, delay }}
-      whileHover={interactive ? { y: -3, boxShadow: "0 20px 40px -12px rgba(0,0,0,0.6)" } : undefined}
-      whileTap={interactive ? { scale: 0.98 } : undefined}
-      style={{ boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.1), 0 20px 40px -10px rgba(0,0,0,0.5)', ...accentBorder }}
-      className={`relative rounded-2xl bg-surface/80 border border-hairline overflow-hidden backdrop-blur-2xl transition-[border-color] duration-300 hover:border-white/[0.16] ${interactive ? "cursor-pointer" : ""} ${className}`}>
-      <div className="absolute inset-0 pointer-events-none transition-opacity duration-300 z-0 opacity-0 hover:opacity-100"
-        style={{ background: `radial-gradient(300px circle at ${mx}% ${my}%, rgba(255,255,255,0.05), transparent 45%)` }} />
-      <div className="relative z-10 w-full h-full">{children}</div>
+    <motion.div
+      initial={{ opacity: 0, y: 22, filter: "blur(8px)" }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay }}
+      className="h-full"
+    >
+      <LiquidGlass
+        interactive={interactive}
+        tilt={interactive}
+        onClick={onClick}
+        radius={20}
+        className={`overflow-hidden h-full ${className}`}
+        style={accent ? { boxShadow: `inset 3px 0 0 0 ${accent}, inset 0 1px 0 0 rgba(255,255,255,0.16), 0 24px 60px -24px rgba(0,0,0,0.85)` } : undefined}
+        contentClassName="relative z-10 w-full h-full"
+      >
+        {children}
+      </LiquidGlass>
     </motion.div>
   );
 }
@@ -95,14 +90,14 @@ function EloGauge({ elo, size = 96 }) {
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
         <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
-        <motion.circle cx="50" cy="50" r="42" fill="none" stroke="#2997FF" strokeWidth="6" strokeLinecap="round"
+        <motion.circle cx="50" cy="50" r="42" fill="none" stroke="#6366f1" strokeWidth="6" strokeLinecap="round"
           strokeDasharray={circumference} initial={{ strokeDashoffset: circumference }}
           animate={{ strokeDashoffset: circumference - circumference * pct }}
           transition={{ duration: 1.4, ease: "easeOut" }} />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-2xl font-extrabold text-white leading-none"><RollingNumber value={elo} /></span>
-        <span className="text-caption font-medium text-label-3 mt-1">ELO</span>
+        <span className="text-[8px] font-mono font-bold uppercase tracking-widest text-slate-500 mt-1">ELO</span>
       </div>
     </div>
   );
@@ -111,15 +106,15 @@ function EloGauge({ elo, size = 96 }) {
 function CinematicSelect({ value, onChange, options }) {
   return (
     <SelectPrimitive.Root value={value} onValueChange={onChange}>
-      <SelectPrimitive.Trigger className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-surface border border-hairline text-sm font-semibold text-white tracking-wide shadow-inner outline-none hover:border-white/20 transition-colors">
+      <SelectPrimitive.Trigger className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#08080d]/75 backdrop-blur-xl border border-white/10 text-sm font-semibold text-white tracking-wide shadow-inner outline-none hover:border-white/20 transition-colors">
         <SelectPrimitive.Value />
-        <SelectPrimitive.Icon><ChevronDown size={14} className="text-label-2" /></SelectPrimitive.Icon>
+        <SelectPrimitive.Icon><ChevronDown size={14} className="text-slate-400" /></SelectPrimitive.Icon>
       </SelectPrimitive.Trigger>
       <SelectPrimitive.Portal>
-        <SelectPrimitive.Content className="overflow-hidden bg-surface/95 backdrop-blur-3xl border border-hairline rounded-xl shadow-[0_40px_80px_rgba(0,0,0,0.8)] z-[9999]" position="popper" sideOffset={6}>
+        <SelectPrimitive.Content className="overflow-hidden bg-[#08080d]/75 backdrop-blur-xl5 backdrop-blur-3xl border border-white/10 rounded-xl shadow-[0_40px_80px_rgba(0,0,0,0.8)] z-9999" position="popper" sideOffset={6}>
           <SelectPrimitive.Viewport className="p-1.5">
             {options.map((opt) => (
-              <SelectPrimitive.Item key={opt} value={opt} className="relative flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all outline-none text-label-2 hover:bg-white/[0.05] hover:text-white cursor-pointer data-[highlighted]:bg-blue-500/10 data-[highlighted]:text-blue-400">
+              <SelectPrimitive.Item key={opt} value={opt} className="relative flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all outline-none text-slate-300 hover:bg-white/[0.05] hover:text-white cursor-pointer data-[highlighted]:bg-blue-500/10 data-[highlighted]:text-blue-400">
                 <SelectPrimitive.ItemText>{opt}</SelectPrimitive.ItemText>
                 <SelectPrimitive.ItemIndicator><Check size={14} className="text-blue-400" /></SelectPrimitive.ItemIndicator>
               </SelectPrimitive.Item>
@@ -303,30 +298,30 @@ export default function Dashboard({ onStart, user, onGoBack }) {
   };
 
   return (
-    <div ref={mainRef} className="min-h-screen bg-canvas text-label font-sans selection:bg-blue-500/30 overflow-x-hidden flex flex-col relative">
+    <div ref={mainRef} className="min-h-screen bg-transparent text-slate-200 font-sans selection:bg-blue-500/30 overflow-x-hidden flex flex-col relative">
 
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <motion.div style={{ y: orbYA }} animate={{ backgroundColor: activeComp.color, opacity: 0.13 }}
           transition={{ duration: 1, ease: "easeInOut" }}
           className="absolute top-[-20%] left-[-10%] w-[60vw] h-[60vw] rounded-full blur-[160px] mix-blend-screen" />
         <motion.div style={{ y: orbYB }} initial={{ opacity: 0.1 }} animate={{ opacity: 0.1 }}
-          className="absolute bottom-[-10%] right-[-5%] w-[50vw] h-[50vw] rounded-full blur-[140px] mix-blend-screen bg-accent" />
+          className="absolute bottom-[-10%] right-[-5%] w-[50vw] h-[50vw] rounded-full blur-[140px] mix-blend-screen bg-indigo-600" />
         <div className="absolute inset-0 opacity-[0.025] mix-blend-soft-light" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }} />
       </div>
 
       <AnimatePresence>
         {isBooting && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
-            <div className="w-[90vw] max-w-[500px] bg-surface border border-hairline p-6 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.9)] tabular-nums text-sm">
-              <div className="flex items-center gap-3 mb-6 border-b border-hairline pb-4">
+            <div className="w-[90vw] max-w-[500px] bg-[#08080d]/75 backdrop-blur-xl border border-white/10 p-6 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.9)] font-mono text-sm">
+              <div className="flex items-center gap-3 mb-6 border-b border-white/10 pb-4">
                 <Terminal size={18} className="text-blue-400" />
-                <span className="text-white font-bold tracking-tight">Starting your session</span>
+                <span className="text-white font-bold tracking-tight">LAUNCHING SESSION</span>
               </div>
               <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mb-6">
                 <motion.div className="h-full bg-blue-500" initial={{ width: "0%" }}
                   animate={{ width: `${(bootStep / (BOOT_SEQUENCE.length - 1)) * 100}%` }} transition={{ duration: 0.4 }} />
               </div>
-              <div className="space-y-3 text-label-2">
+              <div className="space-y-3 text-slate-400">
                 {BOOT_SEQUENCE.slice(0, bootStep + 1).map((step, i) => (
                   <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}>
                     {i === BOOT_SEQUENCE.length - 1 ? <span className="text-emerald-400 font-bold">{step}</span> : step}
@@ -338,9 +333,9 @@ export default function Dashboard({ onStart, user, onGoBack }) {
         )}
       </AnimatePresence>
 
-      <header className="relative z-30 h-16 border-b border-hairline bg-black/40 backdrop-blur-md flex items-center justify-between px-6 lg:px-10 flex-shrink-0">
+      <header className="relative z-30 h-16 border-b border-white/[0.06] bg-black/40 backdrop-blur-md flex items-center justify-between px-6 lg:px-10 shrink-0">
         <div className="flex items-center gap-4">
-          <button onClick={onGoBack} className="flex items-center gap-2 text-caption font-medium text-label-2 hover:text-white transition-colors bg-white/[0.03] border border-hairline px-3 py-1.5 rounded-full outline-none">
+          <button onClick={onGoBack} className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors bg-white/[0.03] border border-white/[0.08] px-3 py-1.5 rounded-full outline-none">
             <ArrowLeft size={14} /> Dashboard
           </button>
           <div className="w-px h-5 bg-white/10 hidden sm:block" />
@@ -350,12 +345,12 @@ export default function Dashboard({ onStart, user, onGoBack }) {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] tabular-nums font-bold tracking-widest ${systemStatus === "ok" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : systemStatus === "degraded" ? "bg-rose-500/10 border-rose-500/20 text-rose-400" : "bg-white/[0.03] border-hairline text-label-3"}`}>
+          <div className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-mono font-bold tracking-widest ${systemStatus === "ok" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : systemStatus === "degraded" ? "bg-rose-500/10 border-rose-500/20 text-rose-400" : "bg-white/[0.03] border-white/10 text-slate-500"}`}>
             <span className={`w-1.5 h-1.5 rounded-full ${systemStatus === "ok" ? "bg-emerald-400 animate-pulse" : systemStatus === "degraded" ? "bg-rose-400" : "bg-slate-500"}`} />
-            {systemStatus === "ok" ? "Online" : systemStatus === "degraded" ? "Service issues" : "Checking…"}
+            {systemStatus === "ok" ? "Engine Ready" : systemStatus === "degraded" ? "Engine Degraded" : "Checking..."}
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-hairline text-[10px] tabular-nums font-bold tracking-widest text-white">
-            <Target size={12} className="text-label-2" /> ELO <RollingNumber value={currentElo} />
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/10 text-[10px] font-mono font-bold tracking-widest text-white">
+            <Target size={12} className="text-slate-400" /> ELO <RollingNumber value={currentElo} />
           </div>
         </div>
       </header>
@@ -363,11 +358,11 @@ export default function Dashboard({ onStart, user, onGoBack }) {
       <main className="relative z-20 flex-1 w-full max-w-[1560px] mx-auto px-6 lg:px-10 pt-6 lg:pt-8 pb-40">
 
         <div className="mb-8">
-          <p className="text-caption font-medium text-label-3 mb-2">Session Setup</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-2">Session Setup</p>
           <h1 className="text-2xl font-extrabold tracking-tight text-white mb-1">Configure your interview.</h1>
-          <p className="text-[13px] text-label-3">
+          <p className="text-[13px] text-slate-500">
             Three decisions. Pick and launch. Everything else is the engine's job.
-            {topicCount && <span className="text-label-3"> · {topicCount} topics tracked</span>}
+            {topicCount && <span className="text-slate-600"> · {topicCount} topics tracked</span>}
           </p>
         </div>
 
@@ -378,20 +373,20 @@ export default function Dashboard({ onStart, user, onGoBack }) {
 
             <DeepGlassCard className="p-6" accent={activeComp.color} delay={0}>
               <div className="flex items-center gap-2.5 mb-4">
-                <span className="w-5 h-5 rounded-full bg-white/[0.08] border border-white/[0.14] flex items-center justify-center text-[9px] tabular-nums font-bold">1</span>
-                <span className="text-caption font-medium text-label-3">Target Company</span>
+                <span className="w-5 h-5 rounded-full bg-white/[0.08] border border-white/[0.14] flex items-center justify-center text-[9px] font-mono font-bold">1</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Target Company</span>
               </div>
               <LayoutGroup id="company-grid">
                 <div className="grid grid-cols-3 gap-2">
                   {COMPANIES.map((c, idx) => (
                     <button key={c.id} onClick={() => setCompany(c.id)}
-                      className={`relative flex flex-col items-center justify-center gap-2 p-3 rounded-xl border border-hairline transition-colors outline-none ${idx === COMPANIES.length - 1 && COMPANIES.length % 3 === 1 ? "col-start-2" : ""}`}>
+                      className={`relative flex flex-col items-center justify-center gap-2 p-3 rounded-xl border border-white/[0.06] transition-colors outline-none ${idx === COMPANIES.length - 1 && COMPANIES.length % 3 === 1 ? "col-start-2" : ""}`}>
                       {company === c.id && (
                         <motion.div layoutId="company-active" transition={{ type: "spring", stiffness: 380, damping: 32 }}
                           className="absolute inset-0 rounded-xl bg-white/[0.06] border border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]" />
                       )}
                       <div className={`relative z-10 transition-all ${company === c.id ? "grayscale-0 scale-110" : "grayscale opacity-50"}`}>{c.logo}</div>
-                      <span className={`relative z-10 text-caption font-medium ${company === c.id ? "text-white" : "text-label-3"}`}>{c.name}</span>
+                      <span className={`relative z-10 text-[9px] font-bold tracking-widest uppercase ${company === c.id ? "text-white" : "text-slate-500"}`}>{c.name}</span>
                     </button>
                   ))}
                 </div>
@@ -400,8 +395,8 @@ export default function Dashboard({ onStart, user, onGoBack }) {
 
             <DeepGlassCard className="p-6" delay={0.05}>
               <div className="flex items-center gap-2.5 mb-4">
-                <span className="w-5 h-5 rounded-full bg-white/[0.08] border border-white/[0.14] flex items-center justify-center text-[9px] tabular-nums font-bold">3</span>
-                <span className="text-caption font-medium text-label-3">Interviewer Persona</span>
+                <span className="w-5 h-5 rounded-full bg-white/[0.08] border border-white/[0.14] flex items-center justify-center text-[9px] font-mono font-bold">3</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Interviewer Persona</span>
               </div>
               <LayoutGroup id="persona-list">
                 <div className="flex flex-col gap-2">
@@ -410,18 +405,18 @@ export default function Dashboard({ onStart, user, onGoBack }) {
                     const Icon = p.icon;
                     return (
                       <button key={p.id} onClick={() => setPersona(p.id)}
-                        className="relative p-3 rounded-xl border border-hairline text-left transition-colors outline-none">
+                        className="relative p-3 rounded-xl border border-white/[0.05] text-left transition-colors outline-none">
                         {isActive && (
                           <motion.div layoutId="persona-active" transition={{ type: "spring", stiffness: 380, damping: 32 }}
                             className="absolute inset-0 rounded-xl bg-white/[0.04] border border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.07)]" />
                         )}
                         <div className="relative z-10 flex items-center gap-2.5">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center border shrink-0 ${isActive ? "bg-surface border-white/20" : "bg-white/5 border-hairline"}`}>
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center border shrink-0 ${isActive ? "bg-[#08080d]/75 backdrop-blur-xl border-white/20" : "bg-white/5 border-white/10"}`}>
                             <Icon size={14} color={isActive ? p.color : "#94a3b8"} />
                           </div>
                           <div>
-                            <span className={`block text-[13px] font-bold ${isActive ? "text-white" : "text-label-2"}`}>{p.label}</span>
-                            <span className="block text-[9.5px] text-label-3 leading-snug">{p.tagline}</span>
+                            <span className={`block text-[13px] font-bold ${isActive ? "text-white" : "text-slate-400"}`}>{p.label}</span>
+                            <span className="block text-[9.5px] text-slate-500 leading-snug">{p.tagline}</span>
                           </div>
                         </div>
                       </button>
@@ -438,20 +433,20 @@ export default function Dashboard({ onStart, user, onGoBack }) {
 
             <DeepGlassCard className="p-6" delay={0.08}>
               <div className="flex items-center gap-2.5 mb-4">
-                <span className="w-5 h-5 rounded-full bg-white/[0.08] border border-white/[0.14] flex items-center justify-center text-[9px] tabular-nums font-bold">2</span>
-                <span className="text-caption font-medium text-label-3">Scope &amp; Bracket</span>
+                <span className="w-5 h-5 rounded-full bg-white/[0.08] border border-white/[0.14] flex items-center justify-center text-[9px] font-mono font-bold">2</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Scope &amp; Bracket</span>
               </div>
               <CinematicSelect value={role} onChange={setRole} options={ROLES} />
             </DeepGlassCard>
 
-            <DeepGlassCard className="p-6 flex-1" accent="#64B5FF" delay={0.12}>
-              <div className="flex items-center justify-between border-b border-hairline pb-4 mb-6">
+            <DeepGlassCard className="p-6 flex-1" accent="#a78bfa" delay={0.12}>
+              <div className="flex items-center justify-between border-b border-white/[0.06] pb-4 mb-6">
                 <div className="flex items-center gap-2">
-                  <Cpu size={16} className="text-label-2" />
-                  <span className="text-xs font-medium text-label-2">Company Playbook</span>
+                  <Cpu size={16} className="text-slate-400" />
+                  <span className="text-xs font-bold uppercase tracking-[0.2em] text-slate-300">Company Playbook</span>
                 </div>
                 {isFreshlyGenerated && !profileLoading && (
-                  <span className="text-[9px] tabular-nums font-bold text-accent bg-accent/10 px-2.5 py-1 rounded flex items-center gap-1">
+                  <span className="text-[9px] font-mono font-bold text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded flex items-center gap-1">
                     <Zap size={10} /> Freshly Generated
                   </span>
                 )}
@@ -465,70 +460,70 @@ export default function Dashboard({ onStart, user, onGoBack }) {
                 ) : profileError ? (
                   <motion.div key="error" {...blurFade} className="flex flex-col items-center text-center gap-2 py-8">
                     <AlertTriangle size={20} className="text-amber-500/70" />
-                    <p className="text-sm text-label-2">Couldn't load the company playbook.</p>
+                    <p className="text-sm text-slate-400">Couldn't load the company playbook.</p>
                   </motion.div>
                 ) : companyProfile ? (
                   <motion.div key={`profile-${company}`} {...blurFade} transition={{ duration: 0.25 }} className="space-y-6">
                     <div>
-                      <span className="block text-caption font-medium text-label-3 mb-2">
+                      <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2">
                         Behavioral Framework · {activeComp.name.toUpperCase()}
                       </span>
-                      <p className="text-lg lg:text-xl font-bold text-white leading-snug tracking-tight bg-black/30 p-5 rounded-xl border border-hairline">
+                      <p className="text-lg lg:text-xl font-bold text-white leading-snug tracking-tight bg-black/30 p-5 rounded-xl border border-white/[0.05]">
                         "{companyProfile.behavioral_framework}"
                       </p>
                     </div>
 
                     <div className="flex flex-wrap gap-3">
-                      <div className="bg-surface border border-hairline rounded-lg p-3.5 shadow-inner">
-                        <span className="block text-caption font-medium text-label-3 mb-1">Interview Style</span>
+                      <div className="bg-[#08080d]/75 backdrop-blur-xl border border-white/10 rounded-lg p-3.5 shadow-inner">
+                        <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Interview Style</span>
                         <span className="text-xs font-bold text-white">{companyProfile.question_style}</span>
                       </div>
-                      <div className="bg-surface border border-hairline rounded-lg p-3.5 shadow-inner">
-                        <span className="block text-caption font-medium text-label-3 mb-1">Difficulty Bias</span>
-                        <span className="text-xs font-bold text-emerald-400 tabular-nums">{companyProfile.difficulty_bias}×</span>
+                      <div className="bg-[#08080d]/75 backdrop-blur-xl border border-white/10 rounded-lg p-3.5 shadow-inner">
+                        <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Difficulty Bias</span>
+                        <span className="text-xs font-bold text-emerald-400 font-mono">{companyProfile.difficulty_bias}×</span>
                       </div>
                       {companyProfile.typical_rounds && (
-                        <div className="bg-surface border border-hairline rounded-lg p-3.5 shadow-inner">
-                          <span className="block text-caption font-medium text-label-3 mb-1">Typical Rounds</span>
+                        <div className="bg-[#08080d]/75 backdrop-blur-xl border border-white/10 rounded-lg p-3.5 shadow-inner">
+                          <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Typical Rounds</span>
                           <span className="text-xs font-bold text-white">{companyProfile.typical_rounds}</span>
                         </div>
                       )}
                     </div>
 
                     <div>
-                      <span className="block text-caption font-medium text-label-3 mb-2">Company Values</span>
+                      <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2">Company Values</span>
                       <div className="flex flex-wrap gap-1.5">
                         {companyProfile.values?.map((v, i) => (
-                          <span key={i} className="text-[10.5px] font-bold px-2.5 py-1 rounded-full bg-accent/[0.08] text-accent border border-accent/20">{v}</span>
+                          <span key={i} className="text-[10.5px] font-bold px-2.5 py-1 rounded-full bg-indigo-500/[0.08] text-indigo-300 border border-indigo-500/20">{v}</span>
                         ))}
                       </div>
                     </div>
 
-                    <div className="pt-2 border-t border-hairline">
-                      <span className="block text-caption font-medium text-label-3 mb-2">Focus Areas</span>
-                      <p className="text-xs text-label-2 capitalize">{companyProfile.focus_areas?.split(" ").join(" · ")}</p>
+                    <div className="pt-2 border-t border-white/[0.06]">
+                      <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2">Focus Areas</span>
+                      <p className="text-xs text-slate-400 capitalize">{companyProfile.focus_areas?.split(" ").join(" · ")}</p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <span className="block text-caption font-medium text-emerald-400 mb-2">Do This</span>
+                        <span className="block text-[9px] font-bold text-emerald-400 uppercase tracking-widest mb-2">Do This</span>
                         <ul className="space-y-1.5">
                           {companyProfile.green_flags?.map((g, i) => (
-                            <li key={i} className="text-[12px] font-medium text-label-2 flex items-start gap-2"><CheckCircle2 size={13} className="text-emerald-400 mt-0.5 shrink-0" /><span>{g}</span></li>
+                            <li key={i} className="text-[12px] font-medium text-slate-300 flex items-start gap-2"><CheckCircle2 size={13} className="text-emerald-400 mt-0.5 shrink-0" /><span>{g}</span></li>
                           ))}
                         </ul>
                       </div>
                       <div>
-                        <span className="block text-caption font-medium text-rose-400 mb-2">Avoid This</span>
+                        <span className="block text-[9px] font-bold text-rose-400 uppercase tracking-widest mb-2">Avoid This</span>
                         <ul className="space-y-1.5">
                           {companyProfile.red_flags?.map((r, i) => (
-                            <li key={i} className="text-[12px] font-medium text-label-2 flex items-start gap-2"><XCircle size={13} className="text-rose-400 mt-0.5 shrink-0" /><span>{r}</span></li>
+                            <li key={i} className="text-[12px] font-medium text-slate-400 flex items-start gap-2"><XCircle size={13} className="text-rose-400 mt-0.5 shrink-0" /><span>{r}</span></li>
                           ))}
                         </ul>
                       </div>
                     </div>
 
-                    <p className="text-[10px] text-label-3 italic pt-2 border-t border-hairline">Source: company_dna engine</p>
+                    <p className="text-[10px] text-slate-600 italic pt-2 border-t border-white/[0.05]">Source: company_dna engine</p>
                   </motion.div>
                 ) : null}
               </AnimatePresence>
@@ -539,17 +534,17 @@ export default function Dashboard({ onStart, user, onGoBack }) {
           {/* RIGHT COLUMN — Opening Line preview, Track Record, Readiness */}
           <div className="flex flex-col gap-5">
 
-            <DeepGlassCard className="p-6" accent="#64B5FF" delay={0.16}>
-              <span className="text-caption font-medium text-label-3 block mb-3">Interviewer Opening Line</span>
+            <DeepGlassCard className="p-6" accent="#818cf8" delay={0.16}>
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 block mb-3">Interviewer Opening Line</span>
               <AnimatePresence mode="wait">
                 {!previewData && !previewLoading && !previewError && (
                   <motion.div key="idle" {...blurFade} transition={{ duration: 0.25 }}>
-                    <p className="text-xs text-label-3 leading-relaxed mb-3">
+                    <p className="text-xs text-slate-500 leading-relaxed mb-3">
                       Generate a real preview — same engine that runs the actual interview. One real generation, on-demand.
                     </p>
                     <motion.button onClick={handlePreview} whileTap={{ scale: 0.97 }}
                       animate={previewPulse ? { scale: [1, 1.03, 1] } : {}} transition={{ duration: 0.3 }}
-                      className="w-full flex items-center justify-center gap-2 text-xs font-bold text-white bg-white/[0.06] hover:bg-white/[0.1] border border-hairline rounded-lg py-2.5 transition-colors">
+                      className="w-full flex items-center justify-center gap-2 text-xs font-bold text-white bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 rounded-lg py-2.5 transition-colors">
                       <Play size={12} /> Preview Opening Line
                     </motion.button>
                   </motion.div>
@@ -562,11 +557,11 @@ export default function Dashboard({ onStart, user, onGoBack }) {
                 {previewError && (
                   <motion.div key="error" {...blurFade} transition={{ duration: 0.25 }} className="flex flex-col items-center text-center gap-2 py-3">
                     <AlertTriangle size={18} className="text-amber-500/70" />
-                    <p className="text-xs text-label-2">
+                    <p className="text-xs text-slate-400">
                       {isSignedIn() ? "Couldn't generate a preview right now." : "Sign in to preview the opening line."}
                     </p>
                     {isSignedIn() && (
-                      <button onClick={handlePreview} className="text-[11px] font-bold text-accent hover:text-accent flex items-center gap-1">
+                      <button onClick={handlePreview} className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
                         <RotateCcw size={11} /> Retry
                       </button>
                     )}
@@ -574,14 +569,14 @@ export default function Dashboard({ onStart, user, onGoBack }) {
                 )}
                 {previewData && (
                   <motion.div key="filled" {...blurFade} transition={{ duration: 0.25 }}>
-                    <p className="text-sm text-label italic leading-relaxed bg-black/30 p-3.5 rounded-lg border border-hairline">
+                    <p className="text-sm text-slate-200 italic leading-relaxed bg-black/30 p-3.5 rounded-lg border border-white/[0.05]">
                       "{previewData.question}"
                     </p>
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-hairline">
-                      <span className="text-caption font-medium text-label-3">
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/[0.06]">
+                      <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-slate-600">
                         {persona} · {activeComp.name} · {role.split("—")[0].trim()}
                       </span>
-                      <button onClick={handlePreview} className="text-[10px] font-semibold text-label-3 hover:text-white flex items-center gap-1">
+                      <button onClick={handlePreview} className="text-[10px] font-semibold text-slate-500 hover:text-white flex items-center gap-1">
                         <RotateCcw size={10} /> Regenerate
                       </button>
                     </div>
@@ -592,8 +587,8 @@ export default function Dashboard({ onStart, user, onGoBack }) {
 
             <DeepGlassCard className="p-6" accent="#34d399" delay={0.2}>
               <div className="flex items-center gap-2 mb-3">
-                <TrendingUp size={13} className="text-label-3" />
-                <span className="text-caption font-medium text-label-3">Your Track Record — {activeComp.name}</span>
+                <TrendingUp size={13} className="text-slate-500" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Your Track Record — {activeComp.name}</span>
               </div>
               <AnimatePresence mode="wait">
                 {intelLoading ? (
@@ -609,30 +604,30 @@ export default function Dashboard({ onStart, user, onGoBack }) {
                   </motion.div>
                 ) : companyIntel?.sampleSize > 0 ? (
                   <motion.div key="loaded" {...blurFade} transition={{ duration: 0.2 }} className="space-y-3">
-                    <p className="text-xs text-label-2">
+                    <p className="text-xs text-slate-400">
                       Based on <span className="text-white font-bold">{companyIntel.sampleSize}</span> real scored answer{companyIntel.sampleSize === 1 ? "" : "s"}.
                     </p>
                     {strongest && weakest && (
                       <div className="grid grid-cols-2 gap-2">
-                        <div className="bg-white/[0.03] rounded-lg px-2.5 py-2 border border-hairline">
-                          <p className="text-[8.5px] font-medium text-label-3 mb-0.5">Strongest</p>
+                        <div className="bg-white/[0.03] rounded-lg px-2.5 py-2 border border-white/[0.06]">
+                          <p className="text-[8.5px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Strongest</p>
                           <p className="text-[11.5px] font-bold text-emerald-400">{strongest.dim}</p>
                         </div>
-                        <div className="bg-white/[0.03] rounded-lg px-2.5 py-2 border border-hairline">
-                          <p className="text-[8.5px] font-medium text-label-3 mb-0.5">Needs Work</p>
+                        <div className="bg-white/[0.03] rounded-lg px-2.5 py-2 border border-white/[0.06]">
+                          <p className="text-[8.5px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Needs Work</p>
                           <p className="text-[11.5px] font-bold text-rose-400">{weakest.dim}</p>
                         </div>
                       </div>
                     )}
                     {companyIntel.criticalGap && (
                       <div className="bg-amber-500/[0.06] border border-amber-500/20 rounded-lg px-3 py-2.5">
-                        <p className="text-caption font-medium text-amber-400 mb-1">Recurring Gap</p>
-                        <p className="text-xs text-label-2">{companyIntel.criticalGap.gap.replace(/_/g, " ").toUpperCase()}</p>
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-amber-400 mb-1">Recurring Gap</p>
+                        <p className="text-xs text-slate-300">{companyIntel.criticalGap.gap.replace(/_/g, " ").toUpperCase()}</p>
                       </div>
                     )}
                   </motion.div>
                 ) : (
-                  <motion.p key="empty" {...blurFade} transition={{ duration: 0.2 }} className="text-xs text-label-3">
+                  <motion.p key="empty" {...blurFade} transition={{ duration: 0.2 }} className="text-xs text-slate-500">
                     No scored {activeComp.name} sessions yet — this fills in after your first one.
                   </motion.p>
                 )}
@@ -641,14 +636,14 @@ export default function Dashboard({ onStart, user, onGoBack }) {
 
             {companySessions.length > 0 && (
               <DeepGlassCard className="p-6" delay={0.21}>
-                <span className="text-caption font-medium text-label-3 block mb-3">Recent {activeComp.name} Sessions</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 block mb-3">Recent {activeComp.name} Sessions</span>
                 <div className="flex flex-col gap-2">
                   {companySessions.map((s) => (
                     <div key={s.id} className="flex items-center justify-between text-xs">
-                      <span className="text-label-2 tabular-nums">
+                      <span className="text-slate-400 font-mono">
                         {s.started_at ? new Date(s.started_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}
                       </span>
-                      <span className="text-label-3 capitalize">{s.persona || "—"}</span>
+                      <span className="text-slate-500 capitalize">{s.persona || "—"}</span>
                       <span className="font-bold text-white tabular-nums">{s.score != null ? `${s.score}/100` : "—"}</span>
                     </div>
                   ))}
@@ -665,12 +660,12 @@ export default function Dashboard({ onStart, user, onGoBack }) {
 
             {companyIntel?.queue?.length > 0 && (
               <DeepGlassCard className="p-6" accent="#fb923c" delay={0.22}>
-                <span className="text-caption font-medium text-label-3 block mb-3">Gap Fix Queue — {activeComp.name}</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 block mb-3">Gap Fix Queue — {activeComp.name}</span>
                 <div className="flex flex-col gap-2">
                   {companyIntel.queue.slice(0, 3).map((item, i) => (
-                    <div key={item.gap} className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/[0.03] border border-hairline">
-                      <span className="text-[11.5px] font-bold text-label-2 capitalize">{item.gap.replace(/_/g, " ")}</span>
-                      <span className={`text-[8.5px] font-medium px-1.5 py-0.5 rounded border ${item.urgency === "critical" ? "bg-rose-500/[0.12] text-rose-400 border-rose-500/25" : "bg-amber-500/[0.12] text-amber-400 border-amber-500/25"}`}>
+                    <div key={item.gap} className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                      <span className="text-[11.5px] font-bold text-slate-300 capitalize">{item.gap.replace(/_/g, " ")}</span>
+                      <span className={`text-[8.5px] font-mono font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border ${item.urgency === "critical" ? "bg-rose-500/[0.12] text-rose-400 border-rose-500/25" : "bg-amber-500/[0.12] text-amber-400 border-amber-500/25"}`}>
                         {item.urgency}
                       </span>
                     </div>
@@ -683,19 +678,19 @@ export default function Dashboard({ onStart, user, onGoBack }) {
               <div className="flex items-center gap-4 mb-1">
                 <EloGauge elo={currentElo} />
                 <div className="flex-1">
-                  <p className="text-caption font-medium text-label-3 mb-1">Readiness Signal</p>
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600 mb-1">Readiness Signal</p>
                   {band ? (
                     <>
-                      <p className="text-[13px] font-bold text-label-2 mb-2">{band.label}: {band.low}–{band.high}</p>
+                      <p className="text-[13px] font-bold text-slate-300 mb-2">{band.label}: {band.low}–{band.high}</p>
                       <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
-                        <motion.div className="h-full bg-gradient-to-r from-accent to-accent rounded-full"
+                        <motion.div className="h-full bg-linear-to-r from-indigo-500 to-purple-500 rounded-full"
                           initial={{ width: 0 }}
                           animate={{ width: `${Math.max(0, Math.min(100, ((currentElo - band.low) / (band.high - band.low)) * 100))}%` }}
                           transition={{ duration: 1, delay: 0.4 }} />
                       </div>
                     </>
                   ) : (
-                    <p className="text-xs text-label-3">No target band for this role yet.</p>
+                    <p className="text-xs text-slate-500">No target band for this role yet.</p>
                   )}
                 </div>
               </div>
@@ -705,12 +700,12 @@ export default function Dashboard({ onStart, user, onGoBack }) {
         </div>
       </main>
 
-      <footer className="fixed bottom-0 left-0 right-0 z-30 border-t border-hairline bg-surface/90 backdrop-blur-2xl px-6 lg:px-10 py-4">
+      <footer className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/[0.08] bg-[#08080d]/75 backdrop-blur-xl0 backdrop-blur-2xl px-6 lg:px-10 py-4">
         <div className="max-w-[1560px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 flex-wrap text-[11px] tabular-nums">
-            <span className="text-label-3 text-caption">Active</span>
-            <span className="text-white font-bold">{activeComp.name}</span><span className="text-label-3">·</span>
-            <span className="text-white font-bold">{role}</span><span className="text-label-3">·</span>
+          <div className="flex items-center gap-2 flex-wrap text-[11px] font-mono">
+            <span className="text-slate-600 uppercase tracking-widest text-[9px]">Active</span>
+            <span className="text-white font-bold">{activeComp.name}</span><span className="text-slate-600">·</span>
+            <span className="text-white font-bold">{role}</span><span className="text-slate-600">·</span>
             <span className="text-white font-bold capitalize">{persona}</span>
           </div>
           <div className="w-full sm:w-72 flex flex-col gap-1.5">
@@ -720,9 +715,9 @@ export default function Dashboard({ onStart, user, onGoBack }) {
               </p>
             )}
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={handleLaunch} disabled={isBooting}
-              className="relative overflow-hidden w-full h-12 rounded-xl bg-white text-black text-xs font-medium flex items-center justify-center gap-2 disabled:opacity-50 group">
-              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-              <span className="relative z-10 flex items-center gap-2">Start interview <ArrowRight size={16} /></span>
+              className="relative overflow-hidden w-full h-12 rounded-xl btn-liquid text-xs font-extrabold uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50 group">
+              <div className="absolute inset-0 w-full h-full bg-linear-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+              <span className="relative z-10 flex items-center gap-2">Cross Threshold <ArrowRight size={16} /></span>
             </motion.button>
           </div>
         </div>
