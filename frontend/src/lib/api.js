@@ -96,7 +96,21 @@ function describeError(error) {
 }
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Compatibility with older backend builds that report failures as
+    // HTTP 200 + {"error": "..."}: treat those as errors too, so a wrong
+    // password or a missing record never flows into success handlers.
+    // (Bodies that also carry a "status" field — e.g. a scoring job that
+    // reports {"status": "failed", "error": ...} — are real payloads.)
+    const data = response.data;
+    if (data && typeof data === "object" && typeof data.error === "string" && !("status" in data)) {
+      const err = new Error(data.error);
+      err.status = response.status;
+      err.data = data;
+      return Promise.reject(err);
+    }
+    return response;
+  },
   (error) => {
     const status = error.response?.status;
     // Only treat a 401 as "your session ended" if we actually sent a token.
