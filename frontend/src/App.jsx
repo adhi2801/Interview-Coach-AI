@@ -1,8 +1,11 @@
 import React, { useState, useEffect, Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useParams } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { Search, LayoutGrid, Code2, LogOut, Settings as SettingsIcon, Play, Database, AlertTriangle } from "lucide-react";
 import "./App.css";
+import { AUTH_EXPIRED_EVENT, clearAuth, getToken, isTokenExpired, loadSavedUser } from "./lib/api";
+import { pageTransition, spring } from "./lib/motion";
+import { Spinner } from "./components/ui";
 
 // Every route-level page is now code-split. Previously all 13 pages were
 // eagerly imported at the top of this file, meaning a first-time visitor
@@ -26,12 +29,11 @@ const StudyPlanBrowser = lazy(() => import("./pages/StudyPlanBrowser"));
 
 // Lightweight fallback shown only while a route's chunk is actually being
 // fetched over the network — on a warm cache or fast connection this is
-// often invisible. Deliberately simpler than AuthBootloader, which is for
-// the one-time initial auth check, not per-route navigation.
+// often invisible.
 function RouteLoadingFallback() {
   return (
-    <div className="h-screen w-full bg-[#000000] flex items-center justify-center">
-      <div className="w-8 h-8 border-[3px] border-white/10 border-t-indigo-500 rounded-full animate-spin" />
+    <div className="flex h-screen w-full items-center justify-center bg-canvas text-label-3">
+      <Spinner />
     </div>
   );
 }
@@ -66,102 +68,54 @@ function CommandPalette({ isOpen, onClose, navigate, onLogout }) {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[15vh]">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
-      
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95, y: -20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: -20 }}
-        transition={{ type: "spring", stiffness: 400, damping: 30 }}
-        className="relative w-full max-w-2xl bg-[#0A0A0C]/95 backdrop-blur-2xl border border-white/[0.1] rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.8),_inset_0_1px_0_0_rgba(255,255,255,0.05)] overflow-hidden flex flex-col"
+
+      <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Command menu"
+        initial={{ opacity: 0, scale: 0.97, y: -8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98, y: -4 }}
+        transition={spring.gentle}
+        className="relative mx-4 flex w-full max-w-xl flex-col overflow-hidden rounded-panel border border-hairline bg-surface/95 shadow-[0_24px_80px_rgba(0,0,0,0.6)] backdrop-blur-2xl"
       >
-        <div className="flex items-center px-4 border-b border-white/[0.08]">
-          <Search size={18} className="text-slate-400 mr-3" />
-          <input 
+        <div className="flex items-center border-b border-hairline px-4">
+          <Search size={17} className="mr-3 text-label-3" aria-hidden="true" />
+          <input
             autoFocus
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Type a command or search..."
-            className="w-full bg-transparent text-slate-200 text-lg py-5 outline-none placeholder-slate-500 font-medium"
+            placeholder="Search actions"
+            aria-label="Search actions"
+            className="w-full bg-transparent py-4 text-body text-label outline-none placeholder:text-label-3"
             spellCheck={false}
           />
-          <div className="flex items-center gap-1">
-            <kbd className="font-mono text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-slate-400 border border-white/5">ESC</kbd>
-          </div>
+          <kbd className="rounded-md bg-surface-2 px-1.5 py-0.5 text-caption text-label-3">esc</kbd>
         </div>
 
         <div className="max-h-[60vh] overflow-y-auto p-2 scrollbar-hide">
           {filteredActions.length === 0 ? (
-            <div className="px-4 py-8 text-center text-sm text-slate-500 font-medium">No commands found.</div>
+            <div className="px-4 py-8 text-center text-callout text-label-3">No actions match "{search}".</div>
           ) : (
             filteredActions.map((action, i) => (
               <button
                 key={i}
                 onClick={action.action}
-                className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-left transition-colors outline-none focus:bg-white/[0.06] hover:bg-white/[0.04] group ${action.danger ? 'hover:bg-rose-500/10 focus:bg-rose-500/10' : ''}`}
+                className="group flex w-full items-center justify-between rounded-control px-3 py-2.5 text-left outline-none transition-colors hover:bg-surface-2 focus-visible:bg-surface-2"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-colors ${action.danger ? 'bg-rose-500/10 border-rose-500/20 text-rose-400 group-hover:bg-rose-500/20' : 'bg-white/[0.03] border-white/[0.08] text-slate-400 group-hover:text-white group-focus:text-white'}`}>
-                    <action.icon size={16} />
-                  </div>
-                  <span className={`text-sm font-semibold transition-colors ${action.danger ? 'text-rose-400' : 'text-slate-300 group-hover:text-white group-focus:text-white'}`}>{action.label}</span>
+                  <action.icon size={17} className={action.danger ? "text-critical" : "text-label-2"} aria-hidden="true" />
+                  <span className={`text-callout ${action.danger ? "text-critical" : "text-label"}`}>{action.label}</span>
                 </div>
                 {action.shortcut && (
-                  <span className="font-mono text-[10px] text-slate-500 tracking-widest uppercase">{action.shortcut}</span>
+                  <span className="text-footnote text-label-3">{action.shortcut}</span>
                 )}
               </button>
             ))
           )}
-        </div>
-      </motion.div>
-    </div>
-  );
-}
-
-function AuthBootloader() {
-  const [logs, setLogs] = useState([]);
-  
-  useEffect(() => {
-    const sequence = [
-      "> Checking for saved session...",
-      "> Loading your account...",
-      "> Ready."
-    ];
-    let i = 0;
-    const interval = setInterval(() => {
-      if (i < sequence.length) {
-        const item = sequence[i];
-        setLogs(prev => [...prev, item]);
-        i++;
-      } else {
-        clearInterval(interval);
-      }
-    }, 150);
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className="h-screen w-full bg-[#000000] flex flex-col items-center justify-center relative overflow-hidden">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[50vw] h-[50vw] bg-indigo-600/10 blur-[150px] rounded-full mix-blend-screen pointer-events-none" />
-      
-      <motion.div 
-        initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }}
-        className="flex flex-col items-center z-10"
-      >
-        <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center font-extrabold text-black text-2xl shadow-[0_0_40px_rgba(255,255,255,0.2)] mb-8 relative">
-          IC
-          <div className="absolute inset-0 rounded-2xl border border-white/50 animate-ping" />
-        </div>
-        
-        <div className="w-80 h-32 flex flex-col items-start font-mono text-[11px] text-slate-500 space-y-2">
-          {logs.map((log, index) => (
-            <motion.div key={index} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}>
-              {log && log.includes("Ready") ? <span className="text-emerald-400 font-bold">{log}</span> : log}
-            </motion.div>
-          ))}
-          <motion.div animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 0.8 }} className="w-2 h-3 bg-slate-500 mt-1" />
         </div>
       </motion.div>
     </div>
@@ -180,20 +134,13 @@ function RequireSession({ sessionData, redirectTo = "/", children }) {
   return children;
 }
 
-function AuthenticatedRoutes({ user, onLogout, onEloUpdate, sessionData, setSessionData, onOpenCommandPalette }) {
+function AuthenticatedRoutes({ user, onLogout, onEloUpdate, onUserPatch, sessionData, setSessionData, onOpenCommandPalette }) {
   const location = useLocation();
   const navigate = useNavigate();
 
   return (
     <AnimatePresence mode="wait">
-      <motion.div 
-        key={location.pathname}
-        initial={{ opacity: 0, y: 12, scale: 0.99 }} 
-        animate={{ opacity: 1, y: 0, scale: 1 }} 
-        exit={{ opacity: 0, y: -12, scale: 0.99 }}
-        transition={{ type: "spring", stiffness: 300, damping: 30, mass: 0.9 }}
-        className="w-full h-full"
-      >
+      <motion.div key={location.pathname} {...pageTransition} className="w-full h-full">
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes location={location}>
             <Route path="/" element={<UserDashboard user={user} onLogout={onLogout} onStartNew={() => navigate("/setup")} onNavigateHistory={() => navigate("/replay")} onStartCoding={() => navigate("/coding")} onNavigateSettings={() => navigate("/settings")} onNavigateStudyPlan={() => navigate("/study-plan")} onOpenCommandPalette={onOpenCommandPalette} onEloUpdate={onEloUpdate} />} />
@@ -204,11 +151,11 @@ function AuthenticatedRoutes({ user, onLogout, onEloUpdate, sessionData, setSess
                 <InterviewRoom sessionData={sessionData} onFinish={() => navigate("/replay")} onEloUpdate={onEloUpdate} />
               </RequireSession>
             } />
-            <Route path="/coding" element={<CodingRoom sessionId={sessionData?.session_id} user={user} onFinish={() => navigate("/")} />} />
+            <Route path="/coding" element={<CodingRoom sessionId={sessionData?.session_id} user={user} onFinish={() => navigate("/")} onEloUpdate={onEloUpdate} />} />
             <Route path="/replay" element={<ReplayViewer sessionId={sessionData?.session_id} onExit={() => navigate("/")} onSelectSession={(id) => navigate(`/replay/${id}`)} />} />
             <Route path="/replay/:id" element={<ReplayViewerWithParam onExit={() => navigate("/")} />} />
             <Route path="/study-plan" element={<StudyPlanBrowser onGoBack={() => navigate("/")} />} />
-            <Route path="/settings" element={<Settings user={user} onLogout={onLogout} onGoBack={() => navigate("/")} />} />
+            <Route path="/settings" element={<Settings user={user} onLogout={onLogout} onGoBack={() => navigate("/")} onProfileUpdate={onUserPatch} />} />
             <Route path="/privacy" element={<PrivacyPolicy onGoBack={() => navigate("/")} />} />
             <Route path="/terms" element={<TermsOfService onGoBack={() => navigate("/")} />} />  
             <Route path="*" element={<Navigate to="/" replace />} />
@@ -225,14 +172,7 @@ function UnauthenticatedRoutes({ onAuth }) {
 
   return (
     <AnimatePresence mode="wait">
-      <motion.div 
-        key={location.pathname}
-        initial={{ opacity: 0, y: 15 }} 
-        animate={{ opacity: 1, y: 0 }} 
-        exit={{ opacity: 0, y: -15 }}
-        transition={{ duration: 0.3, ease: "easeInOut" }}
-        className="w-full h-full"
-      >
+      <motion.div key={location.pathname} {...pageTransition} className="w-full h-full">
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes location={location}>
             <Route path="/" element={
@@ -244,7 +184,7 @@ function UnauthenticatedRoutes({ onAuth }) {
               />
             } />
             <Route path="/login" element={<Login onAuth={onAuth} onSwitchToSignup={() => navigate("/signup")} onBackToHome={() => navigate("/")} />} />
-            <Route path="/signup" element={<Signup onAuth={onAuth} onSwitchToLogin={() => navigate("/login")} onBackToHome={() => navigate("/")} />} />
+            <Route path="/signup" element={<Signup onAuth={onAuth} onSwitchToLogin={() => navigate("/login")} onBackToHome={() => navigate("/")} onNavigatePrivacy={() => navigate("/privacy")} onNavigateTerms={() => navigate("/terms")} />} />
             <Route path="/privacy" element={<PrivacyPolicy onGoBack={() => navigate("/")} />} />
             <Route path="/terms" element={<TermsOfService onGoBack={() => navigate("/")} />} />
             <Route path="*" element={<Navigate to="/" replace />} />
@@ -260,7 +200,7 @@ function ReplayViewerWithParam({ onExit }) {
   return <ReplayViewer sessionId={parseInt(id, 10)} onExit={onExit} />;
 }
 
-function AppContent({ user, checkingAuth, handleAuth, handleLogout, handleEloUpdate, sessionData, setSessionData }) {
+function AppContent({ user, handleAuth, handleLogout, handleEloUpdate, handleUserPatch, sessionData, setSessionData }) {
   const [cmdOpen, setCmdOpen] = useState(false);
   const [logoutConfirming, setLogoutConfirming] = useState(false);
   const navigate = useNavigate();
@@ -345,15 +285,11 @@ function AppContent({ user, checkingAuth, handleAuth, handleLogout, handleEloUpd
 
   useEffect(() => () => clearTimeout(logoutConfirmTimerRef.current), []);
 
-  if (checkingAuth) {
-    return <AuthBootloader />;
-  }
-
   return (
     <>
       <div className="w-full min-h-screen relative z-10">
         {user ? (
-          <AuthenticatedRoutes user={user} onLogout={handleLogout} onEloUpdate={handleEloUpdate} sessionData={sessionData} setSessionData={setSessionData} onOpenCommandPalette={() => setCmdOpen(true)} />
+          <AuthenticatedRoutes user={user} onLogout={handleLogout} onEloUpdate={handleEloUpdate} onUserPatch={handleUserPatch} sessionData={sessionData} setSessionData={setSessionData} onOpenCommandPalette={() => setCmdOpen(true)} />
         ) : (
           <UnauthenticatedRoutes onAuth={handleAuth} />
         )}
@@ -381,52 +317,133 @@ function AppContent({ user, checkingAuth, handleAuth, handleLogout, handleEloUpd
   );
 }
 
-function App() {
-  const [user, setUser] = useState(null);
-  const [checkingAuth, setCheckingAuth] = useState(true);
-  const [sessionData, setSessionData] = useState(null);
+// The active interview session lives in sessionStorage (per-tab, cleared
+// when the tab closes). Previously it was React state only, so a refresh
+// mid-interview bounced the candidate to the dashboard and orphaned the
+// session they were in the middle of.
+const SESSION_KEY = "ic_active_session";
 
+function loadActiveSession() {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function persistActiveSession(data) {
+  try {
+    if (data) sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
+    else sessionStorage.removeItem(SESSION_KEY);
+  } catch {
+    /* storage unavailable — session just won't survive a refresh */
+  }
+}
+
+// Resolved synchronously on first render: a valid, unexpired token restores
+// the user immediately; anything else is cleared. This replaces a fixed
+// 400ms artificial delay that every page load used to sit through.
+function restoreUser() {
+  const token = getToken();
+  const saved = loadSavedUser();
+  if (saved && token && !isTokenExpired(token)) return saved;
+  clearAuth();
+  return null;
+}
+
+function App() {
+  const [user, setUser] = useState(restoreUser);
+  const [sessionData, setSessionDataState] = useState(loadActiveSession);
+  const [sessionExpired, setSessionExpired] = useState(false);
+
+  const setSessionData = React.useCallback((data) => {
+    persistActiveSession(data);
+    setSessionDataState(data);
+  }, []);
+
+  const handleLogout = React.useCallback(() => {
+    clearAuth();
+    persistActiveSession(null);
+    setSessionDataState(null);
+    setUser(null);
+  }, []);
+
+  // lib/api fires this on any 401 for a request that carried a token.
   useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    const token = localStorage.getItem("access_token");
-    if (savedUser && token) {
-      setUser(JSON.parse(savedUser));
-    }
-    setTimeout(() => {
-      setCheckingAuth(false);
-    }, 400);  }, []);
+    const onExpired = () => {
+      setSessionExpired(true);
+      handleLogout();
+    };
+    window.addEventListener(AUTH_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onExpired);
+  }, [handleLogout]);
+
+  // Logging in or out in another tab is reflected here too.
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key !== "access_token") return;
+      if (!e.newValue) handleLogout();
+      else setUser(restoreUser());
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [handleLogout]);
 
   function handleAuth(userData) {
+    setSessionExpired(false);
     setUser(userData);
   }
 
-  function handleEloUpdate(newElo) {
+  function handleUserPatch(patch) {
     setUser((prevUser) => {
-      const updated = { ...prevUser, elo_rating: newElo };
-      localStorage.setItem("user", JSON.stringify(updated));
+      if (!prevUser) return prevUser;
+      const updated = { ...prevUser, ...patch };
+      try { localStorage.setItem("user", JSON.stringify(updated)); } catch { /* non-fatal */ }
       return updated;
     });
   }
 
-  function handleLogout() {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("user");
-    setUser(null);
+  function handleEloUpdate(newElo) {
+    handleUserPatch({ elo_rating: newElo });
   }
 
   return (
-    <div className="min-h-screen w-full bg-[#000000] text-slate-200 font-sans selection:bg-indigo-500/30 relative">
+    <div className="relative min-h-screen w-full bg-canvas font-sans text-label">
+      <MotionConfig reducedMotion="user">
       <BrowserRouter>
-        <AppContent 
-          user={user} 
-          checkingAuth={checkingAuth} 
-          handleAuth={handleAuth} 
-          handleLogout={handleLogout} 
+        <AppContent
+          user={user}
+          handleAuth={handleAuth}
+          handleLogout={handleLogout}
           handleEloUpdate={handleEloUpdate}
+          handleUserPatch={handleUserPatch}
           sessionData={sessionData}
           setSessionData={setSessionData}
         />
       </BrowserRouter>
+      <AnimatePresence>
+        {sessionExpired && !user && (
+          <motion.div
+            role="status"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="fixed bottom-6 left-1/2 z-[9999] flex -translate-x-1/2 items-center gap-3 rounded-full border border-hairline bg-surface/95 py-2.5 pl-4 pr-2 shadow-[0_20px_50px_rgba(0,0,0,0.6)] backdrop-blur-2xl"
+          >
+            <AlertTriangle size={15} className="shrink-0 text-caution" aria-hidden="true" />
+            <span className="text-footnote text-label">Your session expired. Log in again to continue.</span>
+            <button
+              onClick={() => setSessionExpired(false)}
+              className="rounded-full px-3 py-1 text-footnote text-label-2 transition-colors hover:bg-surface-2 hover:text-label"
+              aria-label="Dismiss"
+            >
+              Dismiss
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      </MotionConfig>
     </div>
   );
 }

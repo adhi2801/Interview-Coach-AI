@@ -128,10 +128,16 @@ class ReplaySystem:
         finally:
             db.close()
 
-    def list_replays(self) -> list:
+    def list_replays(self, session_ids: list | None = None) -> list:
+        """session_ids scopes the query to those sessions; None lists all."""
         db = SessionLocal()
         try:
-            manifests = db.query(ReplayManifest).all()
+            query = db.query(ReplayManifest)
+            if session_ids is not None:
+                if not session_ids:
+                    return []
+                query = query.filter(ReplayManifest.session_id.in_(session_ids))
+            manifests = query.all()
             replays = []
             for m in manifests:
                 question_count = len([e for e in (m.events or []) if e["type"] == "question_asked"])

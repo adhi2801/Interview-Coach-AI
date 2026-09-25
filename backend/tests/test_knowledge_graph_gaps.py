@@ -59,13 +59,14 @@ def test_extract_gaps_returns_empty_for_high_score(test_db_session, monkeypatch)
     graph = KnowledgeGapGraph()
     graph.client = MagicMock()  # if this gets called, the test below would catch it
 
-    gaps = graph.extract_gaps(
+    gaps, failed = graph.extract_gaps(
         question="Explain dynamic programming.",
         answer="A thorough, correct answer.",
         technical_score=8.5,
     )
 
     assert gaps == []
+    assert failed is False  # skipping analysis on a strong answer is not a failure
     graph.client.messages.create.assert_not_called()
 
 
@@ -81,7 +82,7 @@ def test_extract_gaps_happy_path_builds_full_study_plan(test_db_session, monkeyp
         '["dynamic_programming"]'
     )
 
-    gaps = graph.extract_gaps(
+    gaps, failed = graph.extract_gaps(
         question="Explain dynamic programming.",
         answer="I'm not sure, maybe just recursion?",
         technical_score=3.0,
@@ -111,13 +112,14 @@ def test_extract_gaps_handles_malformed_json_gracefully(test_db_session, monkeyp
         "Sorry, I can't determine that."  # not valid JSON
     )
 
-    gaps = graph.extract_gaps(
+    gaps, failed = graph.extract_gaps(
         question="Explain dynamic programming.",
         answer="???",
         technical_score=2.0,
     )
 
     assert gaps == []
+    assert failed is True  # surfaced to the UI as "gap analysis unavailable"
 
 
 def test_extract_gaps_strips_markdown_fences(test_db_session, monkeypatch):
@@ -133,7 +135,7 @@ def test_extract_gaps_strips_markdown_fences(test_db_session, monkeypatch):
         '```json\n["dynamic_programming"]\n```'
     )
 
-    gaps = graph.extract_gaps(
+    gaps, failed = graph.extract_gaps(
         question="Explain dynamic programming.",
         answer="Not confident here.",
         technical_score=4.0,
@@ -156,7 +158,7 @@ def test_extract_gaps_ignores_topics_claude_invents(test_db_session, monkeypatch
         '["topic_that_does_not_exist", "dynamic_programming"]'
     )
 
-    gaps = graph.extract_gaps(
+    gaps, failed = graph.extract_gaps(
         question="Explain dynamic programming.",
         answer="Weak answer.",
         technical_score=3.0,
@@ -179,7 +181,7 @@ def test_extract_gaps_without_company_defaults_to_neutral_weight(test_db_session
         '["dynamic_programming"]'
     )
 
-    gaps = graph.extract_gaps(
+    gaps, failed = graph.extract_gaps(
         question="Explain dynamic programming.",
         answer="Weak answer.",
         technical_score=3.0,
