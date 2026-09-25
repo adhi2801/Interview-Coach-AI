@@ -16,13 +16,14 @@ export function TiltScene({ children, className, maxTilt = 28, from = 0.86 }) {
   const rotateX = useTransform(p, [0, 1], [maxTilt, 0]);
   const scale = useTransform(p, [0, 1], [from, 1]);
   const y = useTransform(p, [0, 1], [80, 0]);
-  const brightness = useTransform(p, [0, 1], [0.55, 1]);
-  const filter = useTransform(brightness, (b) => `brightness(${b})`);
+  // Dimming via opacity, not filter: brightness() forced a full repaint of
+  // the whole showcase on every scroll frame.
+  const opacity = useTransform(p, [0, 1], [0.45, 1]);
 
   return (
     <div ref={ref} className={className} style={{ perspective: 1400 }}>
       <motion.div
-        style={reduced ? undefined : { rotateX, scale, y, filter, transformOrigin: "50% 100%" }}
+        style={reduced ? undefined : { rotateX, scale, y, opacity, transformOrigin: "50% 100%" }}
         className="will-change-transform"
       >
         {children}

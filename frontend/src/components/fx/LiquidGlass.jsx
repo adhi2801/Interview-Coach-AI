@@ -17,7 +17,7 @@
 // Tilt, press and hover lift are springs from Motion.
 
 import React, { forwardRef, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
+import { motion, useMotionValue, useSpring } from "motion/react";
 import { hasFinePointer, prefersReducedMotion, spring } from "../../lib/motion";
 import { cn } from "../../lib/utils";
 import { BorderBeam } from "./Effects";
@@ -232,6 +232,10 @@ export const LiquidGlass = forwardRef(function LiquidGlass(
     tone = "dark",
     radius = 20,
     frost = 22,
+    // Live backdrop blur. OFF by default: sampling a moving background behind
+    // dozens of cards was the main cause of scroll jank. Reserve it for one or
+    // two floating surfaces (the nav, dialogs).
+    backdrop = false,
     refract = false,
     refractStrength = 38,
     lensBlur,
@@ -261,22 +265,23 @@ export const LiquidGlass = forwardRef(function LiquidGlass(
   const fine = hasFinePointer();
   const reduced = prefersReducedMotion();
   const canTilt = tilt && fine && !reduced;
-  const lens = refract && supportsRefraction();
+  const lens = backdrop && refract && supportsRefraction();
 
   const rx = useMotionValue(0);
   const ry = useMotionValue(0);
   const srx = useSpring(rx, spring.tilt);
   const sry = useSpring(ry, spring.tilt);
-  const glareX = useTransform(sry, [-8, 8], ["20%", "80%"]);
 
   const { onMove, onLeave } = usePointerLight(innerRef, { tilt: canTilt, rx, ry });
   const size = useElementSize(innerRef, lens);
   const rawId = useId();
   const filterId = `lg-${rawId.replace(/[^a-zA-Z0-9_-]/g, "")}`;
 
-  const backdrop = lens && size
-    ? `url(#${filterId}) blur(${lensBlur ?? Math.max(2, frost * 0.3)}px) saturate(185%) brightness(1.06)`
-    : `blur(${frost}px) saturate(170%)`;
+  const backdropFilter = !backdrop
+    ? undefined
+    : lens && size
+      ? `url(#${filterId}) blur(${lensBlur ?? Math.max(2, frost * 0.3)}px) saturate(185%) brightness(1.06)`
+      : `blur(${frost}px) saturate(170%)`;
 
   const Component = motion[as] || motion.div;
 
@@ -292,6 +297,7 @@ export const LiquidGlass = forwardRef(function LiquidGlass(
       transition={spring.soft}
       className={cn(
         "lg",
+        backdrop && "lg-backdrop",
         TONES[tone] || TONES.dark,
         active && "lg-active",
         interactive && "cursor-pointer",
@@ -300,9 +306,9 @@ export const LiquidGlass = forwardRef(function LiquidGlass(
       style={{
         "--lg-radius": `${radius}px`,
         borderRadius: radius,
-        backdropFilter: backdrop,
-        WebkitBackdropFilter: `blur(${frost}px) saturate(170%)`,
-        ...(canTilt ? { rotateX: srx, rotateY: sry, transformPerspective: 1000, "--glare-x": glareX } : null),
+        backdropFilter,
+        WebkitBackdropFilter: backdrop ? `blur(${frost}px) saturate(170%)` : undefined,
+        ...(canTilt ? { rotateX: srx, rotateY: sry, transformPerspective: 1000 } : null),
         ...style,
       }}
       {...rest}

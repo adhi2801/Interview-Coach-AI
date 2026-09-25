@@ -413,7 +413,7 @@ export default function UserDashboard({
               </button>
               <AnimatePresence>
                 {userMenuOpen && (
-                  <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className="absolute right-0 top-full mt-3 w-56 bg-[#08080d]/75 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] p-2 z-50 space-y-1">
+                  <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className="absolute right-0 top-full mt-3 w-56 bg-[#0a0a10]/90 border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] p-2 z-50 space-y-1">
                     <div className="p-3 border-b border-white/5">
                       <p className="text-xs font-bold text-white truncate">{user?.name || "Candidate"}</p>
                       <p className="text-[10px] font-mono text-slate-400 truncate">{user?.email || ""}</p>

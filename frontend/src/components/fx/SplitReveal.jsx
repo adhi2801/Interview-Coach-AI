@@ -1,10 +1,16 @@
 // frontend/src/components/fx/SplitReveal.jsx
 //
-// Apple-style headline reveal: GSAP SplitText breaks the text into masked
-// lines and words; words rise out of their line mask while de-blurring, in a
-// tight stagger. SplitText keeps the original text for screen readers
-// (aria-label) and re-splits automatically on resize (autoSplit), so line
-// breaks stay correct at every width.
+// Headline reveal: GSAP SplitText breaks the text into masked lines/words and
+// the words rise out of their line masks in a tight stagger.
+//
+// Runs ONCE per mount. The previous version passed `children` as a hook
+// dependency — JSX is a new object on every render, so any parent re-render
+// (a typing animation, every keystroke in a form) tore the split down and
+// replayed the reveal: thousands of rebuilds per scroll, visible glitching.
+// If the text genuinely changes, give the component a new `key`.
+//
+// Only transform + opacity are animated (compositor-only). No filter blur:
+// animating blur on hundreds of word spans was a major source of jank.
 
 import React, { useRef } from "react";
 import { gsap, SplitText, useGSAP, prefersReducedMotion } from "../../lib/motion";
@@ -25,35 +31,55 @@ export default function SplitReveal({
   useGSAP(
     () => {
       const el = ref.current;
-      if (!el || prefersReducedMotion()) return undefined;
+      if (!el) return undefined;
+      if (prefersReducedMotion()) {
+        el.classList.remove("split-init");
+        return undefined;
+      }
 
-      const split = SplitText.create(el, {
-        type: by === "chars" ? "lines,words,chars" : by === "lines" ? "lines" : "lines,words",
-        mask: "lines",
-        autoSplit: true,
-        linesClass: "split-line",
-        onSplit(self) {
-          const targets = by === "chars" ? self.chars : by === "lines" ? self.lines : self.words;
-          return gsap.from(targets, {
-            yPercent: 115,
-            opacity: 0,
-            filter: "blur(10px)",
-            rotateX: by === "chars" ? -60 : 0,
-            duration: by === "lines" ? 1.25 : 1.05,
-            ease: "expo.out",
-            stagger: stagger ?? (by === "chars" ? 0.018 : by === "lines" ? 0.12 : 0.045),
-            delay,
-            scrollTrigger: trigger === "scroll" ? { trigger: el, start, once: true } : undefined,
-          });
-        },
+      let split;
+      let tween;
+      const run = () => {
+        el.classList.remove("split-init");
+        split = SplitText.create(el, {
+          type: by === "chars" ? "lines,words,chars" : by === "lines" ? "lines" : "lines,words",
+          mask: "lines",
+          linesClass: "split-line",
+        });
+        const targets = by === "chars" ? split.chars : by === "lines" ? split.lines : split.words;
+        tween = gsap.from(targets, {
+          yPercent: 110,
+          opacity: 0,
+          duration: by === "lines" ? 1.1 : 0.95,
+          ease: "expo.out",
+          stagger: stagger ?? (by === "chars" ? 0.016 : by === "lines" ? 0.1 : 0.04),
+          delay,
+          force3D: true,
+          scrollTrigger: trigger === "scroll" ? { trigger: el, start, once: true } : undefined,
+          // Once revealed, drop the wrappers so resizes reflow as normal text.
+          onComplete: () => split?.revert(),
+        });
+      };
+
+      // Split after webfonts load, or line breaks are measured on the
+      // fallback font and land in the wrong places.
+      let cancelled = false;
+      (document.fonts?.ready ?? Promise.resolve()).then(() => {
+        if (!cancelled) run();
       });
-      return () => split.revert();
+
+      return () => {
+        cancelled = true;
+        tween?.scrollTrigger?.kill();
+        tween?.kill();
+        split?.revert();
+      };
     },
-    { scope: ref, dependencies: [children] }
+    { scope: ref, dependencies: [] }
   );
 
   return (
-    <Tag ref={ref} className={className} {...rest}>
+    <Tag ref={ref} className={`split-init ${className || ""}`} {...rest}>
       {children}
     </Tag>
   );

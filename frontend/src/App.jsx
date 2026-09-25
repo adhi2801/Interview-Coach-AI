@@ -101,6 +101,7 @@ function CommandPalette({ isOpen, onClose, navigate, onLogout }) {
           role="dialog"
           aria-modal="true"
           aria-label="Command palette"
+          backdrop
           refract
           tone="dark"
           radius={22}
@@ -187,9 +188,10 @@ function AuthenticatedRoutes({ user, onLogout, onEloUpdate, onUserPatch, session
 
   return (
     <div className="w-full h-full">
-      {/* One living backdrop behind every signed-in page; pages are transparent over it. */}
-      {/* Dimmer on work surfaces (interview, coding) so focus stays on the task. */}
-      <Aurora intensity={/^\/(interview|coding)/.test(location.pathname) ? 0.35 : 0.9} />
+      {/* One backdrop behind every signed-in page; pages are transparent over it.
+          Held still (many app panels blur what's behind them) and dimmer on the
+          interview/coding work surfaces so focus stays on the task. */}
+      <Aurora still intensity={/^\/(interview|coding)/.test(location.pathname) ? 0.35 : 0.9} />
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes location={location}>
             <Route path="/" element={<UserDashboard user={user} onLogout={onLogout} onStartNew={() => navigate("/setup")} onNavigateHistory={() => navigate("/replay")} onStartCoding={() => navigate("/coding")} onNavigateSettings={() => navigate("/settings")} onNavigateStudyPlan={() => navigate("/study-plan")} onOpenCommandPalette={onOpenCommandPalette} onEloUpdate={onEloUpdate} />} />

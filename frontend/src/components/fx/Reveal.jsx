@@ -15,7 +15,7 @@ export default function Reveal({ as: Tag = "div", children, className, stagger =
     () => {
       const items = ref.current?.querySelectorAll("[data-reveal]");
       if (!items?.length || prefersReducedMotion()) return;
-      gsap.set(items, { opacity: 0, y, filter: "blur(8px)" });
+      gsap.set(items, { opacity: 0, y, force3D: true });
       ScrollTrigger.batch(items, {
         start: "top 90%",
         once: true,
@@ -23,12 +23,11 @@ export default function Reveal({ as: Tag = "div", children, className, stagger =
           gsap.to(batch, {
             opacity: 1,
             y: 0,
-            filter: "blur(0px)",
             duration: 1.1,
             ease: "expo.out",
             stagger,
             overwrite: true,
-            clearProps: "filter",
+            clearProps: "transform",
           }),
       });
     },

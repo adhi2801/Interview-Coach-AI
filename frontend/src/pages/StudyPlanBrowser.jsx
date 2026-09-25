@@ -134,7 +134,7 @@ export default function StudyPlanBrowser({ onGoBack }) {
       <div className="fixed inset-0 z-10 pointer-events-none opacity-[0.03] mix-blend-soft-light" style={{ backgroundImage: noiseSvg }} />
 
       {/* Top Header */}
-      <header className="h-16 border-b border-white/[0.06] bg-[#08080d]/75 backdrop-blur-xl0 backdrop-blur-2xl flex items-center justify-between px-6 z-30 shrink-0">
+      <header className="h-16 border-b border-white/[0.06] bg-[#0a0a10]/90 backdrop-blur-2xl flex items-center justify-between px-6 z-30 shrink-0">
         <div className="flex items-center gap-4">
           <div className="w-6 h-6 rounded bg-indigo-600 text-white flex items-center justify-center font-bold text-[10px] shadow-[0_0_15px_rgba(79,70,229,0.5)]">IC</div>
           <span className="font-semibold text-white tracking-tight text-sm flex items-center gap-2">
@@ -159,7 +159,7 @@ export default function StudyPlanBrowser({ onGoBack }) {
                placeholder="Search topics..."
                value={searchQuery}
                onChange={(e) => setSearchQuery(e.target.value)}
-               className="w-full bg-[#08080d]/75 backdrop-blur-xl border border-white/10 rounded-lg py-1.5 pl-9 pr-8 text-xs font-medium text-white focus:outline-none focus:border-indigo-500 transition-all placeholder-slate-600 shadow-inner"
+               className="w-full bg-[#0a0a10]/90 border border-white/10 rounded-lg py-1.5 pl-9 pr-8 text-xs font-medium text-white focus:outline-none focus:border-indigo-500 transition-all placeholder-slate-600 shadow-inner"
              />
              <kbd className="absolute right-2 top-1/2 -translate-y-1/2 font-mono text-[9px] bg-white/5 border border-white/10 px-1.5 py-0.5 rounded text-slate-500">⌘K</kbd>
            </div>
@@ -379,7 +379,7 @@ export default function StudyPlanBrowser({ onGoBack }) {
                                   {t.name.replace(/_/g, " ")}
                                 </h3>
                                 <div className="flex items-center gap-2 mb-4">
-                                  <span className="bg-[#08080d]/75 backdrop-blur-xl border border-white/10 text-slate-400 text-[10px] font-bold px-2 py-0.5 rounded tabular-nums tracking-widest uppercase shadow-inner">
+                                  <span className="bg-[#0a0a10]/90 border border-white/10 text-slate-400 text-[10px] font-bold px-2 py-0.5 rounded tabular-nums tracking-widest uppercase shadow-inner">
                                     L{t.difficulty || 3}
                                   </span>
                                 </div>

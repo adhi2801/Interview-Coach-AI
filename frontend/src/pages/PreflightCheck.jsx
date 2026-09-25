@@ -32,7 +32,7 @@ function HardwareDropdown({ value, onChange, options, disabled }) {
       <button
         disabled={disabled}
         onClick={() => setOpen(!open)}
-        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#08080d]/75 backdrop-blur-xl border transition-all text-xs font-semibold shadow-inner outline-none ${
+        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#0a0a10]/90 border transition-all text-xs font-semibold shadow-inner outline-none ${
           open
             ? "border-indigo-500/50 ring-1 ring-indigo-500/30 text-white"
             : "border-white/10 hover:border-white/20 text-slate-200"
@@ -52,7 +52,7 @@ function HardwareDropdown({ value, onChange, options, disabled }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.98 }}
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className="absolute top-full left-0 w-full mt-2 p-1.5 bg-[#08080d]/75 backdrop-blur-xl5 backdrop-blur-3xl border border-white/10 rounded-xl shadow-[0_25px_50px_rgba(0,0,0,0.9),inset_0_1px_0_0_rgba(255,255,255,0.1)] z-50 overflow-hidden"
+            className="absolute top-full left-0 w-full mt-2 p-1.5 bg-[#0a0a10]/90 backdrop-blur-3xl border border-white/10 rounded-xl shadow-[0_25px_50px_rgba(0,0,0,0.9),inset_0_1px_0_0_rgba(255,255,255,0.1)] z-50 overflow-hidden"
           >
             <div className="max-h-48 overflow-y-auto space-y-1 scrollbar-hide">
               {options.map((opt) => (
@@ -83,7 +83,7 @@ function GlassPanel({ children, className = "", delay = 0 }) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.65, delay, ease: [0.22, 0.68, 0, 1] }}
-      className={`relative rounded-2xl bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.08] backdrop-blur-2xl overflow-hidden ${className}`}
+      className={`relative rounded-2xl bg-[#0a0a10]/90 border border-white/[0.08] backdrop-blur-2xl overflow-hidden ${className}`}
       style={{ boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.08), 0 20px 50px -12px rgba(0,0,0,0.7)" }}
     >
       {children}

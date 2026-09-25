@@ -305,6 +305,53 @@ const STEP_TONES = {
 };
 
 // Headline line that rises out of its own mask while de-blurring.
+// Hero typing demo, isolated. It used to live in the page component and set
+// state every 14ms — re-rendering the entire landing page ~70 times a second.
+function LiveScenario() {
+  const textRef = useRef(null);
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const el = textRef.current;
+    if (!el) return undefined;
+    const full = LIVE_DEMO_QUESTIONS[DEMO_KEYS[index]];
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      el.textContent = full;
+      const hold = setTimeout(() => setIndex((i) => (i + 1) % DEMO_KEYS.length), 6000);
+      return () => clearTimeout(hold);
+    }
+    let i = 0;
+    let typeTimer;
+    let holdTimer;
+    el.textContent = "";
+    const step = () => {
+      i += 2;
+      el.textContent = full.slice(0, i);
+      if (i < full.length) typeTimer = setTimeout(step, 22);
+      else holdTimer = setTimeout(() => setIndex((n) => (n + 1) % DEMO_KEYS.length), 2400);
+    };
+    typeTimer = setTimeout(step, 250);
+    return () => { clearTimeout(typeTimer); clearTimeout(holdTimer); };
+  }, [index]);
+
+  return (
+    <>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+          <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400">
+            Sample Scenario &middot; {DEMO_KEYS[index]}
+          </span>
+        </div>
+        <span className="text-[9px] font-mono text-slate-600 uppercase tracking-widest hidden sm:inline">Rotates automatically</span>
+      </div>
+      <p className="text-sm text-slate-200 font-medium leading-relaxed font-mono h-[68px] sm:h-[54px] overflow-hidden">
+        <span ref={textRef} /><span className="typing-cursor" />
+      </p>
+    </>
+  );
+}
+
 function MaskLine({ children, delay = 0, className = "" }) {
   return (
     <span className="block overflow-hidden pb-[0.1em] -mb-[0.1em]">
@@ -457,9 +504,6 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
   const [personaTarget, setPersonaTarget] = useState("google");
   const [activeTrack, setActiveTrack] = useState("system");
 
-  // Hero "live scenario" typing demo — cycles through real sample questions.
-  const [demoIndex, setDemoIndex] = useState(0);
-  const [typedText, setTypedText] = useState("");
 
   const COMPANY_LOGOS = ['Google', 'Meta', 'Amazon', 'Microsoft', 'Apple', 'Netflix', 'Startup'];
   const sectionIds = NAV_ITEMS.map((n) => n.id);
@@ -468,27 +512,6 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
   const { scrollYProgress } = useScroll();
   const progressScaleX = useSpring(scrollYProgress, { stiffness: 120, damping: 30, restDelta: 0.001 });
 
-  useEffect(() => {
-    let charIndex = 0;
-    let typeTimer;
-    let holdTimer;
-    const fullText = LIVE_DEMO_QUESTIONS[DEMO_KEYS[demoIndex]];
-    setTypedText("");
-
-    const typeStep = () => {
-      charIndex += 1;
-      setTypedText(fullText.slice(0, charIndex));
-      if (charIndex < fullText.length) {
-        typeTimer = setTimeout(typeStep, 14);
-      } else {
-        holdTimer = setTimeout(() => {
-          setDemoIndex((i) => (i + 1) % DEMO_KEYS.length);
-        }, 2400);
-      }
-    };
-    typeTimer = setTimeout(typeStep, 200);
-    return () => { clearTimeout(typeTimer); clearTimeout(holdTimer); };
-  }, [demoIndex]);
 
   const handleScrollTo = (e, id) => {
     e.preventDefault();
@@ -536,8 +559,9 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
       >
         <LiquidGlass
           tone="dark"
+          backdrop
           radius={999}
-          frost={40}
+          frost={24}
           className="max-w-[1180px] mx-auto"
           contentClassName="relative z-10 h-14 pl-5 pr-2 flex items-center justify-between"
         >
@@ -623,19 +647,8 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
 
           {/* Live sample scenario — signature hero moment */}
           <motion.div variants={heroItem} className="w-full max-w-2xl mb-8">
-            <GlassCard refract tilt beam radius={22} className="p-5 text-left shadow-[0_40px_120px_-30px_rgba(79,70,229,0.55)]">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400">
-                    Sample Scenario &middot; {DEMO_KEYS[demoIndex]}
-                  </span>
-                </div>
-                <span className="text-[9px] font-mono text-slate-600 uppercase tracking-widest hidden sm:inline">Rotates automatically</span>
-              </div>
-              <p className="text-sm text-slate-200 font-medium leading-relaxed font-mono h-[68px] sm:h-[54px] overflow-hidden">
-                {typedText}<span className="typing-cursor" />
-              </p>
+            <GlassCard tilt beam radius={22} className="p-5 text-left shadow-[0_40px_120px_-30px_rgba(79,70,229,0.55)]">
+              <LiveScenario />
               <div className="flex items-center justify-between flex-wrap gap-3 mt-4 pt-3 border-t border-white/[0.06]">
                 <div className="flex flex-wrap gap-1.5">
                   {SCORE_DIMENSIONS.map((dim) => (
@@ -1183,7 +1196,7 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
 
         {/* FINAL CTA */}
         <section className="px-4 md:px-6 max-w-5xl mx-auto pt-4 pb-16">
-          <GlassCard refract beam={{ duration: 9, width: 2 }} radius={36} className="relative overflow-hidden text-center px-6 py-20 md:py-28 shadow-[0_60px_200px_-40px_rgba(99,102,241,0.6)]">
+          <GlassCard beam={{ duration: 9, width: 2 }} radius={36} className="relative overflow-hidden text-center px-6 py-20 md:py-28 shadow-[0_60px_200px_-40px_rgba(99,102,241,0.6)]">
             <div aria-hidden="true" className="pointer-events-none absolute -inset-x-20 -bottom-40 h-80 bg-[radial-gradient(ellipse_at_center,rgba(99,102,241,0.45),transparent_65%)]" />
             <SplitReveal by="lines" className="relative text-5xl md:text-7xl font-extrabold tracking-[-0.045em] text-white mb-5">
               Stop reading.<br /><span className="text-aurora">Start answering.</span>

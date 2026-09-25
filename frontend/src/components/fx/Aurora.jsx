@@ -9,11 +9,14 @@
 import React from "react";
 import { cn } from "../../lib/utils";
 
-export default function Aurora({ className, intensity = 1, fixed = true, grain = true }) {
+// still: holds the colour fields in place. Used behind the signed-in app,
+// where many panels use backdrop blur — a moving backdrop would force every
+// one of them to re-blur on every frame.
+export default function Aurora({ className, intensity = 1, fixed = true, grain = true, still = false }) {
   return (
     <div
       aria-hidden="true"
-      className={cn("aurora pointer-events-none inset-0 overflow-hidden", fixed ? "fixed" : "absolute", className)}
+      className={cn("aurora pointer-events-none inset-0 overflow-hidden", fixed ? "fixed" : "absolute", still && "aurora-still", className)}
       style={{ "--aurora-intensity": intensity }}
     >
       <div className="aurora-blob aurora-blob-1" />

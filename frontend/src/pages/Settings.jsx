@@ -237,7 +237,7 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
           <ArrowLeft size={14} /> Dashboard
         </button>
 
-        <div className="hidden sm:flex items-center gap-2 bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.08] px-3.5 py-1.5 rounded-xl text-xs font-medium text-slate-400 shadow-inner">
+        <div className="hidden sm:flex items-center gap-2 bg-[#0a0a10]/90 border border-white/[0.08] px-3.5 py-1.5 rounded-xl text-xs font-medium text-slate-400 shadow-inner">
           <Search size={14} /> Search Settings
           <kbd className="ml-2 font-mono text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-slate-300">⌘K</kbd>
         </div>
@@ -430,19 +430,19 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
                     <Activity size={16} className="text-emerald-400" /> Real Rating & Session Stats
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                    <div className="bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.06] p-6 rounded-2xl shadow-inner">
+                    <div className="bg-[#0a0a10]/90 border border-white/[0.06] p-6 rounded-2xl shadow-inner">
                       <span className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-2">Current Rating</span>
                       <span className="text-4xl font-extrabold text-white tabular-nums tracking-tighter font-mono">
                         {Math.round(profile?.elo_rating ?? 1200)}
                       </span>
                     </div>
-                    <div className="bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.06] p-6 rounded-2xl shadow-inner">
+                    <div className="bg-[#0a0a10]/90 border border-white/[0.06] p-6 rounded-2xl shadow-inner">
                       <span className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-2">Total Sessions</span>
                       <span className="text-4xl font-extrabold text-white tabular-nums tracking-tighter font-mono">
                         {profile?.total_sessions ?? 0}
                       </span>
                     </div>
-                    <div className="bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.06] p-6 rounded-2xl shadow-inner">
+                    <div className="bg-[#0a0a10]/90 border border-white/[0.06] p-6 rounded-2xl shadow-inner">
                       <span className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-2">Average Score</span>
                       <span className="text-4xl font-extrabold text-emerald-400 tabular-nums tracking-tighter font-mono">
                         {profile?.avg_score != null ? profile.avg_score.toFixed(1) : "—"}
@@ -487,7 +487,7 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
                         <select
                           value={selectedDeviceId}
                           onChange={(e) => setSelectedDeviceId(e.target.value)}
-                          className="w-full bg-[#08080d]/75 backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3 text-sm font-semibold text-white outline-none focus:border-indigo-500 appearance-none shadow-inner cursor-pointer"
+                          className="w-full bg-[#0a0a10]/90 border border-white/10 rounded-xl px-4 py-3 text-sm font-semibold text-white outline-none focus:border-indigo-500 appearance-none shadow-inner cursor-pointer"
                         >
                           {devices.map((d, i) => (
                             <option key={d.deviceId || i} value={d.deviceId}>
@@ -515,7 +515,7 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
                         </button>
                       </div>
                       {micError && <p className="text-xs text-rose-400 mb-2">{micError}</p>}
-                      <div className="flex items-end gap-1 h-12 w-full p-2.5 bg-[#08080d]/75 backdrop-blur-xl border border-white/10 rounded-xl shadow-inner overflow-hidden">
+                      <div className="flex items-end gap-1 h-12 w-full p-2.5 bg-[#0a0a10]/90 border border-white/10 rounded-xl shadow-inner overflow-hidden">
                         {levels.map((h, i) => (
                           <div
                             key={i}

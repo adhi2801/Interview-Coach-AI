@@ -131,7 +131,7 @@ function CustomDropdown({ value, options, onChange, icon: Icon, placeholder, cla
         type="button"
         whileTap={{ scale: 0.98 }}
         onClick={openDropdown}
-        className="w-full flex items-center justify-between bg-[#08080d]/75 backdrop-blur-xl border border-white/10 hover:border-white/20 rounded-xl px-3.5 py-1.5 text-xs font-bold text-slate-200 transition-all outline-none shadow-inner"
+        className="w-full flex items-center justify-between bg-[#0a0a10]/90 border border-white/10 hover:border-white/20 rounded-xl px-3.5 py-1.5 text-xs font-bold text-slate-200 transition-all outline-none shadow-inner"
       >
         <div className="flex items-center gap-2 truncate">
           {Icon && <Icon size={14} className="text-blue-400 shrink-0" />}
@@ -144,7 +144,7 @@ function CustomDropdown({ value, options, onChange, icon: Icon, placeholder, cla
           {isOpen && (
             <motion.div ref={menuRef} initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }}
               transition={{ duration: 0.15 }} style={{ position: "fixed", top: coords.top, left: coords.left, width: coords.width, zIndex: 99999 }}
-              className="bg-[#08080d]/75 backdrop-blur-xl border border-white/10 rounded-xl shadow-[0_25px_50px_rgba(0,0,0,0.9),inset_0_1px_0_0_rgba(255,255,255,0.1)] backdrop-blur-2xl overflow-hidden p-1.5">
+              className="bg-[#0a0a10]/90 border border-white/10 rounded-xl shadow-[0_25px_50px_rgba(0,0,0,0.9),inset_0_1px_0_0_rgba(255,255,255,0.1)] backdrop-blur-2xl overflow-hidden p-1.5">
               <div className="max-h-60 overflow-y-auto space-y-1 scrollbar-hide">
                 {options.map((opt) => {
                   const isSelected = opt.id === value || opt.slug === value;
@@ -530,7 +530,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
                 </motion.div>
 
                 {(problem.input_format || problem.output_format) && (
-                  <motion.div variants={staggerItem} className="bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.08] rounded-xl p-4 space-y-3 font-mono text-[11px]">
+                  <motion.div variants={staggerItem} className="bg-[#0a0a10]/90 border border-white/[0.08] rounded-xl p-4 space-y-3 font-mono text-[11px]">
                     <div><span className="text-[9px] uppercase font-bold text-slate-500 block mb-0.5">Input Format</span><span className="text-slate-300">{problem.input_format}</span></div>
                     <div className="border-t border-white/[0.06] pt-3"><span className="text-[9px] uppercase font-bold text-slate-500 block mb-0.5">Output Format</span><span className="text-slate-300">{problem.output_format}</span></div>
                   </motion.div>
@@ -539,7 +539,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
                 {problem.constraints?.length > 0 && (
                   <motion.div variants={staggerItem}>
                     <h3 className="text-[9px] font-mono font-bold uppercase tracking-widest text-slate-500 mb-2">Constraints</h3>
-                    <ul className="space-y-1.5 bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.08] p-4 rounded-xl">
+                    <ul className="space-y-1.5 bg-[#0a0a10]/90 border border-white/[0.08] p-4 rounded-xl">
                       {problem.constraints.map((c, i) => (
                         <li key={i} className="text-[11px] font-mono text-slate-400 flex items-start gap-2"><span className="text-blue-500 mt-0.5">{">"}</span> {c}</li>
                       ))}
@@ -557,7 +557,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
                 </div>
                 <div className="space-y-3">
                   {(problem.sample_test_cases || []).map((tc, idx) => (
-                    <motion.div key={idx} variants={staggerItem} className="bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.08] p-3.5 rounded-xl space-y-1.5 font-mono text-xs">
+                    <motion.div key={idx} variants={staggerItem} className="bg-[#0a0a10]/90 border border-white/[0.08] p-3.5 rounded-xl space-y-1.5 font-mono text-xs">
                       <div className="flex justify-between items-center text-[10px] text-slate-500 font-bold uppercase"><span>Case 0{idx + 1}</span></div>
                       <div><span className="text-slate-500">Input:</span> <span className="text-white font-bold">{tc.input}</span></div>
                       <div><span className="text-slate-500">Expected:</span> <span className="text-indigo-400 font-bold">{tc.expected_output}</span></div>
@@ -569,7 +569,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
 
             {activeLeftTab === "targets" && (
               <motion.div variants={staggerContainer} initial="hidden" animate="show" className="space-y-6">
-                <motion.div variants={staggerItem} className="bg-[#08080d]/75 backdrop-blur-xl border border-white/[0.08] p-5 rounded-2xl space-y-4">
+                <motion.div variants={staggerItem} className="bg-[#0a0a10]/90 border border-white/[0.08] p-5 rounded-2xl space-y-4">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-slate-300 flex items-center gap-2"><Gauge size={14} className="text-blue-400" /> Complexity Bounds</h3>
                   <p className="text-[11px] text-slate-500 leading-relaxed">Specific to this problem's constraints — not a default applied to every problem.</p>
                   <div className="space-y-3">
