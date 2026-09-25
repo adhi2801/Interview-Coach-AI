@@ -2,7 +2,7 @@ import { WS_URL } from "../config";
 import api, { wsAuthQuery } from "../lib/api";
 import React, { useState, useEffect, useRef } from "react";
 import StudyPlan from "./StudyPlan";
-import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "motion/react";
 import {
   Mic, Square, AlertTriangle, Lightbulb, Activity, ShieldAlert, ChevronRight,
   Target, CheckCircle2, Lock, ArrowRight, ThumbsUp, ThumbsDown, Terminal,
@@ -540,17 +540,17 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
           regardless, so this never costs mobile GPU. */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <div
-          className="absolute -top-[15%] -left-[10%] w-[45vw] h-[45vw] rounded-full blur-[130px] transition-colors duration-700"
+          className="absolute top-[-15%] left-[-10%] w-[45vw] h-[45vw] rounded-full blur-[130px] transition-colors duration-700"
           style={{ background: `rgba(var(--accent-rgb), 0.12)` }}
         />
         <div
-          className="hidden lg:block absolute -bottom-[15%] -right-[8%] w-[35vw] h-[35vw] rounded-full blur-[130px] transition-colors duration-700"
+          className="hidden lg:block absolute bottom-[-15%] right-[-8%] w-[35vw] h-[35vw] rounded-full blur-[130px] transition-colors duration-700"
           style={{ background: `rgba(var(--accent-rgb), 0.08)` }}
         />
       </div>
 
       {/* TOP HUD HEADER */}
-      <header className="h-14 border-b border-white/[0.08] bg-[#000000] flex items-center justify-between px-4 md:px-6 z-50 flex-shrink-0 sticky top-0">
+      <header className="h-14 border-b border-white/[0.08] bg-[#000000] flex items-center justify-between px-4 md:px-6 z-50 shrink-0 sticky top-0">
         <div className="flex items-center gap-3 md:gap-4 min-w-0">
           <div className="flex items-center gap-2 shrink-0">
             <div className="w-6 h-6 rounded bg-white flex items-center justify-center font-bold text-black text-xs">IC</div>
@@ -619,7 +619,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
       </header>
 
       {/* NODE PROGRESS STRIP */}
-      <div className="h-[3px] w-full flex gap-[3px] flex-shrink-0 z-40 bg-black/40">
+      <div className="h-[3px] w-full flex gap-[3px] shrink-0 z-40 bg-black/40">
         {Array.from({ length: TOTAL_NODES }).map((_, i) => (
           <div key={i} className="flex-1 h-full transition-colors duration-500"
             style={{
@@ -667,7 +667,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                       <ul className="space-y-3">
                         {constraints.map((c, i) => (
                           <li key={i} className="text-sm text-slate-200 font-medium flex items-start gap-2.5 leading-[1.6]">
-                            <span className="w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0" style={{ background: "var(--accent)" }} />
+                            <span className="w-1.5 h-1.5 rounded-full mt-2 shrink-0" style={{ background: "var(--accent)" }} />
                             <span>{c}</span>
                           </li>
                         ))}
@@ -894,7 +894,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                     <span className="text-sm font-mono font-bold text-white">{eloBand.low}–{eloBand.high}</span>
                   </div>
                   <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
+                    <div className="h-full bg-linear-to-r from-indigo-500 to-purple-500 rounded-full"
                       style={{ width: `${Math.max(0, Math.min(100, ((currentElo - eloBand.low) / (eloBand.high - eloBand.low)) * 100))}%` }} />
                   </div>
                 </div>
@@ -1244,7 +1244,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
       <AnimatePresence>
         {showAbortConfirm && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-md flex items-center justify-center">
+            className="fixed inset-0 z-200 bg-black/70 backdrop-blur-md flex items-center justify-center">
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
               className="bg-[#0A0A12] border border-white/[0.12] rounded-2xl p-8 max-w-[360px] w-[calc(100%-40px)] text-center shadow-[0_24px_80px_rgba(0,0,0,0.7)]">
               <div className="w-11 h-11 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mx-auto mb-4">

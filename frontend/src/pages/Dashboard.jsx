@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import api, { getToken } from "../lib/api";
-import { motion, AnimatePresence, LayoutGroup, useScroll, useTransform } from "framer-motion";
+import { motion, AnimatePresence, LayoutGroup, useScroll, useTransform } from "motion/react";
 import {
   Terminal, ArrowLeft, ArrowRight, Target, CheckCircle2, XCircle,
   User, ShieldAlert, Brain, Battery, ChevronDown, Check, BookOpen,
@@ -116,7 +116,7 @@ function CinematicSelect({ value, onChange, options }) {
         <SelectPrimitive.Icon><ChevronDown size={14} className="text-slate-400" /></SelectPrimitive.Icon>
       </SelectPrimitive.Trigger>
       <SelectPrimitive.Portal>
-        <SelectPrimitive.Content className="overflow-hidden bg-[#0A0A0C]/95 backdrop-blur-3xl border border-white/10 rounded-xl shadow-[0_40px_80px_rgba(0,0,0,0.8)] z-[9999]" position="popper" sideOffset={6}>
+        <SelectPrimitive.Content className="overflow-hidden bg-[#0A0A0C]/95 backdrop-blur-3xl border border-white/10 rounded-xl shadow-[0_40px_80px_rgba(0,0,0,0.8)] z-9999" position="popper" sideOffset={6}>
           <SelectPrimitive.Viewport className="p-1.5">
             {options.map((opt) => (
               <SelectPrimitive.Item key={opt} value={opt} className="relative flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all outline-none text-slate-300 hover:bg-white/[0.05] hover:text-white cursor-pointer data-[highlighted]:bg-blue-500/10 data-[highlighted]:text-blue-400">
@@ -338,7 +338,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
         )}
       </AnimatePresence>
 
-      <header className="relative z-30 h-16 border-b border-white/[0.06] bg-black/40 backdrop-blur-md flex items-center justify-between px-6 lg:px-10 flex-shrink-0">
+      <header className="relative z-30 h-16 border-b border-white/[0.06] bg-black/40 backdrop-blur-md flex items-center justify-between px-6 lg:px-10 shrink-0">
         <div className="flex items-center gap-4">
           <button onClick={onGoBack} className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors bg-white/[0.03] border border-white/[0.08] px-3 py-1.5 rounded-full outline-none">
             <ArrowLeft size={14} /> Dashboard
@@ -688,7 +688,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
                     <>
                       <p className="text-[13px] font-bold text-slate-300 mb-2">{band.label}: {band.low}–{band.high}</p>
                       <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
-                        <motion.div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
+                        <motion.div className="h-full bg-linear-to-r from-indigo-500 to-purple-500 rounded-full"
                           initial={{ width: 0 }}
                           animate={{ width: `${Math.max(0, Math.min(100, ((currentElo - band.low) / (band.high - band.low)) * 100))}%` }}
                           transition={{ duration: 1, delay: 0.4 }} />
@@ -721,7 +721,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
             )}
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={handleLaunch} disabled={isBooting}
               className="relative overflow-hidden w-full h-12 rounded-xl bg-white text-black text-xs font-extrabold uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50 group">
-              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+              <div className="absolute inset-0 w-full h-full bg-linear-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
               <span className="relative z-10 flex items-center gap-2">Cross Threshold <ArrowRight size={16} /></span>
             </motion.button>
           </div>

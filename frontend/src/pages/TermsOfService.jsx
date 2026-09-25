@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { ArrowLeft, FileText, AlertTriangle, ShieldCheck, Scale, Copy, Check } from "lucide-react";
 
 const FOCUS_RING = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black";
@@ -59,7 +59,7 @@ export default function TermsOfService({ onGoBack }) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="max-w-3xl w-full bg-[#08080C]/90 border border-white/[0.08] p-8 md:p-10 rounded-3xl backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),_0_20px_40px_-10px_rgba(0,0,0,0.8)] relative z-10"
+        className="max-w-3xl w-full bg-[#08080C]/90 border border-white/[0.08] p-8 md:p-10 rounded-3xl backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),0_20px_40px_-10px_rgba(0,0,0,0.8)] relative z-10"
       >
 
         <button

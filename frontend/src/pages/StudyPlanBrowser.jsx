@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import api from "../lib/api";
 import StudyPlan from "./StudyPlan";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { 
   ArrowLeft, BookOpen, Search, Network, BrainCircuit, Activity, 
   CheckCircle2, Lock, AlertTriangle, MessageSquare, Database, 
@@ -135,7 +135,7 @@ export default function StudyPlanBrowser({ onGoBack }) {
       <div className="fixed inset-0 z-10 pointer-events-none opacity-[0.03] mix-blend-soft-light" style={{ backgroundImage: noiseSvg }} />
 
       {/* Top Header */}
-      <header className="h-16 border-b border-white/[0.06] bg-[#050508]/80 backdrop-blur-2xl flex items-center justify-between px-6 z-30 flex-shrink-0">
+      <header className="h-16 border-b border-white/[0.06] bg-[#050508]/80 backdrop-blur-2xl flex items-center justify-between px-6 z-30 shrink-0">
         <div className="flex items-center gap-4">
           <div className="w-6 h-6 rounded bg-indigo-600 text-white flex items-center justify-center font-bold text-[10px] shadow-[0_0_15px_rgba(79,70,229,0.5)]">IC</div>
           <span className="font-semibold text-white tracking-tight text-sm flex items-center gap-2">
@@ -177,7 +177,7 @@ export default function StudyPlanBrowser({ onGoBack }) {
       <div className="flex-1 w-full flex overflow-hidden relative z-20">
         
         {/* Left Sidebar */}
-        <aside className="w-[240px] flex-shrink-0 border-r border-white/[0.06] bg-[#000000] overflow-y-auto hidden md:flex flex-col py-6">
+        <aside className="w-[240px] shrink-0 border-r border-white/[0.06] bg-[#000000] overflow-y-auto hidden md:flex flex-col py-6">
           <div className="px-4 mb-8">
             <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-3 px-2">Categories</h3>
             <nav className="space-y-1">
@@ -284,8 +284,8 @@ export default function StudyPlanBrowser({ onGoBack }) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {recommended.map((t) => (
                     <div key={t.name} onClick={() => setSelectedTopic(t.name)}
-                      className="relative rounded-xl bg-gradient-to-br from-[#111420] to-[#0f1117] border border-white/[0.1] hover:border-indigo-500/40 p-4 cursor-pointer transition-all hover:-translate-y-0.5">
-                      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
+                      className="relative rounded-xl bg-linear-to-br from-[#111420] to-[#0f1117] border border-white/[0.1] hover:border-indigo-500/40 p-4 cursor-pointer transition-all hover:-translate-y-0.5">
+                      <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/50 to-transparent" />
                       <div className="flex items-center gap-1.5 mb-2">
                         <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 rounded">{t.category}</span>
                       </div>
@@ -314,20 +314,20 @@ export default function StudyPlanBrowser({ onGoBack }) {
                 {Object.entries(grouped).map(([category, catTopics]) => (
                   <motion.div key={category} variants={itemVars} className="space-y-6">
                     <div className="flex items-center gap-3 border-b border-white/[0.06] pb-3">
-                      <div className="w-6 h-6 rounded bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 flex-shrink-0">
+                      <div className="w-6 h-6 rounded bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
                         {getCategoryIcon(category)}
                       </div>
-                      <h2 className="text-sm font-bold uppercase tracking-[0.15em] text-slate-300 flex-shrink-0 whitespace-nowrap">
+                      <h2 className="text-sm font-bold uppercase tracking-[0.15em] text-slate-300 shrink-0 whitespace-nowrap">
                         {category.replace(/_/g, " ")}
                       </h2>
-                      <span className="text-[10px] font-mono text-slate-600 flex-shrink-0 whitespace-nowrap">{catTopics.length} topics</span>
+                      <span className="text-[10px] font-mono text-slate-600 shrink-0 whitespace-nowrap">{catTopics.length} topics</span>
                       {(() => {
                         const passedInCat = catTopics.filter(t => t.status === "passed").length;
                         const pct = catTopics.length ? Math.round((passedInCat / catTopics.length) * 100) : 0;
                         return (
-                          <div className="flex items-center gap-2 ml-1 flex-shrink-0">
-                            <div className="h-[3px] w-24 rounded-full bg-white/[0.06] overflow-hidden flex-shrink-0">
-                              <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-blue-500 transition-all duration-700" style={{ width: `${pct}%` }} />
+                          <div className="flex items-center gap-2 ml-1 shrink-0">
+                            <div className="h-[3px] w-24 rounded-full bg-white/[0.06] overflow-hidden shrink-0">
+                              <div className="h-full rounded-full bg-linear-to-r from-indigo-500 to-blue-500 transition-all duration-700" style={{ width: `${pct}%` }} />
                             </div>
                             <span className="text-[10px] font-mono text-slate-500 tabular-nums whitespace-nowrap">{passedInCat}/{catTopics.length}</span>
                           </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   motion, AnimatePresence, useInView, useMotionValue, useTransform,
   useSpring, useScroll, animate
-} from 'framer-motion';
+} from "motion/react";
 import {
   BrainCircuit, Code2, ArrowRight, CheckCircle2,
   Mic, GitBranch, Sparkles, BarChart3, Play
@@ -53,7 +53,7 @@ function GlassCard({ children, className = "", interactive = false, tilt = false
       onMouseLeave={handleLeave}
       whileTap={interactive ? { scale: 0.98 } : {}}
       style={tilt ? { rotateX: springRx, rotateY: springRy, transformPerspective: 900 } : undefined}
-      className={`relative rounded-2xl bg-[#050508]/90 border overflow-hidden backdrop-blur-2xl transition-colors duration-300 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),_0_20px_40px_-10px_rgba(0,0,0,0.8)] ${
+      className={`relative rounded-2xl bg-[#050508]/90 border overflow-hidden backdrop-blur-2xl transition-colors duration-300 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),0_20px_40px_-10px_rgba(0,0,0,0.8)] ${
         active ? 'border-indigo-500/50 ring-1 ring-indigo-500/20' : 'border-white/[0.08] hover:border-white/20'
       } ${interactive ? 'cursor-pointer' : ''} ${className}`}
     >
@@ -544,7 +544,7 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
       {/* Scroll progress indicator */}
       <motion.div
         style={{ scaleX: progressScaleX }}
-        className="fixed top-0 left-0 right-0 h-[2px] origin-left z-[60] bg-gradient-to-r from-indigo-500 via-blue-400 to-emerald-400"
+        className="fixed top-0 left-0 right-0 h-[2px] origin-left z-60 bg-linear-to-r from-indigo-500 via-blue-400 to-emerald-400"
       />
 
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
@@ -589,7 +589,7 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
           <div className="flex items-center gap-6">
             <button onClick={onSignIn} className={`text-xs font-semibold text-slate-300 hover:text-white transition-colors hidden sm:block rounded ${FOCUS_RING}`}>Sign In</button>
             <button onClick={onGetStarted} className={`relative group overflow-hidden bg-white text-black px-5 py-2 rounded-full text-xs font-bold active:scale-95 transition-all flex items-center gap-2 ${FOCUS_RING}`}>
-              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
+              <div className="absolute inset-0 w-full h-full bg-linear-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
               <span className="relative z-10">Start Simulation</span>
               <ArrowRight size={14} className="relative z-10" />
             </button>
@@ -624,7 +624,7 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
               >
                 <h1 className="text-5xl md:text-7xl lg:text-[80px] font-extrabold tracking-tighter text-white leading-[1.05] max-w-4xl mx-auto mb-6">
                   {activeTrack === 'system' ? 'A real interview.' : 'Live execution.'}<br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-blue-300 to-emerald-400">
+                  <span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-400 via-blue-300 to-emerald-400">
                     {activeTrack === 'system' ? 'Not a practice quiz.' : 'Not a static text box.'}
                   </span>
                 </h1>
@@ -666,7 +666,7 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
 
           <motion.div variants={heroItem} className="flex flex-wrap items-center justify-center gap-4 mb-14">
             <button onClick={onGetStarted} className={`relative group overflow-hidden bg-white text-black px-8 py-4 rounded-xl text-sm font-bold active:scale-95 transition-all shadow-[0_0_30px_rgba(255,255,255,0.15)] flex items-center gap-2 ${FOCUS_RING}`}>
-              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
+              <div className="absolute inset-0 w-full h-full bg-linear-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
               <Play size={14} className="fill-current" />
               <span>Try Your First Question &mdash; Free Account</span>
             </button>
@@ -1176,7 +1176,7 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
                   just a copyright line buried in the footer. */}
               <motion.div variants={staggerItem} className="border-t border-white/[0.06] pt-6 mt-6 flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-500 to-rose-500 flex items-center justify-center text-white text-xs font-extrabold shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-linear-to-br from-amber-500 to-rose-500 flex items-center justify-center text-white text-xs font-extrabold shrink-0">
                     A
                   </div>
                   <div>
@@ -1204,7 +1204,7 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
           </h2>
           <p className="text-base text-slate-400 font-medium mb-10 max-w-md mx-auto">Free account, one real question. See how you actually do under pressure.</p>
           <button onClick={onGetStarted} className={`relative group overflow-hidden bg-white text-black px-10 py-4 rounded-full text-sm font-bold active:scale-95 transition-all shadow-[0_0_30px_rgba(255,255,255,0.15)] hover:shadow-[0_0_40px_rgba(255,255,255,0.25)] flex items-center justify-center gap-2 mx-auto ${FOCUS_RING}`}>
-            <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
+            <div className="absolute inset-0 w-full h-full bg-linear-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
             <span className="relative z-10">Try a Free Question Now</span>
             <ArrowRight size={16} className="relative z-10" />
           </button>

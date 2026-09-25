@@ -1,9 +1,12 @@
-import React, { useState, useEffect, Suspense, lazy } from "react";
+import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useParams } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, MotionConfig } from "motion/react";
 import { Search, LayoutGrid, Code2, LogOut, Settings as SettingsIcon, Play, Database, AlertTriangle } from "lucide-react";
 import "./App.css";
 import { AUTH_EXPIRED_EVENT, clearAuth, getToken, isTokenExpired, loadSavedUser } from "./lib/api";
+import { useTransitionNavigate } from "./lib/navigation";
+import SmoothScroll, { getLenis } from "./components/fx/SmoothScroll";
+import { LiquidGlass } from "./components/fx/LiquidGlass";
 
 // Every route-level page is now code-split. Previously all 13 pages were
 // eagerly imported at the top of this file, meaning a first-time visitor
@@ -30,98 +33,143 @@ const StudyPlanBrowser = lazy(() => import("./pages/StudyPlanBrowser"));
 // often invisible.
 function RouteLoadingFallback() {
   return (
-    <div className="h-screen w-full bg-[#000000] flex items-center justify-center">
-      <div className="w-8 h-8 border-[3px] border-white/10 border-t-indigo-500 rounded-full animate-spin" />
+    <div className="h-screen w-full bg-black flex items-center justify-center">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: [0.4, 1, 0.4], scale: [0.92, 1, 0.92] }}
+        transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+        className="w-10 h-10 rounded-full bg-[radial-gradient(circle_at_35%_30%,#c7d2fe,#6366f1_45%,#1e1b4b_80%)] shadow-[0_0_40px_rgba(99,102,241,0.6)]"
+      />
     </div>
   );
 }
 
 function CommandPalette({ isOpen, onClose, navigate, onLogout }) {
   const [search, setSearch] = useState("");
+  const [cursor, setCursor] = useState(0);
 
   useEffect(() => {
-    if (isOpen) setSearch("");
+    if (isOpen) { setSearch(""); setCursor(0); }
   }, [isOpen]);
 
+  const actions = [
+    { icon: Play, label: "Start New Interview", shortcut: "⌘ Enter", action: () => navigate("/setup") },
+    { icon: Code2, label: "Launch Coding Sandbox", shortcut: "⌘ ⇧ E", action: () => navigate("/coding") },
+    { icon: Database, label: "View Knowledge Graph", shortcut: "⌘ G", action: () => navigate("/study-plan") },
+    { icon: LayoutGrid, label: "Go to Dashboard", shortcut: "⌘ D", action: () => navigate("/") },
+    { icon: SettingsIcon, label: "Account Settings", shortcut: "⌘ ,", action: () => navigate("/settings") },
+    { icon: LogOut, label: "Log Out", shortcut: "⌘ ⇧ X", action: () => onLogout(), danger: true },
+  ];
+  const filteredActions = actions.filter(a => a.label.toLowerCase().includes(search.toLowerCase()));
+  const safeCursor = Math.min(cursor, Math.max(0, filteredActions.length - 1));
+
+  function run(action) {
+    onClose();
+    action.action();
+  }
+
   useEffect(() => {
+    if (!isOpen) return undefined;
     const handleKeyDown = (e) => {
       if (e.key === "Escape") onClose();
+      else if (e.key === "ArrowDown") { e.preventDefault(); setCursor((c) => (c + 1) % Math.max(1, filteredActions.length)); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); setCursor((c) => (c - 1 + filteredActions.length) % Math.max(1, filteredActions.length)); }
+      else if (e.key === "Enter" && filteredActions[safeCursor]) { e.preventDefault(); run(filteredActions[safeCursor]); }
     };
-    if (isOpen) window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  });
 
   if (!isOpen) return null;
 
-  const actions = [
-    { icon: Play, label: "Start New Interview", shortcut: "⌘ Enter", action: () => { navigate("/setup"); onClose(); } },
-    { icon: Code2, label: "Launch Coding Sandbox", shortcut: "⌘ Shift E", action: () => { navigate("/coding"); onClose(); } },
-    { icon: Database, label: "View Knowledge Graph", shortcut: "⌘ G", action: () => { navigate("/study-plan"); onClose(); } },
-    { icon: LayoutGrid, label: "Go to Dashboard", shortcut: "⌘ D", action: () => { navigate("/"); onClose(); } },
-    { icon: SettingsIcon, label: "Account Settings", shortcut: "⌘ ,", action: () => { navigate("/settings"); onClose(); } },
-    { icon: LogOut, label: "Log Out", shortcut: "⌘ ⇧ X", action: () => { onLogout(); onClose(); }, danger: true },
-  ];
-
-  const filteredActions = actions.filter(a => a.label.toLowerCase().includes(search.toLowerCase()));
-
   return (
-    <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[15vh]">
-      <motion.div 
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+    <div className="fixed inset-0 z-9999 flex items-start justify-center pt-[14vh] px-4">
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}
+        className="absolute inset-0 bg-black/55 backdrop-blur-md"
         onClick={onClose}
       />
-      
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95, y: -20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: -20 }}
-        transition={{ type: "spring", stiffness: 400, damping: 30 }}
-        className="relative w-full max-w-2xl bg-[#0A0A0C]/95 backdrop-blur-2xl border border-white/[0.1] rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.8),_inset_0_1px_0_0_rgba(255,255,255,0.05)] overflow-hidden flex flex-col"
+      <motion.div
+        initial={{ opacity: 0, scale: 0.92, y: -24, filter: "blur(12px)" }}
+        animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+        exit={{ opacity: 0, scale: 0.96, y: -12, filter: "blur(8px)" }}
+        transition={{ type: "spring", stiffness: 380, damping: 30, mass: 0.8 }}
+        className="relative w-full max-w-2xl"
       >
-        <div className="flex items-center px-4 border-b border-white/[0.08]">
-          <Search size={18} className="text-slate-400 mr-3" />
-          <input 
-            autoFocus
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Type a command or search..."
-            className="w-full bg-transparent text-slate-200 text-lg py-5 outline-none placeholder-slate-500 font-medium"
-            spellCheck={false}
-          />
-          <div className="flex items-center gap-1">
-            <kbd className="font-mono text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-slate-400 border border-white/5">ESC</kbd>
+        <LiquidGlass
+          role="dialog"
+          aria-modal="true"
+          aria-label="Command palette"
+          refract
+          tone="dark"
+          radius={22}
+          frost={28}
+          className="overflow-hidden shadow-[0_40px_120px_-20px_rgba(0,0,0,0.9),0_0_80px_-30px_rgba(99,102,241,0.5)]"
+          contentClassName="relative z-10 flex flex-col"
+        >
+          <div className="flex items-center px-5 border-b border-white/[0.08]">
+            <Search size={18} className="text-indigo-300 mr-3" />
+            <input
+              autoFocus
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setCursor(0); }}
+              placeholder="Type a command or search..."
+              aria-label="Search commands"
+              className="w-full bg-transparent text-white text-lg py-5 outline-none placeholder-slate-500 font-medium focus:shadow-none"
+              spellCheck={false}
+            />
+            <kbd className="font-mono text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-slate-300 border border-white/10">ESC</kbd>
           </div>
-        </div>
 
-        <div className="max-h-[60vh] overflow-y-auto p-2 scrollbar-hide">
-          {filteredActions.length === 0 ? (
-            <div className="px-4 py-8 text-center text-sm text-slate-500 font-medium">No commands found.</div>
-          ) : (
-            filteredActions.map((action, i) => (
-              <button
-                key={i}
-                onClick={action.action}
-                className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-left transition-colors outline-none focus:bg-white/[0.06] hover:bg-white/[0.04] group ${action.danger ? 'hover:bg-rose-500/10 focus:bg-rose-500/10' : ''}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-colors ${action.danger ? 'bg-rose-500/10 border-rose-500/20 text-rose-400 group-hover:bg-rose-500/20' : 'bg-white/[0.03] border-white/[0.08] text-slate-400 group-hover:text-white group-focus:text-white'}`}>
-                    <action.icon size={16} />
-                  </div>
-                  <span className={`text-sm font-semibold transition-colors ${action.danger ? 'text-rose-400' : 'text-slate-300 group-hover:text-white group-focus:text-white'}`}>{action.label}</span>
-                </div>
-                {action.shortcut && (
-                  <span className="font-mono text-[10px] text-slate-500 tracking-widest uppercase">{action.shortcut}</span>
-                )}
-              </button>
-            ))
-          )}
-        </div>
+          <div className="max-h-[60vh] overflow-y-auto p-2 scrollbar-hide" role="listbox" data-lenis-prevent>
+            {filteredActions.length === 0 ? (
+              <div className="px-4 py-10 text-center text-sm text-slate-500 font-medium">No commands match “{search}”.</div>
+            ) : (
+              filteredActions.map((action, i) => {
+                const selected = i === safeCursor;
+                return (
+                  <button
+                    key={action.label}
+                    role="option"
+                    aria-selected={selected}
+                    onMouseEnter={() => setCursor(i)}
+                    onClick={() => run(action)}
+                    className="relative w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-left outline-none group"
+                  >
+                    {selected && (
+                      <motion.span
+                        layoutId="palette-highlight"
+                        transition={{ type: "spring", stiffness: 520, damping: 38 }}
+                        className={`absolute inset-0 rounded-xl border ${action.danger ? "bg-rose-500/10 border-rose-500/25" : "bg-white/[0.07] border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"}`}
+                      />
+                    )}
+                    <div className="relative flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-colors ${action.danger ? "bg-rose-500/10 border-rose-500/20 text-rose-400" : selected ? "bg-indigo-500/20 border-indigo-400/30 text-indigo-200" : "bg-white/[0.03] border-white/[0.08] text-slate-400"}`}>
+                        <action.icon size={16} />
+                      </div>
+                      <span className={`text-sm font-semibold transition-colors ${action.danger ? "text-rose-400" : selected ? "text-white" : "text-slate-300"}`}>{action.label}</span>
+                    </div>
+                    {action.shortcut && (
+                      <span className="relative font-mono text-[10px] text-slate-500 tracking-widest">{action.shortcut}</span>
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </div>
+          <div className="flex items-center gap-4 px-5 py-2.5 border-t border-white/[0.06] text-[10px] font-mono text-slate-500">
+            <span><kbd className="text-slate-300">↑↓</kbd> navigate</span>
+            <span><kbd className="text-slate-300">↵</kbd> open</span>
+            <span><kbd className="text-slate-300">esc</kbd> close</span>
+          </div>
+        </LiquidGlass>
       </motion.div>
     </div>
   );
 }
 
 function RequireSession({ sessionData, redirectTo = "/", children }) {
-  const navigate = useNavigate();
+  const navigate = useTransitionNavigate();
   useEffect(() => {
     if (!sessionData?.session_id) {
       navigate(redirectTo, { replace: true });
@@ -134,18 +182,10 @@ function RequireSession({ sessionData, redirectTo = "/", children }) {
 
 function AuthenticatedRoutes({ user, onLogout, onEloUpdate, onUserPatch, sessionData, setSessionData, onOpenCommandPalette }) {
   const location = useLocation();
-  const navigate = useNavigate();
+  const navigate = useTransitionNavigate();
 
   return (
-    <AnimatePresence mode="wait">
-      <motion.div 
-        key={location.pathname}
-        initial={{ opacity: 0, y: 12, scale: 0.99 }} 
-        animate={{ opacity: 1, y: 0, scale: 1 }} 
-        exit={{ opacity: 0, y: -12, scale: 0.99 }}
-        transition={{ type: "spring", stiffness: 300, damping: 30, mass: 0.9 }}
-        className="w-full h-full"
-      >
+    <div className="w-full h-full">
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes location={location}>
             <Route path="/" element={<UserDashboard user={user} onLogout={onLogout} onStartNew={() => navigate("/setup")} onNavigateHistory={() => navigate("/replay")} onStartCoding={() => navigate("/coding")} onNavigateSettings={() => navigate("/settings")} onNavigateStudyPlan={() => navigate("/study-plan")} onOpenCommandPalette={onOpenCommandPalette} onEloUpdate={onEloUpdate} />} />
@@ -166,25 +206,16 @@ function AuthenticatedRoutes({ user, onLogout, onEloUpdate, onUserPatch, session
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
-      </motion.div>
-    </AnimatePresence>
+    </div>
   );
 }
 
 function UnauthenticatedRoutes({ onAuth }) {
   const location = useLocation();
-  const navigate = useNavigate();
+  const navigate = useTransitionNavigate();
 
   return (
-    <AnimatePresence mode="wait">
-      <motion.div 
-        key={location.pathname}
-        initial={{ opacity: 0, y: 15 }} 
-        animate={{ opacity: 1, y: 0 }} 
-        exit={{ opacity: 0, y: -15 }}
-        transition={{ duration: 0.3, ease: "easeInOut" }}
-        className="w-full h-full"
-      >
+    <div className="w-full h-full">
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes location={location}>
             <Route path="/" element={
@@ -202,8 +233,7 @@ function UnauthenticatedRoutes({ onAuth }) {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
-      </motion.div>
-    </AnimatePresence>
+    </div>
   );
 }
 
@@ -215,9 +245,20 @@ function ReplayViewerWithParam({ onExit }) {
 function AppContent({ user, handleAuth, handleLogout, handleEloUpdate, handleUserPatch, sessionData, setSessionData }) {
   const [cmdOpen, setCmdOpen] = useState(false);
   const [logoutConfirming, setLogoutConfirming] = useState(false);
-  const navigate = useNavigate();
+  const navigate = useTransitionNavigate();
   const location = useLocation();
   const logoutConfirmTimerRef = React.useRef(null);
+  // Work surfaces (interview, coding, preflight) are fixed-height apps with
+  // their own scroll panes — native scrolling only there.
+  const smoothScroll = !/^\/(interview|coding|preflight)/.test(location.pathname);
+  const lastPath = useRef(location.pathname);
+  useEffect(() => {
+    if (lastPath.current === location.pathname) return;
+    lastPath.current = location.pathname;
+    const lenis = getLenis();
+    if (lenis) lenis.scrollTo(0, { immediate: true });
+    else window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   useEffect(() => {
     // Global shortcuts are suppressed entirely while inside an active
@@ -299,6 +340,7 @@ function AppContent({ user, handleAuth, handleLogout, handleEloUpdate, handleUse
 
   return (
     <>
+      <SmoothScroll enabled={smoothScroll} />
       <div className="w-full min-h-screen relative z-10">
         {user ? (
           <AuthenticatedRoutes user={user} onLogout={handleLogout} onEloUpdate={handleEloUpdate} onUserPatch={handleUserPatch} sessionData={sessionData} setSessionData={setSessionData} onOpenCommandPalette={() => setCmdOpen(true)} />
@@ -316,7 +358,7 @@ function AppContent({ user, handleAuth, handleLogout, handleEloUpdate, handleUse
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-2.5 bg-[#0A0A0C]/95 backdrop-blur-2xl border border-rose-500/25 rounded-xl px-4 py-3 shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-9999 flex items-center gap-2.5 bg-[#0A0A0C]/95 backdrop-blur-2xl border border-rose-500/25 rounded-xl px-4 py-3 shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
           >
             <AlertTriangle size={15} className="text-rose-400 shrink-0" />
             <span className="text-xs font-semibold text-slate-200">
@@ -422,6 +464,7 @@ function App() {
 
   return (
     <div className="min-h-screen w-full bg-[#000000] text-slate-200 font-sans selection:bg-indigo-500/30 relative">
+      <MotionConfig reducedMotion="user">
       <BrowserRouter>
         <AppContent
           user={user}
@@ -433,6 +476,7 @@ function App() {
           setSessionData={setSessionData}
         />
       </BrowserRouter>
+      </MotionConfig>
       <AnimatePresence>
         {sessionExpired && !user && (
           <motion.div
@@ -440,7 +484,7 @@ function App() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-3 bg-[#0A0A0C]/95 backdrop-blur-2xl border border-amber-500/25 rounded-xl px-4 py-3 shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-9999 flex items-center gap-3 bg-[#0A0A0C]/95 backdrop-blur-2xl border border-amber-500/25 rounded-xl px-4 py-3 shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
           >
             <AlertTriangle size={15} className="text-amber-400 shrink-0" />
             <span className="text-xs font-semibold text-slate-200">Your session expired. Please log in again.</span>

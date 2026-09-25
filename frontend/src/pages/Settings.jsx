@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import api from "../lib/api";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import {
   ArrowLeft, LogOut, User, Activity,
   ShieldAlert, Key, Trash2, Search, Mic,
@@ -230,7 +230,7 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
 
       <div className="fixed inset-0 z-10 pointer-events-none opacity-[0.03] mix-blend-soft-light" style={{ backgroundImage: noiseSvg }} />
 
-      <header className="sticky top-0 z-50 h-16 border-b border-white/[0.06] bg-[#000000]/60 backdrop-blur-2xl flex items-center justify-between px-6 lg:px-12 flex-shrink-0">
+      <header className="sticky top-0 z-50 h-16 border-b border-white/[0.06] bg-[#000000]/60 backdrop-blur-2xl flex items-center justify-between px-6 lg:px-12 shrink-0">
         <button
           onClick={onGoBack}
           className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors bg-white/[0.02] border border-white/[0.06] px-4 py-2 rounded-lg hover:bg-white/[0.05] outline-none"
@@ -246,7 +246,7 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
 
       <main className="flex-1 w-full max-w-6xl mx-auto relative z-20 flex flex-col md:flex-row items-stretch pt-10 pb-20 px-6 gap-8">
 
-        <aside className="w-full md:w-[260px] flex-shrink-0">
+        <aside className="w-full md:w-[260px] shrink-0">
           <div className="sticky top-24">
             <h1 className="text-2xl font-extrabold tracking-tight text-white mb-6 pl-2">Settings</h1>
             <nav className="flex flex-col gap-1.5">
@@ -547,7 +547,7 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
                       </div>
                       <button
                         onClick={onLogout}
-                        className="flex-shrink-0 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-white text-sm font-bold hover:bg-white/10 active:scale-95 transition-all w-full sm:w-auto outline-none"
+                        className="shrink-0 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-white text-sm font-bold hover:bg-white/10 active:scale-95 transition-all w-full sm:w-auto outline-none"
                       >
                         <LogOut size={14} /> Log Out
                       </button>
@@ -564,7 +564,7 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
                           </div>
                           <button
                             onClick={() => setConfirmingDelete(true)}
-                            className="flex-shrink-0 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-rose-500/30 text-rose-400 text-sm font-bold hover:bg-rose-500/10 active:scale-95 transition-all w-full sm:w-auto outline-none"
+                            className="shrink-0 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-rose-500/30 text-rose-400 text-sm font-bold hover:bg-rose-500/10 active:scale-95 transition-all w-full sm:w-auto outline-none"
                           >
                             <Trash2 size={14} /> Delete Account
                           </button>
@@ -627,7 +627,7 @@ function GlassCard({ children, className = "" }) {
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className={`relative rounded-3xl bg-[#08080C] border border-white/[0.06] overflow-hidden backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),_0_20px_40px_-10px_rgba(0,0,0,0.8)] ${className}`}
+      className={`relative rounded-3xl bg-[#08080C] border border-white/[0.06] overflow-hidden backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),0_20px_40px_-10px_rgba(0,0,0,0.8)] ${className}`}
     >
       <div
         className="absolute inset-0 pointer-events-none transition-opacity duration-300 z-0"

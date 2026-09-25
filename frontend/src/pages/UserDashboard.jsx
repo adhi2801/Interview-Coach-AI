@@ -3,7 +3,7 @@ import api from "../lib/api";
 import {
   motion, AnimatePresence, useMotionValue, useTransform, animate,
   useScroll
-} from 'framer-motion';
+} from "motion/react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid,
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ReferenceDot
@@ -139,7 +139,7 @@ function GlassCard({ children, className = "", onClick, interactive = false, lay
       whileHover={interactive ? { y: -3, boxShadow: "0 20px 40px -12px rgba(0,0,0,0.6)" } : undefined}
       whileTap={interactive ? { scale: 0.98 } : undefined}
       transition={{ type: "spring", stiffness: 320, damping: 26 }}
-      className={`relative rounded-2xl bg-white/[0.035] border border-white/[0.08] overflow-hidden backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.07),_0_2px_24px_rgba(0,0,0,0.45)] transition-[border-color] duration-300 hover:border-white/[0.16] ${interactive ? "cursor-pointer" : ""} ${className}`}
+      className={`relative rounded-2xl bg-white/[0.035] border border-white/[0.08] overflow-hidden backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.07),0_2px_24px_rgba(0,0,0,0.45)] transition-[border-color] duration-300 hover:border-white/[0.16] ${interactive ? "cursor-pointer" : ""} ${className}`}
     >
       <div className="relative z-10 h-full">{children}</div>
     </motion.div>
@@ -357,13 +357,13 @@ export default function UserDashboard({
 
       {/* Subtle vignette — corners darken slightly, center stays lit,
           gives the page a focus pull instead of flat black */}
-      <div className="fixed inset-0 z-[1] pointer-events-none" style={{ background: "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.55) 100%)" }} />
+      <div className="fixed inset-0 z-1 pointer-events-none" style={{ background: "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.55) 100%)" }} />
 
       {/* AMBIENT ORBS — color shifts with company, drifts gently with scroll */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <motion.div style={{ y: orbYA, background: orbColor }} animate={{ background: orbColor }} transition={{ duration: 1.1, ease: "easeInOut" }}
-          className="absolute -top-[12%] -left-[10%] w-[500px] h-[500px] blur-[130px] rounded-full" />
-        <motion.div style={{ y: orbYB }} className="absolute bottom-[10%] -right-[8%] w-[380px] h-[380px] bg-purple-900/10 blur-[120px] rounded-full" />
+          className="absolute top-[-12%] left-[-10%] w-[500px] h-[500px] blur-[130px] rounded-full" />
+        <motion.div style={{ y: orbYB }} className="absolute bottom-[10%] right-[-8%] w-[380px] h-[380px] bg-purple-900/10 blur-[120px] rounded-full" />
         <div className="absolute inset-0 opacity-[0.025] mix-blend-soft-light" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }} />
       </div>
 
@@ -372,7 +372,7 @@ export default function UserDashboard({
         <div className="max-w-[1320px] mx-auto px-4 md:px-6 h-[60px] flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 md:gap-8 min-w-0 shrink-0">
             <div className="flex items-center gap-2.5 cursor-pointer shrink-0">
-              <div className="w-[30px] h-[30px] rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-[0_0_16px_rgba(99,102,241,0.35)]">
+              <div className="w-[30px] h-[30px] rounded-lg bg-linear-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-[0_0_16px_rgba(99,102,241,0.35)]">
                 <span className="text-white font-black text-xs">IC</span>
               </div>
               <span className="font-extrabold text-sm tracking-tight hidden sm:inline">InterviewCoach</span>
@@ -414,7 +414,7 @@ export default function UserDashboard({
               <kbd className="ml-3 font-mono text-[9px] bg-black/40 border border-white/10 px-1.5 py-0.5 rounded text-slate-500">⌘K</kbd>
             </button>
             <div className="relative shrink-0">
-              <button onClick={() => setUserMenuOpen(!userMenuOpen)} className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 border border-white/15 flex items-center justify-center hover:border-white/30 transition-all">
+              <button onClick={() => setUserMenuOpen(!userMenuOpen)} className="w-8 h-8 rounded-full bg-linear-to-tr from-indigo-500 to-purple-500 border border-white/15 flex items-center justify-center hover:border-white/30 transition-all">
                 <span className="text-white text-xs font-bold">{user?.name?.charAt(0) || "T"}</span>
               </button>
               <AnimatePresence>
@@ -476,7 +476,7 @@ export default function UserDashboard({
 
           {/* LEFT: ELO hero + Recommended Action, stacked */}
           <div className="w-full md:w-2/3 flex flex-col gap-5">
-            <GlassCard className="p-6 !border-l-[3px] !border-l-indigo-500/50">
+            <GlassCard className="p-6 border-l-[3px]! !border-l-indigo-500/50">
               <div className="flex items-start justify-between mb-3.5 flex-wrap gap-2">
                 <p className="text-[9.5px] font-mono font-bold uppercase tracking-[0.16em] text-slate-500">Current ELO</p>
                 <div className="flex items-center gap-2">
@@ -524,7 +524,7 @@ export default function UserDashboard({
               </p>
             </GlassCard>
 
-            <GlassCard className="p-6 !border-l-[3px] !border-l-white">
+            <GlassCard className="p-6 border-l-[3px]! !border-l-white">
               <p className="text-[9.5px] font-mono font-bold uppercase tracking-[0.16em] text-indigo-300/70 mb-3.5">Recommended Action</p>
               {gapData.critical_gap ? (
                 <p className="text-sm font-medium leading-relaxed text-slate-200/90 mb-4">
@@ -541,7 +541,7 @@ export default function UserDashboard({
                 onClick={() => gapData.critical_gap ? handleStudyClick(gapData.critical_gap.gap) : onStartNew?.()}
                 className="relative overflow-hidden w-full bg-white text-black py-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.12)]"
               >
-                <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full hover:animate-shimmer" />
+                <div className="absolute inset-0 w-full h-full bg-linear-to-r from-transparent via-black/10 to-transparent -translate-x-full hover:animate-shimmer" />
                 <Play size={11} className="fill-current" /> {gapData.critical_gap ? "Study This Gap" : "Launch Session"}
               </motion.button>
             </GlassCard>
@@ -551,7 +551,7 @@ export default function UserDashboard({
               now genuinely matches the left column via flex stretch,
               no more forced dead space */}
           <div className="w-full md:w-1/3">
-            <GlassCard layout className="p-6 !bg-amber-500/[0.045] !border-amber-500/25 !border-l-[3px] !border-l-amber-500 shadow-[0_0_30px_-10px_rgba(245,158,11,0.15)]">
+            <GlassCard layout className="p-6 !bg-amber-500/[0.045] !border-amber-500/25 border-l-[3px]! !border-l-amber-500 shadow-[0_0_30px_-10px_rgba(245,158,11,0.15)]">
               <p className="text-[9.5px] font-mono font-bold uppercase tracking-[0.16em] text-amber-400/80 mb-3.5">Critical Gap</p>
               {gapLoading ? (
                 <div className="space-y-2">

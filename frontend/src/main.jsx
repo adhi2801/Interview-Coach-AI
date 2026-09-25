@@ -13,7 +13,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 // prevents the loop from ever firing. Gated to development only — there's
 // no CRA error overlay in production to protect against, and there's no
 // reason to alter ResizeObserver's real timing behavior for real users.
-if (process.env.NODE_ENV !== "production") {
+if (import.meta.env.DEV) {
   const OriginalResizeObserver = window.ResizeObserver;
   window.ResizeObserver = class ResizeObserver extends OriginalResizeObserver {
     constructor(callback) {
@@ -28,14 +28,14 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 // Initialize Sentry only if DSN is set in .env
-if (process.env.REACT_APP_SENTRY_DSN) {
+if (import.meta.env.REACT_APP_SENTRY_DSN) {
   Sentry.init({
-    dsn: process.env.REACT_APP_SENTRY_DSN,
+    dsn: import.meta.env.REACT_APP_SENTRY_DSN,
     tracesSampleRate: 0.1,
     // Without this, every error — dev and prod — lands in the same
     // undifferentiated bucket in Sentry's dashboard, making it impossible
     // to filter out noise from your own local testing.
-    environment: process.env.NODE_ENV,
+    environment: import.meta.env.MODE,
   });
 }
 

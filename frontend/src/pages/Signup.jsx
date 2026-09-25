@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import api, { saveAuth } from "../lib/api";
 import { ChevronRight, Mail, Lock, User, Activity, ShieldCheck, ArrowLeft, Eye, EyeOff, Check, X, AlertTriangle } from "lucide-react";
 
@@ -140,7 +140,7 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
 
             <h1 className="text-4xl lg:text-5xl font-extrabold tracking-[-0.035em] text-white leading-[1.15] max-w-md mb-6 drop-shadow-lg">
               Calibrate your baseline.<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-blue-300 to-slate-400">
+              <span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-400 via-blue-300 to-slate-400">
                 Own every interview.
               </span>
             </h1>
@@ -150,7 +150,7 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
           </div>
 
           <div className={`transition-all duration-1000 delay-200 z-10 w-full max-w-[420px] ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <div className="bg-[#050508] border border-white/[0.08] rounded-2xl p-6 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),_0_20px_40px_-10px_rgba(0,0,0,0.8)]">
+            <div className="bg-[#050508] border border-white/[0.08] rounded-2xl p-6 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),0_20px_40px_-10px_rgba(0,0,0,0.8)]">
 
               <div className="flex items-center justify-between mb-6 pb-3 border-b border-white/[0.06]">
                 <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-slate-400">Diagnostic Baseline</span>
@@ -399,7 +399,7 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
                         {error && (
                           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
                             <div className="p-3 mt-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs font-bold text-rose-400 flex items-center gap-2">
-                              <Activity size={14} className="flex-shrink-0" /> {error}
+                              <Activity size={14} className="shrink-0" /> {error}
                             </div>
                           </motion.div>
                         )}
@@ -418,13 +418,13 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
                         >
                           {loading ? (
                             <>
-                               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]" />
+                               <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]" />
                                <span className="w-3.5 h-3.5 rounded-full border-2 border-slate-600 border-t-black animate-spin mr-2" />
                                Initializing...
                             </>
                           ) : (
                             <>
-                              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+                              <div className="absolute inset-0 w-full h-full bg-linear-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
                               Create Account <ChevronRight size={16} className="ml-1 relative z-10" />
                             </>
                           )}

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import api from "../lib/api";
 import { createPortal } from "react-dom";
 import Editor from "@monaco-editor/react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Play, Send, Terminal, CheckCircle2, XCircle, Code2, ArrowLeft, ChevronDown, Check,
   Lightbulb, AlertTriangle, Activity, Hash, Layers, Gauge, PanelRightClose, PanelRightOpen,
@@ -144,7 +144,7 @@ function CustomDropdown({ value, options, onChange, icon: Icon, placeholder, cla
           {isOpen && (
             <motion.div ref={menuRef} initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }}
               transition={{ duration: 0.15 }} style={{ position: "fixed", top: coords.top, left: coords.left, width: coords.width, zIndex: 99999 }}
-              className="bg-[#0A0A0E]/95 border border-white/10 rounded-xl shadow-[0_25px_50px_rgba(0,0,0,0.9),_inset_0_1px_0_0_rgba(255,255,255,0.1)] backdrop-blur-2xl overflow-hidden p-1.5">
+              className="bg-[#0A0A0E]/95 border border-white/10 rounded-xl shadow-[0_25px_50px_rgba(0,0,0,0.9),inset_0_1px_0_0_rgba(255,255,255,0.1)] backdrop-blur-2xl overflow-hidden p-1.5">
               <div className="max-h-60 overflow-y-auto space-y-1 scrollbar-hide">
                 {options.map((opt) => {
                   const isSelected = opt.id === value || opt.slug === value;
@@ -434,9 +434,9 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
       {/* Difficulty-reactive ambient glow */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <motion.div animate={{ background: tier.glowA }} transition={{ duration: 1 }}
-          className="absolute -top-[15%] -left-[10%] w-[45vw] h-[45vw] rounded-full blur-[130px]" />
+          className="absolute top-[-15%] left-[-10%] w-[45vw] h-[45vw] rounded-full blur-[130px]" />
         <motion.div animate={{ background: tier.glowB }} transition={{ duration: 1 }}
-          className="absolute -bottom-[15%] -right-[8%] w-[35vw] h-[35vw] rounded-full blur-[130px]" />
+          className="absolute bottom-[-15%] right-[-8%] w-[35vw] h-[35vw] rounded-full blur-[130px]" />
       </div>
 
       {/* HEADER */}
@@ -508,7 +508,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
           </div>
 
           <div className="relative flex-1 overflow-hidden">
-          <div className="pointer-events-none absolute top-0 inset-x-0 h-6 bg-gradient-to-b from-[#08080A] to-transparent z-10" />
+          <div className="pointer-events-none absolute top-0 inset-x-0 h-6 bg-linear-to-b from-[#08080A] to-transparent z-10" />
           <div className="h-full overflow-y-auto p-6 space-y-6 scrollbar-hide">
             {activeLeftTab === "spec" && (
               <motion.div variants={staggerContainer} initial="hidden" animate="show" className="space-y-6">
@@ -653,14 +653,14 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
             <div className="flex items-center gap-3">
               <motion.button whileHover={{ scale: 0.99 }} whileTap={{ scale: 0.95 }} onClick={runCode} disabled={runState === "running"}
                 className="relative overflow-hidden px-4 py-1.5 rounded-md text-xs font-bold bg-white/[0.05] hover:bg-white/10 border border-white/10 text-white flex items-center gap-2 transition-all outline-none disabled:opacity-40 group">
-                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-500 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-500 bg-linear-to-r from-transparent via-white/10 to-transparent" />
                 {runState === "running" ? <Activity size={12} className="animate-spin" /> : <Play size={12} fill="currentColor" />}
                 <span className="relative">Run Code</span>
                 <kbd className="hidden lg:inline-block font-mono text-[9px] bg-black/40 border border-white/10 px-1.5 py-0.5 rounded text-slate-400 relative">⌘↵</kbd>
               </motion.button>
               <motion.button whileHover={{ scale: 0.99 }} whileTap={{ scale: 0.95 }} onClick={submitCode} disabled={runState === "running"}
                 className="relative overflow-hidden px-6 py-1.5 rounded-md text-xs font-bold bg-white text-black hover:bg-slate-200 flex items-center gap-2 transition-all outline-none disabled:opacity-40 group">
-                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-500 bg-gradient-to-r from-transparent via-black/15 to-transparent" />
+                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-500 bg-linear-to-r from-transparent via-black/15 to-transparent" />
                 {runState === "running" ? <Activity size={12} className="animate-spin" /> : <Send size={12} />}
                 <span className="relative">Submit</span>
               </motion.button>
@@ -680,7 +680,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
           </div>
 
           <div className="relative flex-1 overflow-hidden">
-          <div className="pointer-events-none absolute top-0 inset-x-0 h-6 bg-gradient-to-b from-[#08080A] to-transparent z-10" />
+          <div className="pointer-events-none absolute top-0 inset-x-0 h-6 bg-linear-to-b from-[#08080A] to-transparent z-10" />
           <div className="h-full p-6 overflow-y-auto font-mono text-xs text-slate-300 scrollbar-hide">
             <AnimatePresence mode="wait">
               {activeRightTab === "terminal" && (

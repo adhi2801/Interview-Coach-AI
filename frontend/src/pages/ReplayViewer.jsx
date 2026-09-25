@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../lib/api";
-import { motion, useMotionValue, useTransform, animate, AnimatePresence } from "framer-motion";
+import { motion, useMotionValue, useTransform, animate, AnimatePresence } from "motion/react";
 import {
   ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
   LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid
@@ -261,7 +261,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                     transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
                     whileHover={{ y: -3 }}
                     onClick={() => onSelectSession?.(featured.id)}
-                    className={`relative rounded-2xl bg-[#08080C] border border-white/[0.06] border-l-[3px] ${style.border} p-6 lg:p-7 mb-4 cursor-pointer backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_20px_50px_-10px_rgba(0,0,0,0.6)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),_0_28px_60px_-10px_rgba(0,0,0,0.7)] transition-shadow group`}
+                    className={`relative rounded-2xl bg-[#08080C] border border-white/[0.06] border-l-[3px] ${style.border} p-6 lg:p-7 mb-4 cursor-pointer backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_50px_-10px_rgba(0,0,0,0.6)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),0_28px_60px_-10px_rgba(0,0,0,0.7)] transition-shadow group`}
                   >
                     <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
                       <div className="flex items-center gap-4">
@@ -284,7 +284,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                           </div>
                         </div>
                       </div>
-                      <div className="text-right flex-shrink-0">
+                      <div className="text-right shrink-0">
                         <div className="text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-1">ELO Delta</div>
                         {featured.eloDelta == null ? (
                           <span className="text-sm font-mono font-bold text-slate-500 italic" title="Oldest session in this window — no prior session to diff against">Baseline</span>
@@ -312,7 +312,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
 
                     <div className="flex items-center gap-3 mt-5">
                       <button className="relative overflow-hidden flex items-center gap-2 bg-white text-black font-bold text-xs px-4 py-2 rounded-lg hover:bg-slate-200 active:scale-[0.98] transition-all group/btn">
-                        <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-500 bg-gradient-to-r from-transparent via-black/10 to-transparent" />
+                        <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-500 bg-linear-to-r from-transparent via-black/10 to-transparent" />
                         <span className="relative">Continue Reviewing</span>
                         <ArrowRight size={12} className="relative" />
                       </button>
@@ -334,7 +334,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                         initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96 }}
                         transition={{ duration: 0.4, delay: 0.05 + i * 0.04, ease: [0.16, 1, 0.3, 1] }}
                         whileHover={{ y: -4 }} whileTap={{ scale: 0.98 }} onClick={() => onSelectSession?.(s.id)}
-                        className={`relative rounded-2xl bg-[#08080C] border border-white/[0.06] border-l-[3px] ${style.border} p-5 flex flex-col justify-between h-[152px] group cursor-pointer overflow-hidden backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_20px_40px_-10px_rgba(0,0,0,0.5)] hover:border-white/[0.12] transition-colors`}
+                        className={`relative rounded-2xl bg-[#08080C] border border-white/[0.06] border-l-[3px] ${style.border} p-5 flex flex-col justify-between h-[152px] group cursor-pointer overflow-hidden backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)] hover:border-white/[0.12] transition-colors`}
                       >
                         <div className="flex justify-between items-start w-full">
                           <div className="flex items-center gap-3">
@@ -425,7 +425,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
       <div className="fixed bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-blue-900/10 blur-[120px] pointer-events-none rounded-full z-0" />
       <div className="fixed inset-0 z-10 pointer-events-none opacity-[0.03] mix-blend-soft-light" style={{ backgroundImage: noiseSvg }} />
 
-      <header className="h-14 border-b border-white/[0.04] bg-[#000000]/60 backdrop-blur-2xl flex items-center justify-between px-6 z-50 flex-shrink-0 sticky top-0">
+      <header className="h-14 border-b border-white/[0.04] bg-[#000000]/60 backdrop-blur-2xl flex items-center justify-between px-6 z-50 shrink-0 sticky top-0">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2.5">
             <div className="w-6 h-6 rounded bg-indigo-600 flex items-center justify-center font-bold text-white text-[10px] shadow-[0_0_15px_rgba(79,70,229,0.4)]">IC</div>
@@ -486,7 +486,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
 
                 {/* SCORE CARD — single instance, real dimension breakdown */}
                 <motion.div variants={fadeUp} initial="hidden" animate="show" custom={1}
-                  className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-6 md:p-8 relative overflow-hidden backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_20px_40px_-10px_rgba(0,0,0,0.5)]">
+                  className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-6 md:p-8 relative overflow-hidden backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)]">
                   {q.scores ? (
                     <div className="flex flex-col md:flex-row gap-8">
                       <div className="flex-1">
@@ -543,7 +543,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
 
                 {/* QUESTION */}
                 <motion.div variants={fadeUp} initial="hidden" animate="show" custom={2}
-                  className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-6 md:p-8 space-y-5 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_20px_40px_-10px_rgba(0,0,0,0.5)]">
+                  className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-6 md:p-8 space-y-5 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)]">
                   <div className="flex items-center justify-between border-b border-white/[0.04] pb-4">
                     <div className="flex items-center gap-2.5">
                       <Terminal size={16} className="text-indigo-400" />
@@ -582,7 +582,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
 
                 {/* SUBMITTED ANSWER */}
                 <motion.div variants={fadeUp} initial="hidden" animate="show" custom={3}
-                  className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-6 md:p-8 space-y-4 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_20px_40px_-10px_rgba(0,0,0,0.5)]">
+                  className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-6 md:p-8 space-y-4 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)]">
                   <div className="flex items-center justify-between border-b border-white/[0.04] pb-4">
                     <div className="flex items-center gap-2.5">
                       <MessageSquare size={16} className="text-slate-400" />
@@ -599,7 +599,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
 
                 {/* DETECTED GAPS — single location on the page */}
                 <motion.div variants={fadeUp} initial="hidden" animate="show" custom={4}
-                  className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-6 md:p-8 space-y-5 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_20px_40px_-10px_rgba(0,0,0,0.5)]">
+                  className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-6 md:p-8 space-y-5 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)]">
                   <div className="flex items-center justify-between border-b border-white/[0.04] pb-4">
                     <div>
                       <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-300 flex items-center gap-2.5">
@@ -674,7 +674,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
             className="w-full lg:w-[35%] flex flex-col gap-5 lg:sticky lg:top-6 pb-32">
 
             {q.scores && (
-              <div className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-5 space-y-2 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_20px_40px_-10px_rgba(0,0,0,0.5)]">
+              <div className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-5 space-y-2 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)]">
                 <div className="flex items-center justify-between mb-1">
                   <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">5D Skill Profile</h3>
                   <span className="text-[9px] font-mono bg-white/5 text-slate-400 border border-white/10 px-2 py-0.5 rounded font-bold uppercase tracking-widest">NODE {selected + 1}</span>
@@ -719,7 +719,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
               </div>
             )}
 
-            <div className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-5 space-y-1 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_20px_40px_-10px_rgba(0,0,0,0.5)]">
+            <div className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-5 space-y-1 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)]">
               <div className="flex items-center justify-between mb-1">
                 <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Session Trajectory</h3>
                 <span className="text-[10px] font-mono text-white font-bold bg-white/5 border border-white/10 px-2 py-0.5 rounded">{avgScore ? `AVG ${avgScore}` : "AVG —"}</span>
@@ -741,7 +741,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
             </div>
 
             {hasElo && (
-              <div className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-5 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_20px_40px_-10px_rgba(0,0,0,0.5)]">
+              <div className="rounded-2xl bg-[#08080C] border border-white/[0.08] p-5 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)]">
                 <p className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400 mb-2.5">ELO This Session</p>
                 <div className="flex items-center justify-between">
                   <span className="text-2xl font-black font-mono text-white">{Math.round(replay.elo_after)}</span>

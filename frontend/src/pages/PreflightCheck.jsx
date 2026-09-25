@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Mic, ChevronDown, ArrowRight,
   Keyboard, Activity, Check, RotateCcw, MicOff
@@ -52,7 +52,7 @@ function HardwareDropdown({ value, onChange, options, disabled }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.98 }}
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className="absolute top-full left-0 w-full mt-2 p-1.5 bg-[#0A0A0C]/95 backdrop-blur-3xl border border-white/10 rounded-xl shadow-[0_25px_50px_rgba(0,0,0,0.9),_inset_0_1px_0_0_rgba(255,255,255,0.1)] z-50 overflow-hidden"
+            className="absolute top-full left-0 w-full mt-2 p-1.5 bg-[#0A0A0C]/95 backdrop-blur-3xl border border-white/10 rounded-xl shadow-[0_25px_50px_rgba(0,0,0,0.9),inset_0_1px_0_0_rgba(255,255,255,0.1)] z-50 overflow-hidden"
           >
             <div className="max-h-48 overflow-y-auto space-y-1 scrollbar-hide">
               {options.map((opt) => (
@@ -392,7 +392,7 @@ export default function PreflightCheck({ onReady, onSkip, sessionData }) {
           >
             {micStatus === "granted" ? (
               <>
-                <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+                <div className="absolute inset-0 w-full h-full bg-linear-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
                 Launch Simulator <ArrowRight size={14} className="ml-1 relative z-10" />
               </>
             ) : (
