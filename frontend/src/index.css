@@ -344,33 +344,42 @@
 }
 
 /* =====================================================================
-   Border beam — a comet of light orbiting a card's edge. The angle is a
-   registered custom property so the conic gradient animates smoothly.
+   Border beam — a comet of light orbiting a card edge. A static ring mask
+   on the host; inside it a large conic gradient ROTATES via transform, so
+   the GPU compositor animates it. (The previous version animated the
+   gradient angle itself, repainting the whole border every frame.)
    ===================================================================== */
-@property --beam-angle {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
-}
 .border-beam {
   padding: var(--beam-width, 1.5px);
+  overflow: hidden;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  z-index: 3;
+}
+.border-beam::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 150vmax;
+  height: 150vmax;
+  max-width: 300%;
+  max-height: 300%;
+  aspect-ratio: 1;
   background: conic-gradient(
-    from var(--beam-angle),
     transparent 0deg,
     transparent 290deg,
     var(--beam-from, #818cf8) 330deg,
     var(--beam-to, #34d399) 352deg,
     transparent 360deg
   );
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-  animation: beam-orbit var(--beam-duration, 7s) linear infinite;
-  z-index: 3;
-  filter: drop-shadow(0 0 6px var(--beam-from, #818cf8));
+  transform: translate(-50%, -50%) rotate(0deg);
+  animation: beam-spin var(--beam-duration, 7s) linear infinite;
+  will-change: transform;
 }
-@keyframes beam-orbit { to { --beam-angle: 360deg; } }
-@media (prefers-reduced-motion: reduce) { .border-beam { animation: none; opacity: 0.5; } }
+@keyframes beam-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .border-beam::before { animation: none; } .border-beam { opacity: 0.5; } }
 
 /* SplitReveal headlines stay hidden until their reveal takes over (prevents
    a flash of the unsplit text while webfonts load). */

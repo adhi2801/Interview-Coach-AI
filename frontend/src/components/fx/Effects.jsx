@@ -32,7 +32,7 @@ gsap.registerPlugin(ScrambleTextPlugin, ScrollTrigger);
 // ---------------------------------------------------------------------------
 // BorderBeam — place inside any `relative` rounded container.
 // ---------------------------------------------------------------------------
-export function BorderBeam({ duration = 7, colorFrom = "#818cf8", colorTo = "#34d399", width = 1.5, className }) {
+export function BorderBeam({ duration = 7, colorFrom = "#a5b4fc", colorTo = "#6ee7b7", width = 2, className }) {
   return (
     <span
       aria-hidden="true"
