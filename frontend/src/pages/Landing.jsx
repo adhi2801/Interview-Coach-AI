@@ -7,6 +7,15 @@ import {
   BrainCircuit, Code2, ArrowRight, CheckCircle2,
   Mic, GitBranch, Sparkles, BarChart3, Play
 } from 'lucide-react';
+import { GlassCard, LiquidGlass } from "../components/fx/LiquidGlass";
+import Aurora from "../components/fx/Aurora";
+import SplitReveal from "../components/fx/SplitReveal";
+import Reveal from "../components/fx/Reveal";
+import Magnetic from "../components/fx/Magnetic";
+import { TiltScene } from "../components/fx/ScrollScene";
+import { scrollToTarget } from "../components/fx/SmoothScroll";
+import { ease } from "../lib/motion";
+import { ScrambleText, CursorSpotlight, VelocityMarquee } from "../components/fx/Effects";
 
 /* ------------------------------------------------------------------ */
 /*  Shared primitives                                                  */
@@ -16,59 +25,6 @@ import {
 // smaller, card-sized interactive elements. Tilt is intentionally left
 // off large panels (the simulation/IDE panels) where it would feel
 // gimmicky rather than premium.
-function GlassCard({ children, className = "", interactive = false, tilt = false, onClick, active = false }) {
-  const cardRef = useRef(null);
-  const [mousePos, setMousePos] = useState({ x: -1000, y: -1000 });
-  const [isHovered, setIsHovered] = useState(false);
-
-  const rx = useMotionValue(0);
-  const ry = useMotionValue(0);
-  const springRx = useSpring(rx, { stiffness: 220, damping: 20 });
-  const springRy = useSpring(ry, { stiffness: 220, damping: 20 });
-
-  const handleMouseMove = (e) => {
-    const el = cardRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-    if (tilt) {
-      const px = (e.clientX - rect.left) / rect.width - 0.5;
-      const py = (e.clientY - rect.top) / rect.height - 0.5;
-      ry.set(px * 7);
-      rx.set(py * -7);
-    }
-  };
-
-  const handleLeave = () => {
-    setIsHovered(false);
-    if (tilt) { rx.set(0); ry.set(0); }
-  };
-
-  return (
-    <motion.div
-      ref={cardRef}
-      onClick={onClick}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={handleLeave}
-      whileTap={interactive ? { scale: 0.98 } : {}}
-      style={tilt ? { rotateX: springRx, rotateY: springRy, transformPerspective: 900 } : undefined}
-      className={`relative rounded-2xl bg-[#050508]/90 border overflow-hidden backdrop-blur-2xl transition-colors duration-300 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),0_20px_40px_-10px_rgba(0,0,0,0.8)] ${
-        active ? 'border-indigo-500/50 ring-1 ring-indigo-500/20' : 'border-white/[0.08] hover:border-white/20'
-      } ${interactive ? 'cursor-pointer' : ''} ${className}`}
-    >
-      <div
-        className="absolute inset-0 pointer-events-none transition-opacity duration-300 z-0"
-        style={{
-          background: `radial-gradient(400px circle at ${mousePos.x}px ${mousePos.y}px, rgba(255,255,255,0.06), transparent 40%)`,
-          opacity: isHovered ? 1 : 0
-        }}
-      />
-      <div className="relative z-10 font-sans h-full">{children}</div>
-    </motion.div>
-  );
-}
-
 function AnimatedNumber({ to, decimals = 0, suffix = "" }) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-50px" });
@@ -342,6 +298,29 @@ const SIM_ELO_BANDS = {
   startup: null,
 };
 
+const STEP_TONES = {
+  indigo: { tile: "bg-indigo-500/10 border-indigo-400/25 text-indigo-300 shadow-[0_0_30px_-8px_rgba(99,102,241,0.6)]", eyebrow: "text-indigo-300" },
+  emerald: { tile: "bg-emerald-500/10 border-emerald-400/25 text-emerald-300 shadow-[0_0_30px_-8px_rgba(16,185,129,0.6)]", eyebrow: "text-emerald-300" },
+  amber: { tile: "bg-amber-500/10 border-amber-400/25 text-amber-300 shadow-[0_0_30px_-8px_rgba(245,158,11,0.6)]", eyebrow: "text-amber-300" },
+};
+
+// Headline line that rises out of its own mask while de-blurring.
+function MaskLine({ children, delay = 0, className = "" }) {
+  return (
+    <span className="block overflow-hidden pb-[0.1em] -mb-[0.1em]">
+      <motion.span
+        className={`block ${className}`}
+        initial={{ y: "110%", opacity: 0, filter: "blur(14px)" }}
+        animate={{ y: "0%", opacity: 1, filter: "blur(0px)" }}
+        exit={{ y: "-105%", opacity: 0, filter: "blur(14px)" }}
+        transition={{ duration: 1.15, ease: ease.expo, delay }}
+      >
+        {children}
+      </motion.span>
+    </span>
+  );
+}
+
 const HOW_STEPS = [
   { icon: BrainCircuit, color: 'indigo', eyebrow: '01 · Configure', title: 'Company DNA & Persona', desc: "Pick Google, Meta, Amazon, or a startup — and set how hostile the interviewer should be." },
   { icon: Mic, color: 'emerald', eyebrow: '02 · Execute', title: 'Voice or Sandboxed IDE', desc: 'Answer out loud with live speech telemetry, or solve it in a real sandboxed code editor.' },
@@ -513,14 +492,13 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
 
   const handleScrollTo = (e, id) => {
     e.preventDefault();
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
+    scrollToTarget(document.getElementById(id));
   };
 
   const currentSim = COMPANY_SIM_DATA[personaTarget];
 
   return (
-    <div className="relative min-h-screen w-full bg-[#000000] overflow-x-hidden font-sans text-slate-200 selection:bg-indigo-500/30 flex flex-col">
+    <div className="relative min-h-screen w-full bg-black overflow-x-clip font-sans text-slate-200 selection:bg-indigo-500/30 flex flex-col">
 
       <style>{`
         @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
@@ -544,20 +522,27 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
       {/* Scroll progress indicator */}
       <motion.div
         style={{ scaleX: progressScaleX }}
-        className="fixed top-0 left-0 right-0 h-[2px] origin-left z-60 bg-linear-to-r from-indigo-500 via-blue-400 to-emerald-400"
+        className="fixed top-0 left-0 right-0 h-[2px] origin-left z-60 bg-linear-to-r from-indigo-500 via-blue-400 to-emerald-400 shadow-[0_0_12px_rgba(129,140,248,0.9)]"
       />
 
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute top-[-20%] left-[10%] w-[50vw] h-[50vw] bg-indigo-900/20 blur-[150px] rounded-full mix-blend-screen" />
-        <div className="absolute bottom-[-10%] right-[-5%] w-[40vw] h-[40vw] bg-blue-900/15 blur-[150px] rounded-full mix-blend-screen" />
-        <div className="absolute top-[40%] left-[-10%] w-[30vw] h-[40vh] bg-emerald-900/5 blur-[120px] rounded-full mix-blend-screen" />
-      </div>
+      <Aurora />
 
       {/* HEADER */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#000000]/60 backdrop-blur-2xl border-b border-white/[0.06] transition-all duration-300">
-        <div className="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
+      <motion.header
+        initial={{ y: -40, opacity: 0, filter: "blur(10px)" }}
+        animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
+        transition={{ duration: 1, ease: ease.expo, delay: 0.1 }}
+        className="fixed top-3 md:top-4 inset-x-0 z-50 px-3 md:px-6"
+      >
+        <LiquidGlass
+          tone="dark"
+          radius={999}
+          frost={40}
+          className="max-w-[1180px] mx-auto"
+          contentClassName="relative z-10 h-14 pl-5 pr-2 flex items-center justify-between"
+        >
           <div className="flex items-center gap-3">
-            <div className="w-6 h-6 bg-white text-black flex items-center justify-center rounded-[4px] font-bold text-[10px]">IC</div>
+            <div className="w-7 h-7 bg-linear-to-br from-white to-indigo-200 text-black flex items-center justify-center rounded-lg font-extrabold text-[10px] shadow-[0_0_20px_rgba(165,180,252,0.45)]">IC</div>
             <span className="font-semibold text-white tracking-tight text-sm">InterviewCoach</span>
             <span className="hidden sm:flex items-center gap-1.5 text-[9px] font-mono uppercase tracking-widest text-slate-500 border-l border-white/10 pl-3 ml-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Solo build
@@ -570,34 +555,36 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
                 key={item.id}
                 href={`#${item.id}`}
                 onClick={(e) => handleScrollTo(e, item.id)}
-                className={`relative px-3 py-2 rounded-md text-[11px] font-mono font-bold uppercase tracking-widest transition-colors ${FOCUS_RING} ${
-                  activeSection === item.id ? 'text-white' : 'text-slate-500 hover:text-slate-300'
+                className={`relative px-3.5 py-2 rounded-full text-[12px] font-semibold transition-colors ${FOCUS_RING} ${
+                  activeSection === item.id ? 'text-white' : 'text-slate-400 hover:text-white'
                 }`}
               >
-                {item.label}
                 {activeSection === item.id && (
                   <motion.div
-                    layoutId="navUnderline"
-                    className="absolute left-3 right-3 -bottom-0.5 h-[2px] bg-emerald-400 rounded-full"
-                    transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                    layoutId="navPill"
+                    className="absolute inset-0 rounded-full bg-white/[0.09] border border-white/[0.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_0_20px_-4px_rgba(129,140,248,0.5)]"
+                    transition={{ type: 'spring', stiffness: 420, damping: 34 }}
                   />
                 )}
+                <span className="relative z-10">{item.label}</span>
               </a>
             ))}
           </nav>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3 md:gap-5">
             <button onClick={onSignIn} className={`text-xs font-semibold text-slate-300 hover:text-white transition-colors hidden sm:block rounded ${FOCUS_RING}`}>Sign In</button>
-            <button onClick={onGetStarted} className={`relative group overflow-hidden bg-white text-black px-5 py-2 rounded-full text-xs font-bold active:scale-95 transition-all flex items-center gap-2 ${FOCUS_RING}`}>
-              <div className="absolute inset-0 w-full h-full bg-linear-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
-              <span className="relative z-10">Start Simulation</span>
-              <ArrowRight size={14} className="relative z-10" />
-            </button>
+            <Magnetic strength={0.2}>
+              <button onClick={onGetStarted} className={`btn-liquid px-5 py-2.5 rounded-full text-xs font-bold active:scale-95 flex items-center gap-2 ${FOCUS_RING}`}>
+                <span>Start Simulation</span>
+                <ArrowRight size={14} />
+              </button>
+            </Magnetic>
           </div>
-        </div>
-      </header>
+        </LiquidGlass>
+      </motion.header>
 
-      <main className="relative z-20 flex-1 w-full pt-32 pb-24">
+      <main className="relative z-20 flex-1 w-full pt-36 md:pt-44 pb-24">
+        <CursorSpotlight />
 
         {/* HERO */}
         <motion.section
@@ -605,40 +592,38 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
           variants={heroContainer}
           initial="hidden"
           animate="show"
-          className="px-6 flex flex-col items-center justify-center text-center max-w-4xl mx-auto mb-16"
+          className="relative px-6 flex flex-col items-center justify-center text-center max-w-6xl mx-auto mb-24"
         >
-          <motion.div variants={heroItem} className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-slate-300 text-[10px] font-mono font-bold uppercase tracking-widest mb-6 shadow-sm">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            100% Free Portfolio Demo &middot; No Credit Card Required
+          <motion.div variants={heroItem} className="mb-8">
+            <LiquidGlass tone="clear" radius={999} frost={14} className="inline-flex" contentClassName="relative z-10 flex items-center gap-2 px-4 py-1.5 text-slate-200 text-[10px] font-mono font-bold uppercase tracking-widest">
+              <span className="relative flex w-1.5 h-1.5">
+                <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75" />
+                <span className="relative w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              </span>
+              100% Free Portfolio Demo &middot; No Credit Card Required
+            </LiquidGlass>
           </motion.div>
 
-          <motion.div variants={heroItem} className="h-[140px] md:h-[180px] lg:h-[190px] flex items-center justify-center w-full relative">
+          <div className="min-h-[120px] sm:min-h-[150px] md:min-h-[176px] lg:min-h-[210px] flex items-center justify-center w-full relative mb-6">
             <AnimatePresence mode="wait">
-              <motion.div
+              <motion.h1
                 key={activeTrack}
-                initial={{ opacity: 0, y: 20, filter: "blur(8px)" }}
-                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                exit={{ opacity: 0, y: -20, filter: "blur(8px)" }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
-                className="absolute w-full"
+                className="w-full text-[42px] sm:text-6xl md:text-[80px] lg:text-[96px] font-extrabold tracking-[-0.045em] text-white leading-[1.02] max-w-6xl mx-auto"
+                style={{ textShadow: "0 0 80px rgba(129,140,248,0.25)" }}
               >
-                <h1 className="text-5xl md:text-7xl lg:text-[80px] font-extrabold tracking-tighter text-white leading-[1.05] max-w-4xl mx-auto mb-6">
-                  {activeTrack === 'system' ? 'A real interview.' : 'Live execution.'}<br />
-                  <span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-400 via-blue-300 to-emerald-400">
-                    {activeTrack === 'system' ? 'Not a practice quiz.' : 'Not a static text box.'}
-                  </span>
-                </h1>
-              </motion.div>
+                <MaskLine delay={0.15}>{activeTrack === 'system' ? 'A real interview.' : 'Live execution.'}</MaskLine>
+                <MaskLine delay={0.3} className="text-aurora">{activeTrack === 'system' ? 'Not a practice quiz.' : 'Not a static text box.'}</MaskLine>
+              </motion.h1>
             </AnimatePresence>
-          </motion.div>
+          </div>
 
-          <motion.p variants={heroItem} className="text-base md:text-xl text-slate-300 max-w-2xl leading-relaxed mb-8 font-medium">
+          <SplitReveal as="p" trigger="mount" delay={0.55} className="text-base md:text-xl text-slate-300 max-w-2xl leading-relaxed mb-10 font-medium">
             Adaptive AI interviewer. Real sandboxed code execution. Live speech telemetry. 5 scoring dimensions. Built solo, powered by Claude.
-          </motion.p>
+          </SplitReveal>
 
           {/* Live sample scenario — signature hero moment */}
           <motion.div variants={heroItem} className="w-full max-w-2xl mb-8">
-            <GlassCard className="p-5 text-left">
+            <GlassCard refract tilt beam radius={22} className="p-5 text-left shadow-[0_40px_120px_-30px_rgba(79,70,229,0.55)]">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -664,20 +649,29 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
             </GlassCard>
           </motion.div>
 
-          <motion.div variants={heroItem} className="flex flex-wrap items-center justify-center gap-4 mb-14">
-            <button onClick={onGetStarted} className={`relative group overflow-hidden bg-white text-black px-8 py-4 rounded-xl text-sm font-bold active:scale-95 transition-all shadow-[0_0_30px_rgba(255,255,255,0.15)] flex items-center gap-2 ${FOCUS_RING}`}>
-              <div className="absolute inset-0 w-full h-full bg-linear-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
-              <Play size={14} className="fill-current" />
-              <span>Try Your First Question &mdash; Free Account</span>
-            </button>
-            <a
-              href="https://github.com/adhi2801/Interview-Coach-AI"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`px-6 py-4 rounded-xl text-sm font-semibold bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors flex items-center gap-2 ${FOCUS_RING}`}
-            >
-              <GitBranch size={16} /> View Source Code
-            </a>
+          <motion.div variants={heroItem} className="flex flex-wrap items-center justify-center gap-4 mb-16">
+            <Magnetic>
+              <button onClick={onGetStarted} className={`btn-liquid px-8 py-4 rounded-full text-sm font-bold active:scale-95 flex items-center gap-2 ${FOCUS_RING}`}>
+                <Play size={14} className="fill-current" />
+                <span>Try Your First Question &mdash; Free Account</span>
+              </button>
+            </Magnetic>
+            <Magnetic strength={0.2}>
+              <LiquidGlass
+                as="a"
+                href="https://github.com/adhi2801/Interview-Coach-AI"
+                target="_blank"
+                rel="noopener noreferrer"
+                tone="clear"
+                radius={999}
+                frost={16}
+                interactive
+                className={`text-sm font-semibold text-white ${FOCUS_RING}`}
+                contentClassName="relative z-10 px-6 py-4 flex items-center gap-2"
+              >
+                <GitBranch size={16} /> View Source Code
+              </LiquidGlass>
+            </Magnetic>
           </motion.div>
 
           <motion.div variants={heroItem} className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full max-w-2xl relative z-20 mx-auto">
@@ -704,44 +698,36 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
         {/* HOW IT WORKS */}
         <section id="how" className="px-6 max-w-5xl mx-auto mb-24 border-t border-white/[0.08] pt-16">
           <div className="text-center mb-12">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400 mb-2 block">From zero to scored</span>
-            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tighter text-white">Under 5 minutes, start to finish.</h2>
+            <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400 mb-2 block"><ScrambleText>From zero to scored</ScrambleText></span>
+            <SplitReveal className="text-4xl md:text-6xl font-extrabold tracking-[-0.04em] text-white">Under 5 minutes, start to finish.</SplitReveal>
           </div>
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: "-80px" }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6"
-          >
+          <Reveal className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {HOW_STEPS.map((step, i) => (
-              <motion.div key={i} variants={staggerItem}>
-                <GlassCard className="p-6 h-full transition-transform duration-300 hover:-translate-y-1">
-                  <div className={`w-10 h-10 rounded-xl bg-${step.color}-500/10 border border-${step.color}-500/20 text-${step.color}-400 flex items-center justify-center mb-4`}>
-                    <step.icon size={18} />
+              <div key={i} data-reveal>
+                <GlassCard tilt interactive className="p-7 h-full">
+                  <div className={`w-11 h-11 rounded-xl border flex items-center justify-center mb-5 ${STEP_TONES[step.color].tile}`}>
+                    <step.icon size={19} />
                   </div>
-                  <span className={`text-[10px] font-mono font-bold uppercase tracking-widest text-${step.color}-400 block mb-2`}>{step.eyebrow}</span>
+                  <span className={`text-[10px] font-mono font-bold uppercase tracking-widest block mb-2 ${STEP_TONES[step.color].eyebrow}`}>{step.eyebrow}</span>
                   <h3 className="text-sm font-bold text-white mb-1.5">{step.title}</h3>
                   <p className="text-xs text-slate-400 font-medium leading-relaxed">{step.desc}</p>
                 </GlassCard>
-              </motion.div>
+              </div>
             ))}
-          </motion.div>
+          </Reveal>
         </section>
 
         {/* LOGOS + HONEST STATS */}
         <section className="relative z-20 py-8 bg-transparent">
           <div className="max-w-7xl mx-auto px-6">
             <p className="text-[10px] font-mono font-bold uppercase tracking-[0.25em] text-slate-500 text-center mb-8">
-              Simulating technical evaluation standards for
+              <ScrambleText>Simulating technical evaluation standards for</ScrambleText>
             </p>
-            <div className="overflow-hidden w-full max-w-5xl mx-auto mb-16 mask-edges">
-              <div className="flex gap-16 w-max animate-marquee opacity-60">
-                {[...COMPANY_LOGOS, ...COMPANY_LOGOS, ...COMPANY_LOGOS].map((logo, i) => (
-                  <span key={`${logo}-${i}`} className="text-xl font-extrabold text-slate-300 uppercase tracking-tighter cursor-default">{logo}</span>
-                ))}
-              </div>
-            </div>
+            <VelocityMarquee className="w-full max-w-6xl mx-auto mb-16 mask-edges py-2">
+              {[...COMPANY_LOGOS, ...COMPANY_LOGOS].map((logo, i) => (
+                <span key={`${logo}-${i}`} className="px-8 text-2xl md:text-3xl font-extrabold text-slate-300/70 uppercase tracking-tighter cursor-default transition-colors duration-300 hover:text-white">{logo}</span>
+              ))}
+            </VelocityMarquee>
 
             <motion.div
               variants={staggerContainer}
@@ -763,35 +749,38 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
         <section id="simulation" className="px-6 max-w-[1400px] mx-auto mt-12 mb-24">
           <div className="text-center max-w-2xl mx-auto mb-8">
             <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20 inline-block mb-4">
-              Engine 01 // Company DNA & Persona
+              <ScrambleText>Engine 01 // Company DNA & Persona</ScrambleText>
             </span>
-            <h2 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-white mb-3">
+            <SplitReveal by="lines" className="text-4xl md:text-6xl font-extrabold tracking-[-0.04em] text-white mb-4">
               Hostile pushback.<br /><span className="text-indigo-400">Real-time adaptation.</span>
-            </h2>
+            </SplitReveal>
             <p className="text-slate-400 text-sm leading-relaxed font-medium">
               The AI doesn't accept hand-wavy answers. This is a preview of the actual session screen — pick a company below to see how the question changes.
             </p>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-2 mb-4">
+          <div className="flex justify-center mb-8">
+          <LiquidGlass tone="clear" radius={16} frost={16} contentClassName="relative z-10 flex flex-wrap justify-center gap-1 p-1.5">
             {DEMO_KEYS.map((pKey) => (
               <button
                 key={pKey}
                 onClick={() => setPersonaTarget(pKey)}
                 className={`relative px-4 py-2 rounded-xl text-xs font-mono font-bold uppercase transition-colors outline-none ${FOCUS_RING} ${
-                  personaTarget === pKey ? 'text-white' : 'bg-[#050508] border border-white/10 text-slate-400 hover:text-white'
+                  personaTarget === pKey ? 'text-white' : 'text-slate-400 hover:text-white'
                 }`}
               >
                 {personaTarget === pKey && (
-                  <motion.div layoutId="personaPill" className="absolute inset-0 bg-indigo-600 rounded-xl shadow-md" transition={{ type: 'spring', stiffness: 400, damping: 32 }} />
+                  <motion.div layoutId="personaPill" className="absolute inset-0 rounded-xl bg-linear-to-b from-indigo-500 to-indigo-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_8px_24px_-6px_rgba(99,102,241,0.8)]" transition={{ type: 'spring', stiffness: 420, damping: 32 }} />
                 )}
                 <span className="relative z-10">{pKey}</span>
               </button>
             ))}
+          </LiquidGlass>
           </div>
 
-          <GlassCard className="p-0 border-white/10 shadow-2xl overflow-hidden">
-            <div className="h-12 border-b border-white/[0.08] bg-[#030305] flex items-center justify-between px-6 font-mono text-xs overflow-hidden">
+          <TiltScene>
+          <GlassCard radius={24} className="p-0 overflow-hidden shadow-[0_60px_160px_-40px_rgba(79,70,229,0.55)]">
+            <div className="h-12 border-b border-white/[0.08] bg-black/40 flex items-center justify-between px-6 font-mono text-xs overflow-hidden">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={`badge-${personaTarget}`}
@@ -807,7 +796,7 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
               <span className="text-[9px] font-mono text-slate-600 uppercase tracking-widest">Preview of a real session</span>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-white/[0.08] bg-[#000000] min-h-[380px]">
+            <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-white/[0.08] bg-black/55 min-h-[380px]">
               {/* LEFT: question inspector — matches real Context/Constraints/Ask fields */}
               <AnimatePresence mode="wait">
                 <motion.div
@@ -896,6 +885,7 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
               </AnimatePresence>
             </div>
           </GlassCard>
+          </TiltScene>
         </section>
 
         {/* LIVE CODING */}
@@ -903,9 +893,9 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-8 gap-4">
             <div>
               <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 block w-max mb-2">
-                Engine 02 // Multi-Language IDE
+                <ScrambleText>Engine 02 // Multi-Language IDE</ScrambleText>
               </span>
-              <h2 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-white">Sandboxed execution.<br />Instant Big-O profiling.</h2>
+              <SplitReveal by="lines" className="text-4xl md:text-6xl font-extrabold tracking-[-0.04em] text-white">Sandboxed execution.<br />Instant Big-O profiling.</SplitReveal>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 mr-2 hidden sm:inline">Isolated Linux Sandbox</span>
@@ -928,8 +918,8 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
             </div>
           </div>
 
-          <motion.div variants={staggerItem} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}>
-          <GlassCard className="p-0 overflow-hidden">
+          <TiltScene maxTilt={18} from={0.92}>
+          <GlassCard radius={24} className="p-0 overflow-hidden shadow-[0_60px_160px_-40px_rgba(16,185,129,0.35)]">
             <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[500px]">
               <div className="lg:col-span-3 bg-[#050508] border-r border-white/10 p-6 flex flex-col justify-between">
                 <div>
@@ -1014,18 +1004,18 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
               </div>
             </div>
           </GlassCard>
-          </motion.div>
+          </TiltScene>
         </section>
 
         {/* KNOWLEDGE GRAPH — full 93-node categorized view, flex-wrap so it never overlaps */}
         <section id="knowledge" className="px-6 max-w-[1200px] mx-auto mb-32">
           <div className="max-w-2xl mx-auto text-center mb-12">
             <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 inline-block mb-4">
-              Engines 03 & 04 // Voice & RAG Graph
+              <ScrambleText>Engines 03 & 04 // Voice & RAG Graph</ScrambleText>
             </span>
-            <h2 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-white mb-4">
+            <SplitReveal className="text-4xl md:text-6xl font-extrabold tracking-[-0.04em] text-white mb-5">
               Vocal telemetry meets <span className="text-blue-400">{TOTAL_KG_NODES}-node prerequisite tracking.</span>
-            </h2>
+            </SplitReveal>
             <p className="text-slate-400 text-sm leading-relaxed font-medium">
               Speech analysis tracks pace and hesitations while the computer science graph traces your exact foundational gaps across every domain below.
             </p>
@@ -1074,22 +1064,16 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
         <section id="architecture" className="px-6 max-w-[1400px] mx-auto mb-32">
           <div className="text-center mb-16">
             <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20 mb-2 inline-block">
-              Under the Hood
+              <ScrambleText>Under the Hood</ScrambleText>
             </span>
-            <h2 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-white">No magic.<br /><span className="text-indigo-400">Just engineering.</span></h2>
+            <SplitReveal by="lines" className="text-4xl md:text-6xl font-extrabold tracking-[-0.04em] text-white">No magic.<br /><span className="text-indigo-400">Just engineering.</span></SplitReveal>
             <p className="text-xs text-slate-400 font-medium max-w-md mx-auto mt-3">Every component chosen for a reason. Transparent full-stack architecture.</p>
           </div>
 
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: "-60px" }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-          >
+          <Reveal className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {ARCHITECTURE_CARDS.map((arch, idx) => (
-              <motion.div key={idx} variants={staggerItem}>
-                <GlassCard tilt className="p-6 flex flex-col justify-between h-full transition-transform duration-300 hover:-translate-y-1">
+              <div key={idx} data-reveal>
+                <GlassCard tilt interactive className="p-6 flex flex-col justify-between h-full">
                   <div>
                     <div className="flex items-center justify-between mb-4 gap-2">
                       <h3 className="text-base font-bold text-white tracking-tight">{arch.title}</h3>
@@ -1098,11 +1082,11 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
                     <p className="text-xs text-slate-400 leading-relaxed font-medium">{arch.desc}</p>
                   </div>
                 </GlassCard>
-              </motion.div>
+              </div>
             ))}
-          </motion.div>
+          </Reveal>
 
-          <div className="mt-8 bg-[#050508] border border-white/10 p-6 rounded-2xl flex flex-col sm:flex-row items-center gap-6 shadow-inner">
+          <div className="mt-8 bg-black/50 backdrop-blur-xl border border-white/10 p-6 rounded-2xl flex flex-col sm:flex-row items-center gap-6 shadow-inner">
             <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-full text-amber-300 text-xs font-bold shrink-0">
               <Sparkles size={14} /> Powered by Claude
             </div>
@@ -1198,25 +1182,29 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
         </section>
 
         {/* FINAL CTA */}
-        <section className="px-6 text-center max-w-3xl mx-auto pt-4 pb-12">
-          <h2 className="text-5xl md:text-6xl font-extrabold tracking-tighter text-white mb-4">
-            Stop reading.<br /><span className="text-indigo-400">Start answering.</span>
-          </h2>
-          <p className="text-base text-slate-400 font-medium mb-10 max-w-md mx-auto">Free account, one real question. See how you actually do under pressure.</p>
-          <button onClick={onGetStarted} className={`relative group overflow-hidden bg-white text-black px-10 py-4 rounded-full text-sm font-bold active:scale-95 transition-all shadow-[0_0_30px_rgba(255,255,255,0.15)] hover:shadow-[0_0_40px_rgba(255,255,255,0.25)] flex items-center justify-center gap-2 mx-auto ${FOCUS_RING}`}>
-            <div className="absolute inset-0 w-full h-full bg-linear-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
-            <span className="relative z-10">Try a Free Question Now</span>
-            <ArrowRight size={16} className="relative z-10" />
-          </button>
+        <section className="px-4 md:px-6 max-w-5xl mx-auto pt-4 pb-16">
+          <GlassCard refract beam={{ duration: 9, width: 2 }} radius={36} className="relative overflow-hidden text-center px-6 py-20 md:py-28 shadow-[0_60px_200px_-40px_rgba(99,102,241,0.6)]">
+            <div aria-hidden="true" className="pointer-events-none absolute -inset-x-20 -bottom-40 h-80 bg-[radial-gradient(ellipse_at_center,rgba(99,102,241,0.45),transparent_65%)]" />
+            <SplitReveal by="lines" className="relative text-5xl md:text-7xl font-extrabold tracking-[-0.045em] text-white mb-5">
+              Stop reading.<br /><span className="text-aurora">Start answering.</span>
+            </SplitReveal>
+            <p className="relative text-base text-slate-300 font-medium mb-10 max-w-md mx-auto">Free account, one real question. See how you actually do under pressure.</p>
+            <Magnetic className="relative inline-flex">
+              <button onClick={onGetStarted} className={`btn-liquid px-10 py-4 rounded-full text-sm font-bold active:scale-95 flex items-center justify-center gap-2 ${FOCUS_RING}`}>
+                <span>Try a Free Question Now</span>
+                <ArrowRight size={16} />
+              </button>
+            </Magnetic>
+          </GlassCard>
         </section>
       </main>
 
       {/* FOOTER */}
-      <footer className="relative z-20 pt-16 pb-8 border-t border-white/[0.05] bg-[#000000]">
+      <footer className="relative z-20 pt-16 pb-8 border-t border-white/[0.07] bg-black/60 backdrop-blur-2xl">
         <div className="max-w-[1440px] mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-10 mb-16">
           <div className="md:col-span-1">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-6 h-6 bg-white text-black flex items-center justify-center rounded-[4px] font-bold text-[10px]">IC</div>
+              <div className="w-7 h-7 bg-linear-to-br from-white to-indigo-200 text-black flex items-center justify-center rounded-lg font-extrabold text-[10px] shadow-[0_0_20px_rgba(165,180,252,0.45)]">IC</div>
               <span className="font-semibold text-white tracking-tight text-sm">InterviewCoach</span>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed font-medium mb-3">A solo-built AI mock interview platform.</p>
@@ -1256,7 +1244,7 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
             &copy; 2026 InterviewCoach AI. Designed &amp; Engineered by <span className="text-white">Adhiswauran</span>.
           </p>
           <div className="flex items-center gap-2 text-slate-400 text-xs font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> All Systems Operational
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Open source on GitHub
           </div>
         </div>
       </footer>

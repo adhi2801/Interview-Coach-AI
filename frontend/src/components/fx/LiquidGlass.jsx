@@ -20,6 +20,7 @@ import React, { forwardRef, useCallback, useEffect, useId, useMemo, useRef, useS
 import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
 import { hasFinePointer, prefersReducedMotion, spring } from "../../lib/motion";
 import { cn } from "../../lib/utils";
+import { BorderBeam } from "./Effects";
 
 // ---------------------------------------------------------------------------
 // Capability detection
@@ -233,6 +234,8 @@ export const LiquidGlass = forwardRef(function LiquidGlass(
     frost = 22,
     refract = false,
     refractStrength = 38,
+    lensBlur,
+    beam = false,
     bezel = 22,
     tilt = false,
     interactive = false,
@@ -272,7 +275,7 @@ export const LiquidGlass = forwardRef(function LiquidGlass(
   const filterId = `lg-${rawId.replace(/[^a-zA-Z0-9_-]/g, "")}`;
 
   const backdrop = lens && size
-    ? `url(#${filterId}) blur(${Math.max(1.5, frost * 0.25)}px) saturate(185%) brightness(1.06)`
+    ? `url(#${filterId}) blur(${lensBlur ?? Math.max(2, frost * 0.3)}px) saturate(185%) brightness(1.06)`
     : `blur(${frost}px) saturate(170%)`;
 
   const Component = motion[as] || motion.div;
@@ -316,6 +319,7 @@ export const LiquidGlass = forwardRef(function LiquidGlass(
         />
       )}
       <span aria-hidden="true" className="lg-sheen" />
+      {beam && <BorderBeam {...(typeof beam === "object" ? beam : {})} />}
       <div className={contentClassName}>{children}</div>
     </Component>
   );
