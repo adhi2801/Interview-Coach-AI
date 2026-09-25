@@ -2,6 +2,10 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import api, { saveAuth } from "../lib/api";
 import { ChevronRight, Mail, Lock, User, Activity, ShieldCheck, ArrowLeft, Eye, EyeOff, Check, X, AlertTriangle } from "lucide-react";
+import { GlassCard as LiquidCard } from "../components/fx/LiquidGlass";
+import Aurora from "../components/fx/Aurora";
+import SplitReveal from "../components/fx/SplitReveal";
+import { CursorSpotlight } from "../components/fx/Effects";
 
 function GithubIcon(props) {
   return (
@@ -119,16 +123,15 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
           100% { transform: translateX(100%); }
         }
       `}</style>
-
-      <div className="fixed top-[-10%] left-[-10%] w-[45vw] h-[55vh] bg-indigo-900/20 blur-[140px] pointer-events-none rounded-full mix-blend-screen z-0" />
-      <div className="fixed bottom-[-10%] right-1/4 w-[50vw] h-[60vh] bg-blue-900/15 blur-[160px] pointer-events-none rounded-full mix-blend-screen z-0" />
+      <Aurora intensity={0.9} />
+      <CursorSpotlight size={760} />
 
       <div className="fixed inset-0 z-10 pointer-events-none opacity-[0.035] mix-blend-soft-light" style={{ backgroundImage: noiseSvg }} />
 
       <div className="relative z-20 flex flex-col md:flex-row w-full min-h-screen">
 
         {/* LEFT COLUMN */}
-        <div className="hidden lg:flex flex-col justify-between w-[45%] p-12 lg:p-16 border-r border-white/[0.06] relative bg-[#000000] overflow-hidden">
+        <div className="hidden lg:flex flex-col justify-between w-[45%] p-12 lg:p-16 border-r border-white/[0.08] relative bg-black/30 backdrop-blur-[2px] overflow-hidden">
 
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-600/10 blur-[140px] rounded-full pointer-events-none" />
 
@@ -138,19 +141,16 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
               <span className="font-bold text-white tracking-tight text-lg">InterviewCoach</span>
             </div>
 
-            <h1 className="text-4xl lg:text-5xl font-extrabold tracking-[-0.035em] text-white leading-[1.15] max-w-md mb-6 drop-shadow-lg">
-              Calibrate your baseline.<br />
-              <span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-400 via-blue-300 to-slate-400">
-                Own every interview.
-              </span>
-            </h1>
+            <SplitReveal as="h1" by="lines" trigger="mount" delay={0.2} className="text-4xl lg:text-5xl font-extrabold tracking-[-0.04em] text-white leading-[1.08] max-w-md mb-6">Calibrate your baseline.<br />
+              <span className="text-aurora">Own every interview.</span>
+            </SplitReveal>
             <p className="text-slate-300 text-sm md:text-base max-w-md leading-relaxed font-normal mb-8">
               Create your account to launch an adaptive diagnostic session and establish your true skill ELO.
             </p>
           </div>
 
           <div className={`transition-all duration-1000 delay-200 z-10 w-full max-w-[420px] ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <div className="bg-[#050508] border border-white/[0.08] rounded-2xl p-6 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),0_20px_40px_-10px_rgba(0,0,0,0.8)]">
+            <LiquidCard tilt radius={20} className="p-6">
 
               <div className="flex items-center justify-between mb-6 pb-3 border-b border-white/[0.06]">
                 <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-slate-400">Diagnostic Baseline</span>
@@ -197,7 +197,7 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
                 <span>Calibrates automatically during your first simulation node</span>
               </div>
 
-            </div>
+            </LiquidCard>
           </div>
 
           <div className={`transition-all duration-1000 delay-150 ease-out transform z-10 relative ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
@@ -410,10 +410,10 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
                           whileTap={{ scale: loading ? 1 : 0.97 }}
                           disabled={loading}
                           type="submit"
-                          className={`relative w-full flex items-center justify-center py-3 rounded-xl text-xs font-extrabold uppercase tracking-widest transition-all overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black focus:ring-blue-500 group ${
+                          className={`relative w-full flex items-center justify-center py-3.5 rounded-full text-xs font-extrabold uppercase tracking-widest transition-all overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black focus:ring-blue-500 group ${
                             loading
                               ? "bg-[#111111] border border-white/10 text-slate-500 cursor-wait"
-                              : "bg-white text-black hover:bg-slate-200 shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_30px_rgba(255,255,255,0.25)]"
+                              : "btn-liquid"
                           }`}
                         >
                           {loading ? (
@@ -456,39 +456,9 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
 }
 
 function GlassCard({ children, className = "" }) {
-  const cardRef = useRef(null);
-  const [cursorX, setCursorX] = useState(0);
-  const [cursorY, setCursorY] = useState(0);
-  const [isHovered, setIsHovered] = useState(false);
-
-  const handleMouseMove = (e) => {
-    if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    setCursorX(e.clientX - rect.left);
-    setCursorY(e.clientY - rect.top);
-  };
-
   return (
-    <div
-      ref={cardRef}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      className={`relative rounded-2xl bg-[#050508] border border-white/[0.08] p-8 md:p-10 overflow-hidden backdrop-blur-2xl transition-all duration-300 ${className}`}
-      style={{
-        boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.12), 0 25px 50px -12px rgba(0,0,0,0.9)'
-      }}
-    >
-      <div
-        className="absolute inset-0 pointer-events-none transition-opacity duration-300 z-0"
-        style={{
-          background: `radial-gradient(400px circle at ${cursorX}px ${cursorY}px, rgba(255,255,255,0.06), transparent 40%)`,
-          opacity: isHovered ? 1 : 0
-        }}
-      />
-      <div className="relative z-10 w-full h-full">
-        {children}
-      </div>
-    </div>
+    <LiquidCard refract beam={{ duration: 8 }} radius={24} frost={26} className={`p-8 md:p-10 shadow-[0_40px_120px_-30px_rgba(79,70,229,0.55)] ${className}`}>
+      {children}
+    </LiquidCard>
   );
 }
