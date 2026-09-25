@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import axios from "axios";
-import { API_URL } from "../config";
+import api, { saveAuth } from "../lib/api";
 import { ChevronRight, Mail, Lock, Activity, Eye, EyeOff, ShieldCheck, ArrowLeft, Check, X, AlertTriangle, Zap, Target, TrendingUp } from "lucide-react";
 
 function GithubIcon(props) {
@@ -87,23 +86,19 @@ export default function Login({ onAuth, onSwitchToSignup, onBackToHome }) {
     setLoading(true);
     setError("");
     try {
-      const res = await axios.post(`${API_URL}/auth/login`, { email, password });
-      if (res.data.error) {
-        setError(res.data.error);
-        setLoading(false);
+      const res = await api.post("/auth/login", { email, password });
+      saveAuth(res.data.access_token, res.data.user);
+      if (rememberMe) {
+        localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
       } else {
-        localStorage.setItem("access_token", res.data.access_token);
-        localStorage.setItem("user", JSON.stringify(res.data.user));
-        if (rememberMe) {
-          localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
-        } else {
-          localStorage.removeItem(REMEMBERED_EMAIL_KEY);
-        }
-        setSuccess(true);
-        setTimeout(() => onAuth(res.data.user), 700);
+        localStorage.removeItem(REMEMBERED_EMAIL_KEY);
       }
+      setSuccess(true);
+      setTimeout(() => onAuth(res.data.user), 700);
     } catch (err) {
-      setError("Cannot connect to authentication server.");
+      // err.message is the server's own reason ("Invalid email or password",
+      // "Too many requests...") or a clear network message from lib/api.
+      setError(err.message);
       setLoading(false);
     }
   }

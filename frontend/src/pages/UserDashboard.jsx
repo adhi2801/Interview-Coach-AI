@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import axios from 'axios';
-import { API_URL } from '../config';
+import api from "../lib/api";
 import {
   motion, AnimatePresence, useMotionValue, useTransform, animate,
   useScroll
@@ -183,15 +182,13 @@ export default function UserDashboard({
   const orbYB = useTransform(scrollYProgress, [0, 1], [0, -60]);
 
   useEffect(() => {
-    axios.get(`${API_URL}/health`, { timeout: 5000 })
+    api.get(`/health`, { timeout: 5000 })
       .then((res) => setSystemStatus(res.data?.status === "ok" ? "ok" : "degraded"))
       .catch(() => setSystemStatus("degraded"));
   }, []);
 
     useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    if (!token) return;
-    axios.get(`${API_URL}/user/profile-summary`, { headers: { Authorization: `Bearer ${token}` } })
+    api.get(`/user/profile-summary`)
       .then((res) => {
         const realElo = res.data?.elo_rating;
         if (typeof realElo === "number" && Math.round(realElo) !== Math.round(user?.elo_rating || 1200)) {
@@ -205,7 +202,7 @@ export default function UserDashboard({
   useEffect(() => {
     async function fetchCompanies() {
       try {
-        const res = await axios.get(`${API_URL}/companies`);
+        const res = await api.get(`/companies`);
         const list = res.data.companies;
         if (Array.isArray(list) && list.length > 0) {
           const formatted = list.map((c) => c.charAt(0).toUpperCase() + c.slice(1));
@@ -223,8 +220,7 @@ export default function UserDashboard({
   useEffect(() => {
         async function fetchSessions() {
       try {
-        const token = localStorage.getItem("access_token");
-        const res = await axios.get(`${API_URL}/user/activity`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await api.get(`/user/activity`);
         const activity = res.data.activity || [];
 
         const ledger = activity.map((e) => ({
@@ -270,12 +266,10 @@ export default function UserDashboard({
     async function fetchCompanyData() {
       setRadarLoading(true);
       setGapLoading(true);
-      const token = localStorage.getItem("access_token");
-      const headers = { Authorization: `Bearer ${token}` };
       try {
         const [radarRes, gapRes] = await Promise.all([
-          axios.get(`${API_URL}/user/skill-radar`, { headers, params: { company: activeTarget.toLowerCase() } }),
-          axios.get(`${API_URL}/user/gap-queue`, { headers, params: { company: activeTarget.toLowerCase() } }),
+          api.get(`/user/skill-radar`, { params: { company: activeTarget.toLowerCase() } }),
+          api.get(`/user/gap-queue`, { params: { company: activeTarget.toLowerCase() } }),
         ]);
         setRadar(radarRes.data.radar);
         setRadarSampleSize(radarRes.data.sample_size || 0);

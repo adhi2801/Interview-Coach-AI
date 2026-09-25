@@ -1,12 +1,11 @@
-import { API_URL } from "../config";
 import React, { useState, useEffect, useRef } from "react";
+import api, { getToken } from "../lib/api";
 import { motion, AnimatePresence, LayoutGroup, useScroll, useTransform } from "framer-motion";
 import {
   Terminal, ArrowLeft, ArrowRight, Target, CheckCircle2, XCircle,
   User, ShieldAlert, Brain, Battery, ChevronDown, Check, BookOpen,
   AlertTriangle, RotateCcw, Play, Zap, Cpu, Activity, TrendingUp
 } from "lucide-react";
-import axios from "axios";
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { COMPANIES } from "../constants/companies";
 
@@ -167,15 +166,11 @@ export default function Dashboard({ onStart, user, onGoBack }) {
   const activeComp = COMPANIES.find(c => c.id === company) || COMPANIES[0];
   const isFreshlyGenerated = !KNOWN_COMPANIES.includes(company);
 
-  // Single source of truth for auth headers — was previously duplicated
-  // inline in four places (handlePreview, handleLaunch, and two effects).
-  const authHeaders = () => {
-    const token = localStorage.getItem("access_token");
-    return token ? { headers: { Authorization: `Bearer ${token}` } } : null;
-  };
+  // The token itself is attached by lib/api; this only answers "signed in?"
+  const isSignedIn = () => Boolean(getToken());
 
   useEffect(() => {
-    axios.get(`${API_URL}/health`, { timeout: 5000 })
+    api.get(`/health`, { timeout: 5000 })
       .then((res) => setSystemStatus(res.data?.status === "ok" ? "ok" : "degraded"))
       .catch(() => setSystemStatus("degraded"));
   }, []);
@@ -190,7 +185,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
     let cancelled = false;
     setProfileLoading(true);
     setProfileError(false);
-    axios.get(`${API_URL}/companies/${company}/profile`)
+    api.get(`/companies/${company}/profile`)
       .then(res => { if (!cancelled) setCompanyProfile(res.data); })
       .catch(() => { if (!cancelled) setProfileError(true); })
       .finally(() => { if (!cancelled) setProfileLoading(false); });
@@ -198,18 +193,17 @@ export default function Dashboard({ onStart, user, onGoBack }) {
   }, [company]);
 
   useEffect(() => {
-    axios.get(`${API_URL}/roles/elo-bands`).then(res => setEloBands(res.data)).catch(() => setEloBands({}));
+    api.get(`/roles/elo-bands`).then(res => setEloBands(res.data)).catch(() => setEloBands({}));
   }, []);
 
   useEffect(() => {
-    const auth = authHeaders();
-    if (!auth) { setIntelLoading(false); return; }
+    if (!isSignedIn()) { setIntelLoading(false); return; }
     let cancelled = false;
     setIntelLoading(true);
     setIntelError(false);
     Promise.all([
-      axios.get(`${API_URL}/user/skill-radar`, { ...auth, params: { company } }),
-      axios.get(`${API_URL}/user/gap-queue`, { ...auth, params: { company } }),
+      api.get(`/user/skill-radar`, { params: { company } }),
+      api.get(`/user/gap-queue`, { params: { company } }),
     ]).then(([radarRes, gapRes]) => {
       if (cancelled) return;
       setCompanyIntel({
@@ -227,11 +221,10 @@ export default function Dashboard({ onStart, user, onGoBack }) {
   }, [company]);
 
   useEffect(() => {
-    const auth = authHeaders();
-    if (!auth) return;
+    if (!isSignedIn()) return;
     let cancelled = false;
     setSessionsError(false);
-    axios.get(`${API_URL}/user/sessions`, auth)
+    api.get(`/user/sessions`)
       .then(res => {
         if (cancelled) return;
         const matches = (res.data.sessions || [])
@@ -244,7 +237,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
   }, [company]);
 
   useEffect(() => {
-    axios.get(`${API_URL}/topics`).then(res => {
+    api.get(`/topics`).then(res => {
       const list = res.data?.topics || res.data;
       if (Array.isArray(list)) setTopicCount(list.length);
     }).catch(() => setTopicCount(null));
@@ -260,15 +253,14 @@ export default function Dashboard({ onStart, user, onGoBack }) {
   }
 
   async function handlePreview() {
-    const auth = authHeaders();
-    if (!auth) { setPreviewError(true); return; }
+    if (!isSignedIn()) { setPreviewError(true); return; }
     setPreviewPulse(true);
     setTimeout(() => setPreviewPulse(false), 300);
     setPreviewLoading(true);
     setPreviewError(false);
     try {
-      const res = await axios.post(`${API_URL}/session/preview`,
-        { user_name: user?.name || "Candidate", company, role, elo: currentElo, persona }, auth);
+      const res = await api.post(`/session/preview`,
+        { user_name: user?.name || "Candidate", company, role, elo: currentElo, persona });
       setPreviewData(res.data);
     } catch (err) {
       setPreviewError(true);
@@ -278,8 +270,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
 
   const handleLaunch = async () => {
     if (isBooting) return;
-    const auth = authHeaders();
-    if (!auth) { setLaunchError(true); return; }
+    if (!isSignedIn()) { setLaunchError(true); return; }
     setIsBooting(true);
     setLaunchError(false);
     let step = 0;
@@ -293,16 +284,15 @@ export default function Dashboard({ onStart, user, onGoBack }) {
       if (step < BOOT_SEQUENCE.length - 1) setBootStep(step);
     }, 420);
     try {
-      const res = await axios.post(`${API_URL}/session/start`,
-        { user_name: user?.name || "Candidate", company, role, elo: currentElo, persona, preview_id: previewData?.preview_id || null },
-        auth);
+      const res = await api.post(`/session/start`,
+        { user_name: user?.name || "Candidate", company, role, elo: currentElo, persona, preview_id: previewData?.preview_id || null });
       clearInterval(interval);
       setBootStep(BOOT_SEQUENCE.length - 1);
       setTimeout(() => { if (onStart) onStart({ ...res.data, company, role, persona, elo: currentElo }); }, 400);
     } catch (err) {
       clearInterval(interval);
       setIsBooting(false);
-      setLaunchError(true);
+      setLaunchError(err.message || true);
     }
   };
 
@@ -573,9 +563,9 @@ export default function Dashboard({ onStart, user, onGoBack }) {
                   <motion.div key="error" {...blurFade} transition={{ duration: 0.25 }} className="flex flex-col items-center text-center gap-2 py-3">
                     <AlertTriangle size={18} className="text-amber-500/70" />
                     <p className="text-xs text-slate-400">
-                      {authHeaders() ? "Couldn't generate a preview right now." : "Sign in to preview the opening line."}
+                      {isSignedIn() ? "Couldn't generate a preview right now." : "Sign in to preview the opening line."}
                     </p>
-                    {authHeaders() && (
+                    {isSignedIn() && (
                       <button onClick={handlePreview} className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
                         <RotateCcw size={11} /> Retry
                       </button>
@@ -726,7 +716,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
           <div className="w-full sm:w-72 flex flex-col gap-1.5">
             {launchError && (
               <p className="text-[11px] text-rose-400 flex items-center gap-1.5">
-                <AlertTriangle size={11} /> {authHeaders() ? "Couldn't start session — try again." : "Sign in to start a session."}
+                <AlertTriangle size={11} /> {!isSignedIn() ? "Sign in to start a session." : typeof launchError === "string" ? launchError : "Couldn't start session — try again."}
               </p>
             )}
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={handleLaunch} disabled={isBooting}

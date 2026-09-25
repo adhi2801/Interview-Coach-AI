@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../lib/api";
 import { motion, useMotionValue, useTransform, animate, AnimatePresence } from "framer-motion";
 import {
   ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
@@ -9,7 +9,6 @@ import {
   ChevronLeft, ChevronRight, AlertTriangle, Terminal, Target, ArrowRight,
   MessageSquare, ListVideo, Sparkles, XCircle, CheckCircle2, Search
 } from "lucide-react";
-import { API_URL } from "../config";
 import StudyPlan from "./StudyPlan";
 
 function AnimatedScore({ value }) {
@@ -61,16 +60,14 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
   useEffect(() => {
     async function fetchSessionList() {
       try {
-        const token = localStorage.getItem("access_token");
-        const res = await axios.get(`${API_URL}/user/sessions`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await api.get(`/user/sessions`);
         setSessionList(res.data.sessions || []);
       } catch (err) { setSessionList([]); }
       setLoading(false);
     }
     async function fetchReplay() {
       try {
-        const token = localStorage.getItem("access_token");
-        const res = await axios.get(`${API_URL}/replay/${sessionId}`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await api.get(`/replay/${sessionId}`);
         setReplay(res.data);
       } catch (err) { console.error("Failed to retrieve session replay:", err); }
       setLoading(false);

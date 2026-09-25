@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import axios from "axios";
-import { API_URL } from "../config";
+import api, { saveAuth } from "../lib/api";
 import { ChevronRight, Mail, Lock, User, Activity, ShieldCheck, ArrowLeft, Eye, EyeOff, Check, X, AlertTriangle } from "lucide-react";
 
 function GithubIcon(props) {
@@ -93,25 +92,21 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
       setError("Please enter a valid email address");
       return;
     }
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+    // Must match auth.py MIN_PASSWORD_LENGTH — this used to say 6, so a
+    // 6-7 character password passed here and was then rejected by the server.
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
       return;
     }
     setLoading(true);
     setError("");
     try {
-      const res = await axios.post(`${API_URL}/auth/signup`, { name, email, password });
-      if (res.data.error) {
-        setError(res.data.error);
-        setLoading(false);
-      } else {
-        localStorage.setItem("access_token", res.data.access_token);
-        localStorage.setItem("user", JSON.stringify(res.data.user));
-        setSuccess(true);
-        setTimeout(() => onAuth(res.data.user), 700);
-      }
+      const res = await api.post("/auth/signup", { name, email, password });
+      saveAuth(res.data.access_token, res.data.user);
+      setSuccess(true);
+      setTimeout(() => onAuth(res.data.user), 700);
     } catch (err) {
-      setError("Cannot connect to authentication server.");
+      setError(err.message);
       setLoading(false);
     }
   }

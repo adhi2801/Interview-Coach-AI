@@ -1,6 +1,6 @@
-import { API_URL, WS_URL } from "../config";
+import { WS_URL } from "../config";
+import api, { wsAuthQuery } from "../lib/api";
 import React, { useState, useEffect, useRef } from "react";
-import axios from "axios";
 import StudyPlan from "./StudyPlan";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import {
@@ -149,6 +149,10 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   const [showAbortConfirm, setShowAbortConfirm] = useState(false);
   const [sessionElapsed, setSessionElapsed] = useState(0); // real wall-clock time since this session mounted — not a fabricated stat
   const wsRef = useRef(null);
+  // Stops the scoring poll loop from setting state after the candidate
+  // navigates away mid-scoring.
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
   const debounceRef = useRef(null);
   const timerRef = useRef(null);
   const autoSubmittedRef = useRef(false);
@@ -194,8 +198,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
     // No real session yet — don't fall back to connecting on someone
     // else's/an arbitrary session's coaching channel.
     if (!sessionData?.session_id) return;
-    const token = localStorage.getItem("access_token");
-    const ws = new WebSocket(`${WS_URL}/ws/coaching/${sessionData.session_id}?token=${token}`);
+    const ws = new WebSocket(`${WS_URL}/ws/coaching/${sessionData.session_id}${wsAuthQuery()}`);
     wsRef.current = ws;
 
     ws.onopen = () => setWsConnected(true);
@@ -244,7 +247,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   }, [question]);
 
   useEffect(() => {
-    axios.get(`${API_URL}/roles/elo-bands`).then(res => {
+    api.get(`/roles/elo-bands`).then(res => {
       const band = res.data?.[sessionData?.role];
       if (band) setEloBand(band);
     }).catch(() => setEloBand(null));
@@ -361,44 +364,33 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
     setScoringError("");
     clearInterval(timerRef.current);
     try {
-      const token = localStorage.getItem("access_token");
-      const startRes = await axios.post(
-        `${API_URL}/answer/submit`,
+      const startRes = await api.post(
+        `/answer/submit`,
         {
           session_id: sessionData.session_id,
           question,
           answer: finalAnswer,
           difficulty,
           elo: currentElo,
-          company: sessionData?.company_profile?.name?.toLowerCase(),
+          company: sessionData?.company || sessionData?.company_profile?.name?.toLowerCase(),
           role: sessionData?.role,
           category,
           persona,
         },
-        { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 }
+        { timeout: 15000 }
       );
-
-      if (startRes.data.error) {
-        setScoringError(startRes.data.error);
-        setLoading(false);
-        return;
-      }
       await pollForResult(startRes.data.job_id);
     } catch (err) {
-      console.error(err);
-      setScoringError("Couldn't reach the scoring service. Check your connection and try again.");
+      // Real reason from the server (rate limit, daily budget, session
+      // ended, validation) or a clear network message from lib/api.
+      setScoringError(err.message);
       setLoading(false);
     }
   }
 
  async function handleFinish() {
   try {
-    const token = localStorage.getItem("access_token");
-    await axios.post(
-      `${API_URL}/replay/${sessionData.session_id}/end`,
-      {},
-      { headers: { Authorization: `Bearer ${token}` }, timeout: 5000 }
-    );
+    await api.post(`/replay/${sessionData.session_id}/end`, {}, { timeout: 5000 });
   } catch (err) {
     console.error("Failed to close out replay:", err);
   }
@@ -406,16 +398,24 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
 }
  
   async function pollForResult(jobId) {
-    const maxAttempts = 60;
+    // Scoring chains several model calls (score, gap analysis, topic
+    // tagging, next question) and can legitimately take over a minute.
+    // The server times a job out at 3 minutes and reports "failed", so the
+    // client just needs to outlast that; it backs off from 1s to 3s so a
+    // long job doesn't hammer the API. A few transient network errors
+    // mid-poll are retried rather than abandoning the answer.
+    const deadline = Date.now() + 200000;
     let attempts = 0;
+    let networkErrors = 0;
 
     const poll = async () => {
+      if (!mountedRef.current) return;
       attempts++;
+      const nextDelay = Math.min(1000 + attempts * 100, 3000);
       try {
-        const pollToken = localStorage.getItem("access_token");
-        const res = await axios.get(`${API_URL}/answer/status/${jobId}`, {
-          headers: { Authorization: `Bearer ${pollToken}` }
-        });
+        const res = await api.get(`/answer/status/${jobId}`, { timeout: 10000 });
+        networkErrors = 0;
+        if (!mountedRef.current) return;
 
         if (res.data.status === "done") {
           setScores(res.data.scores);
@@ -450,19 +450,25 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
 
         if (res.data.status === "failed") {
           setLoading(false);
-          setScoringError("Scoring failed. Please try submitting again.");
+          setScoringError(`${res.data.error || "Scoring failed"}. Please try submitting again.`);
           return;
         }
 
-        if (attempts < maxAttempts) {
-          setTimeout(poll, 1000);
+        if (Date.now() < deadline) {
+          setTimeout(poll, nextDelay);
         } else {
           setLoading(false);
           setScoringError("Scoring is taking longer than expected. Please try submitting again.");
         }
       } catch (err) {
+        if (!mountedRef.current) return;
+        networkErrors++;
+        if (!err.status && networkErrors <= 3 && Date.now() < deadline) {
+          setTimeout(poll, nextDelay * 2);
+          return;
+        }
         setLoading(false);
-        setScoringError("Something went wrong while scoring your answer.");
+        setScoringError(err.message || "Something went wrong while scoring your answer.");
       }
     };
     poll();
@@ -471,12 +477,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   async function rateFeedback(helpful) {
     setFeedbackRating(helpful);
     try {
-      const token = localStorage.getItem("access_token");
-      await axios.post(
-        `${API_URL}/feedback/rate`,
-        { answer_id: currentAnswerId, helpful },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.post(`/feedback/rate`, { answer_id: currentAnswerId, helpful });
     } catch (err) { console.error(err); }
   }
 

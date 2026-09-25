@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { API_URL } from "../config";
+import api, { getToken } from "../lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { Network, X, ChevronRight, Activity, AlertTriangle, RotateCcw, CheckCircle2, Lock } from "lucide-react";
 
@@ -40,7 +39,7 @@ export default function StudyPlan({ topicName, company, onClose }) {
     setLoading(true);
     setLoadError(false);
     try {
-      const res = await axios.get(`${API_URL}/study-plan/${topicName}`, {
+      const res = await api.get(`/study-plan/${topicName}`, {
         params: { company }
       });
       if (!res.data?.steps) throw new Error("Empty plan");
@@ -60,9 +59,8 @@ export default function StudyPlan({ topicName, company, onClose }) {
   // Real per-step progress, only if a token exists. Silently skipped
   // (not faked) if there's no session or the call fails.
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    if (!token) return;
-    axios.get(`${API_URL}/topics/status`, { headers: { Authorization: `Bearer ${token}` } })
+    if (!getToken()) return;
+    api.get(`/topics/status`)
       .then((res) => {
         const map = {};
         (res.data?.topics || []).forEach((t) => { map[t.name] = t.status; });

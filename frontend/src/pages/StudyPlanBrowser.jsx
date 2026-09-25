@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import axios from "axios";
-import { API_URL } from "../config";
+import api from "../lib/api";
 import StudyPlan from "./StudyPlan";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -31,10 +30,7 @@ export default function StudyPlanBrowser({ onGoBack }) {
   useEffect(() => {
     async function fetchTopics() {
       try {
-        const token = localStorage.getItem("access_token");
-        const res = await axios.get(`${API_URL}/topics/status`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
+        const res = await api.get(`/topics/status`);
         // Status, prerequisites, and gap urgency now come from real per-user
         // data (gaps_identified, topics_covered, TopicPrerequisite) via
         // /topics/status. Default honestly to "unattempted" if the backend

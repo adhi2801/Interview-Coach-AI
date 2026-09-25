@@ -1,12 +1,18 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, Request, BackgroundTasks
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
-from typing import Optional
-from database import get_db, create_tables, SessionLocal
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from sqlalchemy import text
+from typing import Literal, Optional
+from database import SessionLocal
 from models import InterviewSession, Answer, Topic, TopicPrerequisite, ScoringJob, CodingProblem, CodingTestCase, CodingSubmission, ReplayManifest
 from dotenv import load_dotenv
-from pydantic import BaseModel
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from pydantic import BaseModel, EmailStr, Field
+from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from engines.adaptive_difficulty import AdaptiveDifficultyEngine, ROLE_ELO_BANDS
@@ -21,7 +27,7 @@ from code_executor import CodeExecutor
 from auth import hash_password, verify_password, create_access_token, decode_access_token, validate_password_strength
 from content_filter import contains_profanity, sanitize_for_storage
 from models import User
-from datetime import datetime
+from datetime import datetime, timedelta
 import redis
 import uuid
 import json as json_module
@@ -29,18 +35,41 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 security = HTTPBearer(auto_error=False)
 
+
+class APIError(Exception):
+    """
+    Raised by route handlers for any expected failure. Rendered by the
+    handler below as {"error": message} with a real HTTP status code —
+    the same body shape the frontend has always read, but no longer
+    disguised as a 200 OK, so clients, logs, and monitoring can tell a
+    failure from a success.
+    """
+    def __init__(self, status_code: int, message: str):
+        self.status_code = status_code
+        self.message = message
+
+
 def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> int | None:
     """
-    Extracts the user_id from a JWT token if present.
-    Returns None if no token is provided — endpoints can still work
-    for anonymous/guest use, but will personalize when a token exists.
+    Optional auth. No token -> None (anonymous use is allowed on routes
+    that depend on this directly). A token that IS sent but is expired or
+    invalid -> 401, rather than silently treating the caller as anonymous:
+    previously an expired token made every personalized route quietly
+    return empty data, so the UI looked logged-in but showed nothing.
     """
     if not credentials:
         return None
     payload = decode_access_token(credentials.credentials)
-    if not payload:
-        return None
-    return payload.get("user_id")
+    if not payload or not payload.get("user_id"):
+        raise APIError(401, "Your session has expired. Please log in again.")
+    return payload["user_id"]
+
+
+def require_user_id(user_id: int | None = Depends(get_current_user_id)) -> int:
+    """Required auth — use on every route that reads or writes user data."""
+    if not user_id:
+        raise APIError(401, "Authentication required")
+    return user_id
 
 import os
 import structlog
@@ -65,15 +94,54 @@ structlog.configure(
 logger = structlog.get_logger()
 logging.basicConfig(level=logging.INFO)
 
-app = FastAPI(title="InterviewCoach AI", version="1.0.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("application_started", note="schema managed by Alembic migrations")
+    yield
+    code_executor.close()
+
+
+app = FastAPI(title="InterviewCoach AI", version="1.1.0", lifespan=lifespan)
 coding_engine = CodingEngine()
 code_executor = CodeExecutor()
 
 # Rate limiter: protects the Anthropic API budget by capping how many
-# requests a single IP can make per time window.
+# requests a single IP can make per time window. Keyed on the real client
+# IP — uvicorn runs with --proxy-headers (see Dockerfile) so this is the
+# X-Forwarded-For address, not Railway's load balancer shared by everyone.
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+@app.exception_handler(APIError)
+async def api_error_handler(request: Request, exc: APIError):
+    return JSONResponse(status_code=exc.status_code, content={"error": exc.message})
+
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={"error": "Too many requests. Please slow down and try again in a minute."},
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(request: Request, exc: RequestValidationError):
+    # Turn pydantic's nested error list into one readable sentence, keeping
+    # the {"error": ...} shape every other failure uses.
+    first = exc.errors()[0] if exc.errors() else {}
+    field = ".".join(str(p) for p in first.get("loc", []) if p != "body")
+    message = first.get("msg", "Invalid request")
+    return JSONResponse(
+        status_code=422,
+        content={"error": f"{field}: {message}" if field else message},
+    )
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    return JSONResponse(status_code=exc.status_code, content={"error": str(exc.detail)})
 
 try:
     redis_client = redis.from_url(os.getenv("REDIS_URL"), decode_responses=True, socket_connect_timeout=2)
@@ -115,50 +183,55 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Most responses here are JSON dashboards/replays that compress 5-10x.
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 # Request models
+#
+# Every free-text field has a hard max_length. Each of these strings is
+# forwarded to Claude or Judge0 (both billed per call/token), so without a
+# cap a single request could carry megabytes of input. The limits are far
+# above anything a real answer or solution needs.
+SupportedLanguage = Literal["python", "javascript", "java", "cpp", "c", "go"]
+
 class StartSessionRequest(BaseModel):
-    user_name: str
-    company: str
-    role: str
+    user_name: str = Field(max_length=100)
+    company: str = Field(min_length=1, max_length=50)
+    role: str = Field(min_length=1, max_length=100)
     elo: float = 1200.0
-    persona: str = "standard"
-    preview_id: Optional[str] = None
+    persona: str = Field(default="standard", max_length=30)
+    preview_id: Optional[str] = Field(default=None, max_length=64)
 
 class SubmitAnswerRequest(BaseModel):
     session_id: int
-    question: str
-    answer: str
-    difficulty: int
+    question: str = Field(min_length=1, max_length=5000)
+    answer: str = Field(min_length=1, max_length=20000)
+    difficulty: int = Field(ge=1, le=10)
     elo: float
-    company: str = None
-    role: str = "Software Engineer"
-    failed_topic: str = None
-    category: str = None
-    persona: str = "standard"
-
-class CoachTextRequest(BaseModel):
-    text: str
-    session_id: int
+    company: Optional[str] = Field(default=None, max_length=50)
+    role: str = Field(default="Software Engineer", max_length=100)
+    failed_topic: Optional[str] = Field(default=None, max_length=200)
+    category: Optional[str] = Field(default=None, max_length=100)
+    persona: str = Field(default="standard", max_length=30)
 
 class SignupRequest(BaseModel):
-    email: str
-    password: str
-    name: str
+    email: EmailStr
+    password: str = Field(max_length=128)
+    name: str = Field(min_length=1, max_length=100)
 
 class LoginRequest(BaseModel):
-    email: str
-    password: str
+    email: str = Field(max_length=254)
+    password: str = Field(max_length=128)
 
 class RunCodeRequest(BaseModel):
     problem_id: int
-    code: str
-    language: str = "python"
+    code: str = Field(min_length=1, max_length=50000)
+    language: SupportedLanguage = "python"
 
 class SubmitCodeRequest(BaseModel):
     problem_id: int
-    code: str
-    language: str = "python"
+    code: str = Field(min_length=1, max_length=50000)
+    language: SupportedLanguage = "python"
     session_id: Optional[int] = None
 
 # Engine instances
@@ -168,10 +241,6 @@ company_engine = CompanyDNAEngine()
 gap_engine = KnowledgeGapGraph()
 peer_engine = PeerComparisonEngine()
 replay_system = ReplaySystem()
-
-@app.on_event("startup")
-def startup():
-    print("Application started — schema managed by Alembic migrations")
 
 @app.get("/companies/{company}/profile")
 def get_company_profile(company: str):
@@ -185,7 +254,36 @@ def get_elo_bands():
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "message": "InterviewCoach AI is running"}
+    """
+    Real readiness check: pings Postgres (required) and Redis (optional,
+    every Redis use in this app fails open). Returns 503 if the database is
+    unreachable, so Railway's healthcheck and the dashboard status dot
+    report an outage instead of a cheerful "ok" from a process that can't
+    serve a single real request.
+    """
+    db_ok = True
+    db = SessionLocal()
+    try:
+        db.execute(text("SELECT 1"))
+    except Exception as e:
+        db_ok = False
+        logger.error("health_check_db_failed", error=str(e))
+    finally:
+        db.close()
+
+    redis_ok = False
+    if redis_client:
+        try:
+            redis_ok = bool(redis_client.ping())
+        except Exception:
+            redis_ok = False
+
+    body = {
+        "status": "ok" if db_ok else "degraded",
+        "database": "ok" if db_ok else "unreachable",
+        "cache": "ok" if redis_ok else "unavailable",
+    }
+    return JSONResponse(status_code=200 if db_ok else 503, content=body)
 
 @app.get("/")
 def root():
@@ -298,17 +396,21 @@ def signup(payload: SignupRequest, request: Request):
 
     password_error = validate_password_strength(payload.password)
     if password_error:
-        return {"error": password_error}
+        raise APIError(400, password_error)
+
+    name = payload.name.strip()
+    if not name:
+        raise APIError(400, "Name cannot be empty")
 
     db = SessionLocal()
     try:
         existing = db.query(User).filter(User.email == email).first()
         if existing:
-            return {"error": "An account with this email already exists"}
+            raise APIError(409, "An account with this email already exists")
 
         user = User(
             email=email,
-            name=payload.name,
+            name=name,
             hashed_password=hash_password(payload.password),
             elo_rating=1200.0
         )
@@ -336,7 +438,7 @@ def login(payload: LoginRequest, request: Request):
     try:
         user = db.query(User).filter(User.email == email).first()
         if not user or not verify_password(payload.password, user.hashed_password):
-            return {"error": "Invalid email or password"}
+            raise APIError(401, "Invalid email or password")
 
         token = create_access_token({"user_id": user.id, "email": user.email})
         logger.info("user_logged_in", user_id=user.id)
@@ -350,7 +452,7 @@ def login(payload: LoginRequest, request: Request):
 
 @app.post("/session/preview")
 @limiter.limit("15/minute")
-def preview_session(payload: StartSessionRequest, request: Request, user_id: int = Depends(get_current_user_id)):
+def preview_session(payload: StartSessionRequest, request: Request, user_id: int = Depends(require_user_id)):
     """
     User-initiated only — the frontend calls this from a 'Preview Opening
     Line' button, never automatically on every dropdown change, since this
@@ -359,42 +461,39 @@ def preview_session(payload: StartSessionRequest, request: Request, user_id: int
     reuse the EXACT SAME question instead of generating a different one
     if the user goes on to actually launch.
     """
-    if not user_id:
-        return {"error": "You must be logged in to preview a question"}
-    
     real_elo = payload.elo
-    if user_id:
-        db = SessionLocal()
-        try:
-            user = db.query(User).filter(User.id == user_id).first()
-            if user:
-                real_elo = user.elo_rating
-        finally:
-            db.close()
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if user:
+            real_elo = user.elo_rating
+    finally:
+        db.close()
 
     question_data = difficulty_engine.select_question(
         elo=real_elo, company=payload.company, role=payload.role, persona=payload.persona
     )
     preview_id = str(uuid.uuid4())
     if redis_client:
-        redis_client.setex(f"preview:{preview_id}", 600, json_module.dumps(question_data))
+        # Keyed by user too, so one user can't redeem another user's
+        # preview_id (and the question/company it was generated for).
+        redis_client.setex(f"preview:{user_id}:{preview_id}", 600, json_module.dumps(question_data))
     return {"preview_id": preview_id, **question_data}
 
 
 @app.post("/session/start")
 @limiter.limit("10/minute")
-def start_session(payload: StartSessionRequest, request: Request, user_id: int = Depends(get_current_user_id)):
-    if not user_id:
-        return {"error": "You must be logged in to start a session"}
+def start_session(payload: StartSessionRequest, request: Request, user_id: int = Depends(require_user_id)):
     logger.info("session_start_requested", company=payload.company, role=payload.role, user_id=user_id)
 
     real_elo = payload.elo
     db = SessionLocal()
     try:
-        if user_id:
-            user = db.query(User).filter(User.id == user_id).first()
-            if user:
-                real_elo = user.elo_rating
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            # Token outlived its account (e.g. account deleted in another tab).
+            raise APIError(401, "Account not found. Please log in again.")
+        real_elo = user.elo_rating
 
         session_record = InterviewSession(
             user_id=user_id,
@@ -418,7 +517,10 @@ def start_session(payload: StartSessionRequest, request: Request, user_id: int =
     )
     cached_preview = None
     if payload.preview_id and redis_client:
-        cached_preview = redis_client.get(f"preview:{payload.preview_id}")
+        preview_key = f"preview:{user_id}:{payload.preview_id}"
+        cached_preview = redis_client.get(preview_key)
+        if cached_preview:
+            redis_client.delete(preview_key)  # single use
 
     if cached_preview:
         question_data = json_module.loads(cached_preview)
@@ -445,34 +547,61 @@ def start_session(payload: StartSessionRequest, request: Request, user_id: int =
         "company_profile": company_engine.get_profile(payload.company)
     }
 
-def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
+SCORING_JOB_TIMEOUT = timedelta(minutes=3)
+
+
+def _mark_job_failed(job_id: int, reason: str):
+    db = SessionLocal()
+    try:
+        job = db.query(ScoringJob).filter(ScoringJob.id == job_id).first()
+        if job and job.status == "processing":
+            job.status = "failed"
+            job.result = {"error": reason}
+            db.commit()
+    finally:
+        db.close()
+
+
+def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest, user_id: int):
     """
     Runs in the background. Does all the heavy work — Claude scoring,
     gap detection, peer comparison, ELO update — without blocking
     the original HTTP request.
+
+    Two phases, on purpose:
+      1. Every slow external call (scoring, gap analysis, topic tagging,
+         next-question selection) runs first, with NO database transaction
+         open — these take many seconds and must not hold row locks.
+      2. Every write (user ELO, session snapshot, the Answer row, the job
+         result) then happens in ONE transaction. Previously these were
+         five separate commits, so a crash midway could leave a user's ELO
+         changed with no Answer saved and the job marked failed — and a
+         retry would then apply the ELO change a second time.
+
+    The user's ELO is re-read under SELECT ... FOR UPDATE in phase 2, so a
+    coding submission that finishes while this answer is being scored is
+    built upon instead of silently overwritten with a stale value.
     """
     db = SessionLocal()
-    session_for_elo = db.query(InterviewSession).filter(InterviewSession.id == payload.session_id).first()
-    real_elo = payload.elo
-    if session_for_elo and session_for_elo.user_id:
-        owning_user = db.query(User).filter(User.id == session_for_elo.user_id).first()
-        if owning_user:
-            real_elo = owning_user.elo_rating
-
-    # Real difficulty — same trust-boundary category as the ELO fix above.
-    # payload.difficulty is client-supplied and was being passed straight
-    # into BOTH peer comparison AND the ELO formula below, meaning a caller
-    # could lie about difficulty to inflate their real ELO, not just skew
-    # the "top X% globally" stat. session_for_elo.difficulty_level is the
-    # real value, set server-side once at /session/start and never touched
-    # by the client again. Falls back to payload.difficulty only in the
-    # rare case where the session record itself is missing (see the
-    # session_record_missing_fallback_triggered path below).
-    real_difficulty = payload.difficulty
-    if session_for_elo and session_for_elo.difficulty_level is not None:
-        real_difficulty = session_for_elo.difficulty_level
-
     try:
+        # Ownership was already verified in /answer/submit; re-checked here
+        # only because the session could be deleted in the meantime.
+        session_record = db.query(InterviewSession).filter(
+            InterviewSession.id == payload.session_id,
+            InterviewSession.user_id == user_id,
+        ).first()
+        user = db.query(User).filter(User.id == user_id).first()
+        if not session_record or not user:
+            _mark_job_failed(job_id, "Session no longer exists")
+            return
+        # Server-side values only. payload.elo / payload.difficulty are
+        # client-supplied and must never feed the ELO formula or peer stats.
+        start_elo = user.elo_rating
+        real_difficulty = session_record.difficulty_level or payload.difficulty
+        default_company = session_record.company_target or "google"
+        db.rollback()  # release the read snapshot before the slow phase
+
+        # ---- Phase 1: slow external calls, no transaction held ----
         has_profanity = contains_profanity(payload.answer)
         clean_answer = sanitize_for_storage(payload.answer) if has_profanity else payload.answer
 
@@ -483,7 +612,6 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
                 "Please provide a professional response to receive accurate feedback. " + scores.get("overall_summary", "")
             )
 
-        technical_score = scores["score_technical"]
         overall = round((
             scores["score_technical"] + scores["score_communication"] +
             scores["score_problem_solving"] + scores["score_cultural_fit"] +
@@ -492,64 +620,55 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
 
         gaps, gap_analysis_failed = gap_engine.extract_gaps(
             question=payload.question, answer=clean_answer,
-            technical_score=technical_score, company=payload.company
+            technical_score=scores["score_technical"], company=payload.company
         )
-        topics_addressed, topics_analysis_failed = gap_engine.identify_topics_addressed(
+        topics_addressed, _topics_analysis_failed = gap_engine.identify_topics_addressed(
             question=payload.question, answer=clean_answer
         )
         peer = peer_engine.get_percentile(your_score=overall, difficulty=real_difficulty)
 
-        # 1. Compute new ELO
-        new_elo = difficulty_engine.update_elo(
-            current_elo=real_elo, question_difficulty=real_difficulty, score=overall
+        # Used only to pick the next question's difficulty; the persisted
+        # value is recomputed below from the locked, current ELO.
+        provisional_elo = difficulty_engine.update_elo(
+            current_elo=start_elo, question_difficulty=real_difficulty, score=overall
         )
+        company = payload.company or default_company
+        if overall >= 7:
+            next_question_data = difficulty_engine.select_followup_question(
+                previous_question=payload.question,
+                previous_answer=clean_answer,
+                elo=provisional_elo,
+                company=company,
+                role=payload.role,
+                previous_category=payload.category,
+                persona=payload.persona
+            )
+        else:
+            failed_topic = gaps[0].get("gap") if (overall < 5 and gaps) else None
+            next_question_data = difficulty_engine.select_question(
+                elo=provisional_elo,
+                company=company,
+                role=payload.role,
+                failed_topic=failed_topic,
+                persona=payload.persona
+            )
 
-        replay_system.log_event(payload.session_id, "answer_submitted", {"text": clean_answer})
-        replay_system.log_event(payload.session_id, "scores_calculated", scores)
-        replay_system.log_event(payload.session_id, "gaps_identified", gaps)
-
-        # 2. Fetch/Create session record
+        # ---- Phase 2: every write in one transaction ----
+        user = db.query(User).filter(User.id == user_id).with_for_update().first()
         session_record = db.query(InterviewSession).filter(InterviewSession.id == payload.session_id).first()
-        if not session_record:
-            # This path means /answer/submit was called with a session_id
-            # that /session/start never actually created — that shouldn't
-            # happen in normal operation. Logging loudly here rather than
-            # silently self-healing, since manually forcing `id=` on an
-            # auto-increment primary key on insert can desync Postgres's
-            # sequence counter from the table's actual max id, causing a
-            # future *normal* insert to collide with this one and crash
-            # with a duplicate-key error much later, for reasons that look
-            # completely unrelated at the time. If this ever actually
-            # fires in production, it's worth finding out why rather than
-            # letting it happen silently.
-            logger.warning(
-                "session_record_missing_fallback_triggered",
-                session_id=payload.session_id,
-                note="InterviewSession did not exist for this session_id — check upstream flow"
-            )
-            session_record = InterviewSession(
-                id=payload.session_id, difficulty_level=payload.difficulty,
-                company_target=payload.company or "unknown", role="unknown"
-            )
-            db.add(session_record)
-            db.commit()
+        job = db.query(ScoringJob).filter(ScoringJob.id == job_id).first()
+        if not user or not session_record or not job:
+            db.rollback()
+            _mark_job_failed(job_id, "Session no longer exists")
+            return
 
-        # 3. Persist the updated ELO to the user record
-        # Without this, every session starts back at 1200 regardless of prior performance.
-        if session_record and session_record.user_id:
-            user = db.query(User).filter(User.id == session_record.user_id).first()
-            if user:
-                user.elo_rating = new_elo
-                db.commit()
+        new_elo = difficulty_engine.update_elo(
+            current_elo=user.elo_rating, question_difficulty=real_difficulty, score=overall
+        )
+        user.elo_rating = new_elo
+        # Per-session snapshot powers the Rating History chart.
+        session_record.elo_after = new_elo
 
-        # Snapshot ELO on the session itself too — this is what makes the
-        # Rating History chart show REAL per-session values instead of
-        # always plotting whatever the user's current live ELO happens to be.
-        if session_record:
-            session_record.elo_after = new_elo
-            db.commit()
-
-        # 4. Save the Answer row
         answer_record = Answer(
             session_id=payload.session_id, question_text=payload.question, answer_text=clean_answer,
             score_technical=scores["score_technical"], score_communication=scores["score_communication"],
@@ -558,34 +677,10 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
             topics_covered=topics_addressed
         )
         db.add(answer_record)
-        db.commit()
-        db.refresh(answer_record)
+        db.flush()  # assigns answer_record.id without committing
 
-        failed_topic = None
-        if overall < 5 and gaps:
-            failed_topic = gaps[0].get("gap")
-
-        if overall >= 7 and payload.question:
-            next_question_data = difficulty_engine.select_followup_question(
-                previous_question=payload.question,
-                previous_answer=clean_answer,
-                elo=new_elo,
-                company=payload.company or "google",
-                role=payload.role,
-                previous_category=payload.category if hasattr(payload, "category") else None,
-                persona=payload.persona
-            )
-        else:
-            next_question_data = difficulty_engine.select_question(
-                elo=new_elo,
-                company=payload.company or "google",
-                role=payload.role,
-                failed_topic=failed_topic,
-                persona=payload.persona
-            )
-        replay_system.log_event(payload.session_id, "question_asked", next_question_data)
-
-        result = {
+        job.status = "done"
+        job.result = {
             "scores": scores, "overall_score": overall, "gaps": gaps,
             "peer_comparison": peer, "new_elo": new_elo,
             "gap_analysis_unavailable": gap_analysis_failed,
@@ -597,47 +692,52 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest):
             "next_sub_category": next_question_data.get("sub_category", ""),
             "answer_id": answer_record.id
         }
-
-        job = db.query(ScoringJob).filter(ScoringJob.id == job_id).first()
-        job.status = "done"
-        job.result = result
         db.commit()
-        logger.info("scoring_job_completed", job_id=job_id, session_id=payload.session_id)
+        logger.info("scoring_job_completed", job_id=job_id, session_id=payload.session_id,
+                    elo_before=start_elo, elo_after=new_elo)
+
+        # Replay logging after the commit: the replay is a derived view, and
+        # a failure writing it must not roll back the user's real result.
+        try:
+            replay_system.log_event(payload.session_id, "answer_submitted", {"text": clean_answer})
+            replay_system.log_event(payload.session_id, "scores_calculated", scores)
+            replay_system.log_event(payload.session_id, "gaps_identified", gaps)
+            replay_system.log_event(payload.session_id, "question_asked", next_question_data)
+        except Exception as e:
+            logger.error("replay_logging_failed", session_id=payload.session_id, error=str(e))
 
     except Exception as e:
-        logger.error("scoring_job_failed", job_id=job_id, error=str(e))
-        job = db.query(ScoringJob).filter(ScoringJob.id == job_id).first()
-        if job:
-            job.status = "failed"
-            db.commit()
+        db.rollback()
+        logger.error("scoring_job_failed", job_id=job_id, error=str(e), error_type=type(e).__name__)
+        _mark_job_failed(job_id, "Scoring failed")
     finally:
         db.close()
 
 
 @app.post("/answer/submit")
 @limiter.limit("20/minute")
-def submit_answer(payload: SubmitAnswerRequest, background_tasks: BackgroundTasks, request: Request, user_id: int = Depends(get_current_user_id)):
-    # Previously this endpoint only checked the token budget when a
-    # user_id was present ("if user_id and not check_and_charge_token_budget(...)"),
-    # which meant an anonymous session skipped cost protection ENTIRELY —
-    # every real answer here calls Claude for scoring, so an unauthenticated
-    # caller could run up the Anthropic bill with no cap at all beyond the
-    # plain per-minute rate limit. /coding/submit already correctly requires
-    # login; this brings /answer/submit in line with that same rule.
-    if not user_id:
-        return {"error": "You must be logged in to submit an answer"}
-
-    # Token budget check — separate from the request-count limiter above.
-    # This catches the case where someone stays under 20 requests/minute
-    # but pastes something huge into every single one.
-    estimated = estimate_tokens(payload.answer) + estimate_tokens(payload.question)
-    if not check_and_charge_token_budget(user_id, estimated):
-        return {"error": "Daily usage limit reached. Please try again tomorrow."}
-
-    logger.info("answer_submitted", session_id=payload.session_id, difficulty=payload.difficulty, user_id=user_id)
-
+def submit_answer(payload: SubmitAnswerRequest, background_tasks: BackgroundTasks, request: Request, user_id: int = Depends(require_user_id)):
     db = SessionLocal()
     try:
+        # Ownership check. Without it, any logged-in user could submit an
+        # answer against someone else's session_id — and the scoring job
+        # would then rewrite THAT user's ELO.
+        session_record = db.query(InterviewSession).filter(
+            InterviewSession.id == payload.session_id,
+            InterviewSession.user_id == user_id,
+        ).first()
+        if not session_record:
+            raise APIError(404, "Session not found")
+        if session_record.ended_at:
+            raise APIError(409, "This session has already ended")
+
+        # Token budget check — separate from the request-count limiter above.
+        # This catches the case where someone stays under 20 requests/minute
+        # but pastes something huge into every single one.
+        estimated = estimate_tokens(payload.answer) + estimate_tokens(payload.question)
+        if not check_and_charge_token_budget(user_id, estimated):
+            raise APIError(429, "Daily usage limit reached. Please try again tomorrow.")
+
         job = ScoringJob(session_id=payload.session_id, status="processing")
         db.add(job)
         db.commit()
@@ -646,49 +746,54 @@ def submit_answer(payload: SubmitAnswerRequest, background_tasks: BackgroundTask
     finally:
         db.close()
 
-    background_tasks.add_task(process_answer_scoring, job_id, payload)
-
+    logger.info("answer_submitted", session_id=payload.session_id, job_id=job_id, user_id=user_id)
+    background_tasks.add_task(process_answer_scoring, job_id, payload, user_id)
     return {"job_id": job_id, "status": "processing"}
 
 
 @app.get("/answer/status/{job_id}")
-def get_scoring_status(job_id: int, user_id: int = Depends(get_current_user_id)):
+def get_scoring_status(job_id: int, user_id: int = Depends(require_user_id)):
     db = SessionLocal()
     try:
-        job = db.query(ScoringJob).filter(ScoringJob.id == job_id).first()
-        if not job:
-            return {"status": "not_found"}
-
-        session_record = db.query(InterviewSession).filter(
-            InterviewSession.id == job.session_id
-        ).first()
-        if not user_id or not session_record or session_record.user_id != user_id:
-            return {"status": "not_found"}  # don't reveal it exists either
+        row = db.query(ScoringJob, InterviewSession).join(
+            InterviewSession, ScoringJob.session_id == InterviewSession.id
+        ).filter(ScoringJob.id == job_id, InterviewSession.user_id == user_id).first()
+        if not row:
+            raise APIError(404, "Scoring job not found")  # same response whether it exists or isn't yours
+        job, _ = row
 
         if job.status == "done":
             return {"status": "done", **job.result}
-        return {"status": job.status}
+
+        # A background task dies with its worker process (deploy, restart,
+        # OOM), leaving the job "processing" forever and the candidate
+        # polling a spinner that never resolves. Time it out.
+        if job.status == "processing" and job.created_at and datetime.utcnow() - job.created_at > SCORING_JOB_TIMEOUT:
+            job.status = "failed"
+            job.result = {"error": "Scoring timed out"}
+            db.commit()
+            logger.warning("scoring_job_timed_out", job_id=job_id)
+
+        response = {"status": job.status}
+        if job.status == "failed":
+            response["error"] = (job.result or {}).get("error", "Scoring failed")
+        return response
     finally:
         db.close()
 
 
 class HintRequest(BaseModel):
-    problem: str
-    current_code: str
-    language: str = "python"
+    problem: str = Field(min_length=1, max_length=10000)
+    current_code: str = Field(max_length=50000)
+    language: SupportedLanguage = "python"
 
 @app.post("/coding/hint")
 @limiter.limit("15/minute")
-def get_coding_hint(payload: HintRequest, request: Request, user_id: int = Depends(get_current_user_id)):
-    if not user_id:
-        return {"error": "You must be logged in to get a hint"}
+def get_coding_hint(payload: HintRequest, request: Request, user_id: int = Depends(require_user_id)):
     return coding_engine.get_hint(payload.problem, payload.current_code, payload.language)
 
 @app.get("/replay/{session_id}")
-def get_replay(session_id: int, user_id: int = Depends(get_current_user_id)):
-    if not user_id:
-        return {"error": "Authentication required"}
-
+def get_replay(session_id: int, user_id: int = Depends(require_user_id)):
     db = SessionLocal()
     try:
         session_record = db.query(InterviewSession).filter(
@@ -696,40 +801,38 @@ def get_replay(session_id: int, user_id: int = Depends(get_current_user_id)):
             InterviewSession.user_id == user_id
         ).first()
         if not session_record:
-            return {"error": "Replay not found"}
+            raise APIError(404, "Replay not found")
     finally:
         db.close()
 
     return replay_system.get_replay(session_id)
 
-@app.get("/replay/{session_id}/list")
-def list_replays(user_id: int = Depends(get_current_user_id)):
-    if not user_id:
-        return {"replays": []}
-
+@app.get("/replays")
+@app.get("/replay/{session_id}/list")  # legacy path, kept for old clients
+def list_replays(user_id: int = Depends(require_user_id)):
     db = SessionLocal()
     try:
-        own_session_ids = {
-            s.id for s in db.query(InterviewSession).filter(
+        own_session_ids = [
+            sid for (sid,) in db.query(InterviewSession.id).filter(
                 InterviewSession.user_id == user_id
             ).all()
-        }
+        ]
     finally:
         db.close()
 
-    all_replays = replay_system.list_replays()
-    return {"replays": [r for r in all_replays if r["session_id"] in own_session_ids]}
+    # Previously loaded EVERY user's replay manifest (full event logs
+    # included) and filtered in Python — now only this user's rows are read.
+    return {"replays": replay_system.list_replays(session_ids=own_session_ids)}
+
+
 @app.post("/replay/{session_id}/end")
-def end_session(session_id: int, user_id: int = Depends(get_current_user_id)):
+def end_session(session_id: int, user_id: int = Depends(require_user_id)):
     """
     Marks an InterviewSession as ended — the only place ended_at ever
     gets set. Called by the frontend's handleFinish() on both a normal
     "End Session" and an "Abort". Idempotent: if it's already ended,
     calling it again is a harmless no-op rather than an error.
     """
-    if not user_id:
-        return {"error": "Authentication required"}
-
     db = SessionLocal()
     try:
         session_record = db.query(InterviewSession).filter(
@@ -737,11 +840,14 @@ def end_session(session_id: int, user_id: int = Depends(get_current_user_id)):
             InterviewSession.user_id == user_id
         ).first()
         if not session_record:
-            return {"error": "Session not found"}
+            raise APIError(404, "Session not found")
 
         if not session_record.ended_at:
             session_record.ended_at = datetime.utcnow()
             db.commit()
+            # The replay manifest has its own ended_at, which nothing ever
+            # set — so every replay reported the session as still running.
+            replay_system.end_recording(session_id)
 
         return {"status": "ended", "ended_at": session_record.ended_at.isoformat()}
     finally:
@@ -752,7 +858,7 @@ class FeedbackRatingRequest(BaseModel):
     helpful: bool
 
 @app.post("/feedback/rate")
-def rate_feedback(payload: FeedbackRatingRequest, user_id: int = Depends(get_current_user_id)):
+def rate_feedback(payload: FeedbackRatingRequest, user_id: int = Depends(require_user_id)):
     db = SessionLocal()
     try:
         answer = db.query(Answer).filter(Answer.id == payload.answer_id).first()
@@ -806,9 +912,7 @@ def get_study_plan(topic_name: str, company: str = None):
         db.close()
 
 @app.get("/user/sessions")
-def get_user_sessions(user_id: int = Depends(get_current_user_id)):
-    if not user_id:
-        return {"sessions": []}
+def get_user_sessions(user_id: int = Depends(require_user_id)):
     db = SessionLocal()
     try:
         sessions = db.query(InterviewSession).filter(
@@ -864,7 +968,7 @@ def get_user_sessions(user_id: int = Depends(get_current_user_id)):
 
 
 @app.get("/user/activity")
-def get_user_activity(user_id: int = Depends(get_current_user_id)):
+def get_user_activity(user_id: int = Depends(require_user_id)):
     """
     Real unified activity feed across BOTH tracks — interview sessions and
     coding submissions write to the same User.elo_rating, so a per-track
@@ -883,9 +987,6 @@ def get_user_activity(user_id: int = Depends(get_current_user_id)):
     total (Answer.session_id.in_(...), CodingProblem.id.in_(...)) and
     grouped in Python, same result, a fraction of the round trips.
     """
-    if not user_id:
-        return {"activity": []}
-
     db = SessionLocal()
     try:
         sessions = db.query(InterviewSession).filter(
@@ -972,7 +1073,7 @@ def get_user_activity(user_id: int = Depends(get_current_user_id)):
         db.close()
 
 @app.get("/user/skill-radar")
-def get_skill_radar(session_id: Optional[int] = None, company: Optional[str] = None, user_id: int = Depends(get_current_user_id)):
+def get_skill_radar(session_id: Optional[int] = None, company: Optional[str] = None, user_id: int = Depends(require_user_id)):
     """
     Real 5-dimension average score radar, computed from actual persisted
     Answer rows — the same five scores every debrief and replay screen
@@ -984,9 +1085,6 @@ def get_skill_radar(session_id: Optional[int] = None, company: Optional[str] = N
     - company: scope to all sessions targeting one company
     - neither: all-time average across every answer the user has given
     """
-    if not user_id:
-        return {"radar": None, "sample_size": 0}
-
     db = SessionLocal()
     try:
         query = db.query(Answer).join(InterviewSession, Answer.session_id == InterviewSession.id).filter(
@@ -1020,7 +1118,7 @@ def get_skill_radar(session_id: Optional[int] = None, company: Optional[str] = N
 
 
 @app.get("/user/gap-queue")
-def get_gap_queue(company: Optional[str] = None, user_id: int = Depends(get_current_user_id)):
+def get_gap_queue(company: Optional[str] = None, user_id: int = Depends(require_user_id)):
     """
     Real gap queue — aggregates Answer.gaps_identified (already persisted
     by process_answer_scoring via gap_engine.extract_gaps on every
@@ -1028,9 +1126,6 @@ def get_gap_queue(company: Optional[str] = None, user_id: int = Depends(get_curr
     to one company. Ranked by urgency then frequency. Replaces the old
     hardcoded per-company COMPANY_TELEMETRY gap lists.
     """
-    if not user_id:
-        return {"critical_gap": None, "queue": []}
-
     db = SessionLocal()
     try:
         query = db.query(Answer, InterviewSession).join(
@@ -1077,7 +1172,7 @@ def get_gap_queue(company: Optional[str] = None, user_id: int = Depends(get_curr
 
 
 @app.get("/user/skill-matrix")
-def get_skill_matrix(user_id: int = Depends(get_current_user_id)):
+def get_skill_matrix(user_id: int = Depends(require_user_id)):
     """
     Real knowledge-graph coverage: for each Topic.category, how many
     distinct topics has this user's Answer.topics_covered actually
@@ -1085,9 +1180,6 @@ def get_skill_matrix(user_id: int = Depends(get_current_user_id)):
     Requires topics_covered to be populated by identify_topics_addressed
     during scoring.
     """
-    if not user_id:
-        return {"categories": [], "total_touched": 0, "total_topics": 0}
-
     db = SessionLocal()
     try:
         answers = db.query(Answer).join(InterviewSession, Answer.session_id == InterviewSession.id).filter(
@@ -1118,10 +1210,7 @@ def get_skill_matrix(user_id: int = Depends(get_current_user_id)):
         db.close()
 
 @app.delete("/user/me")
-def delete_my_account(user_id: int = Depends(get_current_user_id)):
-    if not user_id:
-        return {"error": "Authentication required"}
-
+def delete_my_account(user_id: int = Depends(require_user_id)):
     db = SessionLocal()
     try:
         session_ids = [
@@ -1148,7 +1237,7 @@ def delete_my_account(user_id: int = Depends(get_current_user_id)):
     except Exception as e:
         db.rollback()
         logger.error("account_deletion_failed", user_id=user_id, error=str(e))
-        return {"error": "Deletion failed. Please try again or contact support."}
+        raise APIError(500, "Deletion failed. Please try again or contact support.")
     finally:
         db.close()
 
@@ -1166,7 +1255,7 @@ VALID_PREFERENCE_KEYS = {"sound_effects", "live_coaching_telemetry", "high_contr
 
 
 @app.get("/user/profile-summary")
-def get_profile_summary(user_id: int = Depends(get_current_user_id)):
+def get_profile_summary(user_id: int = Depends(require_user_id)):
     """
     Single real source of truth for the Settings page: identity, ELO,
     real session/score aggregates (same math as /user/sessions), stored
@@ -1178,14 +1267,11 @@ def get_profile_summary(user_id: int = Depends(get_current_user_id)):
     session's role, and is honestly null if they have no sessions yet or
     their most recent role isn't one of the tracked bands.
     """
-    if not user_id:
-        return {"error": "Authentication required"}
-
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
-            return {"error": "User not found"}
+            raise APIError(404, "User not found")
 
         sessions = db.query(InterviewSession).filter(
             InterviewSession.user_id == user_id
@@ -1237,21 +1323,19 @@ def get_profile_summary(user_id: int = Depends(get_current_user_id)):
 
 
 @app.patch("/user/profile")
-def update_profile(payload: UpdateProfileRequest, user_id: int = Depends(get_current_user_id)):
-    if not user_id:
-        return {"error": "Authentication required"}
+def update_profile(payload: UpdateProfileRequest, user_id: int = Depends(require_user_id)):
 
     name = payload.name.strip()
     if not name:
-        return {"error": "Name cannot be empty"}
+        raise APIError(400, "Name cannot be empty")
     if len(name) > 100:
-        return {"error": "Name is too long"}
+        raise APIError(400, "Name is too long")
 
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
-            return {"error": "User not found"}
+            raise APIError(404, "User not found")
         user.name = name
         db.commit()
         return {"status": "ok", "name": user.name}
@@ -1260,24 +1344,22 @@ def update_profile(payload: UpdateProfileRequest, user_id: int = Depends(get_cur
 
 
 @app.patch("/user/preferences")
-def update_preference(payload: UpdatePreferenceRequest, user_id: int = Depends(get_current_user_id)):
-    if not user_id:
-        return {"error": "Authentication required"}
+def update_preference(payload: UpdatePreferenceRequest, user_id: int = Depends(require_user_id)):
     if payload.key not in VALID_PREFERENCE_KEYS:
-        return {"error": f"Unknown preference key: {payload.key}"}
+        raise APIError(400, f"Unknown preference key: {payload.key}")
 
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
-            return {"error": "User not found"}
+            raise APIError(404, "User not found")
         prefs = dict(user.preferences or {})
         prefs[payload.key] = payload.value
         user.preferences = prefs
         db.commit()
         return {"status": "ok", "preferences": user.preferences}
     finally:
-        db.close()            
+        db.close()
 
 # --- Coding Track (Track B) ---
 
@@ -1311,7 +1393,7 @@ def get_coding_problem(slug: str):
     try:
         problem = db.query(CodingProblem).filter(CodingProblem.slug == slug).first()
         if not problem:
-            return {"error": "Problem not found"}
+            raise APIError(404, "Problem not found")
 
         visible_cases = db.query(CodingTestCase).filter(
             CodingTestCase.problem_id == problem.id,
@@ -1341,23 +1423,18 @@ def get_coding_problem(slug: str):
 
 @app.post("/coding/run")
 @limiter.limit("20/minute")
-def run_code(request: Request, payload: RunCodeRequest, user_id: int = Depends(get_current_user_id)):
+def run_code(request: Request, payload: RunCodeRequest, user_id: int = Depends(require_user_id)):
     """
     'Run' button — executes against VISIBLE sample cases only. Self-check for the
     candidate, mirrors what a real IDE's 'run against examples' does. Nothing persisted.
     """
-    # Every Judge0 call here costs real money against your RapidAPI quota, and
-    # run_test_cases calls this once PER test case — so one anonymous request
-    # can trigger several paid calls at once, with no account tied to the cost.
-    # Same category of bug /answer/submit had for Claude costs; same fix.
-    if not user_id:
-        return {"error": "You must be logged in to run code"}
-
+    # Auth required (require_user_id): every Judge0 call here costs real
+    # money against the RapidAPI quota, so it must be tied to an account.
     db = SessionLocal()
     try:
         problem = db.query(CodingProblem).filter(CodingProblem.id == payload.problem_id).first()
         if not problem:
-            return {"error": "Problem not found"}
+            raise APIError(404, "Problem not found")
 
         visible_cases = db.query(CodingTestCase).filter(
             CodingTestCase.problem_id == problem.id,
@@ -1381,57 +1458,85 @@ def run_code(request: Request, payload: RunCodeRequest, user_id: int = Depends(g
 
 @app.post("/coding/submit")
 @limiter.limit("10/minute")
-def submit_code(request: Request, payload: SubmitCodeRequest, user_id: int = Depends(get_current_user_id)):
+def submit_code(request: Request, payload: SubmitCodeRequest, user_id: int = Depends(require_user_id)):
     """
     'Submit' button — executes against ALL test cases (visible + hidden), grades
     quality with Claude via coding_engine.grade_submission(), and persists the result.
-    """
-    if not user_id:
-        return {"error": "You must be logged in to submit"}
 
+    The DB connection is NOT held open across the Judge0 run and the Claude
+    grading call (10-30s combined). Previously it was, so a handful of
+    concurrent submissions could exhaust SQLAlchemy's connection pool and
+    stall every other request in the app.
+    """
     db = SessionLocal()
     try:
         problem = db.query(CodingProblem).filter(CodingProblem.id == payload.problem_id).first()
         if not problem:
-            return {"error": "Problem not found"}
+            raise APIError(404, "Problem not found")
+        if payload.session_id is not None:
+            owns_session = db.query(InterviewSession.id).filter(
+                InterviewSession.id == payload.session_id,
+                InterviewSession.user_id == user_id,
+            ).first()
+            if not owns_session:
+                raise APIError(404, "Session not found")
 
         all_cases = db.query(CodingTestCase).filter(CodingTestCase.problem_id == problem.id).all()
         test_cases = [{"input": tc.input_data, "expected_output": tc.expected_output} for tc in all_cases]
+        problem_id, problem_difficulty, problem_description = problem.id, problem.difficulty, problem.description
+    finally:
+        db.close()
 
-        exec_results = code_executor.run_test_cases(payload.code, payload.language, test_cases)
-        test_results_for_grading = [
-            {"passed": r.passed, "input": r.input, "expected": r.expected, "actual": r.actual}
-            for r in exec_results
-        ]
+    exec_results = code_executor.run_test_cases(payload.code, payload.language, test_cases)
+    test_results_for_grading = [
+        {"passed": r.passed, "input": r.input, "expected": r.expected, "actual": r.actual}
+        for r in exec_results
+    ]
 
-        grading = coding_engine.grade_submission(problem.description, payload.code, test_results_for_grading)
+    try:
+        grading = coding_engine.grade_submission(problem_description, payload.code, test_results_for_grading)
+    except Exception as e:
+        # Tests already ran and are objective — a Claude outage must not
+        # throw away the candidate's real result. Record it without the
+        # quality review instead.
+        logger.error("coding_quality_grading_failed", user_id=user_id, problem_id=problem_id, error=str(e))
+        passed = sum(1 for t in test_results_for_grading if t["passed"])
+        grading = {
+            "tests_passed": passed, "tests_total": len(test_results_for_grading),
+            "complexity_estimate": None, "cleanliness_score": None, "naming_score": None,
+            "feedback": None,
+        }
 
-        # ELO update — reuses the exact same formula the interview track
-        # uses (difficulty_engine.update_elo), so Track A and Track B share
-        # one consistent skill rating instead of two disconnected numbers.
-        # Score is primarily test-pass-rate (correctness matters most in a
-        # real interview), blended with a smaller weight toward Claude's
-        # code-quality scores when they're available.
-        pass_ratio_score = (grading["tests_passed"] / max(grading["tests_total"], 1)) * 10
-        quality_scores = [s for s in [grading.get("cleanliness_score"), grading.get("naming_score")] if s is not None]
-        if quality_scores:
-            quality_avg = sum(quality_scores) / len(quality_scores)
-            coding_score = 0.8 * pass_ratio_score + 0.2 * quality_avg
-        else:
-            coding_score = pass_ratio_score
+    # ELO update — reuses the exact same formula the interview track
+    # uses (difficulty_engine.update_elo), so Track A and Track B share
+    # one consistent skill rating instead of two disconnected numbers.
+    # Score is primarily test-pass-rate (correctness matters most in a
+    # real interview), blended with a smaller weight toward Claude's
+    # code-quality scores when they're available.
+    pass_ratio_score = (grading["tests_passed"] / max(grading["tests_total"], 1)) * 10
+    quality_scores = [s for s in [grading.get("cleanliness_score"), grading.get("naming_score")] if s is not None]
+    if quality_scores:
+        quality_avg = sum(quality_scores) / len(quality_scores)
+        coding_score = 0.8 * pass_ratio_score + 0.2 * quality_avg
+    else:
+        coding_score = pass_ratio_score
 
-        user = db.query(User).filter(User.id == user_id).first()
-        new_elo = None
-        if user:
-            new_elo = difficulty_engine.update_elo(
-                current_elo=user.elo_rating, question_difficulty=problem.difficulty, score=coding_score
-            )
-            user.elo_rating = new_elo
+    db = SessionLocal()
+    try:
+        # Locked read so a concurrently-finishing interview answer can't
+        # overwrite this update with a stale ELO (or vice versa).
+        user = db.query(User).filter(User.id == user_id).with_for_update().first()
+        if not user:
+            raise APIError(401, "Account not found. Please log in again.")
+        new_elo = difficulty_engine.update_elo(
+            current_elo=user.elo_rating, question_difficulty=problem_difficulty, score=coding_score
+        )
+        user.elo_rating = new_elo
 
         submission = CodingSubmission(
             user_id=user_id,
             session_id=payload.session_id,
-            problem_id=problem.id,
+            problem_id=problem_id,
             code=payload.code,
             language=payload.language,
             tests_passed=grading["tests_passed"],
@@ -1446,7 +1551,7 @@ def submit_code(request: Request, payload: SubmitCodeRequest, user_id: int = Dep
         db.commit()
         db.refresh(submission)
 
-        logger.info("coding_submission_graded", user_id=user_id, problem_id=problem.id,
+        logger.info("coding_submission_graded", user_id=user_id, problem_id=problem_id,
                     tests_passed=grading["tests_passed"], tests_total=grading["tests_total"], new_elo=new_elo)
 
         return {
@@ -1457,6 +1562,7 @@ def submit_code(request: Request, payload: SubmitCodeRequest, user_id: int = Dep
             "cleanliness_score": grading.get("cleanliness_score"),
             "naming_score": grading.get("naming_score"),
             "feedback": grading.get("feedback"),
+            "quality_review_unavailable": grading.get("feedback") is None,
             "new_elo": new_elo,
             # hidden test case inputs/expected outputs intentionally never returned here
         }
@@ -1498,7 +1604,7 @@ def get_next_coding_problem(user_id: int = Depends(get_current_user_id)):
             pool = db.query(CodingProblem).all()
 
         if not pool:
-            return {"error": "No coding problems available"}
+            raise APIError(503, "No coding problems available")
 
         import random
         chosen = random.choice(pool)
@@ -1514,10 +1620,8 @@ def get_next_coding_problem(user_id: int = Depends(get_current_user_id)):
         db.close()
 
 @app.get("/coding/submissions")
-def get_coding_submissions(user_id: int = Depends(get_current_user_id)):
+def get_coding_submissions(user_id: int = Depends(require_user_id)):
     """Returns the authenticated user's past coding submissions, most recent first."""
-    if not user_id:
-        return {"submissions": []}
     db = SessionLocal()
     try:
         submissions = db.query(CodingSubmission).filter(
@@ -1546,7 +1650,7 @@ def get_coding_submissions(user_id: int = Depends(get_current_user_id)):
             })
         return {"submissions": result}
     finally:
-        db.close()        
+        db.close()
 
 
 # --- WebSocket: Real-Time Confidence Coaching ---
@@ -1556,14 +1660,22 @@ def get_coding_submissions(user_id: int = Depends(get_current_user_id)):
 # WITHOUT a new HTTP request each time.
 
 import json
+import threading
 
 import whisper
 import tempfile
 import os as os_module
 
-# Load Whisper once at startup, not per-connection — loading takes ~15s
-# and we don't want every new WebSocket connection to pay that cost.
+# Whisper is loaded lazily, once, and shared. The lock serializes both the
+# first load (two sockets connecting together would otherwise load the
+# model twice) and transcription itself (each run pins a CPU core and a
+# chunk of RAM; unbounded parallel runs are how a small instance OOMs).
 whisper_model = None
+_whisper_lock = threading.Lock()
+
+MAX_AUDIO_CHUNK_BYTES = 5 * 1024 * 1024   # ~5 minutes of opus audio
+MAX_TEXT_CHUNK_CHARS = 20000              # same cap as a submitted answer
+
 
 def get_whisper_model():
     global whisper_model
@@ -1572,6 +1684,31 @@ def get_whisper_model():
         whisper_model = whisper.load_model("small")
         logger.info("whisper_model_ready")
     return whisper_model
+
+
+def transcribe_audio(audio_bytes: bytes) -> str:
+    """Blocking: must be called via run_in_threadpool, never on the event loop."""
+    with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as f:
+        f.write(audio_bytes)
+        temp_path = f.name
+    try:
+        with _whisper_lock:
+            result = get_whisper_model().transcribe(temp_path, fp16=False)
+        return result["text"].strip()
+    finally:
+        os_module.remove(temp_path)
+
+
+def _verify_ws_session(session_id: int, user_id: int) -> bool:
+    db = SessionLocal()
+    try:
+        return db.query(InterviewSession.id).filter(
+            InterviewSession.id == session_id,
+            InterviewSession.user_id == user_id
+        ).first() is not None
+    finally:
+        db.close()
+
 
 @app.websocket("/ws/coaching/{session_id}")
 async def coaching_websocket(websocket: WebSocket, session_id: int, token: str = None):
@@ -1587,16 +1724,12 @@ async def coaching_websocket(websocket: WebSocket, session_id: int, token: str =
         await websocket.close(code=1008)  # 1008 = policy violation
         return
 
-    db = SessionLocal()
-    try:
-        session_record = db.query(InterviewSession).filter(
-            InterviewSession.id == session_id,
-            InterviewSession.user_id == user_id
-        ).first()
-    finally:
-        db.close()
-
-    if not session_record:
+    # Every blocking call below (DB, Whisper, replay writes) goes through
+    # run_in_threadpool. This handler runs ON the event loop — previously a
+    # single Whisper transcription (several seconds of CPU) froze the whole
+    # server: every other user's HTTP request and socket stalled until it
+    # finished.
+    if not await run_in_threadpool(_verify_ws_session, session_id, user_id):
         await websocket.close(code=1008)
         return
 
@@ -1607,20 +1740,17 @@ async def coaching_websocket(websocket: WebSocket, session_id: int, token: str =
     try:
         while True:
             message = await websocket.receive()
+            if message.get("type") == "websocket.disconnect":
+                raise WebSocketDisconnect(message.get("code", 1000))
 
             # Audio path: browser sends raw audio bytes (webm/wav chunk)
-            if "bytes" in message and message["bytes"]:
+            if message.get("bytes"):
                 audio_bytes = message["bytes"]
+                if len(audio_bytes) > MAX_AUDIO_CHUNK_BYTES:
+                    await websocket.send_json({"type": "error", "message": "Audio chunk too large"})
+                    continue
 
-                with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as f:
-                    f.write(audio_bytes)
-                    temp_path = f.name
-
-                try:
-                    result = get_whisper_model().transcribe(temp_path, fp16=False)
-                    transcribed_text = result["text"].strip()
-                finally:
-                    os_module.remove(temp_path)
+                transcribed_text = await run_in_threadpool(transcribe_audio, audio_bytes)
 
                 if transcribed_text:
                     feedback = coach.analyze_text(transcribed_text)
@@ -1635,7 +1765,7 @@ async def coaching_websocket(websocket: WebSocket, session_id: int, token: str =
                     # Persist to the replay — without this, coaching_moments
                     # stays permanently empty in every replay even though
                     # real feedback happened live during the session.
-                    replay_system.log_event(session_id, "coaching_feedback", {
+                    await run_in_threadpool(replay_system.log_event, session_id, "coaching_feedback", {
                         "source": "audio",
                         "text": transcribed_text,
                         "confidence_score": feedback.confidence_score,
@@ -1645,14 +1775,18 @@ async def coaching_websocket(websocket: WebSocket, session_id: int, token: str =
                     })
 
             # Text path: typed answer
-            elif "text" in message and message["text"]:
-                data = json.loads(message["text"])
+            elif message.get("text"):
+                try:
+                    data = json.loads(message["text"])
+                except json.JSONDecodeError:
+                    await websocket.send_json({"type": "error", "message": "Malformed message"})
+                    continue
                 msg_type = data.get("type")
 
                 if msg_type == "text_chunk":
-                    text = data.get("text", "")
-                    if text.strip():
-                        feedback = coach.analyze_text(text)
+                    text_chunk = str(data.get("text", ""))[:MAX_TEXT_CHUNK_CHARS]
+                    if text_chunk.strip():
+                        feedback = coach.analyze_text(text_chunk)
                         intervention = None
                         if data.get("pause_detected") and feedback.confidence_score < 5:
                             intervention = "Take a breath. Start with: 'The approach I'd take is...'"
@@ -1666,9 +1800,9 @@ async def coaching_websocket(websocket: WebSocket, session_id: int, token: str =
                             "intervention": intervention
                         })
                         # Same persistence fix as the audio path above.
-                        replay_system.log_event(session_id, "coaching_feedback", {
+                        await run_in_threadpool(replay_system.log_event, session_id, "coaching_feedback", {
                             "source": "text",
-                            "text": text,
+                            "text": text_chunk,
                             "confidence_score": feedback.confidence_score,
                             "words_per_minute": feedback.words_per_minute,
                             "fillers_found": feedback.fillers_found,
@@ -1688,6 +1822,8 @@ async def coaching_websocket(websocket: WebSocket, session_id: int, token: str =
     except Exception as e:
         logger.error("websocket_error", session_id=session_id, user_id=user_id, error=str(e))
         try:
-            await websocket.send_json({"type": "error", "message": str(e)})
+            # Generic message only — raw exception text can leak internals.
+            await websocket.send_json({"type": "error", "message": "Coaching connection error"})
+            await websocket.close(code=1011)
         except Exception:
             pass

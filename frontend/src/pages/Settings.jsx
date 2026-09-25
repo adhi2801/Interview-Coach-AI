@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import api from "../lib/api";
 import { motion, AnimatePresence } from "framer-motion";
-import axios from "axios";
-import { API_URL } from "../config";
 import {
   ArrowLeft, LogOut, User, Activity,
   ShieldAlert, Key, Trash2, Search, Mic,
@@ -63,25 +62,17 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
   const micCtxRef = useRef(null);
   const micAnimRef = useRef(null);
 
-  const authHeaders = useCallback(() => {
-    const token = localStorage.getItem("access_token");
-    return token ? { headers: { Authorization: `Bearer ${token}` } } : null;
-  }, []);
-
   const fetchProfile = useCallback(() => {
-    const auth = authHeaders();
-    if (!auth) { setProfileLoading(false); setProfileError(true); return; }
     setProfileLoading(true);
     setProfileError(false);
-    axios.get(`${API_URL}/user/profile-summary`, auth)
+    api.get(`/user/profile-summary`)
       .then(res => {
-        if (res.data?.error) throw new Error(res.data.error);
         setProfile(res.data);
         setPrefs({ ...PREFERENCE_DEFAULTS, ...(res.data.preferences || {}) });
       })
       .catch(() => setProfileError(true))
       .finally(() => setProfileLoading(false));
-  }, [authHeaders]);
+  }, []);
 
   useEffect(() => {
     fetchProfile();
@@ -133,15 +124,11 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
   async function saveName() {
     const trimmed = nameDraft.trim();
     if (!trimmed || trimmed === profile?.name) { setEditingName(false); return; }
-    const auth = authHeaders();
-    if (!auth) { setNameSaveState("error"); return; }
-
     const previous = profile.name;
     setProfile((p) => ({ ...p, name: trimmed })); // optimistic
     setNameSaveState("saving");
     try {
-      const res = await axios.patch(`${API_URL}/user/profile`, { name: trimmed }, auth);
-      if (res.data?.error) throw new Error(res.data.error);
+      await api.patch(`/user/profile`, { name: trimmed });
       setNameSaveState("saved");
       setEditingName(false);
       onProfileUpdate?.({ name: trimmed });
@@ -154,23 +141,14 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
   }
 
   async function togglePreference(key) {
-    const auth = authHeaders();
     const newValue = !prefs[key];
     const previous = prefs[key];
 
     setPrefs((p) => ({ ...p, [key]: newValue })); // optimistic
     setPrefSaveState((s) => ({ ...s, [key]: "saving" }));
 
-    if (!auth) {
-      setPrefs((p) => ({ ...p, [key]: previous }));
-      setPrefSaveState((s) => ({ ...s, [key]: "error" }));
-      setTimeout(() => setPrefSaveState((s) => ({ ...s, [key]: null })), 2500);
-      return;
-    }
-
     try {
-      const res = await axios.patch(`${API_URL}/user/preferences`, { key, value: newValue }, auth);
-      if (res.data?.error) throw new Error(res.data.error);
+      await api.patch(`/user/preferences`, { key, value: newValue });
       setPrefSaveState((s) => ({ ...s, [key]: "saved" }));
       setTimeout(() => setPrefSaveState((s) => ({ ...s, [key]: null })), 2000);
     } catch (err) {
@@ -225,18 +203,10 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
     setDeleting(true);
     setDeleteError("");
     try {
-      const token = localStorage.getItem("access_token");
-      const res = await axios.delete(`${API_URL}/user/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.data.error) {
-        setDeleteError(res.data.error);
-        setDeleting(false);
-      } else {
-        onLogout();
-      }
+      await api.delete(`/user/me`);
+      onLogout();
     } catch (err) {
-      setDeleteError("Something went wrong. Please try again.");
+      setDeleteError(err.message || "Something went wrong. Please try again.");
       setDeleting(false);
     }
   }

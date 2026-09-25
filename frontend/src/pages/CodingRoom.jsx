@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import api from "../lib/api";
 import { createPortal } from "react-dom";
 import Editor from "@monaco-editor/react";
-import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Play, Send, Terminal, CheckCircle2, XCircle, Code2, ArrowLeft, ChevronDown, Check,
   Lightbulb, AlertTriangle, Activity, Hash, Layers, Gauge, PanelRightClose, PanelRightOpen,
   Mic, Square, FileText, RotateCcw, Sparkles, ShieldCheck
 } from "lucide-react";
-import { API_URL } from "../config";
 
 const LANGUAGES = [
   { id: "python", label: "Python 3.11", monaco: "python", ext: "py" },
@@ -212,11 +211,6 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
   const tier = diffTier(problem?.difficulty);
   const realElo = liveElo ?? (user?.elo_rating ? Math.round(user.elo_rating) : null);
 
-  const authHeaders = useCallback(() => {
-    const token = localStorage.getItem("access_token");
-    return token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-  }, []);
-
   // beforeMount receives ONE argument: (monaco) => {}
   const handleEditorBeforeMount = (monaco) => {
     monaco.editor.defineTheme("oled-dark", {
@@ -262,12 +256,11 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
     try {
       let slugToLoad = problemSlug;
       if (!slugToLoad) {
-        const nextRes = await axios.get(`${API_URL}/coding/next`, authHeaders());
+        const nextRes = await api.get(`/coding/next`);
         slugToLoad = nextRes?.data?.slug;
       }
       if (!slugToLoad) throw new Error("No problem slug available");
-      const res = await axios.get(`${API_URL}/coding/problems/${slugToLoad}`);
-      if (!res?.data || res.data.error) throw new Error("Problem fetch returned an error");
+      const res = await api.get(`/coding/problems/${slugToLoad}`);
       setProblem(res.data);
       setCode(res.data.starter_code?.[language] || "");
       setProblemLoading(false);
@@ -276,11 +269,11 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
       setProblemError(true);
       setProblemLoading(false);
     }
-  }, [problemSlug, language, authHeaders]);
+  }, [problemSlug, language]);
 
   const fetchAllProblems = useCallback(async () => {
     try {
-      const res = await axios.get(`${API_URL}/coding/problems`);
+      const res = await api.get(`/coding/problems`);
       if (res?.data?.problems?.length) setAllProblems(res.data.problems);
     } catch (err) { console.warn("Could not fetch problem catalog:", err); }
   }, []);
@@ -328,12 +321,10 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
     }
     setProblemLoading(true);
     try {
-      const res = await axios.get(`${API_URL}/coding/problems/${slug}`);
-      if (res?.data && !res.data.error) {
-        setProblem(res.data);
-        setCode(res.data.starter_code?.[language] || "");
-        setProblemError(false);
-      } else throw new Error("bad response");
+      const res = await api.get(`/coding/problems/${slug}`);
+      setProblem(res.data);
+      setCode(res.data.starter_code?.[language] || "");
+      setProblemError(false);
     } catch (err) {
       setProblemError(true);
     }
@@ -344,8 +335,8 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
     setHintLoading(true);
     setHintError(false);
     try {
-      const res = await axios.post(`${API_URL}/coding/hint`,
-        { problem: problem?.description || "", current_code: code, language }, authHeaders());
+      const res = await api.post(`/coding/hint`,
+        { problem: problem?.description || "", current_code: code, language });
       if (!res?.data?.hint) throw new Error("No hint returned");
       setHintCards((prev) => [...prev, res.data.hint]);
     } catch (err) {
@@ -360,14 +351,15 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
     setRunState("running");
     if (focusMode) setFocusMode(false);
     try {
-      const res = await axios.post(`${API_URL}/coding/run`, { problem_id: problem.id, code, language }, authHeaders());
-      if (!res?.data) throw new Error("Empty response from judge");
+      // Judge0 polling can take a while on a cold sandbox — longer than the
+      // client's 30s default is fine here, a hung spinner is not.
+      const res = await api.post(`/coding/run`, { problem_id: problem.id, code, language }, { timeout: 60000 });
       setRunResults(res.data);
       setRunState("output");
       setResultsSource("run");
       setRunHistory((prev) => [...prev, { type: "run", at: Date.now(), passed: res.data.passed_count, total: res.data.total }].slice(-10));
     } catch (err) {
-      setRunError(err?.response?.data?.detail || err.message || "The sandbox did not return a result.");
+      setRunError(err.message || "The sandbox did not return a result.");
       setRunState("error");
     }
   }
@@ -378,9 +370,9 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
     setRunState("running");
     if (focusMode) setFocusMode(false);
     try {
-      const res = await axios.post(`${API_URL}/coding/submit`,
-        { problem_id: problem.id, code, language, session_id: sessionId || null }, authHeaders());
-      if (!res?.data || res.data.error) throw new Error(res?.data?.error || "Empty response from judge");
+      const res = await api.post(`/coding/submit`,
+        { problem_id: problem.id, code, language, session_id: sessionId || null },
+        { timeout: 90000 }); // full test run + AI quality review
       setRunResults(res.data);
       setRunState("output");
       setResultsSource("submit");
@@ -391,7 +383,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
       setRunHistory((prev) => [...prev, { type: "submit", at: Date.now(), passed: res.data.tests_passed, total: res.data.tests_total }].slice(-10));
       generateReview(res.data);
     } catch (err) {
-      setRunError(err?.response?.data?.detail || err.message || "Submission did not return a result.");
+      setRunError(err.message || "Submission did not return a result.");
       setRunState("error");
     }
   }
