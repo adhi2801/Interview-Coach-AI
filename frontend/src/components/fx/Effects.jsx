@@ -66,7 +66,9 @@ export function ScrambleText({ children, as: Tag = "span", className, trigger = 
     });
     let st;
     if (trigger === "scroll") {
-      st = ScrollTrigger.create({ trigger: el, start: "top 92%", once: true, onEnter: () => tween.play() });
+      // Decodes again whenever it comes back into view, from either direction.
+      const replay = () => tween.restart(true);
+      st = ScrollTrigger.create({ trigger: el, start: "top 94%", end: "bottom 4%", onEnter: replay, onEnterBack: replay });
     } else {
       tween.play();
     }

@@ -10,6 +10,7 @@ import { BrainCircuit, CheckCircle2, Code2, Mic, Network, XCircle } from "lucide
 import { COMPANY_SIM_DATA, DEMO_KEYS } from "./content";
 import { cn } from "../../lib/utils";
 import { ease } from "../../lib/motion";
+import { useProblemCount } from "./liveCounts";
 
 const DURATION = 7000;
 
@@ -28,7 +29,7 @@ const TABS = [
     label: "Live coding",
     title: "Real code. Real tests.",
     body: "Python, JavaScript, Java or C++ in a full editor. Run against sample cases, then submit against hidden tests in a sandbox. Hints nudge without writing code for you.",
-    tags: ["25 problems", "4 languages", "Hidden tests"],
+    tags: ["{problems} problems", "4 languages", "Hidden tests"],
   },
   {
     id: "voice",
@@ -62,6 +63,7 @@ export default function FeatureTabs() {
   }, [active, running]);
 
   const tab = TABS[active];
+  const problems = useProblemCount();
 
   return (
     <div
@@ -122,7 +124,7 @@ export default function FeatureTabs() {
               </div>
               <div className="mt-8 flex flex-wrap gap-2">
                 {tab.tags.map((tag) => (
-                  <span key={tag} className="border border-white/10 bg-white/[0.03] px-3 py-1.5 font-mono text-[11px] text-white/70">{tag}</span>
+                  <span key={tag} className="border border-white/10 bg-white/[0.03] px-3 py-1.5 font-mono text-[11px] text-white/70">{tag.replace("{problems}", problems)}</span>
                 ))}
               </div>
             </div>
@@ -255,16 +257,19 @@ function VoiceDemo() {
   );
 }
 
+// Real edges from the seeded prerequisite graph (seed_topics.py):
+// dynamic_programming <- recursion, complexity_analysis;
+// topological_sort <- graph_traversal <- graphs.
 const GRAPH = [
-  { id: "rec", label: "Recursion", x: 12, y: 18 },
-  { id: "memo", label: "Memoization", x: 44, y: 18 },
-  { id: "dp", label: "Dynamic programming", x: 76, y: 38 },
-  { id: "graphs", label: "Graphs", x: 12, y: 62 },
-  { id: "bfs", label: "BFS / DFS", x: 44, y: 62 },
-  { id: "short", label: "Shortest paths", x: 76, y: 82 },
+  { id: "rec", label: "Recursion", x: 14, y: 16 },
+  { id: "cx", label: "Complexity analysis", x: 14, y: 44 },
+  { id: "dp", label: "Dynamic programming", x: 76, y: 30 },
+  { id: "graphs", label: "Graphs", x: 14, y: 76 },
+  { id: "bfs", label: "Graph traversal", x: 46, y: 88 },
+  { id: "topo", label: "Topological sort", x: 78, y: 70 },
 ];
-const EDGES = [["rec", "memo"], ["memo", "dp"], ["graphs", "bfs"], ["bfs", "short"], ["dp", "short"]];
-const PATH = ["rec", "memo", "dp"];
+const EDGES = [["rec", "dp"], ["cx", "dp"], ["graphs", "bfs"], ["bfs", "topo"]];
+const PATH = ["rec", "cx", "dp"];
 
 function GraphDemo() {
   const n = useTicker(800, PATH.length + 3);
@@ -282,10 +287,12 @@ function GraphDemo() {
         const on = lit.has(g.id);
         const gap = g.id === "dp";
         return (
-          <div key={g.id} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${g.x}%`, top: `${g.y}%` }}>
+          // Right-hand nodes anchor on their right edge so long labels never
+          // run off a phone-width panel.
+          <div key={g.id} className={cn("absolute -translate-y-1/2", g.x > 60 ? "-translate-x-[88%]" : g.x < 20 ? "-translate-x-[20%]" : "-translate-x-1/2")} style={{ left: `${g.x}%`, top: `${g.y}%` }}>
             <span
               className={cn(
-                "block whitespace-nowrap border px-2.5 py-1.5 font-mono text-[10.5px] transition-all duration-500",
+                "block whitespace-nowrap border px-2 py-1.5 font-mono text-[9.5px] transition-all duration-500 sm:px-2.5 sm:text-[10.5px]",
                 gap && on ? "border-amber-400/60 bg-amber-500/15 text-amber-200 shadow-[0_0_24px_rgba(245,158,11,0.35)]"
                   : on ? "border-indigo-400/60 bg-indigo-500/15 text-indigo-100"
                   : "border-white/10 bg-black/60 text-white/40"

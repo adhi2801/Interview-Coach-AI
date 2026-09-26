@@ -143,9 +143,16 @@ pip install -r requirements.txt
 alembic upgrade head
 python seed_topics.py
 python seed_coding_problems.py
+python seed_verified_problems.py                              # the original 15 verified problems
+python seed_verified_problems.py verified_problems_pack2.json # 38 more (problem pack 2)
 python seed_db.py
 uvicorn main:app --reload
 ```
+
+Problem pack 2 is built by `python build_problem_pack.py` from `problem_bank/pack2.py`:
+every reference solution is run as a real stdin/stdout program and checked
+against an independent brute-force solution on every test case before the
+problem is written out. Seeding is idempotent (existing slugs are skipped).
 
 ### Frontend
 ```bash

@@ -443,7 +443,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
       <header className="h-12 bg-black/70 backdrop-blur-xl border-b border-white/[0.08] shadow-[inset_0_-1px_0_rgba(255,255,255,0.04)] flex items-center justify-between px-6 z-50 shrink-0 relative">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-5 h-5 rounded bg-white flex items-center justify-center text-[9px] font-extrabold text-black">IC</div>
+            <div className="w-5 h-5 bg-white flex items-center justify-center text-[9px] font-extrabold text-black">IC</div>
             <span className="text-white text-xs font-bold tracking-tight hidden sm:block">InterviewCoach</span>
           </div>
           <div className="w-px h-4 bg-white/10 hidden sm:block" />

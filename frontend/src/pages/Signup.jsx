@@ -1,53 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import api, { saveAuth } from "../lib/api";
-import { ChevronRight, Mail, Lock, User, Activity, ShieldCheck, ArrowLeft, Eye, EyeOff, Check, X, AlertTriangle } from "lucide-react";
-import { GlassCard as LiquidCard } from "../components/fx/LiquidGlass";
-import Aurora from "../components/fx/Aurora";
-import SplitReveal from "../components/fx/SplitReveal";
-import { CursorSpotlight } from "../components/fx/Effects";
-
-function GithubIcon(props) {
-  return (
-    <svg viewBox="0 0 24 24" width={props.size || 16} height={props.size || 16} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.26 1.23-.26 1.85v4" />
-      <path d="M9 18c-4.51 2-5-2-7-2" />
-    </svg>
-  );
-}
-
-function GoogleIcon(props) {
-  return (
-    <svg viewBox="0 0 24 24" width={props.size || 16} height={props.size || 16} fill="currentColor" {...props}>
-      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-    </svg>
-  );
-}
-
-// Wraps a disabled action (SSO, forgot-password) with a small honest
-// tooltip on hover, instead of a button that silently does nothing.
-function ComingSoonWrap({ children }) {
-  const [show, setShow] = useState(false);
-  return (
-    <div className="relative" onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
-      {children}
-      <AnimatePresence>
-        {show && (
-          <motion.div
-            initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="absolute left-1/2 -translate-x-1/2 -top-8 px-2.5 py-1 rounded-md bg-[#151519] border border-white/10 text-[10px] font-bold text-slate-300 whitespace-nowrap z-20 shadow-lg pointer-events-none"
-          >
-            Coming soon
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
+import { ChevronRight, Mail, Lock, User, Activity, Eye, EyeOff, Check, X, AlertTriangle } from "lucide-react";
+import AuthShell from "../components/app/AuthShell";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -60,7 +15,6 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const [emailTouched, setEmailTouched] = useState(false);
   const nameInputRef = useRef(null);
 
@@ -76,11 +30,8 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
   const emailValid = email.length === 0 || EMAIL_RE.test(email);
 
   useEffect(() => {
-    setMounted(true);
     nameInputRef.current?.focus();
   }, []);
-
-  const noiseSvg = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`;
 
   function handlePasswordKeyUp(e) {
     setCapsLockOn(e.getModifierState && e.getModifierState("CapsLock"));
@@ -116,135 +67,18 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#000000] text-slate-100 font-sans selection:bg-indigo-500/30 overflow-hidden relative flex flex-col md:flex-row">
-
-      <style>{`
-        @keyframes shimmer {
-          100% { transform: translateX(100%); }
-        }
-      `}</style>
-      <Aurora intensity={0.9} />
-      <CursorSpotlight size={760} />
-
-      <div className="fixed inset-0 z-10 pointer-events-none opacity-[0.035] mix-blend-soft-light" style={{ backgroundImage: noiseSvg }} />
-
-      <div className="relative z-20 flex flex-col md:flex-row w-full min-h-screen">
-
-        {/* LEFT COLUMN */}
-        <div className="hidden lg:flex flex-col justify-between w-[45%] p-12 lg:p-16 border-r border-white/[0.08] relative bg-black/30 backdrop-blur-[2px] overflow-hidden">
-
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-600/10 blur-[140px] rounded-full pointer-events-none" />
-
-          <div className={`transition-all duration-1000 ease-out transform z-10 relative max-w-md ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-            <div className="flex items-center gap-3 mb-16">
-              <div className="w-7 h-7 rounded bg-white flex items-center justify-center font-bold text-black text-xs shadow-[0_0_20px_rgba(255,255,255,0.3)]">IC</div>
-              <span className="font-bold text-white tracking-tight text-lg">InterviewCoach</span>
-            </div>
-
-            <SplitReveal as="h1" by="lines" trigger="mount" delay={0.2} className="text-4xl lg:text-5xl font-extrabold tracking-[-0.04em] text-white leading-[1.08] max-w-md mb-6">Calibrate your baseline.<br />
-              <span className="text-aurora">Own every interview.</span>
-            </SplitReveal>
-            <p className="text-slate-300 text-sm md:text-base max-w-md leading-relaxed font-normal mb-8">
-              Create your account to launch an adaptive diagnostic session and establish your true skill ELO.
-            </p>
-          </div>
-
-          <div className={`transition-all duration-1000 delay-200 z-10 w-full max-w-[420px] ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <LiquidCard tilt radius={20} className="p-6">
-
-              <div className="flex items-center justify-between mb-6 pb-3 border-b border-white/[0.06]">
-                <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-slate-400">Diagnostic Baseline</span>
-                <span className="bg-blue-500/10 text-blue-300 border border-blue-500/20 px-3 py-1 rounded-full text-[10px] font-mono font-bold tracking-widest flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-                  Awaiting Session 1
-                </span>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between items-end mb-1.5">
-                    <span className="text-xs font-bold text-slate-300">System Architecture</span>
-                    <span className="text-[10px] font-mono font-bold text-slate-500">Pending</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full bg-indigo-500/30 w-[35%] animate-pulse" />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between items-end mb-1.5">
-                    <span className="text-xs font-bold text-slate-300">Algorithms &amp; DSA</span>
-                    <span className="text-[10px] font-mono font-bold text-slate-500">Pending</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-500/30 w-[25%] animate-pulse" />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between items-end mb-1.5">
-                    <span className="text-xs font-bold text-slate-300">Communication &amp; Leadership</span>
-                    <span className="text-[10px] font-mono font-bold text-slate-500">Pending</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500/30 w-[45%] animate-pulse" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-white/[0.06] flex items-center gap-2 text-[10px] font-mono text-slate-400">
-                <Lock size={13} className="text-indigo-400 shrink-0" />
-                <span>Calibrates automatically during your first simulation node</span>
-              </div>
-
-            </LiquidCard>
-          </div>
-
-          <div className={`transition-all duration-1000 delay-150 ease-out transform z-10 relative ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-emerald-400 mb-3">
-              <ShieldCheck size={14} className="text-emerald-400" />
-              <span>Enterprise Grade Security</span>
-            </div>
-            <div className="grid grid-cols-2 gap-4 max-w-sm">
-              <div className="border-l border-white/10 pl-3">
-                <span className="block text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest mb-0.5 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Authentication
-                </span>
-                <span className="text-xs font-semibold text-white">JWT + bcrypt Hashing</span>
-              </div>
-              <div className="border-l border-white/10 pl-3">
-                <span className="block text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest mb-0.5 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Data Privacy
-                </span>
-                <span className="text-xs font-semibold text-white">Zero 3rd-Party Training</span>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-        {/* RIGHT COLUMN */}
-        <div className="w-full lg:w-[55%] flex items-center justify-center p-6 lg:p-16 relative">
-
-          <div className={`w-full max-w-[420px] transition-all duration-700 ease-out transform ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-12'}`}>
-
-            <GlassCard>
-
-              <div className="flex items-center justify-between gap-3 mb-8 pb-6 border-b border-white/10">
-                <div className="flex items-center gap-3 lg:hidden">
-                  <div className="w-6 h-6 rounded bg-white flex items-center justify-center font-bold text-black text-[10px] shadow-[0_0_15px_rgba(255,255,255,0.3)]">IC</div>
-                  <span className="font-bold text-white tracking-tight">InterviewCoach</span>
-                </div>
-                {onBackToHome && (
-                  <button
-                    onClick={onBackToHome}
-                    className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors flex items-center gap-1.5 ml-auto outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 rounded"
-                  >
-                    <ArrowLeft size={14} /> Back to Home
-                  </button>
-                )}
-              </div>
-
+    <AuthShell
+      label="Create account"
+      title="One free account."
+      accent="A real interview."
+      body="Your first session sets your baseline rating. Every answer after that moves it, and every gap it finds is traced back to what to study first."
+      points={[
+        { k: "Interviews", v: "Seven company profiles, four interviewer personas, five scores per answer." },
+        { k: "Coding", v: "Verified problems, four languages, hidden tests run in a sandbox." },
+        { k: "Your data", v: "Delete your account and all of its data at any time in Settings." },
+      ]}
+      onBackToHome={onBackToHome}
+    >
               <AnimatePresence mode="wait">
                 {success ? (
                   <motion.div key="success" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="py-10 flex flex-col items-center text-center gap-3">
@@ -257,44 +91,15 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
                 ) : (
                   <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                     <div className="mb-8 relative z-10">
-                      <h2 className="text-2xl font-extrabold text-white tracking-tight mb-2">Create account</h2>
-                      <p className="text-xs text-slate-300 font-medium">Join and calibrate your ELO baseline.</p>
-                    </div>
-
-                    <div className="space-y-3 mb-6 relative z-10">
-                      <ComingSoonWrap>
-                        <motion.button
-                          type="button"
-                          disabled
-                          whileTap={{ scale: 0.97 }}
-                          className="w-full flex items-center justify-center gap-3 py-2.5 rounded-xl text-xs font-bold bg-[#141418] border border-white/10 text-slate-500 transition-all shadow-sm outline-none cursor-not-allowed opacity-60"
-                        >
-                          <GithubIcon size={16} /> Sign up with GitHub
-                        </motion.button>
-                      </ComingSoonWrap>
-                      <ComingSoonWrap>
-                        <motion.button
-                          type="button"
-                          disabled
-                          whileTap={{ scale: 0.97 }}
-                          className="w-full flex items-center justify-center gap-3 py-2.5 rounded-xl text-xs font-bold bg-white/[0.03] border border-white/10 text-slate-500 transition-all shadow-sm outline-none cursor-not-allowed opacity-60"
-                        >
-                          <GoogleIcon size={16} /> Sign up with Google
-                        </motion.button>
-                      </ComingSoonWrap>
-                    </div>
-
-                    <div className="flex items-center my-6 relative z-10">
-                      <div className="flex-1 h-px bg-white/[0.08]" />
-                      <span className="px-4 text-[10px] uppercase tracking-widest font-mono font-bold text-slate-500">Or use email</span>
-                      <div className="flex-1 h-px bg-white/[0.08]" />
+                      <h2 className="text-3xl font-semibold tracking-[-0.035em] text-white mb-2">Create account</h2>
+                      <p className="text-sm text-white/55">Free. Your first session sets your baseline rating.</p>
                     </div>
 
                     <form onSubmit={handleSignup} className="space-y-4 relative z-10">
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400 block ml-1">Full Name</label>
                         <div className="relative group">
-                          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors">
+                          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-300 transition-colors">
                             <User size={16} />
                           </div>
                           <input
@@ -304,16 +109,16 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
                             autoComplete="name"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            className="w-full bg-[#08080C] border border-white/10 rounded-xl py-3 pl-12 pr-4 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all shadow-inner font-medium"
+                            className="w-full bg-[#050507] border border-white/10 py-3 pl-12 pr-4 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400/50 transition-all shadow-inner font-medium"
                             placeholder="Jane Doe"
                           />
                         </div>
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400 block ml-1">Work Email</label>
+                        <label className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400 block ml-1">Email</label>
                         <div className="relative group">
-                          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors">
+                          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-300 transition-colors">
                             <Mail size={16} />
                           </div>
                           <input
@@ -323,8 +128,8 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             onBlur={() => setEmailTouched(true)}
-                            className={`w-full bg-[#08080C] border rounded-xl py-3 pl-12 pr-10 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 transition-all shadow-inner font-medium ${
-                              emailTouched && !emailValid ? "border-rose-500/50 focus:border-rose-500 focus:ring-rose-500/40" : "border-white/10 focus:border-blue-500 focus:ring-blue-500/50"
+                            className={`w-full bg-[#050507] border py-3 pl-12 pr-10 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 transition-all shadow-inner font-medium ${
+                              emailTouched && !emailValid ? "border-rose-500/50 focus:border-rose-500 focus:ring-rose-500/40" : "border-white/10 focus:border-indigo-400 focus:ring-indigo-400/50"
                             }`}
                             placeholder="jane@company.com"
                           />
@@ -339,7 +144,7 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400 block ml-1">Password</label>
                         <div className="relative group">
-                          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors">
+                          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-300 transition-colors">
                             <Lock size={16} />
                           </div>
                           <input
@@ -350,7 +155,7 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
                             onChange={(e) => setPassword(e.target.value)}
                             onKeyUp={handlePasswordKeyUp}
                             onKeyDown={handlePasswordKeyUp}
-                            className="w-full bg-[#08080C] border border-white/10 rounded-xl py-3 pl-12 pr-12 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all shadow-inner font-medium"
+                            className="w-full bg-[#050507] border border-white/10 py-3 pl-12 pr-12 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400/50 transition-all shadow-inner font-medium"
                             placeholder="••••••••"
                           />
                           <button
@@ -410,7 +215,7 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
                           whileTap={{ scale: loading ? 1 : 0.97 }}
                           disabled={loading}
                           type="submit"
-                          className={`relative w-full flex items-center justify-center py-3.5 rounded-full text-xs font-extrabold uppercase tracking-widest transition-all overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black focus:ring-blue-500 group ${
+                          className={`relative w-full flex items-center justify-center py-3.5 rounded-full text-xs font-extrabold uppercase tracking-widest transition-all overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black focus:ring-indigo-400 group ${
                             loading
                               ? "bg-[#111111] border border-white/10 text-slate-500 cursor-wait"
                               : "btn-liquid"
@@ -437,7 +242,7 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
                         Already have an account?{" "}
                         <button
                           onClick={onSwitchToLogin}
-                          className="text-white hover:text-blue-400 transition-colors font-bold ml-1 border-b border-white/20 hover:border-blue-400 pb-0.5 outline-none focus-visible:text-blue-400"
+                          className="text-white hover:text-indigo-300 transition-colors font-bold ml-1 border-b border-white/20 hover:border-indigo-300 pb-0.5 outline-none focus-visible:text-indigo-300"
                         >
                           Log in
                         </button>
@@ -446,19 +251,6 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
                   </motion.div>
                 )}
               </AnimatePresence>
-
-            </GlassCard>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function GlassCard({ children, className = "" }) {
-  return (
-    <LiquidCard refract beam={{ duration: 8 }} radius={24} frost={26} className={`p-8 md:p-10 shadow-[0_40px_120px_-30px_rgba(79,70,229,0.55)] ${className}`}>
-      {children}
-    </LiquidCard>
+    </AuthShell>
   );
 }

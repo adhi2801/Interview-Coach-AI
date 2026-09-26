@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { AppHeader, PageIntro } from "../components/app/AppChrome";
 import api, { getToken } from "../lib/api";
 import { motion, AnimatePresence, LayoutGroup, useScroll, useTransform } from "motion/react";
 import {
@@ -68,7 +69,7 @@ function DeepGlassCard({ children, className = "", accent, interactive = false, 
         interactive={interactive}
         tilt={interactive}
         onClick={onClick}
-        radius={20}
+        radius={10}
         className={`overflow-hidden h-full ${className}`}
         style={accent ? { boxShadow: `inset 3px 0 0 0 ${accent}, inset 0 1px 0 0 rgba(255,255,255,0.16), 0 24px 60px -24px rgba(0,0,0,0.85)` } : undefined}
         contentClassName="relative z-10 w-full h-full"
@@ -298,7 +299,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
   };
 
   return (
-    <div ref={mainRef} className="min-h-screen bg-transparent text-slate-200 font-sans selection:bg-blue-500/30 overflow-x-hidden flex flex-col relative">
+    <div ref={mainRef} className="relative flex min-h-screen flex-col overflow-x-clip bg-transparent font-sans text-slate-200 selection:bg-indigo-500/40">
 
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <motion.div style={{ y: orbYA }} animate={{ backgroundColor: activeComp.color, opacity: 0.13 }}
@@ -333,38 +334,33 @@ export default function Dashboard({ onStart, user, onGoBack }) {
         )}
       </AnimatePresence>
 
-      <header className="relative z-30 h-16 border-b border-white/[0.06] bg-black/40 backdrop-blur-md flex items-center justify-between px-6 lg:px-10 shrink-0">
-        <div className="flex items-center gap-4">
-          <button onClick={onGoBack} className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors bg-white/[0.03] border border-white/[0.08] px-3 py-1.5 rounded-full outline-none">
-            <ArrowLeft size={14} /> Dashboard
-          </button>
-          <div className="w-px h-5 bg-white/10 hidden sm:block" />
-          <div className="hidden sm:flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-white flex items-center justify-center font-bold text-black text-[10px] shadow-[0_0_15px_rgba(255,255,255,0.2)]">IC</div>
-            <span className="font-semibold text-white tracking-tight text-sm">InterviewCoach</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-mono font-bold tracking-widest ${systemStatus === "ok" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : systemStatus === "degraded" ? "bg-rose-500/10 border-rose-500/20 text-rose-400" : "bg-white/[0.03] border-white/10 text-slate-500"}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${systemStatus === "ok" ? "bg-emerald-400 animate-pulse" : systemStatus === "degraded" ? "bg-rose-400" : "bg-slate-500"}`} />
-            {systemStatus === "ok" ? "Engine Ready" : systemStatus === "degraded" ? "Engine Degraded" : "Checking..."}
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/10 text-[10px] font-mono font-bold tracking-widest text-white">
-            <Target size={12} className="text-slate-400" /> ELO <RollingNumber value={currentElo} />
-          </div>
-        </div>
-      </header>
+      <AppHeader back={{ label: "Overview", onClick: onGoBack }}>
+        <span className={`hidden items-center gap-2 border px-2.5 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em] md:flex ${systemStatus === "ok" ? "border-emerald-400/25 text-emerald-300" : systemStatus === "degraded" ? "border-rose-400/30 text-rose-300" : "border-white/10 text-white/45"}`}>
+          <span className={`h-1.5 w-1.5 ${systemStatus === "ok" ? "bg-emerald-400" : systemStatus === "degraded" ? "bg-rose-400" : "bg-white/30"}`} />
+          {systemStatus === "ok" ? "Engine ready" : systemStatus === "degraded" ? "Engine degraded" : "Checking"}
+        </span>
+      </AppHeader>
 
-      <main className="relative z-20 flex-1 w-full max-w-[1560px] mx-auto px-6 lg:px-10 pt-6 lg:pt-8 pb-40">
+      <PageIntro
+        index="02"
+        label="Session setup"
+        title="Configure your interview."
+        subtitle={`Three decisions: company, level and interviewer. Everything else is the engine's job.${topicCount ? ` ${topicCount} topics tracked.` : ""}`}
+        aside={
+          <div className="grid grid-cols-2 border border-white/[0.08] bg-[#050507]/70">
+            <div className="border-r border-white/[0.08] px-5 py-4">
+              <p className="text-3xl font-semibold tabular-nums tracking-[-0.04em] text-white"><RollingNumber value={currentElo} /></p>
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">Your rating</p>
+            </div>
+            <div className="px-5 py-4">
+              <p className="text-3xl font-semibold tracking-[-0.04em] text-white">4</p>
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">Personas</p>
+            </div>
+          </div>
+        }
+      />
 
-        <div className="mb-8">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-2">Session Setup</p>
-          <h1 className="text-2xl font-extrabold tracking-tight text-white mb-1">Configure your interview.</h1>
-          <p className="text-[13px] text-slate-500">
-            Three decisions. Pick and launch. Everything else is the engine's job.
-            {topicCount && <span className="text-slate-600"> · {topicCount} topics tracked</span>}
-          </p>
-        </div>
+      <main className="relative z-20 mx-auto w-full max-w-[1280px] flex-1 border-x border-white/[0.08] px-4 pb-40 pt-8 md:px-8">
 
         <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr_360px] gap-5 items-start">
 
@@ -700,8 +696,8 @@ export default function Dashboard({ onStart, user, onGoBack }) {
         </div>
       </main>
 
-      <footer className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/[0.08] bg-[#0a0a10]/90 backdrop-blur-2xl px-6 lg:px-10 py-4">
-        <div className="max-w-[1560px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      <footer className="nav-glass fixed bottom-0 left-0 right-0 z-30 border-t border-white/[0.08]">
+        <div className="mx-auto flex max-w-[1280px] flex-col items-center justify-between gap-4 border-x border-white/[0.08] px-5 py-4 sm:flex-row md:px-8">
           <div className="flex items-center gap-2 flex-wrap text-[11px] font-mono">
             <span className="text-slate-600 uppercase tracking-widest text-[9px]">Active</span>
             <span className="text-white font-bold">{activeComp.name}</span><span className="text-slate-600">·</span>
@@ -715,9 +711,9 @@ export default function Dashboard({ onStart, user, onGoBack }) {
               </p>
             )}
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={handleLaunch} disabled={isBooting}
-              className="relative overflow-hidden w-full h-12 rounded-xl btn-liquid text-xs font-extrabold uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50 group">
+              className="relative overflow-hidden w-full h-12 rounded-full btn-liquid text-xs font-extrabold uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50 group">
               <div className="absolute inset-0 w-full h-full bg-linear-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-              <span className="relative z-10 flex items-center gap-2">Cross Threshold <ArrowRight size={16} /></span>
+              <span className="relative z-10 flex items-center gap-2">Start interview <ArrowRight size={16} /></span>
             </motion.button>
           </div>
         </div>

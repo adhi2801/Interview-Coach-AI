@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { AppHeader, PageIntro } from "../components/app/AppChrome";
 import api from "../lib/api";
 import { motion, useMotionValue, useTransform, animate, AnimatePresence } from "motion/react";
 import {
@@ -161,27 +162,20 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
     const companies = Array.from(new Set((sessionList || []).map((s) => s.company_target).filter(Boolean)));
 
     return (
-      <div className="min-h-screen w-full bg-transparent text-slate-200 font-sans flex flex-col relative overflow-hidden">
-        <div className="fixed inset-0 z-10 pointer-events-none opacity-[0.03] mix-blend-soft-light" style={{ backgroundImage: noiseSvg }} />
-        <header className="h-16 border-b border-white/[0.04] bg-[#000000]/60 backdrop-blur-2xl flex items-center justify-between px-6 lg:px-10 z-30">
-          <div className="flex items-center gap-3">
-            <div className="w-6 h-6 rounded bg-indigo-600 text-white flex items-center justify-center font-bold text-[10px] shadow-[0_0_15px_rgba(99,102,241,0.4)]">IC</div>
-            <span className="font-semibold text-white tracking-tight text-sm flex items-center gap-2">
-              InterviewCoach <span className="text-slate-600 font-normal">/</span> <span className="text-slate-400">Flight Ledger</span>
-            </span>
-          </div>
-          {onExit && (
-            <button onClick={onExit} className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors bg-white/[0.02] border border-white/[0.06] px-3.5 py-1.5 rounded-lg hover:bg-white/[0.05]">
-              <ChevronLeft size={14} /> Dashboard
-            </button>
-          )}
-        </header>
-        <main className="flex-1 w-full max-w-[1400px] mx-auto p-6 lg:p-10 relative z-20 overflow-y-auto">
+      <div className="relative flex min-h-screen w-full flex-col overflow-x-clip bg-transparent font-sans text-slate-200">
+        <AppHeader back={onExit ? { label: "Overview", onClick: onExit } : undefined} />
+        <PageIntro
+          index="05"
+          label="Sessions"
+          title="Every interview, replayable."
+          subtitle="Open any session for the full audit trail: each question, your answer, five scores with reasons, and the gaps it found."
+        />
+        <main className="relative z-20 mx-auto w-full max-w-[1280px] flex-1 border-x border-white/[0.08] p-4 md:p-8">
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3">
-                <ListVideo className="text-indigo-400" size={24} />
-                <h1 className="text-3xl font-extrabold text-white tracking-tight">Flight Ledger</h1>
+                <ListVideo className="text-indigo-400" size={20} />
+                <h2 className="text-2xl font-semibold tracking-[-0.03em] text-white">Session ledger</h2>
               </div>
               <span className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-mono text-[10px] font-bold px-2.5 py-0.5 rounded-full tabular-nums">
                 {filteredSessions.length} Sessions
@@ -412,7 +406,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
     prereqs: gap.prerequisites_to_study_first || [],
     text: gap.prerequisites_to_study_first?.length > 0
       ? `Prerequisite dependencies detected: ${gap.prerequisites_to_study_first.join(", ")}.`
-      : "Trade-off reasoning was underdeveloped for this response.",
+      : "Flagged in this answer. It has no prerequisite to study first, so practise the topic directly.",
   })) : [];
 
   const hasElo = replay.elo_before != null && replay.elo_after != null;
@@ -424,7 +418,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
       <header className="h-14 border-b border-white/[0.04] bg-[#000000]/60 backdrop-blur-2xl flex items-center justify-between px-6 z-50 shrink-0 sticky top-0">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-6 h-6 rounded bg-indigo-600 flex items-center justify-center font-bold text-white text-[10px] shadow-[0_0_15px_rgba(79,70,229,0.4)]">IC</div>
+            <div className="grid h-6 w-6 place-items-center bg-white text-[10px] font-extrabold text-black">IC</div>
             <span className="text-white text-sm font-semibold tracking-tight hidden sm:block">InterviewCoach</span>
           </div>
           <div className="w-px h-4 bg-white/10 hidden sm:block" />
@@ -470,7 +464,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
             <AnimatePresence mode="wait">
               <motion.div key={selected} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.3, ease: "easeOut" }} className="flex flex-col gap-6">
 
-                <motion.div variants={fadeUp} initial="hidden" animate="show" custom={0} className="flex items-center gap-3">
+                <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ amount: 0.12 }} custom={0} className="flex items-center gap-3">
                   <div className="w-px h-7" style={{ background: `linear-gradient(to bottom, transparent, ${theme.dotBg}99, transparent)` }} />
                   <span className="text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-slate-500">
                     Session Replay &middot; Node {selected + 1} of {totalNodes}
@@ -481,7 +475,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                 </motion.div>
 
                 {/* SCORE CARD — single instance, real dimension breakdown */}
-                <motion.div variants={fadeUp} initial="hidden" animate="show" custom={1}
+                <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ amount: 0.12 }} custom={1}
                   className="rounded-2xl bg-[#0a0a10]/90 border border-white/[0.08] p-6 md:p-8 relative overflow-hidden backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)]">
                   {q.scores ? (
                     <div className="flex flex-col md:flex-row gap-8">
@@ -538,7 +532,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                 </motion.div>
 
                 {/* QUESTION */}
-                <motion.div variants={fadeUp} initial="hidden" animate="show" custom={2}
+                <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ amount: 0.12 }} custom={2}
                   className="rounded-2xl bg-[#0a0a10]/90 border border-white/[0.08] p-6 md:p-8 space-y-5 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)]">
                   <div className="flex items-center justify-between border-b border-white/[0.04] pb-4">
                     <div className="flex items-center gap-2.5">
@@ -577,7 +571,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                 </motion.div>
 
                 {/* SUBMITTED ANSWER */}
-                <motion.div variants={fadeUp} initial="hidden" animate="show" custom={3}
+                <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ amount: 0.12 }} custom={3}
                   className="rounded-2xl bg-[#0a0a10]/90 border border-white/[0.08] p-6 md:p-8 space-y-4 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)]">
                   <div className="flex items-center justify-between border-b border-white/[0.04] pb-4">
                     <div className="flex items-center gap-2.5">
@@ -594,7 +588,7 @@ export default function ReplayViewer({ sessionId, onExit, onSelectSession }) {
                 </motion.div>
 
                 {/* DETECTED GAPS — single location on the page */}
-                <motion.div variants={fadeUp} initial="hidden" animate="show" custom={4}
+                <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ amount: 0.12 }} custom={4}
                   className="rounded-2xl bg-[#0a0a10]/90 border border-white/[0.08] p-6 md:p-8 space-y-5 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_20px_40px_-10px_rgba(0,0,0,0.5)]">
                   <div className="flex items-center justify-between border-b border-white/[0.04] pb-4">
                     <div>

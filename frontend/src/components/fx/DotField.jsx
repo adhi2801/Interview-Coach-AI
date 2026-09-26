@@ -9,9 +9,14 @@
 //     visible; zero cost once scrolled past
 //   - device pixel ratio capped at 1.5
 //   - prefers-reduced-motion: draws a single still frame
-//   - if WebGL is unavailable the element simply stays empty
+//   - each mount creates its own <canvas>: React StrictMode (and any
+//     remount) runs cleanup -> effect again, and a canvas whose context was
+//     released with loseContext() hands back that same dead context forever
+//     (Chrome then paints its grey "sad canvas" placeholder)
+//   - if WebGL is unavailable or the context is lost, a static CSS dot grid
+//     shows instead
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { cn } from "../../lib/utils";
 
 const VERT = `
@@ -68,13 +73,27 @@ function hexToRgb(hex) {
 }
 
 export default function DotField({ className, cell = 10, colorA = "#4f46e5", colorB = "#c7d2fe", intensity = 1 }) {
-  const canvasRef = useRef(null);
+  const hostRef = useRef(null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return undefined;
+    const host = hostRef.current;
+    if (!host) return undefined;
+    const canvas = document.createElement("canvas");
+    canvas.className = "absolute inset-0 block h-full w-full";
+    host.appendChild(canvas);
     const gl = canvas.getContext("webgl", { alpha: true, antialias: false, premultipliedAlpha: true, powerPreference: "low-power" });
-    if (!gl) return undefined;
+    if (!gl) {
+      canvas.remove();
+      setFailed(true);
+      return undefined;
+    }
+    const onLost = (e) => {
+      e.preventDefault();
+      canvas.style.display = "none";
+      setFailed(true);
+    };
+    canvas.addEventListener("webglcontextlost", onLost);
 
     const compile = (type, src) => {
       const s = gl.createShader(type);
@@ -84,12 +103,12 @@ export default function DotField({ className, cell = 10, colorA = "#4f46e5", col
     };
     const vs = compile(gl.VERTEX_SHADER, VERT);
     const fs = compile(gl.FRAGMENT_SHADER, FRAG);
-    if (!vs || !fs) return undefined;
+    if (!vs || !fs) { canvas.remove(); setFailed(true); return undefined; }
     const prog = gl.createProgram();
     gl.attachShader(prog, vs);
     gl.attachShader(prog, fs);
     gl.linkProgram(prog);
-    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return undefined;
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { canvas.remove(); setFailed(true); return undefined; }
     gl.useProgram(prog);
 
     const buf = gl.createBuffer();
@@ -125,7 +144,7 @@ export default function DotField({ className, cell = 10, colorA = "#4f46e5", col
 
     // Pointer, eased toward its target each frame (default: off-canvas).
     const mouse = { x: 0.5, y: -1, tx: 0.5, ty: -1 };
-    const parent = canvas.parentElement;
+    const parent = host.parentElement;
     const onMove = (e) => {
       const r = canvas.getBoundingClientRect();
       mouse.tx = (e.clientX - r.left) / r.width;
@@ -171,9 +190,23 @@ export default function DotField({ className, cell = 10, colorA = "#4f46e5", col
       document.removeEventListener("visibilitychange", kick);
       parent?.removeEventListener("pointermove", onMove);
       parent?.removeEventListener("pointerleave", onLeave);
+      canvas.removeEventListener("webglcontextlost", onLost);
       gl.getExtension("WEBGL_lose_context")?.loseContext();
+      canvas.remove();
     };
   }, [cell, colorA, colorB, intensity]);
 
-  return <canvas ref={canvasRef} aria-hidden="true" className={cn("pointer-events-none block h-full w-full", className)} />;
+  return (
+    <div
+      ref={hostRef}
+      aria-hidden="true"
+      className={cn("pointer-events-none relative h-full w-full", className)}
+      style={failed ? {
+        backgroundImage: `radial-gradient(circle, ${colorA}66 1px, transparent 1.6px)`,
+        backgroundSize: `${cell}px ${cell}px`,
+        maskImage: "linear-gradient(to top, black, transparent 85%)",
+        WebkitMaskImage: "linear-gradient(to top, black, transparent 85%)",
+      } : undefined}
+    />
+  );
 }

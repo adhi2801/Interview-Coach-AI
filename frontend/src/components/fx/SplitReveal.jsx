@@ -3,17 +3,20 @@
 // Headline reveal: GSAP SplitText breaks the text into masked lines/words and
 // the words rise out of their line masks in a tight stagger.
 //
-// Runs ONCE per mount. The previous version passed `children` as a hook
-// dependency — JSX is a new object on every render, so any parent re-render
-// (a typing animation, every keystroke in a form) tore the split down and
-// replayed the reveal: thousands of rebuilds per scroll, visible glitching.
-// If the text genuinely changes, give the component a new `key`.
+// Plays in both scroll directions: rising from below when it enters at the
+// bottom of the viewport, dropping in from above when you scroll back up to
+// it. Once it has left the viewport it resets so the next entry plays again.
+// autoSplit re-splits on resize / font load, so line breaks stay correct
+// without having to revert the split after the first play.
 //
-// Only transform + opacity are animated (compositor-only). No filter blur:
-// animating blur on hundreds of word spans was a major source of jank.
+// The split is created once per mount (no `children` dependency — JSX is a
+// new object every render and would tear the split down on every parent
+// re-render). If the text genuinely changes, give the component a new `key`.
+//
+// Only transform + opacity are animated (compositor-only).
 
 import React, { useRef } from "react";
-import { gsap, SplitText, useGSAP, prefersReducedMotion } from "../../lib/motion";
+import { gsap, ScrollTrigger, SplitText, useGSAP, prefersReducedMotion } from "../../lib/motion";
 
 export default function SplitReveal({
   as: Tag = "h2",
@@ -23,7 +26,7 @@ export default function SplitReveal({
   trigger = "scroll", // "scroll" | "mount"
   delay = 0,
   stagger,
-  start = "top 85%",
+  start = "top 88%",
   ...rest
 }) {
   const ref = useRef(null);
@@ -38,40 +41,58 @@ export default function SplitReveal({
       }
 
       let split;
-      let tween;
+      let st;
+      let shown = false;
+      let cancelled = false;
       const run = () => {
         el.classList.remove("split-init");
+        let targets = [];
         split = SplitText.create(el, {
           type: by === "chars" ? "lines,words,chars" : by === "lines" ? "lines" : "lines,words",
           mask: "lines",
           linesClass: "split-line",
+          autoSplit: true,
+          onSplit: (self) => {
+            targets = by === "chars" ? self.chars : by === "lines" ? self.lines : self.words;
+            // Keep the current visual state across a re-split.
+            gsap.set(targets, { yPercent: shown ? 0 : 110, opacity: shown ? 1 : 0, force3D: true });
+          },
         });
-        const targets = by === "chars" ? split.chars : by === "lines" ? split.lines : split.words;
-        tween = gsap.from(targets, {
-          yPercent: 110,
-          opacity: 0,
-          duration: by === "lines" ? 1.1 : 0.95,
-          ease: "expo.out",
-          stagger: stagger ?? (by === "chars" ? 0.016 : by === "lines" ? 0.1 : 0.04),
-          delay,
-          force3D: true,
-          scrollTrigger: trigger === "scroll" ? { trigger: el, start, once: true } : undefined,
-          // Once revealed, drop the wrappers so resizes reflow as normal text.
-          onComplete: () => split?.revert(),
+        const dur = by === "lines" ? 1.1 : 0.95;
+        const each = stagger ?? (by === "chars" ? 0.016 : by === "lines" ? 0.1 : 0.04);
+        const play = (from, d = 0) => {
+          shown = true;
+          gsap.fromTo(targets, { yPercent: from, opacity: 0 }, { yPercent: 0, opacity: 1, duration: dur, ease: "expo.out", stagger: each, delay: d, overwrite: true });
+        };
+        const reset = (to) => {
+          shown = false;
+          gsap.set(targets, { yPercent: to, opacity: 0, overwrite: true });
+        };
+
+        if (trigger !== "scroll") {
+          play(110, delay);
+          return;
+        }
+        st = ScrollTrigger.create({
+          trigger: el,
+          start,
+          end: "bottom 6%",
+          onEnter: () => play(110, delay),
+          onEnterBack: () => play(-110),
+          onLeave: () => reset(-110),
+          onLeaveBack: () => reset(110),
         });
       };
 
       // Split after webfonts load, or line breaks are measured on the
       // fallback font and land in the wrong places.
-      let cancelled = false;
       (document.fonts?.ready ?? Promise.resolve()).then(() => {
         if (!cancelled) run();
       });
 
       return () => {
         cancelled = true;
-        tween?.scrollTrigger?.kill();
-        tween?.kill();
+        st?.kill();
         split?.revert();
       };
     },

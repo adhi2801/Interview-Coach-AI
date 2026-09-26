@@ -5,6 +5,7 @@ import {
   Keyboard, Activity, Check, RotateCcw, MicOff
 } from "lucide-react";
 import { COMPANIES } from "../constants/companies";
+import { AppHeader, PageIntro } from "../components/app/AppChrome";
 
 const PERSONA_ACCENT = {
   standard: "#10b981",
@@ -105,7 +106,6 @@ export default function PreflightCheck({ onReady, onSkip, sessionData }) {
   const animationRef = useRef(null);
   const canvasRef = useRef(null);
 
-  const noiseSvg = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`;
 
   const hasContext = Boolean(sessionData?.company && sessionData?.role && sessionData?.persona);
   const activeComp = hasContext ? COMPANIES.find((c) => c.id === sessionData.company?.toLowerCase()) : null;
@@ -238,12 +238,15 @@ export default function PreflightCheck({ onReady, onSkip, sessionData }) {
   const isSignalActive = decibels > -38;
 
   return (
-    <div className="min-h-screen bg-transparent text-slate-100 font-sans selection:bg-indigo-500/30 overflow-hidden flex items-center justify-center p-6 relative">
-
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-      </div>
-      <div className="fixed inset-0 z-10 pointer-events-none opacity-[0.035] mix-blend-soft-light" style={{ backgroundImage: noiseSvg }} />
-
+    <div className="relative min-h-screen overflow-x-clip bg-transparent font-sans text-slate-100 selection:bg-indigo-500/40">
+      <AppHeader />
+      <PageIntro
+        index="03"
+        label="Mic check"
+        title="Thirty seconds of sound."
+        subtitle="Read the line below out loud so the live coach can hear you clearly. No microphone? You can still take the interview in text-only mode."
+      />
+      <div className="relative z-20 mx-auto flex w-full max-w-[1280px] justify-center border-x border-white/[0.08] px-4 py-10 md:px-8">
       <div className="relative z-20 w-full max-w-[640px] flex flex-col gap-3.5">
 
         <GlassPanel delay={0.03} className="p-6">
@@ -265,7 +268,7 @@ export default function PreflightCheck({ onReady, onSkip, sessionData }) {
                 </>
               ) : (
                 <>
-                  <p className="text-[17px] font-extrabold tracking-tight text-slate-400 italic">Audio calibration</p>
+                  <p className="text-[17px] font-semibold tracking-[-0.02em] text-white">Audio calibration</p>
                   <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-slate-600">
                     No session context available — generic calibration
                   </span>
@@ -303,7 +306,7 @@ export default function PreflightCheck({ onReady, onSkip, sessionData }) {
             <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400">Acoustic Calibration Test</span>
             <span className="text-[10px] text-slate-600">Read aloud, naturally</span>
           </div>
-          <p className="text-[17px] md:text-[19px] font-bold italic leading-relaxed text-slate-100/90 pl-4 border-l-2 border-indigo-400/40">
+          <p className="text-[17px] md:text-[19px] font-semibold leading-relaxed tracking-[-0.01em] text-slate-100/90 pl-4 border-l-2 border-indigo-400/40">
             "Speak naturally: 'The architecture requires a resilient, partitioned data store.'"
           </p>
         </GlassPanel>
@@ -399,6 +402,7 @@ export default function PreflightCheck({ onReady, onSkip, sessionData }) {
           </motion.button>
         </motion.div>
 
+      </div>
       </div>
     </div>
   );

@@ -230,7 +230,7 @@ export const LiquidGlass = forwardRef(function LiquidGlass(
     className,
     style,
     tone = "dark",
-    radius = 20,
+    radius = 10,
     frost = 22,
     // Live backdrop blur. OFF by default: sampling a moving background behind
     // dozens of cards was the main cause of scroll jank. Reserve it for one or
@@ -346,7 +346,7 @@ export function GlassCard({
   layout = false,
   tone,
   refract = false,
-  radius = 18,
+  radius = 10,
   ...rest
 }) {
   return (

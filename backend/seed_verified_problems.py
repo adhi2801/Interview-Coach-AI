@@ -6,6 +6,8 @@ CodingTestCase tables.
 HOW TO USE:
 1. Make sure verified_problems.json is in this same folder (backend/)
 2. Run: python seed_verified_problems.py
+   or:  python seed_verified_problems.py verified_problems_pack2.json
+   (pack 2 is built and cross-checked by build_problem_pack.py)
 3. It will print each problem as it's inserted, and skip any that already
    exist (matched by slug) so it's safe to run more than once.
 
@@ -14,12 +16,13 @@ app already uses. It writes real rows to your real Postgres database.
 """
 
 import json
+import sys
 from database import SessionLocal
 from models import CodingProblem, CodingTestCase
 
 
-def main():
-    with open("verified_problems.json", "r") as f:
+def main(path="verified_problems.json"):
+    with open(path, "r", encoding="utf-8") as f:
         problems = json.load(f)
 
     if not problems:
@@ -51,15 +54,10 @@ def main():
                 "java": p.get("starter_code_java", ""),
             }
 
-            # Fold constraints + input/output format into the description,
-            # since CodingProblem only has one description Text field.
-            constraints_text = "\n".join(f"- {c}" for c in p.get("constraints", []))
-            full_description = (
-                f"{p.get('description', '')}\n\n"
-                f"Input format: {p.get('input_format', '')}\n"
-                f"Output format: {p.get('output_format', '')}\n\n"
-                f"Constraints:\n{constraints_text}"
-            )
+            # Input/output format and constraints have their own columns (the
+            # coding room shows them as separate panels), so the description
+            # stays just the problem statement.
+            full_description = p.get("description", "")
 
             problem_row = CodingProblem(
                 slug=slug,
@@ -69,6 +67,11 @@ def main():
                 difficulty=p.get("difficulty", 5),
                 topics=[p.get("category", "general")],
                 companies=p.get("companies", []),
+                input_format=p.get("input_format"),
+                output_format=p.get("output_format"),
+                constraints=p.get("constraints"),
+                time_complexity_target=p.get("time_complexity_target"),
+                space_complexity_target=p.get("space_complexity_target"),
             )
             db.add(problem_row)
             db.flush()  # get problem_row.id without committing yet
@@ -102,4 +105,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(*sys.argv[1:2])

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
+import { AppHeader, PageIntro } from "../components/app/AppChrome";
 import api from "../lib/api";
 import StudyPlan from "./StudyPlan";
 import { motion, AnimatePresence } from "motion/react";
 import { 
-  ArrowLeft, BookOpen, Search, Network, BrainCircuit, Activity, 
+  BookOpen, Search, Network, BrainCircuit, Activity, 
   CheckCircle2, Lock, AlertTriangle, MessageSquare, Database, 
   HardDrive, Shield, LayoutTemplate, LayoutGrid, ChevronRight 
 } from "lucide-react";
@@ -116,12 +117,7 @@ export default function StudyPlanBrowser({ onGoBack }) {
     return <BookOpen size={16} />;
   };
 
-  const noiseSvg = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`;
 
-  const containerVars = {
-    hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { staggerChildren: 0.05 } }
-  };
   
   const itemVars = {
     hidden: { opacity: 0, y: 10 },
@@ -129,54 +125,49 @@ export default function StudyPlanBrowser({ onGoBack }) {
   };
 
   return (
-    <div className="min-h-screen bg-transparent text-slate-200 font-sans selection:bg-indigo-500/30 overflow-hidden relative flex flex-col">
-      {/* Ambient Spotlights */}
-      <div className="fixed inset-0 z-10 pointer-events-none opacity-[0.03] mix-blend-soft-light" style={{ backgroundImage: noiseSvg }} />
-
-      {/* Top Header */}
-      <header className="h-16 border-b border-white/[0.06] bg-[#0a0a10]/90 backdrop-blur-2xl flex items-center justify-between px-6 z-30 shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="w-6 h-6 rounded bg-indigo-600 text-white flex items-center justify-center font-bold text-[10px] shadow-[0_0_15px_rgba(79,70,229,0.5)]">IC</div>
-          <span className="font-semibold text-white tracking-tight text-sm flex items-center gap-2">
-            InterviewCoach <span className="text-slate-600 font-normal">/</span> <span className="text-slate-400">Knowledge Atlas</span>
-          </span>
+    <div className="relative flex min-h-screen flex-col overflow-x-clip bg-transparent font-sans text-slate-200 selection:bg-indigo-500/40">
+      <AppHeader back={{ label: "Overview", onClick: onGoBack }}>
+        <div className="relative hidden w-44 sm:block md:w-56">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35" />
+          <input
+            type="text"
+            placeholder="Filter topics"
+            aria-label="Filter topics"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full border border-white/10 bg-[#07070b] py-1.5 pl-8 pr-3 font-mono text-[11px] text-white placeholder:text-white/30 focus:border-indigo-400 focus:outline-none"
+          />
         </div>
+      </AppHeader>
 
-        <div className="flex items-center gap-4">
-           <div className="hidden md:flex flex-col items-end gap-0.5">
-             <div className="flex items-center gap-2 text-[10px] font-mono font-bold uppercase tracking-widest text-emerald-400 border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 rounded-md">
-               <span>{topics.filter(t => t.status === 'passed').length} NODES ACTIVE</span>
-             </div>
-             {gapCount > 0 && (
-               <span className="text-[10px] font-mono font-bold text-amber-400/80 tracking-wide">{gapCount} active gap{gapCount !== 1 ? "s" : ""}</span>
-             )}
-           </div>
-
-           <div className="relative group w-48 sm:w-64">
-             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-             <input 
-               type="text" 
-               placeholder="Search topics..."
-               value={searchQuery}
-               onChange={(e) => setSearchQuery(e.target.value)}
-               className="w-full bg-[#0a0a10]/90 border border-white/10 rounded-lg py-1.5 pl-9 pr-8 text-xs font-medium text-white focus:outline-none focus:border-indigo-500 transition-all placeholder-slate-600 shadow-inner"
-             />
-             <kbd className="absolute right-2 top-1/2 -translate-y-1/2 font-mono text-[9px] bg-white/5 border border-white/10 px-1.5 py-0.5 rounded text-slate-500">⌘K</kbd>
-           </div>
-
-           <div className="w-px h-5 bg-white/10 hidden sm:block" />
-
-           <button onClick={onGoBack} className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors bg-white/[0.02] border border-white/[0.06] px-3.5 py-1.5 rounded-lg hover:bg-white/[0.05]">
-            <ArrowLeft size={14} /> Dashboard
-          </button>
-        </div>
-      </header>
+      <PageIntro
+        index="04"
+        label="Knowledge graph"
+        title={`${topics.length || 93} topics. Every prerequisite.`}
+        subtitle="Select any topic to inspect its prerequisite chain and how much each company weighs it. Statuses come from your scored answers."
+        aside={
+          <div className="grid grid-cols-3 border border-white/[0.08] bg-[#050507]/70">
+            <div className="border-r border-white/[0.08] px-4 py-4">
+              <p className="text-3xl font-semibold tabular-nums tracking-[-0.04em] text-emerald-300">{topics.filter((t) => t.status === "passed").length}</p>
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">Solid</p>
+            </div>
+            <div className="border-r border-white/[0.08] px-4 py-4">
+              <p className="text-3xl font-semibold tabular-nums tracking-[-0.04em] text-amber-300">{gapCount}</p>
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">Gaps</p>
+            </div>
+            <div className="px-4 py-4">
+              <p className="text-3xl font-semibold tabular-nums tracking-[-0.04em] text-white/70">{topics.length}</p>
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">Total</p>
+            </div>
+          </div>
+        }
+      />
 
       {/* Main Layout (Left Sidebar + Right Grid) */}
-      <div className="flex-1 w-full flex overflow-hidden relative z-20">
+      <div className="relative z-20 mx-auto flex w-full max-w-[1280px] flex-1 border-x border-white/[0.08]">
         
         {/* Left Sidebar */}
-        <aside className="w-[240px] shrink-0 border-r border-white/[0.06] bg-[#000000] overflow-y-auto hidden md:flex flex-col py-6">
+        <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-[240px] shrink-0 flex-col overflow-y-auto border-r border-white/[0.08] py-6 md:flex" data-lenis-prevent>
           <div className="px-4 mb-8">
             <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-3 px-2">Categories</h3>
             <nav className="space-y-1">
@@ -237,15 +228,20 @@ export default function StudyPlanBrowser({ onGoBack }) {
         </aside>
 
         {/* Right Main Grid Area */}
-        <main className="flex-1 overflow-y-auto scrollbar-hide p-8 lg:p-12 relative">
-          <div className={`max-w-7xl mx-auto transition-all duration-700 ease-out transform ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-            
-            <div className="mb-10">
-              <h1 className="text-3xl font-extrabold tracking-tight text-white mb-2">Knowledge Graph</h1>
-              <p className="text-sm text-slate-400 font-medium max-w-2xl leading-relaxed">
-                Explore the CS curriculum. Select any topic to inspect its prerequisite chain and company relevance weights.
-              </p>
+        <main className="relative min-w-0 flex-1 p-4 md:p-8 lg:p-10">
+          <div className={`mx-auto max-w-7xl transform transition-all duration-700 ease-out ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
+            <div className="relative mb-6 sm:hidden">
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35" />
+              <input
+                type="text"
+                placeholder="Filter topics"
+                aria-label="Filter topics"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full border border-white/10 bg-[#07070b] py-2.5 pl-8 pr-3 font-mono text-[12px] text-white placeholder:text-white/30 focus:border-indigo-400 focus:outline-none"
+              />
             </div>
+            
 
             {/* Sort + difficulty controls — real reordering, not decorative tabs */}
             <div className="flex flex-wrap items-center gap-2 mb-8">
@@ -309,9 +305,9 @@ export default function StudyPlanBrowser({ onGoBack }) {
                  <span className="uppercase tracking-widest animate-pulse">Synchronizing Nodes...</span>
               </div>
             ) : (
-              <motion.div variants={containerVars} initial="hidden" animate="show" className="space-y-12">
+              <div className="space-y-12">
                 {Object.entries(grouped).map(([category, catTopics]) => (
-                  <motion.div key={category} variants={itemVars} className="space-y-6">
+                  <motion.div key={category} variants={itemVars} initial="hidden" whileInView="show" viewport={{ amount: 0.08 }} className="space-y-6">
                     <div className="flex items-center gap-3 border-b border-white/[0.06] pb-3">
                       <div className="w-6 h-6 rounded bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
                         {getCategoryIcon(category)}
@@ -409,7 +405,7 @@ export default function StudyPlanBrowser({ onGoBack }) {
                     No nodes found matching "{searchQuery}".
                   </div>
                 )}
-              </motion.div>
+              </div>
             )}
           </div>
         </main>
@@ -437,7 +433,7 @@ function GlassCard({ children, onClick, urgent }) {
       interactive
       tilt
       tone={urgent ? "amber" : "dark"}
-      radius={16}
+      radius={10}
       frost={18}
       className={`text-left p-5 h-44 w-full outline-none group ${urgent ? "shadow-[0_0_40px_-12px_rgba(245,158,11,0.45)]" : ""}`}
       contentClassName="relative z-10 w-full h-full flex flex-col"

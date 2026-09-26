@@ -553,7 +553,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
       <header className="h-14 border-b border-white/[0.08] bg-[#000000] flex items-center justify-between px-4 md:px-6 z-50 shrink-0 sticky top-0">
         <div className="flex items-center gap-3 md:gap-4 min-w-0">
           <div className="flex items-center gap-2 shrink-0">
-            <div className="w-6 h-6 rounded bg-white flex items-center justify-center font-bold text-black text-xs">IC</div>
+            <div className="w-6 h-6 bg-white flex items-center justify-center font-extrabold text-black text-[10px]">IC</div>
             <span className="text-white text-xs font-bold tracking-tight hidden sm:block">InterviewCoach</span>
           </div>
           <div className="w-px h-4 bg-white/10 hidden sm:block" />
@@ -1095,7 +1095,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                       <p className="text-xs md:text-sm text-slate-200 leading-relaxed font-medium">
                         {gaps[0].prerequisites_to_study_first?.length > 0
                           ? `Prerequisite dependencies detected: ${gaps[0].prerequisites_to_study_first.join(", ")}.`
-                          : "Trade-off reasoning was underdeveloped — you named constraints but did not show rejected alternatives."
+                          : "Flagged in this answer. It has no prerequisite to study first, so practise the topic directly."
                         }
                       </p>
                       <button onClick={() => setStudyPlanTopic(gaps[0].gap)} className="text-xs font-mono font-bold text-blue-400 hover:underline flex items-center gap-1 pt-1">

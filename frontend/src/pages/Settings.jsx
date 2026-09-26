@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { AppHeader, PageIntro } from "../components/app/AppChrome";
 import api from "../lib/api";
 import { motion, AnimatePresence } from "motion/react";
 import {
-  ArrowLeft, LogOut, User, Activity,
-  ShieldAlert, Key, Trash2, Search, Mic,
+  LogOut, User, Activity,
+  ShieldAlert, Key, Trash2, Mic,
   Volume2, Settings2, Check, X, AlertTriangle,
   RotateCcw, Pencil, Square
 } from "lucide-react";
@@ -212,7 +213,6 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
     }
   }
 
-  const noiseSvg = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`;
 
   const tabs = [
     { id: "profile", label: "General & Profile", icon: User },
@@ -222,32 +222,16 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
   ];
 
   return (
-    <div className="min-h-screen bg-transparent text-slate-200 font-sans selection:bg-indigo-500/30 overflow-x-hidden relative flex flex-col">
+    <div className="relative flex min-h-screen flex-col overflow-x-clip bg-transparent font-sans text-slate-200 selection:bg-indigo-500/40">
 
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-      </div>
+      <AppHeader back={{ label: "Overview", onClick: onGoBack }} />
 
-      <div className="fixed inset-0 z-10 pointer-events-none opacity-[0.03] mix-blend-soft-light" style={{ backgroundImage: noiseSvg }} />
+      <PageIntro index="06" label="Settings" title="Your account." subtitle="Profile, interview preferences, rating history and data controls." />
 
-      <header className="sticky top-0 z-50 h-16 border-b border-white/[0.06] bg-[#000000]/60 backdrop-blur-2xl flex items-center justify-between px-6 lg:px-12 shrink-0">
-        <button
-          onClick={onGoBack}
-          className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors bg-white/[0.02] border border-white/[0.06] px-4 py-2 rounded-lg hover:bg-white/[0.05] outline-none"
-        >
-          <ArrowLeft size={14} /> Dashboard
-        </button>
-
-        <div className="hidden sm:flex items-center gap-2 bg-[#0a0a10]/90 border border-white/[0.08] px-3.5 py-1.5 rounded-xl text-xs font-medium text-slate-400 shadow-inner">
-          <Search size={14} /> Search Settings
-          <kbd className="ml-2 font-mono text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-slate-300">⌘K</kbd>
-        </div>
-      </header>
-
-      <main className="flex-1 w-full max-w-6xl mx-auto relative z-20 flex flex-col md:flex-row items-stretch pt-10 pb-20 px-6 gap-8">
+      <main className="relative z-20 mx-auto flex w-full max-w-[1280px] flex-1 flex-col items-stretch gap-8 border-x border-white/[0.08] px-4 pb-20 pt-10 md:flex-row md:px-8">
 
         <aside className="w-full md:w-[260px] shrink-0">
           <div className="sticky top-24">
-            <h1 className="text-2xl font-extrabold tracking-tight text-white mb-6 pl-2">Settings</h1>
             <nav className="flex flex-col gap-1.5">
               {tabs.map((tab) => {
                 const isActive = activeTab === tab.id;
@@ -609,7 +593,7 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
 
 function GlassCard({ children, className = "" }) {
   return (
-    <LiquidCard radius={26} className={className}>
+    <LiquidCard radius={10} className={className}>
       {children}
     </LiquidCard>
   );

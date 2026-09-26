@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import api from "../lib/api";
 import {
   motion, AnimatePresence, useMotionValue, useTransform, animate,
-  useScroll
 } from "motion/react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid,
@@ -16,18 +15,13 @@ import {
 import { FaAmazon, FaMicrosoft, FaApple, FaGoogle } from 'react-icons/fa';
 import { SiMeta, SiNetflix } from 'react-icons/si';
 import StudyPlan from './StudyPlan';
+import { AppHeader, PageIntro } from "../components/app/AppChrome";
 
 import { COMPANIES as SHARED_COMPANIES } from '../constants/companies';
 import { GlassCard as LiquidCard } from "../components/fx/LiquidGlass";
 
 const TARGET_COMPANIES_FALLBACK = ["Google", "Amazon", "Meta", "Microsoft", "Apple"];
 
-const COMPANY_GLOW = {
-  Google: "rgba(66,133,244,0.16)", Amazon: "rgba(255,153,0,0.13)", Meta: "rgba(24,119,242,0.16)",
-  Microsoft: "rgba(0,164,239,0.14)", Apple: "rgba(255,255,255,0.09)",
-  Netflix: "rgba(229,9,20,0.13)", Startup: "rgba(16,185,129,0.13)",
-};
-const DEFAULT_GLOW = "rgba(99,102,241,0.15)";
 
 const COMPANY_ICONS = {
   google: { color: "#4285F4", Icon: FaGoogle },
@@ -134,7 +128,7 @@ function RollingNumber({ value, className = "" }) {
 // a mouse-following light show.
 function GlassCard({ children, className = "", onClick, interactive = false, layout = false }) {
   return (
-    <LiquidCard tilt={interactive} interactive={interactive} layout={layout} onClick={onClick} radius={20} className={className}>
+    <LiquidCard tilt={interactive} interactive={interactive} layout={layout} onClick={onClick} radius={10} className={className}>
       {children}
     </LiquidCard>
   );
@@ -146,7 +140,7 @@ function SkeletonLine({ className = "" }) {
 
 const fadeUp = {
   hidden: { opacity: 0, y: 18 },
-  show: (i = 0) => ({ opacity: 1, y: 0, transition: { type: "spring", stiffness: 200, damping: 24, delay: i * 0.06 } })
+  show: (i = 0) => ({ opacity: 1, y: 0, transition: { type: "spring", stiffness: 200, damping: 24, delay: Math.min(i, 3) * 0.05 } })
 };
 
 export default function UserDashboard({
@@ -155,7 +149,6 @@ export default function UserDashboard({
 }) {
   const [companies, setCompanies] = useState(TARGET_COMPANIES_FALLBACK);
   const [activeTarget, setActiveTarget] = useState("Meta");
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [flightLedger, setFlightLedger] = useState([]);
   const [sessionDates, setSessionDates] = useState([]);
   const [eloHistory, setEloHistory] = useState([]);
@@ -171,9 +164,6 @@ export default function UserDashboard({
   const [systemStatus, setSystemStatus] = useState("checking");
 
   const mainRef = useRef(null);
-  const { scrollYProgress } = useScroll({ target: mainRef, offset: ["start start", "end end"] });
-  const orbYA = useTransform(scrollYProgress, [0, 1], [0, 80]);
-  const orbYB = useTransform(scrollYProgress, [0, 1], [0, -60]);
 
   useEffect(() => {
     api.get(`/health`, { timeout: 5000 })
@@ -336,61 +326,43 @@ export default function UserDashboard({
     }, 260);
   }
 
-  const orbColor = COMPANY_GLOW[activeTarget] || DEFAULT_GLOW;
   const recentFive = flightLedger.slice(0, 5);
   const firstName = user?.name?.split(" ")[0] || "there";
 
   return (
-    <div ref={mainRef} className="min-h-screen bg-transparent text-slate-200 font-sans selection:bg-blue-500/30 overflow-x-hidden relative">
+    <div ref={mainRef} className="relative min-h-screen overflow-x-clip bg-transparent font-sans text-slate-200 selection:bg-indigo-500/40">
 
       <style>{`
         @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
         .animate-shimmer { animation: shimmer 2s infinite linear; }
-        .font-display { font-family: 'Georgia', 'Times New Roman', serif; font-weight: 600; letter-spacing: -0.02em; }
+        .font-display { font-family: var(--font-sans); font-weight: 600; letter-spacing: -0.04em; }
       `}</style>
 
-      {/* Subtle vignette — corners darken slightly, center stays lit,
-          gives the page a focus pull instead of flat black */}
-      <div className="fixed inset-0 z-1 pointer-events-none" style={{ background: "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.55) 100%)" }} />
+      <AppHeader />
 
-      {/* AMBIENT ORBS — color shifts with company, drifts gently with scroll */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        <motion.div style={{ y: orbYA, background: orbColor }} animate={{ background: orbColor }} transition={{ duration: 1.1, ease: "easeInOut" }}
-          className="absolute top-[-12%] left-[-10%] w-[500px] h-[500px] blur-[130px] rounded-full" />
-        <motion.div style={{ y: orbYB }} className="absolute bottom-[10%] right-[-8%] w-[380px] h-[380px] bg-purple-900/10 blur-[120px] rounded-full" />
-        <div className="absolute inset-0 opacity-[0.025] mix-blend-soft-light" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }} />
-      </div>
-
-      {/* HEADER */}
-      <header className="fixed top-0 left-0 right-0 h-15 bg-black/55 backdrop-blur-2xl border-b border-white/[0.06] z-50">
-        <div className="max-w-[1320px] mx-auto px-4 md:px-6 h-[60px] flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4 md:gap-8 min-w-0 shrink-0">
-            <div className="flex items-center gap-2.5 cursor-pointer shrink-0">
-              <div className="w-[30px] h-[30px] rounded-lg bg-linear-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-[0_0_16px_rgba(99,102,241,0.35)]">
-                <span className="text-white font-black text-xs">IC</span>
-              </div>
-              <span className="font-extrabold text-sm tracking-tight hidden sm:inline">InterviewCoach</span>
+      <PageIntro
+        index="01"
+        label="Overview"
+        title={`${getGreeting()}, ${firstName}.`}
+        subtitle={weakest ? `Your weakest dimension right now is ${weakest.dim}. Today's plan starts there.` : "Your rating, your gaps and what to practise next, all from your real sessions."}
+        aside={
+          <div className="w-full max-w-md space-y-4 lg:w-[380px]">
+            <div className="flex items-center gap-2">
+              <span className={`h-[7px] w-[7px] ${systemStatus === "ok" ? "bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.7)]" : systemStatus === "degraded" ? "bg-rose-400" : "bg-slate-500"}`} />
+              <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-white/45">
+                {systemStatus === "ok" ? "All systems operational" : systemStatus === "degraded" ? "Backend degraded" : "Checking backend…"}
+              </span>
             </div>
-            <nav className="hidden lg:flex items-center gap-6 shrink-0">
-              <span className="text-[13px] font-medium text-white border-b border-white pb-1.5">Overview</span>
-              <button onClick={onNavigateHistory} className="text-[13px] font-medium text-slate-500 hover:text-white transition-colors pb-1.5 border-b border-transparent whitespace-nowrap">Sessions</button>
-              <button onClick={onNavigateStudyPlan} className="text-[13px] font-medium text-slate-500 hover:text-white transition-colors pb-1.5 border-b border-transparent whitespace-nowrap">Knowledge Graph</button>
-              <button onClick={onNavigateSettings} className="text-[13px] font-medium text-slate-500 hover:text-white transition-colors pb-1.5 border-b border-transparent whitespace-nowrap">Settings</button>
-            </nav>
-          </div>
-
-          <div className="flex items-center gap-3 md:gap-5 min-w-0 flex-1 justify-end">
-            <div className="hidden md:flex items-center gap-2 min-w-0">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 shrink-0">Target</span>
-              <div className="flex gap-1.5 overflow-x-auto scrollbar-hide max-w-[280px] lg:max-w-[380px]">
+            <div>
+              <p className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.14em] text-white/40">Target company</p>
+              <div className="flex flex-wrap gap-1.5">
                 {companies.map((c) => {
                   const isActive = activeTarget === c;
                   return (
                     <button
-                      key={c} onClick={() => setActiveTarget(c)}
-                      className={`shrink-0 text-[10px] font-mono font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border transition-all ${
-                        isActive ? "text-white border-white/[0.22] bg-white/10 shadow-[0_0_12px_rgba(255,255,255,0.06)]" : "text-slate-500 border-white/[0.09] bg-white/[0.03] hover:text-slate-300"
-                      }`}
+                      key={c}
+                      onClick={() => setActiveTarget(c)}
+                      className={`border px-2.5 py-1 font-mono text-[10.5px] uppercase tracking-[0.12em] transition-colors ${isActive ? "border-indigo-400/60 bg-indigo-500/15 text-white" : "border-white/10 text-white/45 hover:border-white/25 hover:text-white/80"}`}
                     >
                       {c}
                     </button>
@@ -398,67 +370,11 @@ export default function UserDashboard({
                 })}
               </div>
             </div>
-            {/* ⌘K box now calls the real Command Palette if the parent
-                wires it up — see App.js integration note. */}
-            <button
-              onClick={() => onOpenCommandPalette?.()}
-              className="hidden xl:flex items-center gap-2 bg-white/[0.03] border border-white/[0.08] hover:border-white/20 transition-colors px-3 py-1.5 rounded-lg text-xs font-medium text-slate-500 cursor-pointer shrink-0"
-            >
-              <Search size={13} /> Search...
-              <kbd className="ml-3 font-mono text-[9px] bg-black/40 border border-white/10 px-1.5 py-0.5 rounded text-slate-500">⌘K</kbd>
-            </button>
-            <div className="relative shrink-0">
-              <button onClick={() => setUserMenuOpen(!userMenuOpen)} className="w-8 h-8 rounded-full bg-linear-to-tr from-indigo-500 to-purple-500 border border-white/15 flex items-center justify-center hover:border-white/30 transition-all">
-                <span className="text-white text-xs font-bold">{user?.name?.charAt(0) || "T"}</span>
-              </button>
-              <AnimatePresence>
-                {userMenuOpen && (
-                  <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className="absolute right-0 top-full mt-3 w-56 bg-[#0a0a10]/90 border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] p-2 z-50 space-y-1">
-                    <div className="p-3 border-b border-white/5">
-                      <p className="text-xs font-bold text-white truncate">{user?.name || "Candidate"}</p>
-                      <p className="text-[10px] font-mono text-slate-400 truncate">{user?.email || ""}</p>
-                    </div>
-                    <button onClick={() => { setUserMenuOpen(false); onNavigateHistory?.(); }} className="w-full flex lg:hidden items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors text-left">Sessions</button>
-                    <button onClick={() => { setUserMenuOpen(false); onNavigateStudyPlan?.(); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors text-left">
-                      <BookOpen size={14} /> Knowledge Graph
-                    </button>
-                    <button onClick={() => { setUserMenuOpen(false); onStartCoding?.(); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors text-left">
-                      <Code2 size={14} className="text-amber-400" /> Coding Sandbox IDE
-                    </button>
-                    <button onClick={() => { setUserMenuOpen(false); onNavigateSettings?.(); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors text-left">
-                      <Settings size={14} /> Settings
-                    </button>
-                    <div className="border-t border-white/5 pt-1">
-                      <button onClick={() => { setUserMenuOpen(false); onLogout?.(); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors text-left">
-                        <LogOut size={14} /> Log Out
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
           </div>
-        </div>
-      </header>
+        }
+      />
 
-      <main className="relative z-20 max-w-[1320px] mx-auto px-6 pt-[88px] pb-20">
-
-        {/* TITLE ROW — coach-voice greeting, real weakest dimension when known */}
-        <motion.div variants={fadeUp} initial="hidden" animate="show" custom={0} className="mb-8 flex items-end justify-between flex-wrap gap-3">
-          <div>
-            <p className="text-[9.5px] font-mono font-bold uppercase tracking-[0.16em] text-slate-500 mb-2">Mission Control</p>
-            <h1 className="font-display text-[19px] text-white leading-snug" style={{ fontSize: '19px' }}>
-              {getGreeting()}, {firstName}.
-              {weakest && <span className="text-slate-400 font-normal"> Let's work on <span className="text-indigo-300">{weakest.dim}</span> today.</span>}
-            </h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className={`w-[7px] h-[7px] rounded-full ${systemStatus === "ok" ? "bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.7)]" : systemStatus === "degraded" ? "bg-rose-400" : "bg-slate-500"}`} />
-            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">
-              {systemStatus === "ok" ? "Systems Nominal" : systemStatus === "degraded" ? "Systems Degraded" : "Checking..."}
-            </span>
-          </div>
-        </motion.div>
+      <main className="relative z-20 mx-auto max-w-[1280px] border-x border-white/[0.08] px-4 pb-20 pt-8 md:px-8">
 
         {/* BENTO LAYOUT — explicit flex columns, not implicit CSS Grid
             row-span/col-span combos (that caused the overlap + dead-space
@@ -466,7 +382,7 @@ export default function UserDashboard({
             its own content (ELO card + Action card stacked with real
             gap-5); right column's Critical Gap card matches that height
             via h-full on a flex row, so there's no forced empty space. */}
-        <motion.div variants={fadeUp} initial="hidden" animate="show" custom={1} className="flex flex-col md:flex-row gap-5 mb-8 items-start">
+        <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ amount: 0.12 }} custom={1} className="flex flex-col md:flex-row gap-5 mb-8 items-start">
 
           {/* LEFT: ELO hero + Recommended Action, stacked */}
           <div className="w-full md:w-2/3 flex flex-col gap-5">
@@ -485,7 +401,7 @@ export default function UserDashboard({
                 </div>
               </div>
               <div className="flex items-end gap-3 mb-3">
-                <span className="font-display text-[28px] leading-none text-white" style={{ fontSize: '28px' }}><RollingNumber value={currentElo} /></span>
+                <span className="font-display text-[40px] leading-none text-white"><RollingNumber value={currentElo} /></span>
                 {recentDelta !== null ? (
                   <span className={`font-mono text-[11px] font-bold px-2 py-0.5 rounded-md mb-1.5 tabular-nums ${recentDelta >= 0 ? "bg-emerald-500/[0.14] text-emerald-400 border border-emerald-500/25" : "bg-rose-500/[0.14] text-rose-400 border border-rose-500/25"}`}>
                     {recentDelta >= 0 ? `+${recentDelta}` : recentDelta} (30d)
@@ -599,7 +515,7 @@ export default function UserDashboard({
         {/* Real data-driven insight — only rendered when a genuine
             pattern exists in real history; never fabricated */}
         {personaInsight && (
-          <motion.div variants={fadeUp} initial="hidden" animate="show" custom={4} className="mb-8">
+          <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ amount: 0.12 }} custom={4} className="mb-8">
             <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-indigo-500/[0.06] border border-indigo-500/[0.15]">
               <ChartNoAxesCombined size={14} className="text-indigo-300 shrink-0" />
               <p className="text-xs text-indigo-200/80">{personaInsight}</p>
@@ -608,7 +524,7 @@ export default function UserDashboard({
         )}
 
         {/* ELO TRAJECTORY — with real Personal Best marker */}
-        <motion.div variants={fadeUp} initial="hidden" animate="show" custom={5}>
+        <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ amount: 0.12 }} custom={5}>
           <GlassCard className="p-6 mb-8">
             <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
               <div>
@@ -656,7 +572,7 @@ export default function UserDashboard({
         {/* PRACTICE HEATMAP — real 12-week activity, GitHub pattern,
             with real month/weekday labels and a legend (the previous
             version was an unlabeled floating grid — looked unfinished) */}
-        <motion.div variants={fadeUp} initial="hidden" animate="show" custom={6}>
+        <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ amount: 0.12 }} custom={6}>
           <GlassCard className="p-6 mb-8">
             <div className="flex items-center justify-between mb-5">
               <p className="text-[9.5px] font-mono font-bold uppercase tracking-[0.16em] text-slate-500">Practice Activity — Last 12 Weeks</p>
@@ -724,7 +640,7 @@ export default function UserDashboard({
 
         {/* RADAR + GAP QUEUE */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
-          <motion.div variants={fadeUp} initial="hidden" animate="show" custom={7}>
+          <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ amount: 0.12 }} custom={7}>
             <GlassCard layout className="p-6 h-full">
               <div className="flex items-center justify-between mb-1">
                 <p className="text-[9.5px] font-mono font-bold uppercase tracking-[0.16em] text-slate-500">Performance DNA</p>
@@ -770,7 +686,7 @@ export default function UserDashboard({
             </GlassCard>
           </motion.div>
 
-          <motion.div variants={fadeUp} initial="hidden" animate="show" custom={8}>
+          <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ amount: 0.12 }} custom={8}>
             <GlassCard layout className="p-6 h-full flex flex-col">
               <div className="flex items-center justify-between mb-5">
                 <div>
@@ -815,7 +731,7 @@ export default function UserDashboard({
         </div>
 
         {/* RECENT FLIGHT LEDGER — with company avatar tiles */}
-        <motion.div variants={fadeUp} initial="hidden" animate="show" custom={9}>
+        <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ amount: 0.12 }} custom={9}>
           <GlassCard className="p-6 mb-8">
             <div className="flex items-center justify-between mb-5">
               <div>
@@ -863,14 +779,15 @@ export default function UserDashboard({
                         transition={{ type: "spring", stiffness: 260, damping: 24, delay: idx * 0.05 }}
                         whileHover={{ x: 3 }}
                         onClick={() => onNavigateHistory?.(session.id)}
-                        className="grid grid-cols-[auto_1fr] md:grid-cols-[70px_1fr_100px_70px_70px_90px] gap-3 md:gap-0 items-center px-3 py-3 rounded-lg hover:bg-white/[0.03] transition-colors cursor-pointer"
+                        className="grid grid-cols-[1fr_auto] md:grid-cols-[70px_1fr_100px_70px_70px_90px] gap-3 md:gap-0 items-center px-3 py-3 rounded-lg hover:bg-white/[0.03] transition-colors cursor-pointer"
                       >
                         <span className="hidden md:block font-mono text-[10px] font-semibold text-slate-500">{session.date}</span>
-                        <div className="flex items-center gap-3 md:contents">
+                        <div className="flex min-w-0 items-center gap-3">
                           {/* Colored accent ring using each company's real
                               brand-adjacent color — no ambiguous single
                               letters, and no trademarked logos pulled in
-                              without licensing. */}                          <div
+                              without licensing. */}
+                          <div
                             className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 ring-1 ring-white/10"
                             style={{ background: isCoding ? "rgba(168,85,247,0.15)" : (COMPANY_ICONS[session.company.toLowerCase()] ? `${COMPANY_ICONS[session.company.toLowerCase()].color}1A` : "rgba(99,102,241,0.1)") }}
                           >
@@ -908,7 +825,7 @@ export default function UserDashboard({
                             <span className="font-mono text-[13px] font-bold text-slate-600">—</span>
                           )}
                         </div>
-                        <span className="hidden md:block font-mono text-[13px] font-bold md:text-right tabular-nums">{session.score != null ? <>{session.score}<span className="text-[10px] text-slate-500">/100</span></> : <span className="text-slate-600">—</span>}</span>
+                        <span className="block font-mono text-[13px] font-bold text-right tabular-nums">{session.score != null ? <>{session.score}<span className="text-[10px] text-slate-500">/100</span></> : <span className="text-slate-600">—</span>}</span>
                         <span className="hidden md:flex md:text-right text-[11px] font-semibold text-slate-500 hover:text-white transition-colors items-center gap-1 md:justify-end">Debrief <ArrowRight size={9} /></span>
                       </motion.div>
                     );
@@ -921,7 +838,7 @@ export default function UserDashboard({
 
         {/* TRACK SHORTCUTS — obviously-clickable, arrow slides on hover,
             keyboard hint visible */}
-        <motion.div variants={fadeUp} initial="hidden" animate="show" custom={10} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ amount: 0.12 }} custom={10} className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <GlassCard interactive onClick={onStartNew} className="p-6 !border-indigo-500/[0.12] hover:!border-indigo-400/40 group">
             <div className="flex items-center justify-between">
               <div>

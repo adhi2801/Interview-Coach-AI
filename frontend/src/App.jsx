@@ -7,7 +7,7 @@ import { AUTH_EXPIRED_EVENT, clearAuth, getToken, isTokenExpired, loadSavedUser 
 import { useTransitionNavigate } from "./lib/navigation";
 import SmoothScroll, { getLenis } from "./components/fx/SmoothScroll";
 import { LiquidGlass } from "./components/fx/LiquidGlass";
-import Aurora from "./components/fx/Aurora";
+import { AppChromeContext, BlueprintBackdrop } from "./components/app/AppChrome";
 
 // Every route-level page is now code-split. Previously all 13 pages were
 // eagerly imported at the top of this file, meaning a first-time visitor
@@ -104,7 +104,7 @@ function CommandPalette({ isOpen, onClose, navigate, onLogout }) {
           backdrop
           refract
           tone="dark"
-          radius={22}
+          radius={10}
           frost={28}
           className="overflow-hidden shadow-[0_40px_120px_-20px_rgba(0,0,0,0.9),0_0_80px_-30px_rgba(99,102,241,0.5)]"
           contentClassName="relative z-10 flex flex-col"
@@ -185,13 +185,14 @@ function RequireSession({ sessionData, redirectTo = "/", children }) {
 function AuthenticatedRoutes({ user, onLogout, onEloUpdate, onUserPatch, sessionData, setSessionData, onOpenCommandPalette }) {
   const location = useLocation();
   const navigate = useTransitionNavigate();
+  const chrome = React.useMemo(() => ({ user, onLogout, openPalette: onOpenCommandPalette }), [user, onLogout, onOpenCommandPalette]);
 
   return (
+    <AppChromeContext.Provider value={chrome}>
     <div className="w-full h-full">
-      {/* One backdrop behind every signed-in page; pages are transparent over it.
-          Held still (many app panels blur what's behind them) and dimmer on the
-          interview/coding work surfaces so focus stays on the task. */}
-      <Aurora still intensity={/^\/(interview|coding)/.test(location.pathname) ? 0.35 : 0.9} />
+      {/* One backdrop behind every signed-in page, the same blueprint field
+          as the landing page: flat black, frame rails, a soft top glow. */}
+      <BlueprintBackdrop />
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes location={location}>
             <Route path="/" element={<UserDashboard user={user} onLogout={onLogout} onStartNew={() => navigate("/setup")} onNavigateHistory={() => navigate("/replay")} onStartCoding={() => navigate("/coding")} onNavigateSettings={() => navigate("/settings")} onNavigateStudyPlan={() => navigate("/study-plan")} onOpenCommandPalette={onOpenCommandPalette} onEloUpdate={onEloUpdate} />} />
@@ -213,6 +214,7 @@ function AuthenticatedRoutes({ user, onLogout, onEloUpdate, onUserPatch, session
           </Routes>
         </Suspense>
     </div>
+    </AppChromeContext.Provider>
   );
 }
 
@@ -250,6 +252,7 @@ function ReplayViewerWithParam({ onExit }) {
 
 function AppContent({ user, handleAuth, handleLogout, handleEloUpdate, handleUserPatch, sessionData, setSessionData }) {
   const [cmdOpen, setCmdOpen] = useState(false);
+  const openPalette = React.useCallback(() => setCmdOpen(true), []);
   const [logoutConfirming, setLogoutConfirming] = useState(false);
   const navigate = useTransitionNavigate();
   const location = useLocation();
@@ -349,7 +352,7 @@ function AppContent({ user, handleAuth, handleLogout, handleEloUpdate, handleUse
       <SmoothScroll enabled={smoothScroll} />
       <div className="w-full min-h-screen relative z-10">
         {user ? (
-          <AuthenticatedRoutes user={user} onLogout={handleLogout} onEloUpdate={handleEloUpdate} onUserPatch={handleUserPatch} sessionData={sessionData} setSessionData={setSessionData} onOpenCommandPalette={() => setCmdOpen(true)} />
+          <AuthenticatedRoutes user={user} onLogout={handleLogout} onEloUpdate={handleEloUpdate} onUserPatch={handleUserPatch} sessionData={sessionData} setSessionData={setSessionData} onOpenCommandPalette={openPalette} />
         ) : (
           <UnauthenticatedRoutes onAuth={handleAuth} />
         )}

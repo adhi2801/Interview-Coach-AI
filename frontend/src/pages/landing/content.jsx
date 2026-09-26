@@ -231,82 +231,97 @@ export const ARCHITECTURE_CARDS = [
   { title: "Auth & Security", desc: "Sessions, ELO history, and profiles stored per-user. JWT tokens, bcrypt password hashing.", tag: "JWT + bcrypt", color: "text-slate-300 bg-white/5 border-white/10" }
 ];
 
-// 93 nodes, organized the way the real prerequisite graph is —
-// grouped by domain rather than dumped in one flat block. Statuses
-// are illustrative example data for this landing page, not a real
-// logged-in user's actual progress.
+// The 93 topics of the real prerequisite graph, exactly as seeded by
+// backend/seed_topics.py (names and categories). Statuses are illustrative
+// example data for the landing page, not a real user's progress.
 export const KNOWLEDGE_CATEGORIES = [
   {
-    title: 'Data Structures & Algorithms',
+    title: 'Foundations',
     nodes: [
-      { name: 'Arrays', status: 'passed' }, { name: 'Linked Lists', status: 'passed' }, { name: 'Hash Maps', status: 'passed' },
-      { name: 'Stacks', status: 'passed' }, { name: 'Queues', status: 'passed' }, { name: 'Binary Trees', status: 'passed' },
-      { name: 'Binary Search Trees', status: 'passed' }, { name: 'Heaps', status: 'passed' }, { name: 'Tries', status: 'locked' },
-      { name: 'Graphs', status: 'passed' }, { name: 'Graph Traversal', status: 'passed' }, { name: 'Sorting', status: 'passed' },
-      { name: 'Binary Search', status: 'passed' }, { name: 'Recursion', status: 'passed' }, { name: 'Backtracking', status: 'gap' },
-      { name: 'Dynamic Programming', status: 'gap' }, { name: 'Bit Manipulation', status: 'gap' }, { name: 'Sliding Window', status: 'gap' },
+      { name: 'Control Flow', status: 'passed' }, { name: 'Functions', status: 'passed' }, { name: 'Variables & Types', status: 'passed' },
+      { name: 'Complexity Analysis', status: 'passed' }, { name: 'Pointers & References', status: 'passed' }, { name: 'Recursion', status: 'passed' },
     ]
   },
   {
-    title: 'Systems Design',
+    title: 'Data Structures',
     nodes: [
-      { name: 'Load Balancing', status: 'gap' }, { name: 'Caching', status: 'passed' }, { name: 'CDN', status: 'passed' },
-      { name: 'Rate Limiting', status: 'passed' }, { name: 'Message Queues', status: 'gap' }, { name: 'Microservices', status: 'passed' },
-      { name: 'Distributed Systems', status: 'gap' }, { name: 'Consensus', status: 'locked' }, { name: 'Sharding', status: 'locked' },
-      { name: 'Replication', status: 'locked' }, { name: 'Consistent Hashing', status: 'locked' }, { name: 'API Gateway', status: 'passed' },
-      { name: 'Circuit Breakers', status: 'gap' }, { name: 'Event-Driven Arch', status: 'passed' }, { name: 'Pub/Sub', status: 'passed' },
-      { name: 'Service Discovery', status: 'locked' }, { name: 'Idempotency', status: 'passed' }, { name: 'Backpressure', status: 'gap' },
+      { name: 'Arrays', status: 'passed' }, { name: 'Queues', status: 'passed' }, { name: 'Stacks', status: 'passed' },
+      { name: 'Linked Lists', status: 'passed' }, { name: 'Binary Trees', status: 'passed' }, { name: 'Hash Maps', status: 'passed' },
+      { name: 'Binary Search Trees', status: 'passed' }, { name: 'Graphs', status: 'passed' }, { name: 'Heaps', status: 'passed' },
+      { name: 'Priority Queue', status: 'passed' }, { name: 'Tries', status: 'passed' }, { name: 'Union Find', status: 'passed' },
+      { name: 'Balanced Trees', status: 'locked' }, { name: 'Segment Trees', status: 'locked' },
+    ]
+  },
+  {
+    title: 'Algorithms',
+    nodes: [
+      { name: 'Binary Search', status: 'passed' }, { name: 'Sorting', status: 'passed' }, { name: 'Two Pointers', status: 'passed' },
+      { name: 'Bit Manipulation', status: 'gap' }, { name: 'Hashing', status: 'passed' }, { name: 'Sliding Window', status: 'gap' },
+      { name: 'Graph Traversal', status: 'passed' }, { name: 'Greedy Algorithms', status: 'passed' }, { name: 'Backtracking', status: 'gap' },
+      { name: 'Topological Sort', status: 'passed' }, { name: 'Dijkstra', status: 'locked' }, { name: 'Dynamic Programming', status: 'gap' },
+    ]
+  },
+  {
+    title: 'System Design',
+    nodes: [
+      { name: 'Caching', status: 'passed' }, { name: 'API Gateway', status: 'passed' }, { name: 'CDN', status: 'passed' },
+      { name: 'Message Queues', status: 'gap' }, { name: 'Rate Limiting', status: 'passed' }, { name: 'Event-Driven Architecture', status: 'locked' },
+      { name: 'Microservices', status: 'locked' }, { name: 'Scalability', status: 'locked' }, { name: 'Consistency Models', status: 'gap' },
+      { name: 'Disaster Recovery', status: 'locked' }, { name: 'Distributed Systems', status: 'gap' }, { name: 'Consensus', status: 'locked' },
     ]
   },
   {
     title: 'Databases',
     nodes: [
-      { name: 'SQL', status: 'passed' }, { name: 'NoSQL', status: 'gap' }, { name: 'Indexing', status: 'passed' },
-      { name: 'Transactions', status: 'gap' }, { name: 'ACID', status: 'passed' }, { name: 'CAP Theorem', status: 'gap' },
-      { name: 'Query Optimization', status: 'passed' }, { name: 'Normalization', status: 'passed' }, { name: 'DB Sharding', status: 'locked' },
-      { name: 'Read Replicas', status: 'locked' }, { name: 'Connection Pooling', status: 'passed' }, { name: 'Time-Series DBs', status: 'locked' },
+      { name: 'SQL', status: 'passed' }, { name: 'Indexing', status: 'gap' }, { name: 'Normalization', status: 'passed' },
+      { name: 'NoSQL', status: 'passed' }, { name: 'Transactions', status: 'gap' }, { name: 'Replication', status: 'locked' },
+      { name: 'Sharding', status: 'locked' },
     ]
   },
   {
-    title: 'Networking & Web',
+    title: 'Networking',
     nodes: [
-      { name: 'DNS', status: 'passed' }, { name: 'HTTP/HTTPS', status: 'passed' }, { name: 'REST APIs', status: 'passed' },
-      { name: 'GraphQL', status: 'gap' }, { name: 'WebSockets', status: 'gap' }, { name: 'gRPC', status: 'gap' },
-      { name: 'TCP/UDP', status: 'passed' }, { name: 'TLS/SSL', status: 'gap' }, { name: 'CORS', status: 'passed' },
-      { name: 'OAuth', status: 'gap' },
+      { name: 'DNS', status: 'passed' }, { name: 'Networking', status: 'passed' }, { name: 'REST APIs', status: 'passed' },
+      { name: 'Load Balancing', status: 'gap' }, { name: 'WebSockets', status: 'passed' }, { name: 'gRPC', status: 'locked' },
+    ]
+  },
+  {
+    title: 'Operating Systems',
+    nodes: [
+      { name: 'Processes & Threads', status: 'locked' }, { name: 'Concurrency', status: 'locked' }, { name: 'Locks', status: 'gap' },
+      { name: 'Memory Management', status: 'gap' }, { name: 'Scheduling', status: 'passed' }, { name: 'Virtual Memory', status: 'locked' },
     ]
   },
   {
     title: 'Security',
     nodes: [
-      { name: 'Authentication', status: 'passed' }, { name: 'Authorization', status: 'passed' }, { name: 'Encryption', status: 'gap' },
-      { name: 'Hashing', status: 'passed' }, { name: 'JWT', status: 'passed' }, { name: 'SQL Injection', status: 'gap' },
-      { name: 'XSS Prevention', status: 'gap' }, { name: 'Rate Limit Abuse', status: 'locked' },
+      { name: 'SQL Injection', status: 'passed' }, { name: 'Authentication', status: 'passed' }, { name: 'Authorization', status: 'passed' },
+      { name: 'JWT Tokens', status: 'passed' }, { name: 'Encryption', status: 'passed' }, { name: 'OAuth', status: 'passed' },
     ]
   },
   {
     title: 'Software Design',
     nodes: [
-      { name: 'OOP', status: 'passed' }, { name: 'SOLID Principles', status: 'passed' }, { name: 'Design Patterns', status: 'gap' },
-      { name: 'Concurrency', status: 'locked' }, { name: 'Multithreading', status: 'locked' }, { name: 'Memory Management', status: 'gap' },
-      { name: 'Garbage Collection', status: 'locked' }, { name: 'Immutability', status: 'passed' }, { name: 'Dependency Injection', status: 'passed' },
-      { name: 'Testing Strategies', status: 'passed' },
+      { name: 'OOP', status: 'passed' }, { name: 'SOLID Principles', status: 'passed' }, { name: 'Dependency Injection', status: 'passed' },
+      { name: 'Design Patterns', status: 'passed' },
     ]
   },
   {
-    title: 'ML & AI Basics',
+    title: 'Machine Learning',
     nodes: [
-      { name: 'ML Fundamentals', status: 'passed' }, { name: 'Neural Networks', status: 'locked' }, { name: 'Overfitting', status: 'passed' },
-      { name: 'Feature Engineering', status: 'passed' }, { name: 'Model Evaluation', status: 'gap' }, { name: 'Gradient Descent', status: 'locked' },
-      { name: 'Embeddings', status: 'passed' }, { name: 'Vector Search', status: 'gap' },
+      { name: 'Calculus', status: 'locked' }, { name: 'Linear Algebra', status: 'locked' }, { name: 'Statistics', status: 'locked' },
+      { name: 'ML Basics', status: 'locked' }, { name: 'Model Evaluation', status: 'locked' }, { name: 'Overfitting', status: 'locked' },
+      { name: 'Embeddings', status: 'locked' }, { name: 'Gradient Descent', status: 'locked' }, { name: 'Neural Networks', status: 'locked' },
+      { name: 'Attention Mechanism', status: 'locked' }, { name: 'CNNs', status: 'locked' }, { name: 'RNNs', status: 'locked' },
+      { name: 'Transformers', status: 'locked' },
     ]
   },
   {
-    title: 'Behavioral & Communication',
+    title: 'Behavioral',
     nodes: [
-      { name: 'Communication', status: 'passed' }, { name: 'Leadership', status: 'locked' }, { name: 'Conflict Resolution', status: 'gap' },
-      { name: 'Prioritization', status: 'passed' }, { name: 'Estimation', status: 'passed' }, { name: 'Trade-off Analysis', status: 'passed' },
-      { name: 'Stakeholder Mgmt', status: 'locked' }, { name: 'Mentorship', status: 'locked' }, { name: 'Postmortems', status: 'gap' },
+      { name: 'Behavioral Storytelling', status: 'passed' }, { name: 'Communication', status: 'passed' }, { name: 'Growth Mindset', status: 'passed' },
+      { name: 'Conflict Resolution', status: 'passed' }, { name: 'Ownership', status: 'gap' }, { name: 'Decision Making', status: 'gap' },
+      { name: 'Leadership', status: 'passed' },
     ]
   },
 ];
