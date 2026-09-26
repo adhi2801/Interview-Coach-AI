@@ -9,7 +9,7 @@
 import { useEffect, useState } from "react";
 import api from "../../lib/api";
 
-export const PROBLEMS_FALLBACK = 25;
+export const PROBLEMS_FALLBACK = 63;
 
 let pending = null;
 let known = null;
