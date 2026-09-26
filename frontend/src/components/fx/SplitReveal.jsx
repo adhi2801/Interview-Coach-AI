@@ -27,6 +27,9 @@ export default function SplitReveal({
   delay = 0,
   stagger,
   start = "top 88%",
+  // Inside a GSAP-pinned section the heading stays on screen while its
+  // natural position scrolls past, so it must not reset when it "leaves".
+  pinned = false,
   ...rest
 }) {
   const ref = useRef(null);
@@ -78,8 +81,8 @@ export default function SplitReveal({
           start,
           end: "bottom 6%",
           onEnter: () => play(110, delay),
-          onEnterBack: () => play(-110),
-          onLeave: () => reset(-110),
+          onEnterBack: () => { if (!shown) play(-110); },
+          onLeave: () => { if (!pinned) reset(-110); },
           onLeaveBack: () => reset(110),
         });
       };

@@ -54,7 +54,17 @@ export default function FeatureTabs() {
   const inView = useInView(ref, { amount: 0.35 });
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
-  const running = inView && !paused;
+  // Auto-advance only where the panel sits beside the tabs at a fixed
+  // height. On phones each panel is a different height, so advancing on a
+  // timer would shift the page under your thumb; there you tap instead.
+  const [wide, setWide] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches);
+  useEffect(() => {
+    const m = window.matchMedia("(min-width: 1024px)");
+    const on = () => setWide(m.matches);
+    m.addEventListener("change", on);
+    return () => m.removeEventListener("change", on);
+  }, []);
+  const running = inView && !paused && wide;
 
   useEffect(() => {
     if (!running) return undefined;
@@ -92,7 +102,8 @@ export default function FeatureTabs() {
               <span className={cn("h-1.5 w-1.5 shrink-0 transition-colors", on ? "bg-indigo-400" : "bg-white/20")} />
               <t.icon size={15} className={on ? "text-indigo-300" : "text-white/35"} />
               {t.label}
-              {on && (
+              {on && !wide && <span aria-hidden="true" className="absolute bottom-0 left-0 h-px w-full bg-indigo-400" />}
+              {on && wide && (
                 <span className="absolute bottom-0 left-0 h-px w-full overflow-hidden bg-white/[0.06]">
                   <span
                     key={`${active}-${running}`}

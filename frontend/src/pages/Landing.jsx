@@ -20,7 +20,7 @@
 // values are labelled as examples.
 
 import React, { useEffect, useRef, useState } from "react";
-import { animate, motion, useInView, useMotionValue, useMotionValueEvent, useScroll, useSpring, useTransform } from "motion/react";
+import { motion, useMotionValue, useMotionValueEvent, useScroll, useSpring, useTransform } from "motion/react";
 import { ArrowRight, GitBranch, Play } from "lucide-react";
 import DotField from "../components/fx/DotField";
 import SplitReveal from "../components/fx/SplitReveal";
@@ -30,7 +30,7 @@ import { scrollToTarget } from "../components/fx/SmoothScroll";
 import { ScrollTrigger, ease, prefersReducedMotion, useGSAP } from "../lib/motion";
 import { cn } from "../lib/utils";
 import { FRAME, Hatch, Iridescent, Label, Section } from "./landing/blueprint";
-import InterviewDemo, { DEMO_STEPS, stepFor } from "./landing/InterviewDemo";
+import InterviewDemo, { DEMO_STEPS, PH, stepFor } from "./landing/InterviewDemo";
 import FeatureTabs from "./landing/FeatureTabs";
 import ScrollFilm from "./landing/ScrollFilm";
 import { useProblemCount } from "./landing/liveCounts";
@@ -236,8 +236,36 @@ function useMediaQuery(q) {
   return match;
 }
 
+// Phase boundaries per step, so each step's rail fills exactly in time with
+// what the demo is showing.
+const STEP_RANGES = [
+  [PH.question[0], PH.answer[0]],
+  [PH.answer[0], PH.scores[0]],
+  [PH.scores[0], PH.outcome[0]],
+  [PH.outcome[0], PH.outcome[1]],
+];
+
+function StepRail({ progress, i, on }) {
+  const scaleY = useTransform(progress, STEP_RANGES[i], [0, 1], { clamp: true });
+  return (
+    <span aria-hidden="true" className="absolute inset-y-0 left-0 w-px bg-white/10">
+      <motion.span style={{ scaleY }} className={cn("absolute inset-0 origin-top", on ? "bg-indigo-400" : "bg-indigo-400/40")} />
+    </span>
+  );
+}
+
+function StepBarSegment({ progress, i }) {
+  const scaleX = useTransform(progress, STEP_RANGES[i], [0, 1], { clamp: true });
+  return (
+    <span className="relative h-[3px] flex-1 overflow-hidden bg-white/10">
+      <motion.span style={{ scaleX }} className="absolute inset-0 origin-left bg-indigo-400" />
+    </span>
+  );
+}
+
 function DemoSection() {
   const pinRef = useRef(null);
+  const demoRef = useRef(null);
   const raw = useMotionValue(0);
   const progress = useSpring(raw, { stiffness: 140, damping: 28, mass: 0.4 });
   const [step, setStep] = useState(0);
@@ -248,7 +276,6 @@ function DemoSection() {
 
   const desktop = useMediaQuery("(min-width: 1024px)");
   const reduced = prefersReducedMotion();
-  const inView = useInView(pinRef, { amount: 0.3 });
 
   // Desktop: the section pins and scroll position scrubs the demo.
   useGSAP(
@@ -267,47 +294,58 @@ function DemoSection() {
     { dependencies: [desktop, reduced] }
   );
 
-  // Phones / reduced motion: plays on a loop while visible.
+  // Phones / tablets: no pinning; scrolling through the demo window scrubs
+  // it, so what you see always matches the step bar (and rewinds on the way
+  // back up). Reduced motion shows the finished state.
+  const { scrollYProgress: mobileP } = useScroll({ target: demoRef, offset: ["start 70%", "end 85%"] });
+  useMotionValueEvent(mobileP, "change", (v) => {
+    if (!desktop && !reduced) raw.set(v);
+  });
   useEffect(() => {
-    if (desktop && !reduced) return undefined;
-    if (reduced) { raw.set(1); return undefined; }
-    if (!inView) return undefined;
-    const controls = animate(raw, [0, 1], { duration: 18, ease: "linear", repeat: Infinity, repeatDelay: 2 });
-    return () => controls.stop();
-  }, [desktop, reduced, inView, raw]);
+    if (reduced) raw.set(1);
+    else if (!desktop) raw.set(mobileP.get());
+  }, [desktop, reduced, raw, mobileP]);
 
   return (
     <Section id="demo">
       <div ref={pinRef} className="grid grid-cols-1 bg-[#050507] lg:min-h-[calc(100vh-64px)] lg:grid-cols-12">
-        <div className="flex flex-col justify-between border-b border-white/[0.08] px-6 py-10 md:px-10 lg:col-span-4 lg:border-b-0 lg:border-r">
+        <div className="flex flex-col border-b border-white/[0.08] px-6 py-10 md:px-10 lg:col-span-4 lg:justify-center lg:border-b-0 lg:border-r">
           <div>
             <Label index="01">One interview, start to finish</Label>
-            <SplitReveal by="lines" className="mt-6 text-4xl font-semibold leading-[1.02] tracking-[-0.04em] md:text-5xl">
+            <SplitReveal by="lines" pinned className="mt-6 text-4xl font-semibold leading-[1.02] tracking-[-0.04em] md:text-5xl">
               Watch it think with you.
             </SplitReveal>
           </div>
-          <ol className="mt-10 space-y-1">
+          {/* Desktop: the full step list, each rail filling in sync with the demo. */}
+          <ol className="mt-10 hidden space-y-1 lg:block">
             {DEMO_STEPS.map((s, i) => {
               const on = i === step;
               return (
-                <li key={s.title} className={cn("relative border-l py-3 pl-5 transition-colors duration-500", on ? "border-indigo-400" : "border-white/10")}>
+                <li key={s.title} className="relative py-3 pl-5">
+                  <StepRail progress={progress} i={i} on={on} />
                   <p className={cn("font-mono text-[11px] uppercase tracking-[0.14em] transition-colors duration-500", on ? "text-indigo-300" : "text-white/30")}>0{i + 1}</p>
                   <p className={cn("mt-1 text-lg font-semibold tracking-[-0.02em] transition-colors duration-500", on ? "text-white" : "text-white/35")}>{s.title}</p>
-                  <motion.div
-                    initial={false}
-                    animate={{ height: on ? "auto" : 0, opacity: on ? 1 : 0 }}
-                    transition={{ duration: 0.45, ease: ease.expo }}
-                    className="overflow-hidden text-sm leading-relaxed text-white/55"
-                  >
-                    <p className="pt-1.5">{s.body}</p>
-                  </motion.div>
+                  <p className={cn("mt-1 text-sm leading-relaxed transition-colors duration-500", on ? "text-white/60" : "text-white/25")}>{s.body}</p>
                 </li>
               );
             })}
           </ol>
+          <p className="mt-4 text-[15px] leading-relaxed text-white/55 lg:hidden">Scroll through the window below: it plays one full question, step by step.</p>
         </div>
-        <div className="flex items-center px-4 py-8 md:px-8 lg:col-span-8">
-          <InterviewDemo progress={progress} className="w-full" />
+        <div className="px-4 py-8 md:px-8 lg:col-span-8 lg:flex lg:items-center">
+          {/* Phones / tablets: the current step rides above the demo. */}
+          <div className="sticky top-16 z-20 -mx-4 mb-4 border-y border-white/[0.08] bg-[#050507] px-4 py-3 md:-mx-8 md:px-8 lg:hidden">
+            <p className="truncate text-[15px] font-semibold tracking-[-0.01em] text-white">
+              <span className="mr-2 font-mono text-[11px] text-indigo-300">0{step + 1} / 04</span>{DEMO_STEPS[step].title}
+            </p>
+            <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-white/50">{DEMO_STEPS[step].body}</p>
+            <div className="mt-2.5 flex gap-1.5">
+              {DEMO_STEPS.map((s, i) => <StepBarSegment key={s.title} progress={progress} i={i} />)}
+            </div>
+          </div>
+          <div ref={demoRef} className="w-full">
+            <InterviewDemo progress={progress} className="w-full" />
+          </div>
         </div>
       </div>
     </Section>
@@ -336,29 +374,53 @@ function Features() {
 
 const bandItems = (problems) => ["93 topics", `${problems} problems`, "5 dimensions", "4 languages", "7 companies", "4 personas"];
 
-function BandRow({ items }) {
-  return [...items, ...items].map((t, i) => (
-    <span key={i} className="flex items-center gap-8 pr-8">
-      <span>{t}</span>
-      <span aria-hidden="true" className="h-3 w-3 shrink-0 bg-indigo-400/70" />
-    </span>
-  ));
+function BandRow({ items, setRef }) {
+  return (
+    <>
+      {[0, 1, 2].map((copy) => (
+        <span key={copy} ref={copy === 0 ? setRef : undefined} className="flex shrink-0">
+          {items.map((t) => (
+            <span key={t} className="flex items-center gap-8 pr-8">
+              <span>{t}</span>
+              <span aria-hidden="true" className="h-3 w-3 shrink-0 bg-indigo-400/70" />
+            </span>
+          ))}
+        </span>
+      ))}
+    </>
+  );
 }
 
+// Two rows of the same words drifting in opposite directions. When the band
+// is in the middle of the viewport both rows start on a whole word at the
+// left edge and line up exactly, solid over outline.
 function NumbersBand() {
   const ref = useRef(null);
+  const setRef = useRef(null);
   const BAND = bandItems(useProblemCount());
+  const [w, setW] = useState(0);
+  useEffect(() => {
+    const el = setRef.current;
+    if (!el) return undefined;
+    const measure = () => setW(el.getBoundingClientRect().width);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
-  const x1 = useTransform(scrollYProgress, [0, 1], ["0%", "-30%"]);
-  const x2 = useTransform(scrollYProgress, [0, 1], ["-30%", "0%"]);
+  const drift = useTransform(scrollYProgress, [0, 1], [1, -1]);
+  const x1 = useTransform(drift, (d) => -w + d * w * 0.35);
+  const x2 = useTransform(drift, (d) => -w - d * w * 0.35);
+  const row = "flex w-max whitespace-nowrap text-6xl font-semibold uppercase tracking-[-0.04em] md:text-[128px]";
   return (
     <Section>
       <div ref={ref} className="overflow-hidden py-14">
         <p className="sr-only">{BAND.join(", ")}</p>
-        <motion.div style={{ x: x1 }} className="flex whitespace-nowrap text-6xl font-semibold uppercase tracking-[-0.04em] text-white md:text-[128px]" aria-hidden="true">
-          <BandRow items={BAND} />
+        <motion.div style={{ x: x1 }} className={cn(row, "text-white")} aria-hidden="true">
+          <BandRow items={BAND} setRef={setRef} />
         </motion.div>
-        <motion.div style={{ x: x2 }} className="mt-2 flex whitespace-nowrap text-6xl font-semibold uppercase tracking-[-0.04em] text-transparent [-webkit-text-stroke:1px_rgba(255,255,255,0.28)] md:text-[128px]" aria-hidden="true">
+        <motion.div style={{ x: x2 }} className={cn(row, "mt-2 text-transparent [-webkit-text-stroke:1px_rgba(255,255,255,0.28)]")} aria-hidden="true">
           <BandRow items={BAND} />
         </motion.div>
       </div>

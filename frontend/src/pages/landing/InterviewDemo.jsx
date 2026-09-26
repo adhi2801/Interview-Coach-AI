@@ -38,7 +38,7 @@ const clamp01 = (x) => Math.max(0, Math.min(1, x));
 const seg = (p, a, b) => clamp01((p - a) / (b - a));
 
 // Phase map (fractions of the whole timeline).
-const PH = { question: [0.0, 0.2], answer: [0.22, 0.56], scores: [0.58, 0.8], outcome: [0.82, 0.97] };
+export const PH = { question: [0.0, 0.2], answer: [0.22, 0.56], scores: [0.58, 0.8], outcome: [0.82, 0.97] };
 
 export const DEMO_STEPS = [
   { title: "The question arrives", body: "Company focus and interviewer persona shape a fresh scenario at your level." },
@@ -127,7 +127,7 @@ export default function InterviewDemo({ progress, className }) {
               <Mic size={11} /> {listening ? "Listening" : aT >= 1 ? "Submitted" : "Hold to speak"}
             </span>
           </div>
-          <p className="flex-1 text-[13.5px] leading-[1.7] text-white/85">
+          <p className="min-h-[15rem] flex-1 text-[13.5px] leading-[1.7] text-white/85 sm:min-h-[12rem] md:min-h-0">
             {SCENARIO.answer.slice(0, answerChars)}
             {listening && <span className="ml-0.5 inline-block h-[1em] w-[2px] translate-y-[2px] bg-rose-400" />}
             {aT === 0 && <span className="text-white/25">Waiting for the question…</span>}

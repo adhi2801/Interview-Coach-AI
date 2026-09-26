@@ -30,7 +30,32 @@ export function scrollToTarget(target, { offset = -88 } = {}) {
   }
 }
 
+// Scroll-triggered animations cache their start/end positions. Anything that
+// changes the page height afterwards (webfonts, data arriving, a panel
+// growing) leaves every trigger below it stale, which is how reveals end up
+// firing in the wrong place or not at all, especially on phones. Watch the
+// document height and re-measure (debounced) whenever it changes.
+function useAutoRefresh() {
+  useEffect(() => {
+    let t = 0;
+    let last = document.documentElement.scrollHeight;
+    const ro = new ResizeObserver(() => {
+      const h = document.documentElement.scrollHeight;
+      if (Math.abs(h - last) < 2) return;
+      last = h;
+      clearTimeout(t);
+      t = setTimeout(() => ScrollTrigger.refresh(), 180);
+    });
+    ro.observe(document.body);
+    return () => {
+      clearTimeout(t);
+      ro.disconnect();
+    };
+  }, []);
+}
+
 export default function SmoothScroll({ enabled = true }) {
+  useAutoRefresh();
   useEffect(() => {
     if (!enabled || prefersReducedMotion()) return undefined;
 
