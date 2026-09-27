@@ -2,7 +2,6 @@ name: CI
 
 on:
   push:
-    branches: [main]
   pull_request:
 
 concurrency:
@@ -87,3 +86,23 @@ jobs:
           name: playwright-traces
           path: frontend/test-results/
           retention-days: 7
+
+  docker:
+    name: Backend · Docker image builds and boots
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: docker build -t interview-coach-api backend
+      - name: Boot against Postgres and answer /health
+        run: |
+          docker network create ci
+          docker run -d --name db --network ci -e POSTGRES_PASSWORD=ci -e POSTGRES_DB=ci postgres:16
+          for i in $(seq 1 30); do docker exec db pg_isready -U postgres && break; sleep 2; done
+          docker run -d --name api --network ci -p 8000:8000 \
+            -e DATABASE_URL=postgresql://postgres:ci@db:5432/ci \
+            -e JWT_SECRET_KEY=ci-only-secret-key-for-the-smoke-test \
+            -e ANTHROPIC_API_KEY=unused interview-coach-api
+          for i in $(seq 1 45); do curl -fsS localhost:8000/health && exit 0; sleep 2; done
+          docker logs api
+          exit 1
