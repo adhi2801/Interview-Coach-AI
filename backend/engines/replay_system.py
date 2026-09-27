@@ -67,19 +67,19 @@ class ReplaySystem:
         finally:
             db.close()
 
-    def last_question(self, session_id: int) -> str | None:
-        """The text of the most recent question the SERVER asked in this
-        session, or None if nothing was recorded. Scoring uses this instead
-        of the question text the client sends back, so a candidate cannot
-        answer a hard question while having it graded as an easy one."""
+    def asked_questions(self, session_id: int) -> list[str]:
+        """Every question the SERVER asked in this session, oldest first."""
         db = SessionLocal()
         try:
             manifest = db.query(ReplayManifest).filter(ReplayManifest.session_id == session_id).first()
-            for event in reversed((manifest.events or []) if manifest else []):
+            asked = []
+            for event in (manifest.events or []) if manifest else []:
                 if event.get("type") == "question_asked":
                     data = event.get("data") or {}
-                    return data.get("question") or data.get("text") or None
-            return None
+                    text = data.get("question") or data.get("text")
+                    if text:
+                        asked.append(text)
+            return asked
         finally:
             db.close()
 

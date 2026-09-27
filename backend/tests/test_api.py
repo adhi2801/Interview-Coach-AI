@@ -502,3 +502,19 @@ def test_unexpected_errors_return_json_with_the_request_id(db_factory, monkeypat
     assert body["error"].startswith("Something went wrong")
     assert "exploded" not in body["error"]
     assert len(body["request_id"]) == 32
+
+
+def test_retrying_an_earlier_node_grades_that_nodes_question(client, monkeypatch):
+    headers, _ = signup(client)
+    session = start_session(client, headers)
+    first_question = session["question"]
+    monkeypatch.setattr(services.difficulty_engine, "select_question",
+                        lambda **kw: {"question": "A different follow-up.", "category": "General"})
+    monkeypatch.setattr(services.scorer, "score", lambda question, answer: {**FAKE_SCORES, "overall_summary": "low"}
+                        | {k: 3.0 for k in FAKE_SCORES if k.startswith("score_")})
+    client.post("/answer/submit", headers=headers, json=answer_payload(session))  # server now asks the follow-up
+
+    graded = []
+    monkeypatch.setattr(services.scorer, "score", lambda question, answer: graded.append(question) or dict(FAKE_SCORES))
+    client.post("/answer/submit", headers=headers, json=answer_payload(session, question=first_question))
+    assert graded == [first_question]

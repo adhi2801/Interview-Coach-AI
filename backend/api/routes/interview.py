@@ -174,10 +174,13 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest, user_id: i
         default_company = session_record.company_target or "google"
         db.rollback()  # release the read snapshot before the slow phase
 
-        # Grade against the question the server actually asked, never the
-        # client's copy (which could be swapped for an easier one). The
-        # client text is only a fallback if the replay failed to record it.
-        question = services.replay_system.last_question(payload.session_id) or payload.question
+        # Grade against a question the server actually asked in this session,
+        # never arbitrary client text (which could be swapped for an easier
+        # one). Any asked question is accepted, so "Retry this node" grades
+        # the question being retried; otherwise the latest one is used. The
+        # client text is only a fallback if the replay recorded nothing.
+        asked = services.replay_system.asked_questions(payload.session_id)
+        question = payload.question if payload.question in asked else (asked[-1] if asked else payload.question)
 
         # ---- Phase 1: slow external calls, no transaction held ----
         has_profanity = contains_profanity(payload.answer)
