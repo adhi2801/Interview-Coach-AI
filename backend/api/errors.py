@@ -2,11 +2,15 @@
 # Every failure leaves the API as {"error": "<human-readable message>"} with
 # a real HTTP status code — the one body shape the frontend reads.
 
+import structlog
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 from starlette.exceptions import HTTPException as StarletteHTTPException
+
+
+logger = structlog.get_logger()
 
 
 class APIError(Exception):
@@ -49,3 +53,17 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(StarletteHTTPException)
     async def http_exception_handler(request: Request, exc: StarletteHTTPException):
         return JSONResponse(status_code=exc.status_code, content={"error": str(exc.detail)})
+
+    @app.exception_handler(Exception)
+    async def unhandled_error_handler(request: Request, exc: Exception):
+        # Same {"error": ...} shape as every other failure (was a plain-text
+        # "Internal Server Error"), with the id that finds this in the logs.
+        request_id = getattr(request.state, "request_id", None)
+        # Runs in Starlette's outermost error layer, after the request
+        # middleware has unbound its log context, so the id is passed here.
+        logger.exception("unhandled_error", request_id=request_id, path=request.url.path,
+                         error_type=type(exc).__name__)
+        return JSONResponse(status_code=500, content={
+            "error": "Something went wrong on our end. Please try again.",
+            "request_id": request_id,
+        })

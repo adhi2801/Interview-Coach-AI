@@ -44,6 +44,13 @@ describe("error handling", () => {
     expect(res.data.status).toBe("failed");
   });
 
+  it("adds the request id to server errors so reports can be traced", async () => {
+    await expect(api.get("/x", { adapter: respondWith(500, { error: "Something went wrong on our end. Please try again.", request_id: "1a2b3c4d5e6f" }) }))
+      .rejects.toThrow("Something went wrong on our end. Please try again. (ref 1a2b3c4d)");
+    await expect(api.get("/x", { adapter: respondWith(503, { request_id: "1a2b3c4d5e6f" }) }))
+      .rejects.toThrow("(ref 1a2b3c4d)");
+  });
+
   it("explains a server error without leaking internals", async () => {
     await expect(api.get("/x", { adapter: respondWith(502, "<html>Bad gateway</html>") }))
       .rejects.toThrow("Something went wrong on our end");

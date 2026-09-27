@@ -24,6 +24,7 @@ if os.getenv("SENTRY_DSN"):
 # consistent fields, instead of plain print() strings.
 structlog.configure(
     processors=[
+        structlog.contextvars.merge_contextvars,  # request_id from RequestContextMiddleware
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.add_log_level,
         structlog.processors.JSONRenderer()
@@ -35,6 +36,7 @@ logging.basicConfig(level=logging.INFO)
 from api import services  # noqa: E402  (engines log on import; configure logging first)
 from api.deps import limiter  # noqa: E402
 from api.errors import register_error_handlers  # noqa: E402
+from api.middleware import RequestContextMiddleware  # noqa: E402
 from api.routes import auth, coaching, coding, interview, meta, replay, user  # noqa: E402
 
 
@@ -87,6 +89,8 @@ app.add_middleware(
 )
 # Most responses here are JSON dashboards/replays that compress 5-10x.
 app.add_middleware(GZipMiddleware, minimum_size=1024)
+# Added last = outermost: the request id is bound before anything else runs.
+app.add_middleware(RequestContextMiddleware)
 
 for module in (meta, auth, interview, replay, user, coding, coaching):
     app.include_router(module.router)

@@ -471,3 +471,34 @@ def test_unknown_company_profiles_need_an_account(client, monkeypatch):
     assert client.get("/companies/made-up-co/profile", headers=headers).status_code == 200
     assert generated == ["made-up-co"]
     assert client.get("/companies/" + "x" * 51 + "/profile", headers=headers).status_code == 422
+
+
+# ---------- request context ----------
+
+def test_every_response_carries_a_request_id_and_security_headers(client):
+    res = client.get("/health")
+    assert len(res.headers["x-request-id"]) == 32
+    assert res.headers["x-content-type-options"] == "nosniff"
+    assert res.headers["x-frame-options"] == "DENY"
+    assert "strict-transport-security" not in res.headers  # plain http in tests
+
+    traced = client.get("/health", headers={"X-Request-ID": "trace-abc.123",
+                                            "X-Forwarded-Proto": "https"})
+    assert traced.headers["x-request-id"] == "trace-abc.123"
+    assert "max-age" in traced.headers["strict-transport-security"]
+
+    forged = client.get("/health", headers={"X-Request-ID": "bad id\nwith newline"})
+    assert forged.headers["x-request-id"] != "bad id\nwith newline"
+
+
+def test_unexpected_errors_return_json_with_the_request_id(db_factory, monkeypatch):
+    def boom():
+        raise RuntimeError("database exploded")
+    monkeypatch.setattr(services.company_engine, "list_companies", boom)
+
+    res = TestClient(main.app, raise_server_exceptions=False).get("/companies")
+    assert res.status_code == 500
+    body = res.json()
+    assert body["error"].startswith("Something went wrong")
+    assert "exploded" not in body["error"]
+    assert len(body["request_id"]) == 32
