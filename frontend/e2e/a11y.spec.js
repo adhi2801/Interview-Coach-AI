@@ -45,6 +45,12 @@ test("interview room", async ({ page, backend: _, signedIn: __ }) => {
   await page.getByRole("button", { name: /Skip/ }).click();
   await expect(page.getByRole("textbox", { name: "Your answer" })).toBeVisible();
   expect(await violations(page)).toEqual([]);
+
+  // …and the debrief after the answer is scored.
+  await page.getByRole("textbox", { name: "Your answer" }).fill("A token bucket per key in Redis, refilled by elapsed time.");
+  await page.getByRole("textbox", { name: "Your answer" }).press("Control+Enter");
+  await expect(page.getByRole("heading", { name: "How it scored" })).toBeVisible();
+  expect(await violations(page)).toEqual([]);
 });
 
 test("knowledge graph, idle and with a topic selected", async ({ page, backend: _, signedIn: __ }) => {

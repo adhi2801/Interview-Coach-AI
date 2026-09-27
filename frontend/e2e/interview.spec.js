@@ -40,19 +40,19 @@ test.describe("interview room", () => {
     // Typing streams the answer to the coach; the filler count is a number.
     const answerBox = page.getByRole("textbox", { name: "Your answer" });
     await answerBox.fill("Um, I would use a token bucket, uh, per user in Redis.");
-    await expect(page.getByText("Fillers Detected2")).toBeVisible();
+    await expect(page.getByText("Filler words2")).toBeVisible();
 
     // Ctrl/Cmd+Enter submits while answering.
     await answerBox.press("Control+Enter");
-    await expect(page.getByText("Retry This Node")).toBeVisible();
+    await expect(page.getByText("Retry this question")).toBeVisible();
     const submit = backend.calls.find((c) => c.path === "/answer/submit");
     expect(submit.body.question).toBe(SESSION.question);
 
     // Retry: empty, enabled answer box, a running clock, and a fresh coach.
-    await page.getByRole("button", { name: /Retry This Node/ }).first().click();
+    await page.getByRole("button", { name: /Retry this question/ }).first().click();
     await expect(answerBox).toBeEnabled();
     await expect(answerBox).toHaveValue("");
-    await expect(page.getByText("Fillers Detected0")).toBeVisible();
+    await expect(page.getByText("Filler words0")).toBeVisible();
     await expect.poll(() => backend.socket.received.some((m) => m.type === "reset")).toBe(true);
   });
 
@@ -61,7 +61,7 @@ test.describe("interview room", () => {
     await page.getByRole("button", { name: "Start interview" }).click();
     await page.getByRole("button", { name: /Skip/ }).click();
 
-    await page.getByRole("button", { name: "Abort" }).click();
+    await page.getByRole("button", { name: "End early" }).click();
     const dialog = page.getByRole("alertdialog", { name: "Abort this session?" });
     await expect(dialog).toBeVisible();
     await expect(dialog).toContainText("Answers you already submitted in this session stay scored");

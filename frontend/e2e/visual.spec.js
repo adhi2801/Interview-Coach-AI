@@ -64,7 +64,7 @@ test.describe("three weeks in", () => {
       .fill("I'd use a token bucket per API key in Redis, refilled by elapsed time in a Lua script. Um, over the limit returns 429.");
     await shot(page, "interview", { full: false });
     await page.getByRole("textbox", { name: "Your answer" }).press("Control+Enter");
-    await expect(page.getByText("Retry This Node")).toBeVisible();
+    await expect(page.getByText("Retry this question")).toBeVisible();
     await shot(page, "debrief");
   });
 });

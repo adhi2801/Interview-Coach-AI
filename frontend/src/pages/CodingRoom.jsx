@@ -19,6 +19,11 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
   const [problemError, setProblemError] = useState(false);
   const [language, setLanguage] = useState("python");
   const [code, setCode] = useState("");
+  // The editor is uncontrolled: Monaco owns its text and reports changes.
+  // Feeding `value` back from React state dropped keystrokes whenever a
+  // render lagged behind typing (a stale value overwrote newer input). It
+  // remounts, keyed on this, only when code changes from outside the editor.
+  const [editorVersion, setEditorVersion] = useState(0);
 
   const [activeLeftTab, setActiveLeftTab] = useState("spec");
   const [activeRightTab, setActiveRightTab] = useState("terminal");
@@ -64,6 +69,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
     clearTimeout(saveTimer.current);
     saveDraft(problem.slug, language, starter, starter);
     setCode(starter);
+    setEditorVersion((v) => v + 1);
   }
 
   const currentLangObj = LANGUAGES.find((l) => l.id === language) || LANGUAGES[0];
@@ -525,8 +531,9 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
           </div>
 
           <div className="flex-1 relative pt-2">
-            <Editor height="100%" language={currentLangObj.monaco} beforeMount={handleEditorBeforeMount} onMount={handleEditorDidMount}
-              theme="oled-dark" value={code} onChange={handleCodeChange}
+            <Editor key={`${problem.slug}:${language}:${editorVersion}`} height="100%" language={currentLangObj.monaco}
+              beforeMount={handleEditorBeforeMount} onMount={handleEditorDidMount}
+              theme="oled-dark" defaultValue={code} onChange={handleCodeChange}
               options={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false, lineHeight: 24, padding: { top: 16, bottom: 60 }, overviewRulerBorder: false, hideCursorInOverviewRuler: true, renderLineHighlight: "all", cursorBlinking: "smooth" }} />
           </div>
 
