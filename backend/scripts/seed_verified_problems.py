@@ -4,9 +4,9 @@ inserts each problem into your real database — into the CodingProblem and
 CodingTestCase tables.
 
 HOW TO USE:
-1. Make sure verified_problems.json is in this same folder (backend/)
-2. Run: python seed_verified_problems.py
-   or:  python seed_verified_problems.py verified_problems_pack2.json
+1. Make sure verified_problems.json is in backend/data/
+2. Run: python -m scripts.seed_verified_problems
+   or:  python -m scripts.seed_verified_problems verified_problems_pack2.json
    (pack 2 is built and cross-checked by build_problem_pack.py)
 3. It will print each problem as it's inserted, and skip any that already
    exist (matched by slug) so it's safe to run more than once.
@@ -19,9 +19,15 @@ import json
 import sys
 from database import SessionLocal
 from models import CodingProblem, CodingTestCase
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 
 def main(path="verified_problems.json"):
+    # A bare file name is looked up in backend/data/.
+    if not Path(path).exists():
+        path = DATA_DIR / Path(path).name
     with open(path, "r", encoding="utf-8") as f:
         problems = json.load(f)
 

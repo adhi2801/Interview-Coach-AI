@@ -12,8 +12,8 @@ slugs, so rows that are already in the database need this one-off update.
 Safe to run more than once: rows already using Main are left alone.
 
 HOW TO USE (from backend/):
-    python fix_java_starters.py           # dry run: lists what would change
-    python fix_java_starters.py --apply   # writes the change
+    python -m scripts.fix_java_starters           # dry run: lists what would change
+    python -m scripts.fix_java_starters --apply   # writes the change
 """
 
 import re

@@ -9,7 +9,7 @@ For every problem:
 
 The first two test cases become the visible samples (seed script rule).
 
-Usage: python build_problem_pack.py
+Usage: python -m scripts.build_problem_pack
 """
 
 import json
@@ -18,6 +18,9 @@ import subprocess
 import sys
 
 from problem_bank.pack2 import P
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 MAX_TESTS = 12
 
@@ -163,7 +166,7 @@ def main():
         }
         out.append(entry)
         print(f"ok   {p['slug']:<40} {len(cases)} cases")
-    with open("verified_problems_pack2.json", "w", encoding="utf-8") as f:
+    with open(DATA_DIR / "verified_problems_pack2.json", "w", encoding="utf-8") as f:
         json.dump(out, f, indent=1, ensure_ascii=False)
     print(f"\n{len(out)} verified, {len(failed)} failed -> verified_problems_pack2.json")
     sys.exit(1 if failed else 0)

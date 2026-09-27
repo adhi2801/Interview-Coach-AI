@@ -2,7 +2,7 @@
 # 100+ interconnected topics across CS domains, with prerequisite chains.
 # This replaces the old 15-topic hardcoded dict with a real relational graph.
 
-from database import SessionLocal, create_tables
+from database import SessionLocal
 from models import Topic, TopicPrerequisite
 
 TOPICS = [

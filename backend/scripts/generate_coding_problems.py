@@ -37,7 +37,7 @@ HOW TO USE:
 1. Copy this file into your backend/ folder (same folder as main.py)
 2. Make sure your .env has ANTHROPIC_API_KEY set
 3. pip install anthropic --break-system-packages   (if not already installed)
-4. python generate_coding_problems.py
+4. python -m scripts.generate_coding_problems
 5. Check the output:
    - verified_problems.json  -> problems that ran cleanly, safe to review
    - rejected_problems.json  -> problems that crashed/timed out or failed
@@ -65,6 +65,9 @@ import tempfile
 import time
 import anthropic
 from dotenv import load_dotenv
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 load_dotenv()
 
@@ -308,9 +311,9 @@ def main():
     rejected = []
 
     def flush():
-        with open("verified_problems.json", "w") as f:
+        with open(DATA_DIR / "verified_problems.json", "w") as f:
             json.dump(verified, f, indent=2)
-        with open("rejected_problems.json", "w") as f:
+        with open(DATA_DIR / "rejected_problems.json", "w") as f:
             json.dump(rejected, f, indent=2)
 
     for idx, (title_hint, difficulty, category, companies) in enumerate(TARGETS):
@@ -351,7 +354,7 @@ def main():
             print(f"  VERIFIED — all {len(test_cases)} test cases ran cleanly; outputs captured as ground truth.")
             verified.append(problem)
         else:
-            print(f"  REJECTED:")
+            print("  REJECTED:")
             for d in details:
                 if "OK" not in d:
                     print(f"      {d}")
