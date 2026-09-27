@@ -20,6 +20,7 @@ from models import (
 logger = structlog.get_logger()
 router = APIRouter(tags=["user"])
 
+
 @router.get("/user/sessions")
 def get_user_sessions(user_id: int = Depends(require_user_id)):
     db = SessionLocal()
@@ -71,6 +72,7 @@ def get_user_sessions(user_id: int = Depends(require_user_id)):
         return {"sessions": result}
     finally:
         db.close()
+
 
 @router.get("/user/activity")
 def get_user_activity(user_id: int = Depends(require_user_id)):
@@ -176,6 +178,7 @@ def get_user_activity(user_id: int = Depends(require_user_id)):
         return {"activity": events[:20]}
     finally:
         db.close()
+
 
 @router.get("/user/skill-radar")
 def get_skill_radar(session_id: Optional[int] = None, company: Optional[str] = None, user_id: int = Depends(require_user_id)):
@@ -313,6 +316,7 @@ def get_skill_matrix(user_id: int = Depends(require_user_id)):
         return {"categories": categories, "total_touched": len(real_touched), "total_topics": len(all_topics)}
     finally:
         db.close()
+
 
 @router.delete("/user/me")
 def delete_my_account(user_id: int = Depends(require_user_id)):

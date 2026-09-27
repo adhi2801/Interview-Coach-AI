@@ -26,3 +26,14 @@ def strip_markdown_fence(raw: str) -> str:
     a preamble like "Here's the JSON:"), else returns the text unchanged."""
     match = re.search(r"```(?:json)?\s*(.*?)\s*```", raw, re.DOTALL)
     return match.group(1).strip() if match else raw
+
+
+def fence(tag: str, text: str, also_neutralize: tuple[str, ...] = ()) -> str:
+    """Wraps untrusted text (a candidate's answer or code) in <tag> ... </tag>
+    after neutralising any copy of that tag — and of any sibling tags used in
+    the same prompt — inside it, so the text cannot close the fence early or
+    fake another section of the prompt."""
+    names = "|".join(re.escape(t) for t in (tag, *also_neutralize))
+    pattern = re.compile(rf"<\s*(/?)\s*({names})\s*>", re.IGNORECASE)
+    safe = pattern.sub(lambda m: f"[{m.group(1)}{m.group(2)}]", text)
+    return f"<{tag}>\n{safe}\n</{tag}>"

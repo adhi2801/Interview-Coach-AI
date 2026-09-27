@@ -20,6 +20,7 @@ from models import InterviewSession
 logger = structlog.get_logger()
 router = APIRouter(tags=["coaching"])
 
+
 MAX_AUDIO_CHUNK_BYTES = 5 * 1024 * 1024   # ~5 minutes of opus audio
 MAX_TEXT_CHUNK_CHARS = 20000              # same cap as a submitted answer
 

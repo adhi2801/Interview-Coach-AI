@@ -1,7 +1,6 @@
 # backend/api/routes/auth.py
 # Signup and login.
 
-
 import structlog
 from fastapi import APIRouter, Request
 
@@ -14,6 +13,7 @@ from models import User
 
 logger = structlog.get_logger()
 router = APIRouter(tags=["auth"])
+
 
 @router.post("/auth/signup")
 @limiter.limit("5/minute")

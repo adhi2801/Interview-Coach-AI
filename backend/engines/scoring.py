@@ -1,8 +1,7 @@
 import json
-import re
 import time
 import structlog
-from llm import CLAUDE_MODEL, make_client, strip_markdown_fence
+from llm import CLAUDE_MODEL, fence, make_client, strip_markdown_fence
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -15,7 +14,7 @@ FEEDBACK_KEYS = ["technical_feedback", "communication_feedback", "problem_solvin
 
 # The candidate's answer is untrusted input that decides their ELO and feeds
 # everyone else's percentiles. The system prompt says so explicitly, the
-# answer is fenced in tags it cannot close (see _fence), and the model must
+# answer is fenced in tags it cannot close (see llm.fence), and the model must
 # report any attempt to address the grader — which the server, not the
 # model, turns into a zero.
 SYSTEM_PROMPT = """You are an expert technical interviewer grading one answer from a mock interview.
@@ -49,20 +48,12 @@ MANIPULATION_SUMMARY = (
     "so it was scored zero. Answer the question itself to receive feedback."
 )
 
-_FENCE_TAG = re.compile(r"<\s*(/?)\s*(question|candidate_answer)\s*>", re.IGNORECASE)
-
-
-def _fence(text: str) -> str:
-    """Neutralises our own delimiter tags inside untrusted text, so an answer
-    containing '</candidate_answer>' cannot close the fence and continue as
-    if it were the prompt."""
-    return _FENCE_TAG.sub(lambda m: f"[{m.group(1)}{m.group(2)}]", text)
-
-
 def build_user_message(question: str, answer: str) -> str:
+    # Both parts are fenced: the question can be client-sent text on a
+    # fallback path, and neither may fake the other's section.
     return (
-        f"<question>\n{_fence(question)}\n</question>\n\n"
-        f"<candidate_answer>\n{_fence(answer)}\n</candidate_answer>"
+        fence("question", question, also_neutralize=("candidate_answer",)) + "\n\n"
+        + fence("candidate_answer", answer, also_neutralize=("question",))
     )
 
 

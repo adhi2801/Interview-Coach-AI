@@ -16,6 +16,7 @@ from models import CodingProblem, CodingSubmission, CodingTestCase, InterviewSes
 logger = structlog.get_logger()
 router = APIRouter(tags=["coding"])
 
+
 @router.post("/coding/hint")
 @limiter.limit("15/minute")
 def get_coding_hint(payload: HintRequest, request: Request, user_id: int = Depends(require_user_id)):
@@ -276,6 +277,7 @@ def get_next_coding_problem(user_id: int = Depends(get_current_user_id)):
         }
     finally:
         db.close()
+
 
 @router.get("/coding/submissions")
 def get_coding_submissions(user_id: int = Depends(require_user_id)):

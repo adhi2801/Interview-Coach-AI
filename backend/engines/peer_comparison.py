@@ -45,8 +45,12 @@ class PeerComparisonEngine:
 
         mean = statistics.mean(overall_scores)
         std = statistics.stdev(overall_scores) if len(overall_scores) > 1 else 0.0
+        # Mid-rank percentile: ties count half. With "strictly below" alone,
+        # a candidate matching the most common score was ranked as if
+        # everyone who tied had beaten them.
         below_you = sum(1 for s in overall_scores if s < your_score)
-        percentile = round((below_you / len(overall_scores)) * 100)
+        tied = sum(1 for s in overall_scores if s == your_score)
+        percentile = round((below_you + tied / 2) / len(overall_scores) * 100)
 
         if percentile >= 90:
             context, tier = "Outstanding — top 10% of all candidates", "excellent"
@@ -80,21 +84,18 @@ class PeerComparisonEngine:
         min_diff, max_diff = self._band_range(band)
         db = SessionLocal()
         try:
-            rows = db.query(Answer).join(InterviewSession).filter(
+            # Only the five score columns: loading whole Answer rows pulled
+            # every answer's full text (up to 20k chars each) just to
+            # average five numbers.
+            rows = db.query(
+                Answer.score_technical, Answer.score_communication, Answer.score_problem_solving,
+                Answer.score_cultural_fit, Answer.score_confidence,
+            ).join(InterviewSession).filter(
                 InterviewSession.difficulty_level >= min_diff,
                 InterviewSession.difficulty_level <= max_diff
             ).all()
 
-            overall_scores = []
-            for row in rows:
-                if all([
-                    row.score_technical is not None, row.score_communication is not None,
-                    row.score_problem_solving is not None, row.score_cultural_fit is not None,
-                    row.score_confidence is not None
-                ]):
-                    avg = (row.score_technical + row.score_communication + row.score_problem_solving
-                           + row.score_cultural_fit + row.score_confidence) / 5
-                    overall_scores.append(avg)
+            overall_scores = [sum(row) / 5 for row in rows if all(v is not None for v in row)]
         finally:
             db.close()
 

@@ -456,3 +456,18 @@ def test_cors_allows_only_this_projects_origins(client, origin, allowed):
         "Origin": origin, "Access-Control-Request-Method": "GET",
     })
     assert (res.headers.get("access-control-allow-origin") == origin) is allowed
+
+
+def test_unknown_company_profiles_need_an_account(client, monkeypatch):
+    generated = []
+    monkeypatch.setattr(services.company_engine, "_generate_dynamic_profile",
+                        lambda name: (generated.append(name) or {}, False))
+
+    assert client.get("/companies/google/profile").json()["name"] == "Google"   # built-in: public
+    res = client.get("/companies/made-up-co/profile")
+    assert res.status_code == 401 and generated == []                          # no paid call
+
+    headers, _ = signup(client)
+    assert client.get("/companies/made-up-co/profile", headers=headers).status_code == 200
+    assert generated == ["made-up-co"]
+    assert client.get("/companies/" + "x" * 51 + "/profile", headers=headers).status_code == 422

@@ -21,6 +21,7 @@ from timeutil import utcnow
 logger = structlog.get_logger()
 router = APIRouter(tags=["interview"])
 
+
 @router.post("/session/preview")
 @limiter.limit("15/minute")
 def preview_session(payload: StartSessionRequest, request: Request, user_id: int = Depends(require_user_id)):
@@ -117,6 +118,7 @@ def start_session(payload: StartSessionRequest, request: Request, user_id: int =
         "difficulty": difficulty,
         "company_profile": services.company_engine.get_profile(payload.company)
     }
+
 
 SCORING_JOB_TIMEOUT = timedelta(minutes=3)
 
@@ -356,7 +358,6 @@ def get_scoring_status(job_id: int, user_id: int = Depends(require_user_id)):
         return response
     finally:
         db.close()
-
 
 
 @router.post("/feedback/rate")

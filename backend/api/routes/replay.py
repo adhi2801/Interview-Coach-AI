@@ -1,7 +1,6 @@
 # backend/api/routes/replay.py
 # Session replays and ending a session.
 
-
 import structlog
 from fastapi import APIRouter, Depends
 
@@ -14,6 +13,7 @@ from timeutil import utcnow
 
 logger = structlog.get_logger()
 router = APIRouter(tags=["replay"])
+
 
 @router.get("/replay/{session_id}")
 def get_replay(session_id: int, user_id: int = Depends(require_user_id)):
@@ -29,6 +29,7 @@ def get_replay(session_id: int, user_id: int = Depends(require_user_id)):
         db.close()
 
     return services.replay_system.get_replay(session_id)
+
 
 @router.get("/replays")
 @router.get("/replay/{session_id}/list")  # legacy path, kept for old clients
