@@ -658,7 +658,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
               <DeepGlassCard className="p-6" accent="#fb923c" delay={0.22}>
                 <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 block mb-3">Gap Fix Queue — {activeComp.name}</span>
                 <div className="flex flex-col gap-2">
-                  {companyIntel.queue.slice(0, 3).map((item, i) => (
+                  {companyIntel.queue.slice(0, 3).map((item) => (
                     <div key={item.gap} className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
                       <span className="text-[11.5px] font-bold text-slate-300 capitalize">{item.gap.replace(/_/g, " ")}</span>
                       <span className={`text-[8.5px] font-mono font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border ${item.urgency === "critical" ? "bg-rose-500/[0.12] text-rose-400 border-rose-500/25" : "bg-amber-500/[0.12] text-amber-400 border-amber-500/25"}`}>

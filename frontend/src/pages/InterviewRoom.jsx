@@ -1,5 +1,4 @@
-import { WS_URL } from "../config";
-import api, { wsAuthQuery } from "../lib/api";
+import api, { coachingSocketUrl } from "../lib/api";
 import React, { useState, useEffect, useRef } from "react";
 import StudyPlan from "./StudyPlan";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "motion/react";
@@ -136,8 +135,6 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   const [nextAsk, setNextAsk] = useState("");
   const [mounted, setMounted] = useState(false);
   const [showHint, setShowHint] = useState(false);
-  const [hintText, setHintText] = useState("");
-  const [scoreHistory, setScoreHistory] = useState([]);
   const [feedbackRating, setFeedbackRating] = useState(null);
   const [currentAnswerId, setCurrentAnswerId] = useState(null);
   const [studyPlanTopic, setStudyPlanTopic] = useState(null);
@@ -183,8 +180,17 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
     return () => clearInterval(tick);
   }, []);
 
+  // The newest handlers and state, for listeners and timers that are set up
+  // once but must never act on a stale render. Declared before the effects
+  // that read it, so it is refreshed first on every commit.
+  const latest = useRef({});
+  useEffect(() => {
+    latest.current = { phase, isLastNode, loading, handleFinish, goNextQuestion, submitAnswer };
+  });
+
   useEffect(() => {
     const handleKeyDown = (e) => {
+      const { phase, isLastNode, handleFinish, goNextQuestion } = latest.current;
       if (phase === 'results' && (e.metaKey || e.ctrlKey) && e.key === 'Enter') {
         e.preventDefault();
         if (isLastNode) handleFinish(); else goNextQuestion();
@@ -192,43 +198,77 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [phase, newElo, nextQuestion, isLastNode]);
+  }, []);
 
   useEffect(() => {
     // No real session yet — don't fall back to connecting on someone
     // else's/an arbitrary session's coaching channel.
     if (!sessionData?.session_id) return;
-    const ws = new WebSocket(`${WS_URL}/ws/coaching/${sessionData.session_id}${wsAuthQuery()}`);
-    wsRef.current = ws;
+    let ws = null;
+    let retryTimer = null;
+    let attempts = 0;
+    let disposed = false;
 
-    ws.onopen = () => setWsConnected(true);
+    // Reconnects with backoff (a deploy or a flaky network drops the socket
+    // mid-interview), fetching a fresh ticket each time since tickets
+    // expire after a minute. 1008 means the server refused this session —
+    // retrying can't fix that.
+    function scheduleRetry() {
+      if (disposed || attempts >= 5) return;
+      attempts += 1;
+      retryTimer = setTimeout(connect, Math.min(1000 * 2 ** attempts, 15000));
+    }
 
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === "coaching_update") {
-        setLiveCoaching(data);
-        if (data.intervention) {
-          setIntervention(data.intervention);
-          setTimeout(() => setIntervention(null), 6000);
-        }
-      } else if (data.type === "transcription") {
-        setAnswer((prev) => (prev + " " + data.text).trim());
-        setLiveCoaching(data);
+    async function connect() {
+      let url;
+      try {
+        url = await coachingSocketUrl(sessionData.session_id);
+      } catch {
+        scheduleRetry();
+        return;
       }
-    };
+      if (disposed) return;
+      ws = new WebSocket(url);
+      wsRef.current = ws;
 
-    ws.onclose = () => setWsConnected(false);
-    ws.onerror = (e) => console.error("WebSocket error", e);
+      ws.onopen = () => {
+        attempts = 0;
+        setWsConnected(true);
+      };
 
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === "coaching_update") {
+          setLiveCoaching(data);
+          if (data.intervention) {
+            setIntervention(data.intervention);
+            setTimeout(() => setIntervention(null), 6000);
+          }
+        } else if (data.type === "transcription") {
+          setAnswer((prev) => (prev + " " + data.text).trim());
+          setLiveCoaching(data);
+        }
+      };
+
+      ws.onclose = (event) => {
+        setWsConnected(false);
+        if (event.code !== 1008) scheduleRetry();
+      };
+      ws.onerror = (e) => console.error("WebSocket error", e);
+    }
+
+    connect();
     const pingInterval = setInterval(() => {
-      if (ws.readyState === WebSocket.OPEN) {
+      if (ws?.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: "ping" }));
       }
     }, 20000);
 
     return () => {
+      disposed = true;
       clearInterval(pingInterval);
-      ws.close();
+      clearTimeout(retryTimer);
+      ws?.close();
     };
   }, [sessionData?.session_id]);
 
@@ -263,9 +303,9 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   }, []);
 
   useEffect(() => {
-    if (timeLeft === 0 && !autoSubmittedRef.current && !loading) {
+    if (timeLeft === 0 && !autoSubmittedRef.current && !latest.current.loading) {
       autoSubmittedRef.current = true;
-      submitAnswer(true);
+      latest.current.submitAnswer(true);
     }
   }, [timeLeft]);
 
@@ -432,18 +472,6 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
           setFeedbackRating(null);
           setPhase("results");
           if (res.data.new_elo) onEloUpdate?.(res.data.new_elo);
-
-          const overallScore = (
-            res.data.scores.score_technical + res.data.scores.score_communication +
-            res.data.scores.score_problem_solving + res.data.scores.score_cultural_fit +
-            res.data.scores.score_confidence
-          ) / 5;
-          setScoreHistory((prev) => [...prev, {
-            question: `Q${prev.length + 1}`,
-            overall: Number(overallScore.toFixed(1)),
-            technical: res.data.scores.score_technical,
-            confidence: res.data.scores.score_confidence,
-          }]);
           setLoading(false);
           return;
         }
@@ -495,6 +523,10 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
     setGapAnalysisUnavailable(false);
     setPeer(null);
     setLiveCoaching(null);
+    // Pace and fillers are per answer: start the coach fresh.
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: "reset" }));
+    }
     setNewElo(null);
     setPhase("answering");
     setQuestionNum((n) => n + 1);
@@ -824,7 +856,9 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                     <motion.div className="h-full" style={{ background: "var(--accent)" }} animate={{ width: `${(liveCoaching?.confidence_score || 0) * 10}%` }} transition={{ type: "spring", stiffness: 100 }} />
                   </div>
                   <p className="text-[9.5px] text-slate-600 mt-1">
-                    {isRecording ? "Measuring from audio signal…" : "Measured from voice input · not yet active"}
+                    {!wsConnected
+                      ? "Live coach offline · reconnecting…"
+                      : liveCoaching ? "Updates as you type or speak" : "Starts when you type or record"}
                   </p>
                 </div>
 
@@ -838,7 +872,11 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                     <motion.div className="h-full bg-blue-400" animate={{ width: `${Math.min((liveCoaching?.words_per_minute || 0) / 2, 100)}%` }} transition={{ type: "spring", stiffness: 100 }} />
                   </div>
                   <p className="text-[9.5px] text-slate-600 mt-1">
-                    {liveCoaching?.words_per_minute ? "Live from typed/spoken input" : "Measured as you type or speak"}
+                    {liveCoaching?.pace_source === "speech"
+                      ? "Speaking pace from your recording"
+                      : liveCoaching?.words_per_minute
+                        ? "Typing speed · only speech is judged on pace"
+                        : "Measured as you type or speak"}
                   </p>
                 </div>
 
@@ -846,7 +884,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                 <div>
                   <div className="flex justify-between items-end mb-1.5">
                     <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300">Fillers Detected</span>
-                    <span className={`text-sm font-bold tabular-nums ${(liveCoaching?.fillers_found || 0) > 3 ? 'text-amber-400' : 'text-white'}`}>{liveCoaching?.fillers_found || 0}</span>
+                    <span className={`text-sm font-bold tabular-nums ${(liveCoaching?.filler_count || 0) > 3 ? 'text-amber-400' : 'text-white'}`}>{liveCoaching?.filler_count || 0}</span>
                   </div>
                   <p className="text-[9.5px] text-slate-600">"um", "uh", "like", "basically", "actually"</p>
                 </div>
@@ -1063,7 +1101,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                           </div>
                           <div className="flex gap-3 flex-wrap shrink-0">
                             <VoiceStat label="WPM" value={liveCoaching?.words_per_minute ?? "—"} color="#7dd3fc" />
-                            <VoiceStat label="Fillers" value={liveCoaching?.fillers_found ?? "—"} color="#6ee7b7" />
+                            <VoiceStat label="Fillers" value={liveCoaching?.filler_count ?? "—"} color="#6ee7b7" />
                           </div>
                         </div>
                         {!liveCoaching && (

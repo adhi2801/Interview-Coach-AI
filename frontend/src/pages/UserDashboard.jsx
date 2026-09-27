@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import api from "../lib/api";
 import {
-  motion, AnimatePresence, useMotionValue, useTransform, animate,
+  motion, AnimatePresence,
 } from "motion/react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid,
@@ -145,7 +145,7 @@ const fadeUp = {
 
 export default function UserDashboard({
   user, onStartNew, onStartCoding, onNavigateHistory,
-  onNavigateSettings, onNavigateStudyPlan, onLogout, onOpenCommandPalette, onEloUpdate
+  onNavigateSettings, onNavigateStudyPlan, onEloUpdate
 }) {
   const [companies, setCompanies] = useState(TARGET_COMPANIES_FALLBACK);
   const [activeTarget, setActiveTarget] = useState("Meta");

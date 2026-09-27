@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { AppHeader, PageIntro } from "../components/app/AppChrome";
 import api from "../lib/api";
 import StudyPlan from "./StudyPlan";
