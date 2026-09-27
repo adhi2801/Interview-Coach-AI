@@ -196,7 +196,7 @@ function Hero({ onGetStarted }) {
             className={cn("px-6 py-6 md:px-8", i % 2 === 0 && "border-r border-white/[0.08]", i < 2 && "border-b border-white/[0.08] md:border-b-0", i === 1 && "md:border-r")}
           >
             <p className="text-4xl font-semibold tracking-[-0.04em] tabular-nums md:text-5xl">{n === "problems" ? problems : n}</p>
-            <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.14em] text-white/40">{label}</p>
+            <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.14em] text-white/55">{label}</p>
           </motion.div>
         ))}
       </div>
@@ -323,8 +323,8 @@ function DemoSection() {
               return (
                 <li key={s.title} className="relative py-3 pl-5">
                   <StepRail progress={progress} i={i} on={on} />
-                  <p className={cn("font-mono text-[11px] uppercase tracking-[0.14em] transition-colors duration-500", on ? "text-indigo-300" : "text-white/30")}>0{i + 1}</p>
-                  <p className={cn("mt-1 text-lg font-semibold tracking-[-0.02em] transition-colors duration-500", on ? "text-white" : "text-white/35")}>{s.title}</p>
+                  <p className={cn("font-mono text-[11px] uppercase tracking-[0.14em] transition-colors duration-500", on ? "text-indigo-300" : "text-white/50")}>0{i + 1}</p>
+                  <p className={cn("mt-1 text-lg font-semibold tracking-[-0.02em] transition-colors duration-500", on ? "text-white" : "text-white/50")}>{s.title}</p>
                   <p className={cn("mt-1 text-sm leading-relaxed transition-colors duration-500", on ? "text-white/60" : "text-white/25")}>{s.body}</p>
                 </li>
               );

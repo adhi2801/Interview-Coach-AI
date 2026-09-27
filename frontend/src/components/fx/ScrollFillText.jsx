@@ -29,7 +29,11 @@ export default function ScrollFillText({ text, className, as: Tag = "p", dim = 0
   );
 
   return (
-    <Tag ref={ref} className={className} aria-label={text}>
+    <Tag ref={ref} className={className}>
+      {/* The word spans are aria-hidden, and aria-label is ignored on a
+          plain paragraph — without this the sentence was invisible to
+          screen readers. */}
+      <span className="sr-only">{text}</span>
       {words.map((w, i) => (
         <span
           key={i}

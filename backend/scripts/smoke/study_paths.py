@@ -1,3 +1,9 @@
+"""Prints full prerequisite study paths from the real topic graph.
+
+HOW TO USE (from backend/, venv active; reads your database):
+    python -m scripts.smoke.study_paths
+"""
+
 from engines.knowledge_graph import KnowledgeGapGraph
 
 graph = KnowledgeGapGraph()

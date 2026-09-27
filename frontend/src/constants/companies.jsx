@@ -14,7 +14,7 @@ export const COMPANIES = [
   {
     id: "google", name: "Google", color: "#4285F4",
     logo: (
-      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5">
+      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" aria-hidden="true">
         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
         <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
         <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -22,18 +22,18 @@ export const COMPANIES = [
       </svg>
     )
   },
-  { id: "amazon", name: "Amazon", color: "#FF9900", logo: <FaAmazon size={14} color="#FF9900" /> },
-  { id: "meta", name: "Meta", color: "#0866FF", logo: <SiMeta size={14} color="#0866FF" /> },
+  { id: "amazon", name: "Amazon", color: "#FF9900", logo: <FaAmazon aria-hidden="true" size={14} color="#FF9900" /> },
+  { id: "meta", name: "Meta", color: "#0866FF", logo: <SiMeta aria-hidden="true" size={14} color="#0866FF" /> },
   {
     id: "microsoft", name: "Microsoft", color: "#00A4EF",
     logo: (
-      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5">
+      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" aria-hidden="true">
         <path fill="#F25022" d="M2 2h9v9H2z"/><path fill="#7FBA00" d="M13 2h9v9h-9z"/>
         <path fill="#00A4EF" d="M2 13h9v9H2z"/><path fill="#FFB900" d="M13 13h9v9h-9z"/>
       </svg>
     )
   },
-  { id: "apple", name: "Apple", color: "#e2e8f0", logo: <SiApple size={14} color="#e2e8f0" /> },
-  { id: "netflix", name: "Netflix", color: "#E50914", logo: <SiNetflix size={14} color="#E50914" /> },
-  { id: "startup", name: "Startup", color: "#10b981", logo: <Rocket size={14} className="text-emerald-400" /> },
+  { id: "apple", name: "Apple", color: "#e2e8f0", logo: <SiApple aria-hidden="true" size={14} color="#e2e8f0" /> },
+  { id: "netflix", name: "Netflix", color: "#E50914", logo: <SiNetflix aria-hidden="true" size={14} color="#E50914" /> },
+  { id: "startup", name: "Startup", color: "#10b981", logo: <Rocket aria-hidden="true" size={14} className="text-emerald-400" /> },
 ];

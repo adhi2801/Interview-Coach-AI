@@ -1,8 +1,6 @@
-import os
 import json
-import re
 import time
-import anthropic
+from llm import CLAUDE_MODEL, make_client, strip_markdown_fence
 from dotenv import load_dotenv
 from rag.vector_store import QuestionVectorStore
 from database import SessionLocal
@@ -58,25 +56,15 @@ ROLE_ELO_BANDS = {
 }
 
 
-def _strip_markdown_fence(raw: str) -> str:
-    # Same regex-based extraction as scoring.py and coding_engine.py — finds
-    # a fenced block ANYWHERE in the text, not just at the very start. The
-    # previous version here only handled the fence if the response began
-    # with it, so any preamble text from Claude ("Here's the JSON:") would
-    # make it fall through and crash on json.loads.
-    match = re.search(r"```(?:json)?\s*(.*?)\s*```", raw, re.DOTALL)
-    return match.group(1).strip() if match else raw
-
-
 def _parse_json_response(raw: str) -> dict:
     """Claude sometimes wraps JSON in ```json fences despite instructions. Strip defensively."""
-    clean = _strip_markdown_fence(raw.strip())
+    clean = strip_markdown_fence(raw.strip())
     return json.loads(clean)
 
 
 class AdaptiveDifficultyEngine:
     def __init__(self):
-        self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), timeout=30.0)
+        self.client = make_client()
         self.vector_store = QuestionVectorStore()
 
     def _call_claude_json(self, **create_kwargs) -> dict:
@@ -149,7 +137,7 @@ class AdaptiveDifficultyEngine:
         persona_instruction = PERSONA_INSTRUCTIONS.get(persona, "")
 
         parsed = self._call_claude_json(
-            model="claude-sonnet-4-6",
+            model=CLAUDE_MODEL,
             max_tokens=400,
             system=f"""You are a senior {company} interviewer hiring for a {role} position. The candidate just answered a question.
             Your job is to push back with a harder follow-up constraint that stays relevant to what a {role} actually works on.
@@ -199,7 +187,7 @@ class AdaptiveDifficultyEngine:
         persona_instruction = PERSONA_INSTRUCTIONS.get(persona, "")
 
         parsed = self._call_claude_json(
-            model="claude-sonnet-4-6",
+            model=CLAUDE_MODEL,
             max_tokens=400,
             system=f"""You are a {company} interviewer. The candidate just failed a question on {failed_topic}.
             Generate a real-world scenario question that tests their foundational understanding of {target}.
@@ -264,7 +252,7 @@ class AdaptiveDifficultyEngine:
                 f"Base question: {base_question}\n\nMutation instruction: {mutation}\n\n{DIFFICULTY_SCOPE}\n\nRewrite this as a scenario-based question specifically tailored for a {role} candidate — the scenario, constraints, and ask should reflect problems a {role} would realistically face in that role, not a generic backend/systems question.\n\n{json_instruction}"}]
 
         parsed = self._call_claude_json(
-            model="claude-sonnet-4-6",
+            model=CLAUDE_MODEL,
             max_tokens=500,
             system=f"You are a {company} interviewer hiring for a {role} position. Generate or mutate interview questions into scenario-based, trade-off testing questions that are realistic and specific to what a {role} actually works on. No markdown, no asterisks. {persona_instruction}",
             messages=messages

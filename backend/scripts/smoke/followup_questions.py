@@ -9,8 +9,8 @@ engine generates a harder follow-up. We check whether that follow-up
 actually stays relevant to the role, or drifts into generic algorithms/
 systems territory regardless of role — which is exactly the bug found.
 
-HOW TO USE: same as before — put this in backend/, run:
-    python test_followup_questions.py
+HOW TO USE (from backend/, venv active; calls the paid Claude API):
+    python -m scripts.smoke.followup_questions
 """
 
 from engines.adaptive_difficulty import AdaptiveDifficultyEngine

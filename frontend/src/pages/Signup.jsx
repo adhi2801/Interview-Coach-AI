@@ -161,7 +161,9 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
                           <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors focus:outline-none"
+                            aria-label={showPassword ? "Hide password" : "Show password"}
+                            aria-pressed={showPassword}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors rounded focus:outline-none focus-visible:ring-1 focus-visible:ring-white/60"
                           >
                             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                           </button>

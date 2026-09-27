@@ -13,7 +13,6 @@ Conventions (same contract as verified_problems.json):
     ever sees the small generated inputs
 """
 
-import random
 
 
 def ints(xs):

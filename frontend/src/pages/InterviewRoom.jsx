@@ -1,106 +1,17 @@
-import { WS_URL } from "../config";
-import api, { wsAuthQuery } from "../lib/api";
+import api from "../lib/api";
 import React, { useState, useEffect, useRef } from "react";
 import StudyPlan from "./StudyPlan";
-import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "motion/react";
-import {
-  Mic, Square, AlertTriangle, Lightbulb, Activity, ShieldAlert, ChevronRight,
-  Target, CheckCircle2, Lock, ArrowRight, ThumbsUp, ThumbsDown, Terminal,
-  MessageSquare, RefreshCw, XCircle, UserCheck, Flame, Search, Coffee, Send
-} from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { Mic, Square, AlertTriangle, Lightbulb, ChevronRight, CheckCircle2, Send } from "lucide-react";
 import { COMPANIES } from "../constants/companies";
-
-// --- ANIMATED NUMBER TICKER ---
-function AnimatedNumber({ value }) {
-  const count = useMotionValue(0);
-  const rounded = useTransform(count, (v) => v.toFixed(1));
-  const [display, setDisplay] = useState("0");
-
-  useEffect(() => {
-    const controls = animate(count, value, { duration: 1.2, ease: [0.16, 1, 0.3, 1] });
-    const unsub = rounded.on("change", setDisplay);
-    return () => { controls.stop(); unsub(); };
-  }, [value, count, rounded]);
-
-  return <>{display}</>;
-}
-
-// Maps raw backend category codes to clean, human-readable labels
-const CATEGORY_LABELS = {
-  algorithms: "Algorithms",
-  data_structures: "Data Structures",
-  system_design: "System Design",
-  distributed_systems: "Distributed Systems",
-  databases: "Databases",
-  behavioral: "Behavioral",
-  leadership: "Leadership",
-  communication: "Communication",
-  machine_learning: "Machine Learning",
-  concurrency: "Concurrency",
-  security: "Security",
-  networking: "Networking",
-  oop: "OOP Design",
-  binary_search: "Algorithms",
-};
-
-function formatCategory(category) {
-  if (!category) return "Technical";
-  return CATEGORY_LABELS[category] || category.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-// Persona-reactive visual identity. Drives accent color, ambient glow,
-// evaluator copy, and framing language across the answering phase.
-// Persona is set once per session (chosen in Dashboard) — this is not
-// a live switcher, just a styling lookup keyed off sessionData.persona.
-const PERSONA_META = {
-  standard: {
-    label: "Standard",
-    name: "Standard Evaluator",
-    quote: "I'm listening. Walk me through it.",
-    moodDesc: "Balanced — receptive to evidence",
-    icon: UserCheck,
-    accentRgb: "16,185,129",
-    accentHex: "#10b981",
-    askLabel: "THE ASK",
-  },
-  hostile: {
-    label: "Hostile",
-    name: "Hostile Interrogator",
-    quote: "That answer won't hold. Defend it.",
-    moodDesc: "Aggressive — challenges everything",
-    icon: Flame,
-    accentRgb: "239,68,68",
-    accentHex: "#ef4444",
-    askLabel: "DEFEND THIS",
-  },
-  socratic: {
-    label: "Socratic",
-    name: "Socratic Prober",
-    quote: "Interesting. But why that approach specifically?",
-    moodDesc: "First-principles — questions back",
-    icon: Search,
-    accentRgb: "99,102,241",
-    accentHex: "#818cf8",
-    askLabel: "THE DEEPER QUESTION",
-  },
-  exhausted: {
-    label: "Exhausted",
-    name: "Exhausted Interviewer",
-    quote: "Just give me the one-sentence version.",
-    moodDesc: "Low energy — wants tight clarity",
-    icon: Coffee,
-    accentRgb: "245,158,11",
-    accentHex: "#f59e0b",
-    askLabel: "BE CONCISE",
-  },
-};
-
-function getPersonaMeta(persona) {
-  return PERSONA_META[persona?.toLowerCase()] || PERSONA_META.standard;
-}
+import { TOTAL_NODES, computeTimeLimit, formatTime, getPersonaMeta } from "./interview/constants";
+import { useCoachingSocket } from "./interview/useCoachingSocket";
+import { useRecorder } from "./interview/useRecorder";
+import QuestionPane from "./interview/QuestionPane";
+import TelemetryPane from "./interview/TelemetryPane";
+import Debrief from "./interview/Debrief";
 
 export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
-  // 100% Logic Preservation
   const [question, setQuestion] = useState(sessionData?.question || "");
   const [category, setCategory] = useState(sessionData?.category || "");
   const [scenario, setScenario] = useState(sessionData?.scenario || "");
@@ -118,15 +29,8 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   const [loading, setLoading] = useState(false);
   const [phase, setPhase] = useState("answering");
   const [questionNum, setQuestionNum] = useState(1);
-  // Base 90s + ~9s per 100 characters of context, plus 15s per constraint —
-  // a longer/denser question genuinely needs more reading+thinking time.
-  // Floor 90s, cap 240s so it never runs away on an unusually long scenario.
-  function computeTimeLimit(scenarioText, constraintList) {
-    const base = 90;
-    const readingTime = Math.round((scenarioText?.length || 0) / 100) * 9;
-    const constraintTime = (constraintList?.length || 0) * 15;
-    return Math.min(240, Math.max(90, base + readingTime + constraintTime));
-  }
+  // Bumped by "Retry this node": restarts the countdown for the same question.
+  const [attempt, setAttempt] = useState(0);
   const TIME_LIMIT = computeTimeLimit(sessionData?.scenario, sessionData?.constraints);
   const [timeLeft, setTimeLeft] = useState(TIME_LIMIT);
   const [nextQuestion, setNextQuestion] = useState("");
@@ -136,19 +40,13 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   const [nextAsk, setNextAsk] = useState("");
   const [mounted, setMounted] = useState(false);
   const [showHint, setShowHint] = useState(false);
-  const [hintText, setHintText] = useState("");
-  const [scoreHistory, setScoreHistory] = useState([]);
   const [feedbackRating, setFeedbackRating] = useState(null);
   const [currentAnswerId, setCurrentAnswerId] = useState(null);
   const [studyPlanTopic, setStudyPlanTopic] = useState(null);
-  const [wsConnected, setWsConnected] = useState(false);
-  const [liveCoaching, setLiveCoaching] = useState(null);
-  const [intervention, setIntervention] = useState(null);
   const [scoringError, setScoringError] = useState("");
   const [eloBand, setEloBand] = useState(null);
   const [showAbortConfirm, setShowAbortConfirm] = useState(false);
   const [sessionElapsed, setSessionElapsed] = useState(0); // real wall-clock time since this session mounted — not a fabricated stat
-  const wsRef = useRef(null);
   // Stops the scoring poll loop from setting state after the candidate
   // navigates away mid-scoring.
   const mountedRef = useRef(true);
@@ -156,20 +54,10 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   const debounceRef = useRef(null);
   const timerRef = useRef(null);
   const autoSubmittedRef = useRef(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const mediaRecorderRef = useRef(null);
-  const audioStreamRef = useRef(null);
-  // Real waveform — driven by an AnalyserNode on the actual mic stream,
-  // only ever animates while isRecording is true. No fake/simulated bars.
-  const [waveLevels, setWaveLevels] = useState(Array(16).fill(2));
-  const waveAudioCtxRef = useRef(null);
-  const waveAnalyserRef = useRef(null);
-  const waveAnimRef = useRef(null);
 
   const isBehavioral = category?.toLowerCase().includes("behavioral") || category?.toLowerCase().includes("leadership");
   const personaMeta = getPersonaMeta(persona);
   const PersonaIcon = personaMeta.icon;
-  const TOTAL_NODES = 5;
   const isLastNode = questionNum >= TOTAL_NODES;
 
   useEffect(() => {
@@ -183,54 +71,38 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
     return () => clearInterval(tick);
   }, []);
 
+  // The newest handlers and state, for listeners and timers that are set up
+  // once but must never act on a stale render. Declared before the effects
+  // that read it, so it is refreshed first on every commit.
+  const latest = useRef({});
+  useEffect(() => {
+    latest.current = { phase, isLastNode, loading, timeLeft, handleFinish, goNextQuestion, submitAnswer };
+  });
+
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (phase === 'results' && (e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      const { phase, isLastNode, loading, timeLeft, handleFinish, goNextQuestion, submitAnswer } = latest.current;
+      if (!((e.metaKey || e.ctrlKey) && e.key === 'Enter')) return;
+      // Ctrl/Cmd+Enter: submit while answering (the ↵ hint on the Submit
+      // button promised this), advance on the results screen.
+      if (phase === 'answering' && !loading && timeLeft > 0) {
+        e.preventDefault();
+        submitAnswer();
+      } else if (phase === 'results') {
         e.preventDefault();
         if (isLastNode) handleFinish(); else goNextQuestion();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [phase, newElo, nextQuestion, isLastNode]);
+  }, []);
 
-  useEffect(() => {
-    // No real session yet — don't fall back to connecting on someone
-    // else's/an arbitrary session's coaching channel.
-    if (!sessionData?.session_id) return;
-    const ws = new WebSocket(`${WS_URL}/ws/coaching/${sessionData.session_id}${wsAuthQuery()}`);
-    wsRef.current = ws;
-
-    ws.onopen = () => setWsConnected(true);
-
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === "coaching_update") {
-        setLiveCoaching(data);
-        if (data.intervention) {
-          setIntervention(data.intervention);
-          setTimeout(() => setIntervention(null), 6000);
-        }
-      } else if (data.type === "transcription") {
-        setAnswer((prev) => (prev + " " + data.text).trim());
-        setLiveCoaching(data);
-      }
-    };
-
-    ws.onclose = () => setWsConnected(false);
-    ws.onerror = (e) => console.error("WebSocket error", e);
-
-    const pingInterval = setInterval(() => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: "ping" }));
-      }
-    }, 20000);
-
-    return () => {
-      clearInterval(pingInterval);
-      ws.close();
-    };
-  }, [sessionData?.session_id]);
+  const coach = useCoachingSocket(sessionData?.session_id, {
+    onTranscription: (text) => setAnswer((prev) => (prev + " " + text).trim()),
+  });
+  const { coaching: liveCoaching, connected: wsConnected, intervention } = coach;
+  const recorder = useRecorder({ onRecording: coach.sendAudio });
+  const { isRecording, waveLevels, start: startRecording, stop: stopRecording, error: micError } = recorder;
 
   useEffect(() => {
     clearInterval(timerRef.current);
@@ -240,11 +112,11 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
       setTimeLeft((t) => (t <= 1 ? 0 : t - 1));
     }, 1000);
     return () => clearInterval(timerRef.current);
-  }, [question, scenario, constraints]);
+  }, [question, scenario, constraints, attempt]);
 
   useEffect(() => {
     autoSubmittedRef.current = false;
-  }, [question]);
+  }, [question, attempt]);
 
   useEffect(() => {
     api.get(`/roles/elo-bands`).then(res => {
@@ -254,103 +126,26 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   }, [sessionData?.role]);
 
   useEffect(() => {
-    return () => {
-      if (waveAnimRef.current) cancelAnimationFrame(waveAnimRef.current);
-      if (waveAudioCtxRef.current && waveAudioCtxRef.current.state !== "closed") {
-        waveAudioCtxRef.current.close();
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (timeLeft === 0 && !autoSubmittedRef.current && !loading) {
+    if (timeLeft === 0 && !autoSubmittedRef.current && !latest.current.loading) {
       autoSubmittedRef.current = true;
-      submitAnswer(true);
+      latest.current.submitAnswer(true);
     }
   }, [timeLeft]);
 
-  function formatTime(s) {
-    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-  }
+  // Escape closes the abort dialog.
+  useEffect(() => {
+    if (!showAbortConfirm) return;
+    const onKey = (e) => { if (e.key === "Escape") setShowAbortConfirm(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showAbortConfirm]);
 
   function handleAnswerChange(text) {
     setAnswer(text);
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && text.trim()) {
-        wsRef.current.send(JSON.stringify({
-          type: "text_chunk",
-          text: text,
-          pause_detected: true
-        }));
-      }
+      if (text.trim()) coach.sendTyped(text);
     }, 800);
-  }
-
-  async function startRecording() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      audioStreamRef.current = stream;
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/ogg";
-      const recorder = new MediaRecorder(stream, { mimeType });
-      mediaRecorderRef.current = recorder;
-      const chunks = [];
-
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) chunks.push(event.data);
-      };
-
-      recorder.onstop = () => {
-        const completeBlob = new Blob(chunks, { type: mimeType });
-        if (completeBlob.size > 2000 && wsRef.current?.readyState === WebSocket.OPEN) {
-          completeBlob.arrayBuffer().then((buffer) => wsRef.current.send(buffer));
-        }
-        stream.getTracks().forEach((track) => track.stop());
-        audioStreamRef.current = null;
-      };
-
-      recorder.start();
-      setIsRecording(true);
-
-      // Real waveform: analyse the actual mic stream, not a fake loop
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      waveAudioCtxRef.current = audioCtx;
-      const source = audioCtx.createMediaStreamSource(stream);
-      const analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 64;
-      source.connect(analyser);
-      waveAnalyserRef.current = analyser;
-
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-      const barCount = 16;
-
-      const renderWave = () => {
-        analyser.getByteFrequencyData(dataArray);
-        const step = Math.floor(bufferLength / barCount) || 1;
-        const levels = Array.from({ length: barCount }, (_, i) => {
-          const v = dataArray[i * step] || 0;
-          return Math.max(2, Math.min(20, (v / 255) * 20));
-        });
-        setWaveLevels(levels);
-        waveAnimRef.current = requestAnimationFrame(renderWave);
-      };
-      renderWave();
-    } catch (err) {
-      console.error("Microphone access denied:", err);
-    }
-  }
-
-  function stopRecording() {
-    setIsRecording(false);
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-      mediaRecorderRef.current.stop();
-    }
-    if (waveAnimRef.current) cancelAnimationFrame(waveAnimRef.current);
-    if (waveAudioCtxRef.current && waveAudioCtxRef.current.state !== "closed") {
-      waveAudioCtxRef.current.close();
-    }
-    setWaveLevels(Array(16).fill(2));
   }
 
   async function submitAnswer(isTimeExpired = false) {
@@ -388,15 +183,15 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
     }
   }
 
- async function handleFinish() {
-  try {
-    await api.post(`/replay/${sessionData.session_id}/end`, {}, { timeout: 5000 });
-  } catch (err) {
-    console.error("Failed to close out replay:", err);
+  async function handleFinish() {
+    if (isRecording) stopRecording();
+    try {
+      await api.post(`/replay/${sessionData.session_id}/end`, {}, { timeout: 5000 });
+    } catch (err) {
+      console.error("Failed to close out replay:", err);
+    }
+    onFinish();
   }
-  onFinish();
-}
- 
   async function pollForResult(jobId) {
     // Scoring chains several model calls (score, gap analysis, topic
     // tagging, next question) and can legitimately take over a minute.
@@ -432,18 +227,6 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
           setFeedbackRating(null);
           setPhase("results");
           if (res.data.new_elo) onEloUpdate?.(res.data.new_elo);
-
-          const overallScore = (
-            res.data.scores.score_technical + res.data.scores.score_communication +
-            res.data.scores.score_problem_solving + res.data.scores.score_cultural_fit +
-            res.data.scores.score_confidence
-          ) / 5;
-          setScoreHistory((prev) => [...prev, {
-            question: `Q${prev.length + 1}`,
-            overall: Number(overallScore.toFixed(1)),
-            technical: res.data.scores.score_technical,
-            confidence: res.data.scores.score_confidence,
-          }]);
           setLoading(false);
           return;
         }
@@ -494,24 +277,30 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
     setGaps([]);
     setGapAnalysisUnavailable(false);
     setPeer(null);
-    setLiveCoaching(null);
+    coach.reset(); // pace and fillers are measured per answer
     setNewElo(null);
     setPhase("answering");
     setQuestionNum((n) => n + 1);
     setDifficulty(Math.min(10, Math.max(1, Math.round((currentElo - 800) / 100))));
   }
 
-  const rawOverall = scores ? (scores.score_technical + scores.score_communication + scores.score_problem_solving + scores.score_cultural_fit + scores.score_confidence) / 5 : 0;
-  const scaledScore = Math.round(rawOverall * 10);
+  // "Retry this node": same question, fresh answer, fresh clock and coach.
+  function retryNode() {
+    setAnswer("");
+    setScores(null);
+    setGaps([]);
+    setGapAnalysisUnavailable(false);
+    setPeer(null);
+    setNewElo(null);
+    setScoringError("");
+    coach.reset();
+    setPhase("answering");
+    setAttempt((n) => n + 1);
+  }
+
   const company = sessionData?.company_profile;
   const companyMeta = COMPANIES.find(c => c.id === (sessionData?.company || "").toLowerCase());
-  const isPass = scaledScore >= 70;
-  const verdictLabel = isPass ? "Strong Pass" : "Needs Revision";
-  const eloDelta = newElo ? Math.round(newElo - currentElo) : 0;
 
-  // DETECT PROFANITY / POLICY VIOLATION FROM BACKEND EVALUATION
-const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappropriate language") ||
-                        scores?.overall_summary?.toLowerCase().includes("unprofessional language");
 
   // Persona-driven CSS custom properties applied to the room shell.
   // Everything downstream (dots, borders, timer color, ask-card accent)
@@ -644,53 +433,10 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
             style={{ opacity: mounted ? 1 : 0 }}
           >
 
-            {/* LEFT PANE: PROMPT INSPECTOR */}
-            <div className="w-full lg:w-[30%] lg:h-full overflow-y-auto border-b lg:border-b-0 lg:border-r border-white/[0.08] bg-[#0a0a10]/90 p-6 lg:p-8 flex flex-col shrink-0">
-              <div className="flex items-center gap-2 border-b border-white/[0.08] pb-3.5 mb-6">
-                <Terminal size={16} className="shrink-0" style={{ color: "var(--accent)" }} />
-                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-300">The Question</h3>
-                <span className="ml-auto bg-white/5 border border-white/10 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest text-slate-300">
-                  {formatCategory(category)}
-                </span>
-              </div>
-
-              {scenario ? (
-                <div className="flex-1 flex flex-col space-y-7">
-                  <div>
-                    <h4 className="text-[10px] font-bold tracking-widest text-slate-300 uppercase mb-2.5">Context</h4>
-                    <p className="text-sm text-slate-200 leading-[1.7] font-medium">{scenario}</p>
-                  </div>
-
-                  {constraints?.length > 0 && (
-                    <div>
-                      <h4 className="text-[10px] font-bold tracking-widest text-slate-300 uppercase mb-2.5">Constraints</h4>
-                      <ul className="space-y-3">
-                        {constraints.map((c, i) => (
-                          <li key={i} className="text-sm text-slate-200 font-medium flex items-start gap-2.5 leading-[1.6]">
-                            <span className="w-1.5 h-1.5 rounded-full mt-2 shrink-0" style={{ background: "var(--accent)" }} />
-                            <span>{c}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {ask && (
-                    <div
-                      className="mt-auto pt-5 border-t rounded-xl p-4 -mx-1"
-                      style={{ borderColor: "transparent", background: `rgba(var(--accent-rgb), 0.06)` }}
-                    >
-                      <h4 className="text-[10px] font-bold tracking-widest uppercase mb-2 px-1" style={{ color: "var(--accent)" }}>
-                        {personaMeta.askLabel}
-                      </h4>
-                      <p className="text-sm md:text-[15px] font-bold text-white leading-[1.7] px-1">{ask}</p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <p className="text-sm md:text-[15px] text-slate-200 leading-[1.7] font-medium">{question}</p>
-              )}
-            </div>
+            <QuestionPane
+              question={question} category={category} scenario={scenario}
+              constraints={constraints} ask={ask} personaMeta={personaMeta}
+            />
 
             {/* CENTER PANE: ZEN WRITING CANVAS */}
             <div className="w-full lg:w-[48%] min-h-[420px] lg:h-full relative bg-[#000000] flex flex-col border-r border-white/[0.08] shrink-0">
@@ -719,9 +465,14 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
               {/* Text Area */}
               <div className="flex-1 relative w-full min-h-[280px] bg-[#000000]">
                 {scoringError && (
-                  <div className="absolute top-2 left-8 right-8 z-20 bg-rose-500/10 border border-rose-500/20 rounded-lg p-3 text-xs text-rose-300 flex items-center justify-between gap-3">
+                  <div role="alert" className="absolute top-2 left-8 right-8 z-20 bg-rose-500/10 border border-rose-500/20 rounded-lg p-3 text-xs text-rose-300 flex items-center justify-between gap-3">
                     <span>{scoringError}</span>
-                    <button onClick={() => setScoringError("")} className="text-rose-400 hover:text-rose-200 shrink-0">✕</button>
+                    <button onClick={() => setScoringError("")} aria-label="Dismiss error" className="text-rose-400 hover:text-rose-200 shrink-0">✕</button>
+                  </div>
+                )}
+                {micError && !scoringError && (
+                  <div role="alert" className="absolute top-2 left-8 right-8 z-20 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-xs text-amber-200">
+                    {micError}
                   </div>
                 )}
                 {showHint && constraints?.length > 0 && (
@@ -749,6 +500,7 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                   onChange={(e) => handleAnswerChange(e.target.value)}
                   disabled={timeLeft === 0}
                   spellCheck="false"
+                  aria-label="Your answer"
                   className="w-full h-full bg-transparent text-slate-100 text-base font-mono leading-[1.8] p-8 pb-32 resize-none outline-none z-10 relative scrollbar-hide"
                   style={{ caretColor: "var(--accent)" }}
                 />
@@ -759,12 +511,14 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
                 <div className="flex items-center gap-2">
                   <button
                     onClick={isRecording ? stopRecording : startRecording}
+                    aria-pressed={isRecording}
+                    aria-label={isRecording ? "Stop recording" : "Answer by voice"}
                     className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all outline-none ${
                       isRecording ? 'bg-red-500/10 text-red-400 border border-red-500/30' : 'bg-white/[0.04] border border-white/10 text-slate-200 hover:text-white'
                     }`}
                   >
                     {isRecording ? <Square fill="currentColor" size={14}/> : <Mic size={14}/>}
-                    <span className="hidden sm:inline">{isRecording ? 'Stop Voice' : 'Hold to Speak'}</span>
+                    <span className="hidden sm:inline">{isRecording ? 'Stop Voice' : 'Speak'}</span>
                   </button>
                   <button onClick={() => setShowHint(!showHint)} className="text-xs font-mono font-bold text-slate-300 hover:text-white transition-colors bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl">
                   <Lightbulb size={13} className="inline mr-1" /> Hint
@@ -792,443 +546,21 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
               </div>
             </div>
 
-            {/* RIGHT PANE: SESSION TELEMETRY — real data only, no simulated scores */}
-            <div className="w-full lg:w-[22%] lg:min-w-[240px] bg-[#0a0a10]/90 p-6 flex flex-col shrink-0">
-              <div className="flex items-center justify-between border-b border-white/[0.08] pb-3.5 mb-6">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-300">Session Telemetry</h3>
-                <Activity size={16} style={{ color: "var(--accent)" }} />
-              </div>
-
-              <div className="space-y-6">
-                {/* Room mood — reflects real persona, not a live-changeable state */}
-                <div className="flex items-center gap-3 pb-5 border-b border-white/[0.06]">
-                  <div
-                    className="w-9 h-9 rounded-lg flex items-center justify-center border shrink-0"
-                    style={{ background: `rgba(var(--accent-rgb), 0.12)`, borderColor: `rgba(var(--accent-rgb), 0.25)` }}
-                  >
-                    <PersonaIcon size={16} style={{ color: "var(--accent)" }} />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-sm font-bold text-white truncate">{personaMeta.label}</div>
-                    <div className="text-[10px] text-slate-400 truncate">{personaMeta.moodDesc}</div>
-                  </div>
-                </div>
-
-                {/* Confidence Widget */}
-                <div>
-                  <div className="flex justify-between items-end mb-1.5">
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300">Confidence</span>
-                    <span className="text-sm font-bold text-white tabular-nums">{liveCoaching?.confidence_score || '--'}/10</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                    <motion.div className="h-full" style={{ background: "var(--accent)" }} animate={{ width: `${(liveCoaching?.confidence_score || 0) * 10}%` }} transition={{ type: "spring", stiffness: 100 }} />
-                  </div>
-                  <p className="text-[9.5px] text-slate-600 mt-1">
-                    {isRecording ? "Measuring from audio signal…" : "Measured from voice input · not yet active"}
-                  </p>
-                </div>
-
-                {/* Pace Widget */}
-                <div>
-                  <div className="flex justify-between items-end mb-1.5">
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300">Pace (WPM)</span>
-                    <span className="text-sm font-bold text-white tabular-nums">{liveCoaching?.words_per_minute || '--'}</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                    <motion.div className="h-full bg-blue-400" animate={{ width: `${Math.min((liveCoaching?.words_per_minute || 0) / 2, 100)}%` }} transition={{ type: "spring", stiffness: 100 }} />
-                  </div>
-                  <p className="text-[9.5px] text-slate-600 mt-1">
-                    {liveCoaching?.words_per_minute ? "Live from typed/spoken input" : "Measured as you type or speak"}
-                  </p>
-                </div>
-
-                {/* Fillers Detected */}
-                <div>
-                  <div className="flex justify-between items-end mb-1.5">
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300">Fillers Detected</span>
-                    <span className={`text-sm font-bold tabular-nums ${(liveCoaching?.fillers_found || 0) > 3 ? 'text-amber-400' : 'text-white'}`}>{liveCoaching?.fillers_found || 0}</span>
-                  </div>
-                  <p className="text-[9.5px] text-slate-600">"um", "uh", "like", "basically", "actually"</p>
-                </div>
-
-                {/* Intervention Toast */}
-                <AnimatePresence>
-                  {intervention && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                      className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20"
-                    >
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <AlertTriangle size={14} className="text-amber-400" />
-                        <span className="text-[11px] font-bold uppercase tracking-widest text-amber-400">Coach Probe</span>
-                      </div>
-                      <p className="text-xs md:text-sm font-medium text-amber-200/90 leading-relaxed">{intervention}</p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Score Preview — labels shown for visual parity with the
-                  design, but every value stays "Pending" until scoring
-                  actually returns real numbers. No simulated/fake scores. */}
-              <div className="mt-6 pt-5 border-t border-white/[0.06]">
-                <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300 block mb-3">Score Preview</span>
-                <div className="space-y-2.5">
-                  {["Technical Accuracy", "Problem Solving", "Communication", "Culture Fit", "Confidence"].map((label) => (
-                    <div key={label} className="flex items-center justify-between">
-                      <span className="text-[11px] font-medium text-slate-400">{label}</span>
-                      <span className="text-[10px] font-mono font-bold text-slate-600 uppercase tracking-wider">Pending</span>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-[10px] text-slate-600 italic mt-3">Scores are computed after you submit — not simulated live.</p>
-              </div>
-
-              {/* Bottom Target ELO — same real /roles/elo-bands source as
-                  Session Setup. Omitted entirely if no real band exists for
-                  this role, rather than showing an invented threshold. */}
-              {eloBand && (
-                <div className="mt-6 lg:mt-auto pt-5 border-t border-white/[0.08]">
-                  <div className="flex justify-between items-center mb-1.5">
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300">{eloBand.label}</span>
-                    <span className="text-sm font-mono font-bold text-white">{eloBand.low}–{eloBand.high}</span>
-                  </div>
-                  <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
-                    <div className="h-full bg-linear-to-r from-indigo-500 to-purple-500 rounded-full"
-                      style={{ width: `${Math.max(0, Math.min(100, ((currentElo - eloBand.low) / (eloBand.high - eloBand.low)) * 100))}%` }} />
-                  </div>
-                </div>
-              )}
-
-            </div>
+            <TelemetryPane
+              personaMeta={personaMeta} liveCoaching={liveCoaching} wsConnected={wsConnected}
+              intervention={intervention} eloBand={eloBand} currentElo={currentElo}
+            />
           </div>
         ) : (
-          /* ====================================================================
-             ACT 2: DEBRIEF — real data only. Per-dimension commentary,
-             "what you covered well" cards, and hardcoded peer benchmarks
-             from the old version were fabricated (not backed by any
-             backend field) and have been removed rather than reused.
-             ==================================================================== */
           <div className="w-full flex-1 flex flex-col relative overflow-hidden bg-[#000000]">
-            <div className="flex-1 w-full h-full overflow-y-auto scrollbar-hide">
-              <motion.div
-                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                className="max-w-[1080px] mx-auto w-full px-6 py-10 flex flex-col gap-7"
-              >
-
-                {/* SECTION LABEL */}
-                <div className="flex items-center gap-3">
-                  <div className="w-px h-7" style={{ background: `linear-gradient(to bottom, transparent, rgba(var(--accent-rgb),0.6), transparent)` }} />
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-slate-500">
-                    Session Debrief &middot; {personaMeta.name} &middot; Node {questionNum} of {TOTAL_NODES}
-                  </span>
-                </div>
-
-                {/* PROFANITY / POLICY VIOLATION BANNER */}
-                {hasProfanityFlag && (
-                  <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-2xl flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3 text-rose-400">
-                      <ShieldAlert size={20} className="shrink-0" />
-                      <div>
-                        <h4 className="text-xs font-bold uppercase tracking-widest">Policy Violation Detected</h4>
-                        <p className="text-xs text-rose-200/80 font-medium">Unprofessional or inappropriate language was flagged in your answer. Score penalized across technical dimensions.</p>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 px-3 py-1 rounded-md uppercase tracking-wider shrink-0">
-                      Non-Compliant
-                    </span>
-                  </div>
-                )}
-
-                {/* VERDICT CARD */}
-                <div
-                  className="relative overflow-hidden rounded-3xl border p-6 md:p-9"
-                  style={{
-                    borderColor: hasProfanityFlag ? "rgba(239,68,68,0.25)" : isPass ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.2)",
-                    background: hasProfanityFlag ? "rgba(16,8,8,0.95)" : isPass ? "rgba(8,16,12,0.95)" : "rgba(16,8,8,0.95)",
-                    boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.08), 0 30px 80px rgba(0,0,0,0.55)"
-                  }}
-                >
-                  <div
-                    className="absolute -top-20 -right-20 w-80 h-80 rounded-full pointer-events-none blur-[70px]"
-                    style={{ background: hasProfanityFlag || !isPass ? "rgba(239,68,68,0.12)" : "rgba(16,185,129,0.14)" }}
-                  />
-                  <div
-                    className="absolute -bottom-16 -left-16 w-60 h-60 rounded-full pointer-events-none blur-[70px]"
-                    style={{ background: `rgba(var(--accent-rgb), 0.08)` }}
-                  />
-
-                  <div className="relative z-10 flex items-start gap-7 flex-wrap">
-                    {/* Score ring — real rawOverall, animated once on mount */}
-                    <div className="relative w-[110px] h-[110px] shrink-0">
-                      <svg width="110" height="110" viewBox="0 0 120 120" style={{ transform: "rotate(-90deg)" }}>
-                        <defs>
-                          <linearGradient id="debriefRingGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#6366f1" />
-                            <stop offset="100%" stopColor={isPass && !hasProfanityFlag ? "#10b981" : "#ef4444"} />
-                          </linearGradient>
-                        </defs>
-                        <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
-                        <motion.circle
-                          cx="60" cy="60" r="52" fill="none" stroke="url(#debriefRingGrad)" strokeWidth="8" strokeLinecap="round"
-                          strokeDasharray={2 * Math.PI * 52}
-                          initial={{ strokeDashoffset: 2 * Math.PI * 52 }}
-                          animate={{ strokeDashoffset: 2 * Math.PI * 52 * (1 - Math.min(10, rawOverall) / 10) }}
-                          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-[26px] font-black font-mono tracking-tight text-white leading-none">
-                          <AnimatedNumber value={Math.round(rawOverall * 10) / 10} />
-                        </span>
-                        <span className="text-[10px] text-slate-500 font-mono mt-0.5">/10</span>
-                      </div>
-                    </div>
-
-                    {/* Verdict text */}
-                    <div className="flex-1 min-w-[220px]">
-                      <div className="flex items-center gap-2.5 mb-3.5 flex-wrap">
-                        <span
-                          className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest border"
-                          style={{
-                            background: hasProfanityFlag ? "rgba(239,68,68,0.14)" : isPass ? "rgba(16,185,129,0.14)" : "rgba(239,68,68,0.12)",
-                            borderColor: hasProfanityFlag ? "rgba(239,68,68,0.3)" : isPass ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.25)",
-                            color: hasProfanityFlag || !isPass ? "#fca5a5" : "#6ee7b7"
-                          }}
-                        >
-                          {hasProfanityFlag ? "Disqualifying Conduct" : verdictLabel}
-                        </span>
-                        {newElo && (
-                          <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-sm font-extrabold font-mono bg-white/5 border border-white/10 text-white">
-                            {eloDelta >= 0 ? <ArrowRight size={13} className="-rotate-90 text-emerald-400" /> : <ArrowRight size={13} className="rotate-90 text-rose-400" />}
-                            {eloDelta >= 0 ? `+${eloDelta}` : eloDelta} ELO
-                          </span>
-                        )}
-                        {newElo && (
-                          <span className="text-xs font-mono text-slate-500">
-                            {Math.round(currentElo)} <ArrowRight size={11} className="inline -mt-0.5 mx-1" /> <span className="text-slate-200 font-bold">{Math.round(newElo)}</span>
-                          </span>
-                        )}
-                      </div>
-
-                      <h2 className="text-2xl md:text-[26px] font-extrabold tracking-tight text-white leading-[1.15] mb-3">
-                        {hasProfanityFlag ? "Response flagged for conduct." : isPass ? "Strong pass on this node." : "This one needs another pass."}
-                      </h2>
-
-                      <div className="bg-black/50 border border-white/5 p-4 rounded-xl mt-2">
-                        <p className="text-xs md:text-sm text-slate-200 leading-relaxed font-medium italic">
-                          "{scores?.overall_summary || "Diagnostic review complete for this interview node."}"
-                        </p>
-                        <p className="text-[10px] font-mono text-slate-500 mt-2 not-italic">
-                          — {personaMeta.name} &middot; scored across 5 dimensions
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 5D SCORE BREAKDOWN — real scores only, no fabricated per-dimension commentary */}
-                {scores && (
-                  <div>
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-slate-500 block mb-3.5">5-Dimension Score Breakdown</span>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                      {[
-                        { label: "Technical Accuracy", subtitle: "Correctness of approach", value: scores.score_technical, feedback: scores.technical_feedback, colorFrom: "#6366f1", colorTo: "#8b5cf6", badgeBg: "rgba(99,102,241,0.14)", badgeBorder: "rgba(99,102,241,0.28)", badgeColor: "#a5b4fc" },
-                        { label: "Problem Solving", subtitle: "Trade-off & structural thinking", value: scores.score_problem_solving, feedback: scores.problem_solving_feedback, colorFrom: "#10b981", colorTo: "#6366f1", badgeBg: "rgba(16,185,129,0.12)", badgeBorder: "rgba(16,185,129,0.25)", badgeColor: "#6ee7b7" },
-                        { label: "Communication", subtitle: "Clarity of explanation", value: scores.score_communication, feedback: scores.communication_feedback, colorFrom: "#f59e0b", colorTo: "#10b981", badgeBg: "rgba(245,158,11,0.12)", badgeBorder: "rgba(245,158,11,0.25)", badgeColor: "#fbbf24" },
-                        { label: "Culture Fit", subtitle: `${company?.name || "Company"}-specific behaviours`, value: scores.score_cultural_fit, colorFrom: "#ec4899", colorTo: "#8b5cf6", badgeBg: "rgba(236,72,153,0.1)", badgeBorder: "rgba(236,72,153,0.22)", badgeColor: "#f9a8d4" },                      ].map((d, i) => (
-                        <motion.div key={d.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
-                          <DimCard {...d} />
-                        </motion.div>
-                      ))}
-
-                      {/* Confidence + real voice telemetry — from actual liveCoaching captured
-                          during this node, not simulated. Falls back honestly if no data. */}
-                      <div className="sm:col-span-2 bg-[#0a0a10]/90 border border-white/[0.08] rounded-2xl p-5">
-                        <div className="flex items-start gap-6 flex-wrap">
-                          <div className="flex-1 min-w-[200px]">
-                            <div className="flex items-center justify-between mb-3.5">
-                              <div>
-                                <div className="text-[13px] font-bold text-slate-200">Confidence Signal</div>
-                                <div className="text-[10px] text-slate-500 mt-0.5">Voice &amp; speech telemetry</div>
-                              </div>
-                              <span className="px-2.5 py-1 rounded-lg text-xs font-mono font-extrabold" style={{ background: "rgba(14,165,233,0.1)", border: "1px solid rgba(14,165,233,0.22)", color: "#7dd3fc" }}>
-                                {scores.score_confidence ? scores.score_confidence.toFixed(1) : "—"}
-                              </span>
-                            </div>
-                            <div className="h-[5px] w-full bg-white/[0.06] rounded-full overflow-hidden">
-                              <div className="h-full rounded-full" style={{ width: `${Math.max(4, Math.min(100, Math.round((scores.score_confidence || 0) * 10)))}%`, background: "linear-gradient(90deg, #0ea5e9, #6366f1)" }} />
-                            </div>
-                          </div>
-                          <div className="flex gap-3 flex-wrap shrink-0">
-                            <VoiceStat label="WPM" value={liveCoaching?.words_per_minute ?? "—"} color="#7dd3fc" />
-                            <VoiceStat label="Fillers" value={liveCoaching?.fillers_found ?? "—"} color="#6ee7b7" />
-                          </div>
-                        </div>
-                        {!liveCoaching && (
-                          <p className="text-[10px] text-slate-600 italic mt-3">No live voice telemetry was captured for this answer.</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* CRITICAL GAP — real gaps/prerequisites only */}
-                <div>
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-rose-400/80 block mb-3.5">Critical Gap</span>
-                  {hasProfanityFlag ? (
-                    <div className="bg-[#0c0606] border border-rose-500/30 rounded-2xl p-5 space-y-2">
-                      <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
-                        <XCircle size={16} /> Unprofessional Communication Boundary
-                      </div>
-                      <p className="text-xs md:text-sm text-slate-200 leading-relaxed font-medium">
-                        Responses containing vulgarity or casual dismissals automatically disqualify senior engineering candidates. Focus on structured, objective problem-solving language.
-                      </p>
-                    </div>
-                  ) : gaps?.length > 0 ? (
-                    <div className="bg-[#0c0606] border border-rose-500/20 rounded-2xl p-5 space-y-3">
-                      <div className="flex items-center gap-2 text-rose-400">
-                        <ShieldAlert size={16} />
-                        <h4 className="text-sm font-bold tracking-tight capitalize">{gaps[0].gap.replace(/_/g, " ")}</h4>
-                      </div>
-                      <p className="text-xs md:text-sm text-slate-200 leading-relaxed font-medium">
-                        {gaps[0].prerequisites_to_study_first?.length > 0
-                          ? `Prerequisite dependencies detected: ${gaps[0].prerequisites_to_study_first.join(", ")}.`
-                          : "Flagged in this answer. It has no prerequisite to study first, so practise the topic directly."
-                        }
-                      </p>
-                      <button onClick={() => setStudyPlanTopic(gaps[0].gap)} className="text-xs font-mono font-bold text-blue-400 hover:underline flex items-center gap-1 pt-1">
-                        Study Path Graph →
-                      </button>
-                    </div>
-                  ) : gapAnalysisUnavailable ? (
-                    <div className="bg-[#0c0906] border border-amber-500/20 rounded-2xl p-5 space-y-2">
-                      <div className="flex items-center gap-2 text-amber-400">
-                        <AlertTriangle size={16} />
-                        <h4 className="text-sm font-bold tracking-tight">Gap analysis unavailable</h4>
-                      </div>
-                      <p className="text-xs md:text-sm text-slate-300 leading-relaxed font-medium">
-                        The gap-detection service didn't return a result for this answer. This is not the same as a clean pass — it means gap detection genuinely failed and no analysis was possible.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="bg-[#0a0a10]/90 border border-white/[0.08] rounded-2xl p-5 text-xs text-slate-300">
-                      No critical knowledge gaps detected for this response.
-                    </div>
-                  )}
-                </div>
-
-                {/* ANNOTATED ANSWER TRANSCRIPT — raw answer only, no fabricated tags */}
-                <div>
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-slate-500 block mb-3.5">Your Answer</span>
-                  <div className="bg-[#0a0a10]/90 border border-white/[0.08] p-5 rounded-2xl space-y-3">
-                    <p className="text-xs md:text-sm font-mono text-slate-200 leading-[1.8] whitespace-pre-wrap">
-                      {answer || "[No response recorded]"}
-                    </p>
-                    {hasProfanityFlag && (
-                      <div className="flex flex-wrap gap-2 pt-2 border-t border-white/5">
-                        <span className="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-1 rounded text-xs font-mono font-bold">
-                          Disqualifying Language Flagged
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* NEXT ACTIONS — real, functional */}
-                <div>
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-slate-500 block mb-3.5">Next Actions</span>
-                  <div className={`grid grid-cols-1 ${gaps?.length > 0 && !hasProfanityFlag ? "sm:grid-cols-3" : "sm:grid-cols-2"} gap-3`}>
-                    {gaps?.length > 0 && !hasProfanityFlag && (
-                      <NextActionCard
-                        icon={Target}
-                        color="#fbbf24"
-                        bg="rgba(245,158,11,0.1)"
-                        border="rgba(245,158,11,0.22)"
-                        title="Patch the Gap"
-                        body={`Study ${gaps[0].gap.replace(/_/g, " ")} in your knowledge graph before the next attempt.`}
-                        cta="Open Knowledge Graph"
-                        onClick={() => setStudyPlanTopic(gaps[0].gap)}
-                      />
-                    )}
-                    <NextActionCard
-                      icon={RefreshCw}
-                      color="var(--accent)"
-                      bg="rgba(var(--accent-rgb),0.12)"
-                      border="rgba(var(--accent-rgb),0.25)"
-                      title={`Retry Node ${questionNum}`}
-                      body="Same node, same company. Take another pass with what you just learned."
-                      cta="Retry Now"
-                      onClick={() => { setPhase("answering"); setAnswer(""); }}
-                    />
-                    <NextActionCard
-                      icon={isLastNode ? CheckCircle2 : ArrowRight}
-                      color="#6ee7b7"
-                      bg="rgba(16,185,129,0.1)"
-                      border="rgba(16,185,129,0.22)"
-                      title={isLastNode ? "Finish Session" : `Advance to Node ${questionNum + 1}`}
-                      body={isLastNode ? "You've completed all 5 nodes — wrap up and close out this session." : "Move on to the next node in this session."}
-                      cta={isLastNode ? "Finish" : "Continue"}
-                      onClick={isLastNode ? handleFinish : goNextQuestion}
-                    />
-                  </div>
-                </div>
-
-                {/* PEER BENCHMARK — only shown when real peer data exists */}
-                {peer && peer.percentile != null && !hasProfanityFlag && (
-                  <div className="bg-[#0a0a10]/90 border border-white/[0.08] rounded-2xl p-5 space-y-2 max-w-md">
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-slate-500 block mb-1">Peer Benchmark</span>
-                    <span className="text-xs font-mono text-slate-300 block">
-                      You scored top {Math.max(1, 100 - peer.percentile)}% globally on this scenario type.
-                    </span>
-                  </div>
-                )}
-
-                {/* BOTTOM CTA ROW */}
-                <div className="flex items-center gap-3 flex-wrap pt-2 pb-8">
-                  {isLastNode ? (
-                    <button
-                      onClick={handleFinish}
-                      className="btn-liquid px-6 py-3 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(255,255,255,0.15)] outline-none"
-                    >
-                      Finish Session <CheckCircle2 size={14} />
-                    </button>
-                  ) : (
-                    <button
-                      onClick={goNextQuestion}
-                      className="btn-liquid px-6 py-3 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(255,255,255,0.15)] outline-none"
-                    >
-                      Next Node <kbd className="font-mono text-[9px] bg-black/10 px-1 py-0.5 rounded text-black/70">↵</kbd>
-                    </button>
-                  )}
-                  <button
-                    onClick={() => { setPhase("answering"); setAnswer(""); }}
-                    className="bg-white/5 border border-white/10 hover:bg-white/10 text-white px-5 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-2 outline-none"
-                  >
-                    <RefreshCw size={13} /> Retry This Node
-                  </button>
-                  {currentAnswerId && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-500 hidden sm:inline">Was this feedback helpful?</span>
-                      <button onClick={() => rateFeedback(true)} className={`p-2 rounded-lg border ${feedbackRating === true ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'}`}>
-                        <ThumbsUp size={14} />
-                      </button>
-                      <button onClick={() => rateFeedback(false)} className={`p-2 rounded-lg border ${feedbackRating === false ? 'bg-rose-500/20 border-rose-500/40 text-rose-400' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'}`}>
-                        <ThumbsDown size={14} />
-                      </button>
-                    </div>
-                  )}
-                  <button
-                    onClick={handleFinish}
-                    className="ml-auto bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 hover:text-white px-5 py-3 rounded-xl text-xs font-bold transition-all outline-none"
-                  >
-                    End Session
-                  </button>
-                </div>
-
-              </motion.div>
-            </div>
+            <Debrief
+              personaMeta={personaMeta} questionNum={questionNum} isLastNode={isLastNode}
+              scores={scores} gaps={gaps} gapAnalysisUnavailable={gapAnalysisUnavailable} peer={peer}
+              newElo={newElo} currentElo={currentElo} company={company} answer={answer}
+              liveCoaching={liveCoaching} currentAnswerId={currentAnswerId} feedbackRating={feedbackRating}
+              onRateFeedback={rateFeedback} onOpenStudyPlan={setStudyPlanTopic}
+              onRetry={retryNode} onNext={goNextQuestion} onFinish={handleFinish}
+            />
 
             {/* Overlay Modals */}
             <AnimatePresence>
@@ -1246,16 +578,17 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-200 bg-black/70 backdrop-blur-md flex items-center justify-center">
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              role="alertdialog" aria-modal="true" aria-labelledby="abort-title" aria-describedby="abort-desc"
               className="bg-[#0a0a10]/90 border border-white/[0.12] rounded-2xl p-8 max-w-[360px] w-[calc(100%-40px)] text-center shadow-[0_24px_80px_rgba(0,0,0,0.7)]">
               <div className="w-11 h-11 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mx-auto mb-4">
                 <AlertTriangle size={18} className="text-rose-400" />
               </div>
-              <h3 className="text-base font-extrabold text-white mb-2">Abort this session?</h3>
-              <p className="text-xs text-slate-400 leading-relaxed mb-5">Progress on this node will not be saved. Your ELO will not be affected by incomplete sessions.</p>
+              <h3 id="abort-title" className="text-base font-extrabold text-white mb-2">Abort this session?</h3>
+              <p id="abort-desc" className="text-xs text-slate-400 leading-relaxed mb-5">Your answer to this node will be discarded. Answers you already submitted in this session stay scored.</p>
               <button onClick={handleFinish} className="w-full py-2.5 rounded-lg bg-rose-500/15 border border-rose-500/35 text-rose-400 font-bold text-xs hover:bg-rose-500/25 transition-colors">
                 End Session
               </button>
-              <button onClick={() => setShowAbortConfirm(false)} className="w-full py-2.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 font-semibold text-xs mt-2 hover:bg-white/10 transition-colors">
+              <button autoFocus onClick={() => setShowAbortConfirm(false)} className="w-full py-2.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 font-semibold text-xs mt-2 hover:bg-white/10 transition-colors">
                 Keep Going
               </button>
             </motion.div>
@@ -1263,54 +596,5 @@ const hasProfanityFlag = scores?.overall_summary?.toLowerCase().includes("inappr
         )}
       </AnimatePresence>
     </div>
-  );
-}
-
-// Helpers
-function DimCard({ label, subtitle, value, feedback, colorFrom, colorTo, badgeBg, badgeBorder, badgeColor }) {
-  const pct = Math.max(4, Math.min(100, Math.round((value || 0) * 10)));
-  return (
-    <div className="bg-[#0a0a10]/90 border border-white/[0.08] rounded-2xl p-5">
-      <div className="flex items-center justify-between mb-3.5">
-        <div>
-          <div className="text-[13px] font-bold text-slate-200">{label}</div>
-          <div className="text-[10px] text-slate-500 mt-0.5">{subtitle}</div>
-        </div>
-        <span className="px-2.5 py-1 rounded-lg text-xs font-mono font-extrabold tabular-nums" style={{ background: badgeBg, border: `1px solid ${badgeBorder}`, color: badgeColor }}>
-          {value ? value.toFixed(1) : "—"}
-        </span>
-      </div>
-      <div className="h-[5px] w-full bg-white/[0.06] rounded-full overflow-hidden">
-        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${colorFrom}, ${colorTo})` }} />
-      </div>
-      {feedback && (
-        <p className="text-[11px] text-slate-400 leading-relaxed mt-3 pt-3 border-t border-white/[0.05]">{feedback}</p>
-      )}
-    </div>
-  );
-}
-
-function VoiceStat({ label, value, color }) {
-  return (
-    <div className="text-center px-5 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.07] min-w-[80px]">
-      <div className="text-2xl font-extrabold font-mono tracking-tight tabular-nums" style={{ color }}>{value}</div>
-      <div className="text-[9px] text-slate-500 font-mono mt-0.5 tracking-widest">{label.toUpperCase()}</div>
-    </div>
-  );
-}
-
-function NextActionCard({ icon: Icon, color, bg, border, title, body, cta, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className="text-left bg-[#0a0a10]/90 border border-white/[0.08] hover:border-white/20 rounded-2xl p-5 transition-all hover:-translate-y-0.5"
-    >
-      <div className="w-9 h-9 rounded-[10px] flex items-center justify-center mb-3 border" style={{ background: bg, borderColor: border }}>
-        <Icon size={15} style={{ color }} />
-      </div>
-      <div className="text-[13.5px] font-bold text-slate-200 mb-1">{title}</div>
-      <p className="text-xs text-slate-500 leading-relaxed mb-3">{body}</p>
-      <span className="text-xs font-mono font-bold" style={{ color }}>{cta} →</span>
-    </button>
   );
 }

@@ -96,11 +96,11 @@ export default function FeatureTabs() {
               onClick={() => setActive(i)}
               className={cn(
                 "relative flex w-full items-center gap-3 border-b border-white/[0.06] px-6 py-5 text-left font-mono text-[11.5px] uppercase tracking-[0.14em] transition-colors",
-                on ? "bg-white/[0.03] text-white" : "text-white/40 hover:bg-white/[0.02] hover:text-white/75"
+                on ? "bg-white/[0.03] text-white" : "text-white/55 hover:bg-white/[0.02] hover:text-white/75"
               )}
             >
               <span className={cn("h-1.5 w-1.5 shrink-0 transition-colors", on ? "bg-indigo-400" : "bg-white/20")} />
-              <t.icon size={15} className={on ? "text-indigo-300" : "text-white/35"} />
+              <t.icon size={15} className={on ? "text-indigo-300" : "text-white/50"} />
               {t.label}
               {on && !wide && <span aria-hidden="true" className="absolute bottom-0 left-0 h-px w-full bg-indigo-400" />}
               {on && wide && (
@@ -170,7 +170,7 @@ function AdaptiveDemo() {
     <div className="flex h-full flex-col gap-3">
       <div className="flex flex-wrap gap-1.5">
         {DEMO_KEYS.map((k, i) => (
-          <span key={k} className={cn("border px-2 py-1 font-mono text-[10px] uppercase transition-colors duration-300", i === n ? "border-indigo-400/50 bg-indigo-500/15 text-indigo-200" : "border-white/10 text-white/35")}>{k}</span>
+          <span key={k} className={cn("border px-2 py-1 font-mono text-[10px] uppercase transition-colors duration-300", i === n ? "border-indigo-400/50 bg-indigo-500/15 text-indigo-200" : "border-white/10 text-white/50")}>{k}</span>
         ))}
       </div>
       <AnimatePresence mode="wait">
@@ -182,7 +182,7 @@ function AdaptiveDemo() {
           transition={{ duration: 0.35, ease: ease.expo }}
           className="flex-1 border border-white/[0.08] bg-black/40 p-4"
         >
-          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">{sim.role} · {sim.persona}</p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/55">{sim.role} · {sim.persona}</p>
           <p className="mt-3 text-[13px] leading-relaxed text-white/70">{sim.context}</p>
           <p className="mt-3 text-[14px] font-semibold leading-snug text-white">{sim.ask}</p>
         </motion.div>
@@ -208,7 +208,7 @@ function CodeDemo() {
   return (
     <div className="flex h-full flex-col gap-3 font-mono text-[12px]">
       <div className="flex-1 border border-white/[0.08] bg-black/50">
-        <div className="flex items-center justify-between border-b border-white/[0.06] px-3 py-1.5 text-[10px] text-white/40">
+        <div className="flex items-center justify-between border-b border-white/[0.06] px-3 py-1.5 text-[10px] text-white/55">
           <span>solution.py</span><span className="text-emerald-300/80">Python 3.11</span>
         </div>
         <pre className="p-3 leading-[1.75] text-white/80">
@@ -219,7 +219,7 @@ function CodeDemo() {
         </pre>
       </div>
       <div className="border border-white/[0.08] bg-black/50 p-3">
-        <div className="mb-2 flex justify-between text-[10px] uppercase tracking-wider text-white/40">
+        <div className="mb-2 flex justify-between text-[10px] uppercase tracking-wider text-white/55">
           <span>Tests</span><span className="tabular-nums">{tests}/{TESTS.length} passed</span>
         </div>
         <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
@@ -229,7 +229,7 @@ function CodeDemo() {
             </div>
           ))}
         </div>
-        <p className="mt-2 text-[10px] text-white/40">Complexity estimate: <span className="text-white/80">O(n) time · O(n) space</span></p>
+        <p className="mt-2 text-[10px] text-white/55">Complexity estimate: <span className="text-white/80">O(n) time · O(n) space</span></p>
       </div>
     </div>
   );
@@ -253,8 +253,8 @@ function VoiceDemo() {
       <div className="grid grid-cols-3 gap-2">
         {[["Pace", `${wpm}`, "wpm"], ["Fillers", `${fillers}`, ""], ["Hesitation", chars > 60 ? "low" : "—", ""]].map(([k, v, u]) => (
           <div key={k} className="border border-white/[0.08] bg-black/40 px-3 py-2">
-            <p className="font-mono text-[9.5px] uppercase tracking-wider text-white/40">{k}</p>
-            <p className="text-lg font-semibold tabular-nums text-white">{v}<span className="ml-1 text-[10px] font-normal text-white/35">{u}</span></p>
+            <p className="font-mono text-[9.5px] uppercase tracking-wider text-white/55">{k}</p>
+            <p className="text-lg font-semibold tabular-nums text-white">{v}<span className="ml-1 text-[10px] font-normal text-white/50">{u}</span></p>
           </div>
         ))}
       </div>
@@ -306,7 +306,7 @@ function GraphDemo() {
                 "block whitespace-nowrap border px-2 py-1.5 font-mono text-[9.5px] transition-all duration-500 sm:px-2.5 sm:text-[10.5px]",
                 gap && on ? "border-amber-400/60 bg-amber-500/15 text-amber-200 shadow-[0_0_24px_rgba(245,158,11,0.35)]"
                   : on ? "border-indigo-400/60 bg-indigo-500/15 text-indigo-100"
-                  : "border-white/10 bg-black/60 text-white/40"
+                  : "border-white/10 bg-black/60 text-white/55"
               )}
             >
               {g.label}{gap && on ? " · gap" : ""}
@@ -314,7 +314,7 @@ function GraphDemo() {
           </div>
         );
       })}
-      <p className="absolute bottom-2 left-3 font-mono text-[9px] uppercase tracking-wider text-white/30">Example study path</p>
+      <p className="absolute bottom-2 left-3 font-mono text-[9px] uppercase tracking-wider text-white/50">Example study path</p>
     </div>
   );
 }

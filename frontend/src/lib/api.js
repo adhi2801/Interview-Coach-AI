@@ -15,7 +15,7 @@
 //     logs the user out, instead of every page silently rendering empty data
 
 import axios from "axios";
-import { API_URL } from "../config";
+import { API_URL, WS_URL } from "../config";
 
 const TOKEN_KEY = "access_token";
 const USER_KEY = "user";
@@ -66,9 +66,12 @@ export function isTokenExpired(token, skewSeconds = 30) {
   }
 }
 
-export function wsAuthQuery() {
-  const token = getToken();
-  return token ? `?token=${encodeURIComponent(token)}` : "";
+// The coaching socket takes a one-minute ticket bound to one session, not
+// the 7-day login token: browsers can't put headers on a WebSocket, and
+// anything in a URL ends up in proxy and access logs.
+export async function coachingSocketUrl(sessionId) {
+  const { data } = await api.post(`/ws/coaching/${sessionId}/ticket`);
+  return `${WS_URL}/ws/coaching/${sessionId}?ticket=${encodeURIComponent(data.ticket)}`;
 }
 
 const api = axios.create({
@@ -87,11 +90,14 @@ api.interceptors.request.use((config) => {
 function describeError(error) {
   if (axios.isCancel(error)) return "Request cancelled";
   const data = error.response?.data;
-  if (data && typeof data.error === "string") return data.error;
+  // On a server error, the request id lets a bug report be matched to its logs.
+  const ref = error.response?.status >= 500 && typeof data?.request_id === "string"
+    ? ` (ref ${data.request_id.slice(0, 8)})` : "";
+  if (data && typeof data.error === "string") return data.error + ref;
   if (data && typeof data.detail === "string") return data.detail;
   if (error.code === "ECONNABORTED") return "The server took too long to respond. Please try again.";
   if (!error.response) return "Can't reach the server. Check your connection and try again.";
-  if (error.response.status >= 500) return "Something went wrong on our end. Please try again.";
+  if (error.response.status >= 500) return `Something went wrong on our end. Please try again.${ref}`;
   return error.message || "Request failed";
 }
 

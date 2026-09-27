@@ -2,7 +2,7 @@
 # Run this once to populate ChromaDB with our 60-question bank.
 
 from rag.vector_store import QuestionVectorStore
-from seed_questions import QUESTION_BANK
+from scripts.seed_questions import QUESTION_BANK
 
 print("Initializing vector store...")
 store = QuestionVectorStore()

@@ -13,7 +13,7 @@
 #
 # Usage:
 #   cd backend
-#   python update_topic_descriptions.py
+#   python -m scripts.update_topic_descriptions
 
 from database import SessionLocal
 from models import Topic
@@ -152,7 +152,6 @@ def update_descriptions():
         print(f"Updated {updated} topic descriptions.")
         if missing:
             print(f"Warning: {len(missing)} names in DESCRIPTIONS not found in DB: {missing}")
-        unseeded = set(DESCRIPTIONS.keys())
         total_topics = db.query(Topic).count()
         if total_topics != len(DESCRIPTIONS):
             print(f"Note: DB has {total_topics} topics total, DESCRIPTIONS covers {len(DESCRIPTIONS)}. "

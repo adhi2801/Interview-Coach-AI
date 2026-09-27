@@ -4,7 +4,7 @@
 # unchanged. Only the storage backend changed: Postgres instead of
 # ./replays/session_*.json, which does not survive a Railway restart/redeploy.
 
-from datetime import datetime
+from timeutil import utcnow
 from database import SessionLocal
 from models import ReplayManifest
 
@@ -22,7 +22,7 @@ class ReplaySystem:
                 existing.user_name = user_name
                 existing.company = company
                 existing.role = role
-                existing.started_at = datetime.utcnow()
+                existing.started_at = utcnow()
                 existing.ended_at = None
                 existing.events = []
             else:
@@ -31,7 +31,7 @@ class ReplaySystem:
                     user_name=user_name,
                     company=company,
                     role=role,
-                    started_at=datetime.utcnow(),
+                    started_at=utcnow(),
                     ended_at=None,
                     events=[],
                 ))
@@ -43,7 +43,13 @@ class ReplaySystem:
     def log_event(self, session_id: int, event_type: str, data: dict) -> dict:
         db = SessionLocal()
         try:
-            manifest = db.query(ReplayManifest).filter(ReplayManifest.session_id == session_id).first()
+            # Row lock: this is read-append-write on one JSON column, and the
+            # coaching socket and the scoring job log to the same session
+            # concurrently. Without the lock, one write silently dropped the
+            # other's event (e.g. an answer's scores vanishing from its replay).
+            manifest = db.query(ReplayManifest).filter(
+                ReplayManifest.session_id == session_id
+            ).with_for_update().first()
             if not manifest:
                 return {"error": "session not found"}
 
@@ -52,12 +58,28 @@ class ReplaySystem:
             events = list(manifest.events or [])
             events.append({
                 "type": event_type,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": utcnow().isoformat(),
                 "data": data,
             })
             manifest.events = events
             db.commit()
             return {"status": "event logged"}
+        finally:
+            db.close()
+
+    def asked_questions(self, session_id: int) -> list[str]:
+        """Every question the SERVER asked in this session, oldest first."""
+        db = SessionLocal()
+        try:
+            manifest = db.query(ReplayManifest).filter(ReplayManifest.session_id == session_id).first()
+            asked = []
+            for event in (manifest.events or []) if manifest else []:
+                if event.get("type") == "question_asked":
+                    data = event.get("data") or {}
+                    text = data.get("question") or data.get("text")
+                    if text:
+                        asked.append(text)
+            return asked
         finally:
             db.close()
 
@@ -68,7 +90,7 @@ class ReplaySystem:
             if not manifest:
                 return {"error": "session not found"}
 
-            manifest.ended_at = datetime.utcnow()
+            manifest.ended_at = utcnow()
             db.commit()
             return {"status": "recording ended"}
         finally:

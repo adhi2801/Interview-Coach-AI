@@ -1,29 +1,28 @@
 # backend/tests/test_api.py
 #
-# HTTP-level tests for main.py: auth, ownership, validation, and the
+# HTTP-level tests for the API: auth, ownership, validation, and the
 # scoring/ELO pipeline. Runs against a throwaway in-memory SQLite database
-# with every external service (Claude, Judge0, Redis, Whisper) stubbed, so
+# with every external service (Claude, Judge0, Redis, Whisper) stubbed
+# (see conftest.py), so
 # it is fast, free, and never touches the real Postgres/Redis from .env.
 
-import sys
-import types
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-# Whisper pulls in torch and is only used by the audio WebSocket path —
-# stub it so importing main stays cheap. Real module wins if already loaded.
-sys.modules.setdefault("whisper", types.ModuleType("whisper"))
-
-import main  # noqa: E402
-from code_executor import TestCaseResult as ExecResult  # noqa: E402  (aliased so pytest does not try to collect it)
-from fastapi.testclient import TestClient  # noqa: E402
-from models import Base, User, InterviewSession, ScoringJob, Answer, ReplayManifest, CodingProblem, CodingTestCase, CodingSubmission  # noqa: E402
-import engines.replay_system as replay_module  # noqa: E402
-import engines.peer_comparison as peer_module  # noqa: E402
+import database
+import main
+from api import services
+from auth import create_ws_ticket
+from code_executor import TestCaseResult as ExecResult  # aliased so pytest does not try to collect it
+from models import (
+    Answer, Base, CodingProblem, CodingSubmission, CodingTestCase, InterviewSession, ReplayManifest,
+    ScoringJob, User,
+)
+from timeutil import utcnow
 
 FAKE_SCORES = {
     "score_technical": 8.0, "score_communication": 8.0, "score_problem_solving": 8.0,
@@ -38,22 +37,21 @@ def db_factory(monkeypatch):
         "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
     Base.metadata.create_all(engine)
-    factory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-    for module in (main, replay_module, peer_module):
-        monkeypatch.setattr(module, "SessionLocal", factory)
-    monkeypatch.setattr(main, "redis_client", None)
-    monkeypatch.setattr(peer_module, "redis_client", None)
+    # Every module shares the one SessionLocal factory object, so rebinding
+    # it reaches the routers, replay system, and peer engine at once.
+    database.SessionLocal.configure(bind=engine)
+    monkeypatch.setattr(services, "redis_client", None)
     monkeypatch.setattr(main.limiter, "enabled", False)
 
     # Every paid / networked dependency is stubbed.
-    monkeypatch.setattr(main.scorer, "score", lambda question, answer: dict(FAKE_SCORES))
-    monkeypatch.setattr(main.gap_engine, "extract_gaps", lambda **kw: ([], False))
-    monkeypatch.setattr(main.gap_engine, "identify_topics_addressed", lambda **kw: (["caching"], False))
-    monkeypatch.setattr(main.difficulty_engine, "select_question", lambda **kw: dict(FAKE_QUESTION))
-    monkeypatch.setattr(main.difficulty_engine, "select_followup_question", lambda **kw: dict(FAKE_QUESTION))
+    monkeypatch.setattr(services.scorer, "score", lambda question, answer: dict(FAKE_SCORES))
+    monkeypatch.setattr(services.gap_engine, "extract_gaps", lambda **kw: ([], False))
+    monkeypatch.setattr(services.gap_engine, "identify_topics_addressed", lambda **kw: (["caching"], False))
+    monkeypatch.setattr(services.difficulty_engine, "select_question", lambda **kw: dict(FAKE_QUESTION))
+    monkeypatch.setattr(services.difficulty_engine, "select_followup_question", lambda **kw: dict(FAKE_QUESTION))
 
-    yield factory
+    yield database.SessionLocal
+    database.SessionLocal.configure(bind=database.engine)
     engine.dispose()
 
 
@@ -212,7 +210,7 @@ def test_oversized_answer_is_rejected_before_any_paid_call(client, monkeypatch):
 
     def fail(**kw):
         raise AssertionError("scorer must not be called")
-    monkeypatch.setattr(main.scorer, "score", fail)
+    monkeypatch.setattr(services.scorer, "score", fail)
 
     res = client.post("/answer/submit", headers=headers, json=answer_payload(session, answer="x" * 20001))
     assert res.status_code == 422
@@ -234,7 +232,7 @@ def test_scoring_failure_marks_job_failed_and_leaves_elo_untouched(client, db_fa
 
     def boom(question, answer):
         raise RuntimeError("Claude is down")
-    monkeypatch.setattr(main.scorer, "score", boom)
+    monkeypatch.setattr(services.scorer, "score", boom)
 
     job_id = client.post("/answer/submit", headers=headers, json=answer_payload(session)).json()["job_id"]
     status = client.get(f"/answer/status/{job_id}", headers=headers).json()
@@ -251,7 +249,7 @@ def test_stuck_scoring_job_times_out(client, db_factory):
     db = db_factory()
     try:
         job = ScoringJob(session_id=session["session_id"], status="processing",
-                         created_at=datetime.utcnow() - timedelta(minutes=10))
+                         created_at=utcnow() - timedelta(minutes=10))
         db.add(job)
         db.commit()
         job_id = job.id
@@ -304,11 +302,11 @@ def fake_run(code, language, test_cases):
 
 def test_coding_submit_survives_quality_grader_outage(client, db_factory, problem, monkeypatch):
     headers, user_id = signup(client)
-    monkeypatch.setattr(main.code_executor, "run_test_cases", fake_run)
+    monkeypatch.setattr(services.code_executor, "run_test_cases", fake_run)
 
     def boom(*a, **kw):
         raise RuntimeError("Claude is down")
-    monkeypatch.setattr(main.coding_engine, "grade_submission", boom)
+    monkeypatch.setattr(services.coding_engine, "grade_submission", boom)
 
     res = client.post("/coding/submit", headers=headers,
                       json={"problem_id": problem, "code": "print(3)", "language": "python"})
@@ -320,7 +318,7 @@ def test_coding_submit_survives_quality_grader_outage(client, db_factory, proble
 
 
 def test_coding_submit_rejects_foreign_session_and_unknown_language(client, problem, monkeypatch):
-    monkeypatch.setattr(main.code_executor, "run_test_cases", fake_run)
+    monkeypatch.setattr(services.code_executor, "run_test_cases", fake_run)
     owner_headers, _ = signup(client)
     session = start_session(client, owner_headers)
     other_headers, _ = signup(client, email="eve@example.com", name="Eve")
@@ -352,3 +350,171 @@ def test_account_deletion_removes_user_data(client, db_factory):
         assert db.query(CodingSubmission).count() == 0
     finally:
         db.close()
+
+
+# ---------- grading integrity ----------
+
+def test_answer_is_graded_against_the_question_the_server_asked(client, monkeypatch):
+    headers, _ = signup(client)
+    session = start_session(client, headers)
+
+    graded = []
+    def record(question, answer):
+        graded.append(question)
+        return dict(FAKE_SCORES)
+    monkeypatch.setattr(services.scorer, "score", record)
+
+    swapped = answer_payload(session, question="What is 2 + 2?")
+    assert client.post("/answer/submit", headers=headers, json=swapped).status_code == 200
+    assert graded == [FAKE_QUESTION["question"]]
+
+
+# ---------- live coaching socket ----------
+
+def ticket_for(client, headers, session_id):
+    res = client.post(f"/ws/coaching/{session_id}/ticket", headers=headers)
+    assert res.status_code == 200, res.text
+    return res.json()["ticket"]
+
+
+def test_coaching_socket_accepts_a_ticket_and_coaches_typed_answers(client):
+    headers, _ = signup(client)
+    session = start_session(client, headers)
+    ticket = ticket_for(client, headers, session["session_id"])
+
+    with client.websocket_connect(f"/ws/coaching/{session['session_id']}?ticket={ticket}") as ws:
+        ws.send_json({"type": "ping"})
+        assert ws.receive_json() == {"type": "pong"}
+
+        ws.send_json({"type": "text_chunk", "text": "Um, like, I'd use a token bucket per user in Redis."})
+        update = ws.receive_json()
+        assert update["type"] == "coaching_update"
+        assert update["filler_count"] == 2
+        assert update["pace_source"] == "typing"
+
+        ws.send_json({"type": "reset"})
+        assert ws.receive_json() == {"type": "reset_ack"}
+
+
+def test_coaching_socket_rejects_login_tokens_and_foreign_tickets(client):
+    from starlette.websockets import WebSocketDisconnect
+
+    headers, user_id = signup(client)
+    session = start_session(client, headers)
+    login_token = headers["Authorization"].split()[1]
+
+    # The long-lived login token is no longer accepted in the URL.
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect(f"/ws/coaching/{session['session_id']}?ticket={login_token}") as ws:
+            ws.receive_json()
+
+    # A ticket is bound to one session.
+    other_session = start_session(client, headers)
+    ticket = ticket_for(client, headers, other_session["session_id"])
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect(f"/ws/coaching/{session['session_id']}?ticket={ticket}") as ws:
+            ws.receive_json()
+
+    # Someone else's session can't be ticketed at all.
+    eve_headers, _ = signup(client, email="eve@example.com", name="Eve")
+    res = client.post(f"/ws/coaching/{session['session_id']}/ticket", headers=eve_headers)
+    assert res.status_code == 404
+
+
+def test_socket_ticket_is_not_a_bearer_token(client):
+    headers, user_id = signup(client)
+    session = start_session(client, headers)
+    ticket = create_ws_ticket(user_id, session["session_id"])
+    res = client.get("/user/sessions", headers={"Authorization": f"Bearer {ticket}"})
+    assert res.status_code == 401
+
+
+def test_replay_keeps_coaching_moments_that_changed_the_advice_only(client, db_factory):
+    headers, _ = signup(client)
+    session = start_session(client, headers)
+    ticket = ticket_for(client, headers, session["session_id"])
+    answer = "I'd use a token bucket per user in Redis with a short expiry on each key."
+
+    with client.websocket_connect(f"/ws/coaching/{session['session_id']}?ticket={ticket}") as ws:
+        for text in (answer, answer + " It refills", answer + " It refills each second."):
+            ws.send_json({"type": "text_chunk", "text": text})
+            ws.receive_json()
+
+    replay = client.get(f"/replay/{session['session_id']}", headers=headers).json()
+    assert len(replay["questions"][0]["coaching_moments"]) == 1
+
+
+@pytest.mark.parametrize("origin,allowed", [
+    ("https://interview-coach-ai-three.vercel.app", True),
+    ("https://interview-coach-ai-git-feature-adhi.vercel.app", True),
+    ("http://localhost:3000", True),
+    ("https://evil-site.vercel.app", False),
+    ("https://interview-coach-ai.vercel.app.evil.com", False),
+])
+def test_cors_allows_only_this_projects_origins(client, origin, allowed):
+    res = client.options("/companies", headers={
+        "Origin": origin, "Access-Control-Request-Method": "GET",
+    })
+    assert (res.headers.get("access-control-allow-origin") == origin) is allowed
+
+
+def test_unknown_company_profiles_need_an_account(client, monkeypatch):
+    generated = []
+    monkeypatch.setattr(services.company_engine, "_generate_dynamic_profile",
+                        lambda name: (generated.append(name) or {}, False))
+
+    assert client.get("/companies/google/profile").json()["name"] == "Google"   # built-in: public
+    res = client.get("/companies/made-up-co/profile")
+    assert res.status_code == 401 and generated == []                          # no paid call
+
+    headers, _ = signup(client)
+    assert client.get("/companies/made-up-co/profile", headers=headers).status_code == 200
+    assert generated == ["made-up-co"]
+    assert client.get("/companies/" + "x" * 51 + "/profile", headers=headers).status_code == 422
+
+
+# ---------- request context ----------
+
+def test_every_response_carries_a_request_id_and_security_headers(client):
+    res = client.get("/health")
+    assert len(res.headers["x-request-id"]) == 32
+    assert res.headers["x-content-type-options"] == "nosniff"
+    assert res.headers["x-frame-options"] == "DENY"
+    assert "strict-transport-security" not in res.headers  # plain http in tests
+
+    traced = client.get("/health", headers={"X-Request-ID": "trace-abc.123",
+                                            "X-Forwarded-Proto": "https"})
+    assert traced.headers["x-request-id"] == "trace-abc.123"
+    assert "max-age" in traced.headers["strict-transport-security"]
+
+    forged = client.get("/health", headers={"X-Request-ID": "bad id\nwith newline"})
+    assert forged.headers["x-request-id"] != "bad id\nwith newline"
+
+
+def test_unexpected_errors_return_json_with_the_request_id(db_factory, monkeypatch):
+    def boom():
+        raise RuntimeError("database exploded")
+    monkeypatch.setattr(services.company_engine, "list_companies", boom)
+
+    res = TestClient(main.app, raise_server_exceptions=False).get("/companies")
+    assert res.status_code == 500
+    body = res.json()
+    assert body["error"].startswith("Something went wrong")
+    assert "exploded" not in body["error"]
+    assert len(body["request_id"]) == 32
+
+
+def test_retrying_an_earlier_node_grades_that_nodes_question(client, monkeypatch):
+    headers, _ = signup(client)
+    session = start_session(client, headers)
+    first_question = session["question"]
+    monkeypatch.setattr(services.difficulty_engine, "select_question",
+                        lambda **kw: {"question": "A different follow-up.", "category": "General"})
+    monkeypatch.setattr(services.scorer, "score", lambda question, answer: {**FAKE_SCORES, "overall_summary": "low"}
+                        | {k: 3.0 for k in FAKE_SCORES if k.startswith("score_")})
+    client.post("/answer/submit", headers=headers, json=answer_payload(session))  # server now asks the follow-up
+
+    graded = []
+    monkeypatch.setattr(services.scorer, "score", lambda question, answer: graded.append(question) or dict(FAKE_SCORES))
+    client.post("/answer/submit", headers=headers, json=answer_payload(session, question=first_question))
+    assert graded == [first_question]

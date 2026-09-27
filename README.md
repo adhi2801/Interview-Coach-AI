@@ -1,5 +1,7 @@
 # InterviewCoach AI
 
+[![CI](https://github.com/adhi2801/Interview-Coach-AI/actions/workflows/ci.yml/badge.svg)](https://github.com/adhi2801/Interview-Coach-AI/actions/workflows/ci.yml)
+
 > An AI-powered mock interview platform that adapts to a user's skill level, simulates company-specific interview styles, and provides real-time coaching during technical and coding interviews.
 
 ### Live Demo
@@ -97,8 +99,8 @@ flowchart TB
 - Redis
 - SQLAlchemy
 - Alembic
-- Whisper
-- Claude API
+- faster-whisper (Whisper on CTranslate2, int8)
+- Claude API (structured outputs)
 - Judge0
 
 ### Infrastructure
@@ -120,6 +122,42 @@ Every endpoint is documented via FastAPI's auto-generated OpenAPI schema — no 
 
 ---
 
+## Project Structure
+
+```
+backend/
+  main.py            app assembly: middleware, error handlers, routers
+  api/routes/        one router per area: auth, interview, coding, coaching, replay, user, catalogue
+  api/services.py    shared engine/client singletons
+  engines/           adaptive difficulty, scoring, company DNA, knowledge graph,
+                     confidence coach, transcriber, peer comparison, replay
+  alembic/           database migrations
+  scripts/           seeding and problem-pack tooling; scripts/smoke/ = manual checks against paid APIs
+  data/              verified coding problem packs
+  tests/             pytest suite (hermetic: no network, no real database)
+frontend/            React + Vite SPA
+```
+
+---
+
+## Integrity and Security
+
+A candidate's answer decides their rating and feeds everyone else's percentiles, so grading is treated as an attack surface:
+
+- **Prompt-injection hardening.** Answers are fenced in delimiters they cannot close, the grader returns a JSON-schema-enforced result, and any answer that tries to instruct the grader is scored zero by the server.
+- **Server-side truth.** Answers are graded against the question the server actually asked, and ELO uses the server's difficulty and rating, never values the client sends.
+- **Ownership checks** on every session, job, replay and submission route; the same 404 whether a record is missing or someone else's.
+- **WebSocket tickets.** The live-coaching socket takes a one-minute ticket bound to one session, so the login token never appears in a URL or access log.
+- Rate limits per IP plus a per-user daily token budget in front of every paid API call; generating a profile for an unknown company needs an account.
+- Every response carries an `X-Request-ID` that is bound to every log line for that request, and a server error shows the user a short reference to it.
+- Security headers on the API and the frontend; CORS limited to this project's own deployments.
+
+## Accessibility
+
+Every route (landing, auth, legal, dashboard, setup, study plan, settings, replays, coding, interview room) is audited with axe-core against WCAG 2 A/AA and has no violations. Animated text keeps a real, screen-reader-visible copy; icon-only controls are labelled; dialogs are `alertdialog`s that close on Escape.
+
+---
+
 ## RAG Pipeline
 
 - Interview questions are embedded and tagged by difficulty, topic, and company, then stored in PostgreSQL.
@@ -135,21 +173,29 @@ Every endpoint is documented via FastAPI's auto-generated OpenAPI schema — no 
 git clone https://github.com/adhi2801/Interview-Coach-AI.git
 ```
 
+### Everything at once (Docker)
+```bash
+ANTHROPIC_API_KEY=sk-ant-... docker compose up --build   # Postgres, Redis, API, frontend
+```
+Then seed once (next section's `python -m scripts...` commands, prefixed with `docker compose exec backend`).
+
 ### Backend
 ```bash
 cd backend
 python -m venv venv
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
+# .env: DATABASE_URL, JWT_SECRET_KEY, ANTHROPIC_API_KEY
+#       optional: REDIS_URL, JUDGE0_API_KEY, SENTRY_DSN, CLAUDE_MODEL, WHISPER_MODEL
 alembic upgrade head
-python seed_topics.py
-python seed_coding_problems.py
-python seed_verified_problems.py                              # the original 15 verified problems
-python seed_verified_problems.py verified_problems_pack2.json # 38 more (problem pack 2)
-python seed_db.py
+python -m scripts.seed_topics
+python -m scripts.seed_coding_problems
+python -m scripts.seed_verified_problems                               # the original 15 verified problems
+python -m scripts.seed_verified_problems verified_problems_pack2.json  # 38 more (problem pack 2)
+python -m scripts.seed_db
 uvicorn main:app --reload
 ```
 
-Problem pack 2 is built by `python build_problem_pack.py` from `problem_bank/pack2.py`:
+Problem pack 2 is built by `python -m scripts.build_problem_pack` from `problem_bank/pack2.py`:
 every reference solution is run as a real stdin/stdout program and checked
 against an independent brute-force solution on every test case before the
 problem is written out. Seeding is idempotent (existing slugs are skipped).
@@ -158,7 +204,7 @@ problem is written out. Seeding is idempotent (existing slugs are skipped).
 ```bash
 cd frontend
 npm install
-npm start
+npm run dev
 ```
 
 ---
@@ -166,25 +212,24 @@ npm start
 ## Testing
 
 ```bash
-pytest
+cd backend && ruff check . && pytest               # 97 tests, ~25s, no network or real database needed
+cd frontend && npm run lint && npm test             # ESLint + 17 Vitest unit tests
+cd frontend && npm run build && npm run test:e2e    # 4 Playwright browser tests, API mocked
 ```
 
-Current coverage (41 tests) includes:
-- ELO rating calculations and edge cases.
-- Interview category classification.
-- Knowledge graph traversal.
-- Knowledge gap extraction.
+CI runs all of the above on every push and pull request (Dependabot keeps dependencies current), and also applies every Alembic migration to a fresh Postgres and fails if `models.py` has drifted from them.
+
+Backend coverage includes the Judge0 client against a fake Judge0 (verdicts, polling, failure reasons), peer percentiles, company profiles, request tracing, auth and ownership on every user-data route, the atomic scoring/ELO pipeline, grading-integrity and prompt-injection defences, the live-coaching socket and its tickets, filler/pace detection in the confidence coach, ELO math, category classification, and knowledge-graph traversal and gap extraction.
 
 ---
 
 ## Future Improvements
 - Streaming voice transcription.
 - PostgreSQL Row-Level Security.
-- Expanded automated test coverage.
+- End-to-end browser tests.
 - WebRTC-based audio support.
 - Improved mobile experience.
 - LLM observability tooling.
-- Editable user profiles.
 
 ---
 

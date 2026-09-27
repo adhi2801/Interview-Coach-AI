@@ -1,10 +1,10 @@
 """
-Broader version of test_difficulty_levels.py — tests MULTIPLE roles at
+Broader version of difficulty_levels.py — tests MULTIPLE roles at
 low and high difficulty, not just Frontend Engineer, so we can confirm
 role-specificity and difficulty scaling hold up across the board.
 
-HOW TO USE: same as before — put this in backend/, run:
-    python test_multiple_roles.py
+HOW TO USE (from backend/, venv active; calls the paid Claude API):
+    python -m scripts.smoke.multiple_roles
 """
 
 from engines.adaptive_difficulty import AdaptiveDifficultyEngine

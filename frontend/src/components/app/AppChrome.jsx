@@ -95,7 +95,7 @@ export function AppHeader({ children, back }) {
           {children}
           {openPalette && (
             <button onClick={openPalette} className={cn("hidden items-center gap-2 border border-white/10 px-2.5 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-white/50 transition-colors hover:border-white/30 hover:text-white lg:flex", FOCUS)}>
-              <Search size={12} /> Search <kbd className="text-white/35">⌘K</kbd>
+              <Search size={12} /> Search <kbd className="text-white/50">⌘K</kbd>
             </button>
           )}
           {elo != null && (
@@ -118,7 +118,7 @@ export function AppHeader({ children, back }) {
                 >
                   <div className="border-b border-white/[0.06] px-3 py-3">
                     <p className="truncate text-sm font-semibold text-white">{user?.name || "Candidate"}</p>
-                    <p className="truncate font-mono text-[10.5px] text-white/40">{user?.email || ""}</p>
+                    <p className="truncate font-mono text-[10.5px] text-white/55">{user?.email || ""}</p>
                   </div>
                   <button onClick={() => navigate("/settings")} className="w-full px-3 py-2.5 text-left font-mono text-[11px] uppercase tracking-[0.14em] text-white/65 hover:bg-white/[0.04] hover:text-white">Settings</button>
                   {onLogout && (
@@ -219,7 +219,7 @@ export function Stat({ value, label, className }) {
   return (
     <div className={cn("px-5 py-5 md:px-7", className)}>
       <p className="text-3xl font-semibold tabular-nums tracking-[-0.04em] text-white md:text-4xl">{value}</p>
-      <p className="mt-1 font-mono text-[10.5px] uppercase tracking-[0.14em] text-white/40">{label}</p>
+      <p className="mt-1 font-mono text-[10.5px] uppercase tracking-[0.14em] text-white/55">{label}</p>
     </div>
   );
 }

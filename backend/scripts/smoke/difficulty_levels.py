@@ -3,11 +3,9 @@ Quick test script: generates 3 sample interview questions at different
 difficulty levels (Beginner, Medium, Advanced) for the SAME role/company,
 so you can read them side by side and see if they actually get harder.
 
-HOW TO USE:
-1. Copy this file into your backend/ folder (same folder as main.py)
-2. Open a terminal, activate your venv, cd into backend/
-3. Run: python test_difficulty_levels.py
-4. Read the 3 questions it prints out
+HOW TO USE (from backend/, venv active; calls the paid Claude API):
+    python -m scripts.smoke.difficulty_levels
+Then read the 3 questions it prints out
 
 This does NOT touch your live website or your database in any writing way.
 It just calls the same question-generator your app already uses.

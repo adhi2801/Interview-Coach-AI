@@ -79,9 +79,12 @@ export function ScrambleText({ children, as: Tag = "span", className, trigger = 
     };
   }, [text, trigger, duration, chars, delay]);
 
+  // The animated copy is hidden from assistive tech (mid-scramble it reads
+  // as gibberish); a visually hidden copy carries the real text.
   return (
-    <Tag ref={ref} className={className} aria-label={text}>
-      {text}
+    <Tag className={className}>
+      <span ref={ref} aria-hidden="true">{text}</span>
+      <span className="sr-only">{text}</span>
     </Tag>
   );
 }

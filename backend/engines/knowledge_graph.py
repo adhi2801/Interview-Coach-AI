@@ -1,9 +1,7 @@
-import os
-import re
 import time
 import json
 import structlog
-import anthropic
+from llm import CLAUDE_MODEL, make_client, strip_markdown_fence
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 from database import SessionLocal
@@ -12,11 +10,6 @@ from models import Topic, TopicPrerequisite, CompanyTopicWeight
 load_dotenv()
 
 logger = structlog.get_logger()
-
-
-def _strip_markdown_fence(raw: str) -> str:
-    match = re.search(r"```(?:json)?\s*(.*?)\s*```", raw, re.DOTALL)
-    return match.group(1).strip() if match else raw
 
 
 def _call_claude_topic_list(client, context: str, **create_kwargs) -> tuple:
@@ -34,7 +27,7 @@ def _call_claude_topic_list(client, context: str, **create_kwargs) -> tuple:
         try:
             response = client.messages.create(**create_kwargs)
             raw = response.content[0].text.strip()
-            raw = _strip_markdown_fence(raw)
+            raw = strip_markdown_fence(raw)
             return json.loads(raw), False
         except Exception as e:
             last_err = e
@@ -68,7 +61,7 @@ def _get_cached_topic_names() -> list:
 
 class KnowledgeGapGraph:
     def __init__(self):
-        self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), timeout=30.0)
+        self.client = make_client()
 
     def extract_gaps(self, question: str, answer: str, technical_score: float, company: str = None) -> tuple:
         """
@@ -85,7 +78,7 @@ class KnowledgeGapGraph:
         failed_topics, call_failed = _call_claude_topic_list(
             self.client,
             "extract_gaps",
-            model="claude-sonnet-4-6",
+            model=CLAUDE_MODEL,
             max_tokens=200,
             system=f"""Return only a JSON list of topic strings. No explanation. No markdown.
             You MUST choose only from this exact list of valid topics — do not invent new ones:
@@ -131,7 +124,7 @@ class KnowledgeGapGraph:
         topics, call_failed = _call_claude_topic_list(
             self.client,
             "identify_topics_addressed",
-            model="claude-sonnet-4-6",
+            model=CLAUDE_MODEL,
             max_tokens=150,
             system=f"""Return only a JSON list of topic strings. No explanation. No markdown.
             You MUST choose only from this exact list of valid topics — do not invent new ones:

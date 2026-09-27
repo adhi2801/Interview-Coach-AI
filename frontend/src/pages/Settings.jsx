@@ -246,7 +246,7 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
                     className={`relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                       isActive
                         ? tab.danger ? "text-rose-400" : "text-white"
-                        : tab.danger ? "text-rose-500/70 hover:text-rose-400 hover:bg-rose-500/10" : "text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                        : tab.danger ? "text-rose-400/90 hover:text-rose-300 hover:bg-rose-500/10" : "text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
                     }`}
                   >
                     {isActive && (
@@ -315,17 +315,17 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
                                   onKeyDown={(e) => { if (e.key === "Enter") saveName(); if (e.key === "Escape") setEditingName(false); }}
                                   className="text-2xl font-extrabold tracking-tight text-white bg-white/[0.05] border border-indigo-500/40 rounded-lg px-2 py-1 outline-none min-w-0"
                                 />
-                                <button onClick={saveName} className="p-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25">
+                                <button onClick={saveName} aria-label="Save name" className="p-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25">
                                   <Check size={14} />
                                 </button>
-                                <button onClick={() => setEditingName(false)} className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white">
+                                <button onClick={() => setEditingName(false)} aria-label="Cancel editing name" className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white">
                                   <X size={14} />
                                 </button>
                               </>
                             ) : (
                               <>
                                 <h2 className="text-2xl font-extrabold tracking-tight text-white">{profile?.name || "Candidate"}</h2>
-                                <button onClick={startEditingName} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/[0.06] transition-colors">
+                                <button onClick={startEditingName} aria-label="Edit name" className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/[0.06] transition-colors">
                                   <Pencil size={13} />
                                 </button>
                               </>

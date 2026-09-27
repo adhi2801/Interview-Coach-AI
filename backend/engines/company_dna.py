@@ -1,10 +1,9 @@
 import os
-import re
 import time
 import redis
 import json as json_module
 import structlog
-import anthropic
+from llm import CLAUDE_MODEL, make_client, strip_markdown_fence
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -86,14 +85,48 @@ COMPANY_PROFILES = {
 }
 
 
+LIST_KEYS = ("red_flags", "green_flags", "values")
+MAX_LOCAL_CACHE = 256
+
+
+def is_known_company(company_name: str) -> bool:
+    return company_name.lower().strip() in COMPANY_PROFILES
+
+
+def _sanitize_profile(profile: dict, company_name: str) -> dict:
+    """Generated profiles are rendered in the UI and fed into later prompts,
+    so types are enforced rather than trusted: lists are lists of short
+    strings, and difficulty_bias is a number in its documented range."""
+    clean = {k: profile[k] for k in REQUIRED_PROFILE_KEYS if k in profile}
+    for key in LIST_KEYS:
+        value = clean.get(key)
+        items = value if isinstance(value, list) else [value] if value else []
+        clean[key] = [str(item)[:120] for item in items][:8]
+    for key in set(REQUIRED_PROFILE_KEYS) - set(LIST_KEYS) - {"difficulty_bias"}:
+        clean[key] = str(clean.get(key) or "")[:300]
+    clean["name"] = clean["name"] or company_name.title()
+    try:
+        bias = float(clean.get("difficulty_bias"))
+    except (TypeError, ValueError):
+        bias = 1.0
+    clean["difficulty_bias"] = round(min(1.4, max(0.7, bias)), 2)
+    return clean
+
+
 class CompanyDNAEngine:
     def __init__(self):
-        self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), timeout=30.0)
+        self.client = make_client()
+        # Fallback cache for when Redis is down or not configured: without
+        # it, every request for the same unknown company paid for a new
+        # Claude call.
+        self._local_cache: dict[str, dict] = {}
 
     def get_profile(self, company_name: str) -> dict:
         key = company_name.lower().strip()
         if key in COMPANY_PROFILES:
             return dict(COMPANY_PROFILES[key])
+        if key in self._local_cache:
+            return dict(self._local_cache[key])
 
         cache_key = f"company_dna:{key}"
         if redis_client:
@@ -103,20 +136,21 @@ class CompanyDNAEngine:
 
         profile, generated_successfully = self._generate_dynamic_profile(company_name)
 
-        if redis_client and generated_successfully:
-            redis_client.setex(cache_key, 60 * 60 * 24 * 7, json_module.dumps(profile))
+        if generated_successfully:
+            profile = _sanitize_profile(profile, company_name)
+            if len(self._local_cache) >= MAX_LOCAL_CACHE:
+                self._local_cache.pop(next(iter(self._local_cache)))
+            self._local_cache[key] = profile
+            if redis_client:
+                redis_client.setex(cache_key, 60 * 60 * 24 * 7, json_module.dumps(profile))
 
-        return profile
-
-    def _strip_markdown_fence(self, raw: str) -> str:
-        match = re.search(r"```(?:json)?\s*(.*?)\s*```", raw, re.DOTALL)
-        return match.group(1).strip() if match else raw
+        return dict(profile)
 
     def _generate_dynamic_profile(self, company_name: str) -> tuple:
         for attempt in range(2):
             try:
                 response = self.client.messages.create(
-                    model="claude-sonnet-4-6",
+                    model=CLAUDE_MODEL,
                     max_tokens=500,
                     system="Return only valid JSON. No preamble. No markdown.",
                     messages=[{"role": "user", "content":
@@ -128,7 +162,7 @@ class CompanyDNAEngine:
                         f"interviews are relative to average, 1.0 = average)"}]
                 )
                 raw = response.content[0].text.strip()
-                raw = self._strip_markdown_fence(raw)
+                raw = strip_markdown_fence(raw)
 
                 profile = json_module.loads(raw)
                 if all(k in profile for k in REQUIRED_PROFILE_KEYS):

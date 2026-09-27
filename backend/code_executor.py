@@ -29,6 +29,38 @@ LANGUAGE_IDS = {
 
 EXECUTION_TIMEOUT_SECONDS = 10
 MAX_RETRIES = 2
+# How long to wait for Judge0 to finish, in wall-clock time. Queueing on the
+# shared RapidAPI instance adds to the CPU limit, so this is well above it:
+# the previous 20 x 0.5s budget reported correct-but-queued solutions as
+# timed out — a failed submission and a lost ELO for a right answer.
+POLL_BUDGET_SECONDS = 30
+
+# Judge0 status ids: 1 In Queue, 2 Processing, 3 Accepted, 4 Wrong Answer,
+# 5 Time Limit Exceeded, 6 Compilation Error, 7-12 runtime errors, 13-14 internal.
+PENDING_STATUSES = (1, 2)
+TIME_LIMIT_EXCEEDED = 5
+
+
+def outputs_match(actual: str, expected: str) -> bool:
+    """Compares program output the way online judges do: line endings and
+    trailing whitespace on each line (and trailing blank lines) are ignored,
+    so `print(*xs, end=" ")` or a CRLF from Windows-style output isn't
+    failed as a wrong answer."""
+    def normalize(text: str) -> list[str]:
+        lines = [line.rstrip() for line in text.replace("\r\n", "\n").split("\n")]
+        while lines and not lines[-1]:
+            lines.pop()
+        return lines
+    return normalize(actual) == normalize(expected)
+
+
+def _poll_delays():
+    """Yields sleep intervals (0.5s growing to 2s) until the budget is spent."""
+    waited, delay = 0.0, 0.5
+    while waited < POLL_BUDGET_SECONDS:
+        yield delay
+        waited += delay
+        delay = min(delay * 1.5, 2.0)
 
 
 @dataclass
@@ -62,6 +94,17 @@ class CodeExecutor:
         val = data.get(field)
         return base64.b64decode(val).decode(errors="replace") if val else ""
 
+    def _explain(self, data: dict) -> tuple[str, bool]:
+        """(stderr to show the candidate, timed_out). Falls back to Judge0's
+        status description, so a time-limit or runtime failure never shows
+        up as a bare fail with no reason."""
+        stderr = self._decode(data, "stderr") or self._decode(data, "compile_output")
+        status = data.get("status") or {}
+        timed_out = status.get("id") == TIME_LIMIT_EXCEEDED
+        if not stderr and status.get("id") not in (3, 4, None):
+            stderr = status.get("description") or "Execution failed"
+        return stderr, timed_out
+
     def run_code(self, code: str, language: str, stdin: str = "") -> ExecutionResult:
         """
         Runs code once against a single stdin input. Used for the 'Run' button —
@@ -90,8 +133,8 @@ class CodeExecutor:
                 create_res.raise_for_status()
                 token = create_res.json()["token"]
 
-                for _ in range(20):
-                    time.sleep(0.5)
+                for delay in _poll_delays():
+                    time.sleep(delay)
                     result_res = self.client.get(
                         f"{JUDGE0_URL}/{token}?base64_encoded=true&fields=stdout,stderr,status,compile_output",
                         headers=self.headers,
@@ -99,17 +142,17 @@ class CodeExecutor:
                     result_res.raise_for_status()
                     data = result_res.json()
                     status_id = data.get("status", {}).get("id")
-                    if status_id not in (1, 2):
+                    if status_id not in PENDING_STATUSES:
                         break
                 else:
                     return ExecutionResult(stdout="", stderr="Execution timed out.", exit_code=-1, timed_out=True)
 
                 stdout = self._decode(data, "stdout")
-                stderr = self._decode(data, "stderr") or self._decode(data, "compile_output")
+                stderr, timed_out = self._explain(data)
                 status_desc = data.get("status", {}).get("description", "")
                 exit_code = 0 if status_desc == "Accepted" else -1
 
-                return ExecutionResult(stdout=stdout, stderr=stderr, exit_code=exit_code)
+                return ExecutionResult(stdout=stdout, stderr=stderr, exit_code=exit_code, timed_out=timed_out)
 
             except httpx.TimeoutException:
                 return ExecutionResult(stdout="", stderr="Execution timed out.", exit_code=-1, timed_out=True)
@@ -159,8 +202,8 @@ class CodeExecutor:
             tokens_param = ",".join(tokens)
 
             data_by_token = {}
-            for _ in range(20):
-                time.sleep(0.5)
+            for delay in _poll_delays():
+                time.sleep(delay)
                 poll_res = self.client.get(
                     f"{JUDGE0_URL}/batch?tokens={tokens_param}&base64_encoded=true&fields=token,stdout,stderr,status,compile_output",
                     headers=self.headers,
@@ -170,7 +213,7 @@ class CodeExecutor:
                 data_by_token = {item["token"]: item for item in batch_data}
 
                 still_running = any(
-                    data_by_token.get(t, {}).get("status", {}).get("id") in (1, 2)
+                    data_by_token.get(t, {}).get("status", {}).get("id") in PENDING_STATUSES
                     for t in tokens
                 )
                 if not still_running:
@@ -189,23 +232,23 @@ class CodeExecutor:
                 ]
 
             results = []
-            for case, token in zip(test_cases, tokens):
+            for case, token in zip(test_cases, tokens, strict=False):
                 item = data_by_token.get(token, {})
                 stdout = self._decode(item, "stdout")
-                stderr = self._decode(item, "stderr") or self._decode(item, "compile_output")
+                stderr, timed_out = self._explain(item)
                 status_desc = item.get("status", {}).get("description", "")
                 exit_code = 0 if status_desc == "Accepted" else -1
 
                 actual = stdout.strip()
                 expected = (case.get("expected_output") or "").strip()
                 results.append(TestCaseResult(
-                    passed=(actual == expected and exit_code == 0),
+                    passed=(exit_code == 0 and outputs_match(actual, expected)),
                     input=case["input"], expected=expected, actual=actual,
-                    stderr=stderr, timed_out=False,
+                    stderr=stderr, timed_out=timed_out,
                 ))
             return results
 
-        except (httpx.HTTPError, KeyError) as e:
+        except (httpx.HTTPError, KeyError):
             # Batch endpoint itself failed — fall back to the original
             # one-at-a-time approach rather than failing the whole submission.
             # Slower and costs more real calls, but still correct.
@@ -215,7 +258,7 @@ class CodeExecutor:
                 actual = exec_result.stdout.strip()
                 expected = (case.get("expected_output") or "").strip()
                 results.append(TestCaseResult(
-                    passed=(actual == expected and not exec_result.timed_out and exec_result.exit_code == 0),
+                    passed=(not exec_result.timed_out and exec_result.exit_code == 0 and outputs_match(actual, expected)),
                     input=case["input"], expected=expected, actual=actual,
                     stderr=exec_result.stderr, timed_out=exec_result.timed_out,
                 ))

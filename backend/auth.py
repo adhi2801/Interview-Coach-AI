@@ -5,7 +5,7 @@
 
 import os
 import bcrypt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 from dotenv import load_dotenv
 
@@ -55,7 +55,7 @@ def validate_password_strength(password: str) -> str | None:
 
 def create_access_token(data: dict) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -63,6 +63,38 @@ def create_access_token(data: dict) -> str:
 def decode_access_token(token: str) -> dict | None:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload
     except JWTError:
         return None
+    # A WebSocket ticket is signed with the same key but must never work
+    # as a bearer token for the HTTP API.
+    if payload.get("scope", "access") != "access":
+        return None
+    return payload
+
+
+# Browsers can't send an Authorization header on a WebSocket, so the token
+# has to travel in the URL — where proxies and access logs record it. The
+# socket therefore takes a ticket, not the 7-day login token: valid for one
+# minute, for one session, and useless anywhere else.
+WS_TICKET_TTL_SECONDS = 60
+
+
+def create_ws_ticket(user_id: int, session_id: int) -> str:
+    return jwt.encode({
+        "user_id": user_id,
+        "session_id": session_id,
+        "scope": "ws",
+        "exp": datetime.now(timezone.utc) + timedelta(seconds=WS_TICKET_TTL_SECONDS),
+    }, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def decode_ws_ticket(ticket: str, session_id: int) -> int | None:
+    """Returns the ticket's user_id if it is a valid, unexpired WebSocket
+    ticket for exactly this session; otherwise None."""
+    try:
+        payload = jwt.decode(ticket, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError:
+        return None
+    if payload.get("scope") != "ws" or payload.get("session_id") != session_id:
+        return None
+    return payload.get("user_id")

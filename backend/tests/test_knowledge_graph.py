@@ -8,7 +8,6 @@
 # that needs mocking (see test_knowledge_graph_gaps.py note at bottom).
 
 import pytest
-from unittest.mock import patch
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from models import Base, Topic, TopicPrerequisite

@@ -2,15 +2,25 @@
 
 FROM python:3.12-slim
 
-# ffmpeg is required for Whisper to decode audio
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
+# No system ffmpeg needed: faster-whisper decodes audio through PyAV, whose
+# wheel bundles its own ffmpeg libraries.
 
 WORKDIR /app
+
+# CPU-only torch first (sentence-transformers needs it). The default PyPI
+# wheel on Linux pulls several GB of CUDA libraries this CPU-only service
+# never uses; installing it from the CPU index first means the requirements
+# install below finds torch already satisfied.
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.12.0
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# Run as an unprivileged user. Its home directory holds the Hugging Face
+# model cache (embeddings + Whisper), downloaded on first use.
+RUN useradd --create-home --uid 10001 app
+COPY --chown=app:app . .
+USER app
 
 # Railway provides the PORT environment variable dynamically.
 # --proxy-headers + --forwarded-allow-ips: Railway terminates TLS at a proxy,

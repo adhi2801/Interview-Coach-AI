@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { AppHeader, PageIntro } from "../components/app/AppChrome";
 import api from "../lib/api";
 import StudyPlan from "./StudyPlan";
@@ -128,7 +128,7 @@ export default function StudyPlanBrowser({ onGoBack }) {
     <div className="relative flex min-h-screen flex-col overflow-x-clip bg-transparent font-sans text-slate-200 selection:bg-indigo-500/40">
       <AppHeader back={{ label: "Overview", onClick: onGoBack }}>
         <div className="relative hidden w-44 sm:block md:w-56">
-          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35" />
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
           <input
             type="text"
             placeholder="Filter topics"
@@ -149,15 +149,15 @@ export default function StudyPlanBrowser({ onGoBack }) {
           <div className="grid grid-cols-3 border border-white/[0.08] bg-[#050507]/70">
             <div className="border-r border-white/[0.08] px-4 py-4">
               <p className="text-3xl font-semibold tabular-nums tracking-[-0.04em] text-emerald-300">{topics.filter((t) => t.status === "passed").length}</p>
-              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">Solid</p>
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-white/55">Solid</p>
             </div>
             <div className="border-r border-white/[0.08] px-4 py-4">
               <p className="text-3xl font-semibold tabular-nums tracking-[-0.04em] text-amber-300">{gapCount}</p>
-              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">Gaps</p>
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-white/55">Gaps</p>
             </div>
             <div className="px-4 py-4">
               <p className="text-3xl font-semibold tabular-nums tracking-[-0.04em] text-white/70">{topics.length}</p>
-              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">Total</p>
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-white/55">Total</p>
             </div>
           </div>
         }
@@ -231,7 +231,7 @@ export default function StudyPlanBrowser({ onGoBack }) {
         <main className="relative min-w-0 flex-1 p-4 md:p-8 lg:p-10">
           <div className={`mx-auto max-w-7xl transform transition-all duration-700 ease-out ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
             <div className="relative mb-6 sm:hidden">
-              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35" />
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
               <input
                 type="text"
                 placeholder="Filter topics"

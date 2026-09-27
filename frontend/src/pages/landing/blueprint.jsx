@@ -59,7 +59,7 @@ export function Label({ index, children, className }) {
         <span className="h-[3px] w-[3px] bg-indigo-400/40" />
         <span className="h-[3px] w-[3px] bg-indigo-400" />
       </span>
-      {index && <span className="text-white/35">{index} /</span>}
+      {index && <span className="text-white/50">{index} /</span>}
       <ScrambleText>{children}</ScrambleText>
     </div>
   );

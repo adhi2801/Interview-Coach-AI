@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useParams } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
 import { motion, AnimatePresence, MotionConfig } from "motion/react";
 import { Search, LayoutGrid, Code2, LogOut, Settings as SettingsIcon, Play, Database, AlertTriangle } from "lucide-react";
 import "./App.css";
@@ -195,7 +195,7 @@ function AuthenticatedRoutes({ user, onLogout, onEloUpdate, onUserPatch, session
       <BlueprintBackdrop />
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes location={location}>
-            <Route path="/" element={<UserDashboard user={user} onLogout={onLogout} onStartNew={() => navigate("/setup")} onNavigateHistory={() => navigate("/replay")} onStartCoding={() => navigate("/coding")} onNavigateSettings={() => navigate("/settings")} onNavigateStudyPlan={() => navigate("/study-plan")} onOpenCommandPalette={onOpenCommandPalette} onEloUpdate={onEloUpdate} />} />
+            <Route path="/" element={<UserDashboard user={user} onStartNew={() => navigate("/setup")} onNavigateHistory={() => navigate("/replay")} onStartCoding={() => navigate("/coding")} onNavigateSettings={() => navigate("/settings")} onNavigateStudyPlan={() => navigate("/study-plan")} onEloUpdate={onEloUpdate} />} />
             <Route path="/setup" element={<Dashboard user={user} onLogout={onLogout} onGoBack={() => navigate("/")} onStart={(data) => { setSessionData(data); navigate("/preflight"); }} />} />
             <Route path="/preflight" element={<PreflightCheck sessionData={sessionData} onReady={() => navigate("/interview")} onSkip={() => navigate("/interview")} />} />
             <Route path="/interview" element={
