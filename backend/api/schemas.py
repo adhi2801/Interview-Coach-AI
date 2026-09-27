@@ -77,3 +77,8 @@ class UpdateProfileRequest(BaseModel):
 class UpdatePreferenceRequest(BaseModel):
     key: str = Field(max_length=64)
     value: bool
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(max_length=128)

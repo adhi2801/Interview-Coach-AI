@@ -15,6 +15,7 @@ function fakeJwt(payload) {
   return `${b64({ alg: "HS256", typ: "JWT" })}.${b64(payload)}.signature`;
 }
 export const LOGIN_TOKEN = fakeJwt({ user_id: 1, exp: Math.floor(Date.now() / 1000) + 3600 });
+export const ROTATED_TOKEN = fakeJwt({ user_id: 1, tv: 1, exp: Math.floor(Date.now() / 1000) + 3600 });
 
 export const SESSION = {
   session_id: 42, question: "Design a rate limiter for a public API.", persona: "standard",
@@ -50,6 +51,13 @@ export const test = base.extend({
           ? json(200, { access_token: LOGIN_TOKEN, user: USER })
           : json(401, { error: "Invalid email or password" });
       }
+      if (path === "/auth/change-password") {
+        const { current_password } = req.postDataJSON();
+        return current_password === "correct-horse"
+          ? json(200, { access_token: ROTATED_TOKEN, user: USER })
+          : json(400, { error: "Current password is incorrect" });
+      }
+      if (path === "/auth/logout-all") return json(200, { status: "ok" });
       if (path === "/session/start") return json(200, SESSION);
       if (path === "/ws/coaching/42/ticket") return json(200, { ticket: "short-lived-ticket" });
       if (path === "/answer/submit") return json(200, { job_id: 7, status: "processing" });

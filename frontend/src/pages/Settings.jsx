@@ -9,6 +9,7 @@ import {
   RotateCcw, Pencil, Square
 } from "lucide-react";
 import { GlassCard as LiquidCard } from "../components/fx/LiquidGlass";
+import SecurityPanel from "./settings/SecurityPanel";
 
 // Sensible app defaults for any preference key not yet present on the
 // user record — NOT what gets sent to the backend, only what's shown
@@ -218,6 +219,7 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
     { id: "profile", label: "General & Profile", icon: User },
     { id: "telemetry", label: "ELO & Telemetry", icon: Activity },
     { id: "hardware", label: "Audio & Hardware", icon: Mic },
+    { id: "security", label: "Password & Security", icon: Key },
     { id: "danger", label: "Danger Zone", icon: ShieldAlert, danger: true }
   ];
 
@@ -515,6 +517,8 @@ export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) 
                   </div>
                 </GlassCard>
               )}
+
+              {activeTab === "security" && <SecurityPanel Card={GlassCard} onLogout={onLogout} />}
 
               {activeTab === "danger" && (
                 <GlassCard className="p-8 border-rose-500/20 bg-rose-950/10">

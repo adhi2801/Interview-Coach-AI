@@ -19,6 +19,9 @@ class User(Base):
     # the frontend applies its own sensible defaults for any key that
     # isn't present yet rather than assuming NULL means "off".
     preferences = Column(JSON, nullable=True)
+    # Embedded in every access token; bumping it revokes all tokens issued
+    # before (sign out everywhere, password change).
+    token_version = Column(Integer, nullable=False, default=0, server_default="0")
 
     sessions = relationship("InterviewSession", back_populates="user")
 
