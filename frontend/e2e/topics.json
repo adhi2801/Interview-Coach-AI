@@ -1,0 +1,910 @@
+{
+ "topics": [
+  {
+   "name": "variables_and_types",
+   "category": "foundations",
+   "difficulty": 1,
+   "status": "passed",
+   "prerequisites": []
+  },
+  {
+   "name": "control_flow",
+   "category": "foundations",
+   "difficulty": 1,
+   "status": "passed",
+   "prerequisites": []
+  },
+  {
+   "name": "functions",
+   "category": "foundations",
+   "difficulty": 1,
+   "status": "passed",
+   "prerequisites": []
+  },
+  {
+   "name": "recursion",
+   "category": "foundations",
+   "difficulty": 3,
+   "status": "gap",
+   "prerequisites": [
+    "functions",
+    "control_flow"
+   ],
+   "urgency": "critical"
+  },
+  {
+   "name": "complexity_analysis",
+   "category": "foundations",
+   "difficulty": 2,
+   "status": "passed",
+   "prerequisites": []
+  },
+  {
+   "name": "pointers_and_references",
+   "category": "foundations",
+   "difficulty": 3,
+   "status": "unattempted",
+   "prerequisites": []
+  },
+  {
+   "name": "arrays",
+   "category": "data_structures",
+   "difficulty": 1,
+   "status": "passed",
+   "prerequisites": []
+  },
+  {
+   "name": "linked_lists",
+   "category": "data_structures",
+   "difficulty": 3,
+   "status": "locked",
+   "prerequisites": [
+    "pointers_and_references"
+   ]
+  },
+  {
+   "name": "stacks",
+   "category": "data_structures",
+   "difficulty": 2,
+   "status": "passed",
+   "prerequisites": []
+  },
+  {
+   "name": "queues",
+   "category": "data_structures",
+   "difficulty": 2,
+   "status": "passed",
+   "prerequisites": []
+  },
+  {
+   "name": "hash_maps",
+   "category": "data_structures",
+   "difficulty": 4,
+   "status": "gap",
+   "prerequisites": [],
+   "urgency": "high"
+  },
+  {
+   "name": "binary_trees",
+   "category": "data_structures",
+   "difficulty": 4,
+   "status": "locked",
+   "prerequisites": [
+    "linked_lists",
+    "recursion"
+   ]
+  },
+  {
+   "name": "binary_search_trees",
+   "category": "data_structures",
+   "difficulty": 5,
+   "status": "locked",
+   "prerequisites": [
+    "binary_trees"
+   ]
+  },
+  {
+   "name": "heaps",
+   "category": "data_structures",
+   "difficulty": 5,
+   "status": "locked",
+   "prerequisites": [
+    "binary_trees",
+    "arrays"
+   ]
+  },
+  {
+   "name": "priority_queue",
+   "category": "data_structures",
+   "difficulty": 5,
+   "status": "locked",
+   "prerequisites": [
+    "heaps"
+   ]
+  },
+  {
+   "name": "graphs",
+   "category": "data_structures",
+   "difficulty": 5,
+   "status": "locked",
+   "prerequisites": [
+    "linked_lists",
+    "arrays"
+   ]
+  },
+  {
+   "name": "tries",
+   "category": "data_structures",
+   "difficulty": 6,
+   "status": "unattempted",
+   "prerequisites": [
+    "hash_maps"
+   ]
+  },
+  {
+   "name": "segment_trees",
+   "category": "data_structures",
+   "difficulty": 7,
+   "status": "locked",
+   "prerequisites": [
+    "binary_trees",
+    "arrays"
+   ]
+  },
+  {
+   "name": "union_find",
+   "category": "data_structures",
+   "difficulty": 6,
+   "status": "unattempted",
+   "prerequisites": [
+    "arrays"
+   ]
+  },
+  {
+   "name": "balanced_trees",
+   "category": "data_structures",
+   "difficulty": 7,
+   "status": "locked",
+   "prerequisites": [
+    "binary_search_trees"
+   ]
+  },
+  {
+   "name": "sorting",
+   "category": "algorithms",
+   "difficulty": 3,
+   "status": "passed",
+   "prerequisites": []
+  },
+  {
+   "name": "binary_search",
+   "category": "algorithms",
+   "difficulty": 2,
+   "status": "passed",
+   "prerequisites": [
+    "arrays"
+   ]
+  },
+  {
+   "name": "two_pointers",
+   "category": "algorithms",
+   "difficulty": 3,
+   "status": "passed",
+   "prerequisites": [
+    "arrays"
+   ]
+  },
+  {
+   "name": "sliding_window",
+   "category": "algorithms",
+   "difficulty": 4,
+   "status": "unattempted",
+   "prerequisites": [
+    "two_pointers"
+   ]
+  },
+  {
+   "name": "graph_traversal",
+   "category": "algorithms",
+   "difficulty": 5,
+   "status": "locked",
+   "prerequisites": [
+    "graphs",
+    "queues",
+    "recursion"
+   ]
+  },
+  {
+   "name": "dijkstra",
+   "category": "algorithms",
+   "difficulty": 7,
+   "status": "locked",
+   "prerequisites": [
+    "graph_traversal",
+    "priority_queue",
+    "greedy_algorithms"
+   ]
+  },
+  {
+   "name": "dynamic_programming",
+   "category": "algorithms",
+   "difficulty": 7,
+   "status": "unattempted",
+   "prerequisites": [
+    "recursion",
+    "complexity_analysis"
+   ]
+  },
+  {
+   "name": "greedy_algorithms",
+   "category": "algorithms",
+   "difficulty": 5,
+   "status": "unattempted",
+   "prerequisites": [
+    "sorting"
+   ]
+  },
+  {
+   "name": "backtracking",
+   "category": "algorithms",
+   "difficulty": 6,
+   "status": "unattempted",
+   "prerequisites": [
+    "recursion"
+   ]
+  },
+  {
+   "name": "topological_sort",
+   "category": "algorithms",
+   "difficulty": 6,
+   "status": "locked",
+   "prerequisites": [
+    "graphs",
+    "graph_traversal"
+   ]
+  },
+  {
+   "name": "bit_manipulation",
+   "category": "algorithms",
+   "difficulty": 4,
+   "status": "unattempted",
+   "prerequisites": []
+  },
+  {
+   "name": "hashing",
+   "category": "algorithms",
+   "difficulty": 4,
+   "status": "unattempted",
+   "prerequisites": [
+    "hash_maps"
+   ]
+  },
+  {
+   "name": "processes_and_threads",
+   "category": "operating_systems",
+   "difficulty": 5,
+   "status": "gap",
+   "prerequisites": [],
+   "urgency": "medium"
+  },
+  {
+   "name": "concurrency",
+   "category": "operating_systems",
+   "difficulty": 6,
+   "status": "unattempted",
+   "prerequisites": [
+    "processes_and_threads"
+   ]
+  },
+  {
+   "name": "locks",
+   "category": "operating_systems",
+   "difficulty": 6,
+   "status": "locked",
+   "prerequisites": [
+    "concurrency"
+   ]
+  },
+  {
+   "name": "memory_management",
+   "category": "operating_systems",
+   "difficulty": 6,
+   "status": "unattempted",
+   "prerequisites": []
+  },
+  {
+   "name": "virtual_memory",
+   "category": "operating_systems",
+   "difficulty": 7,
+   "status": "locked",
+   "prerequisites": [
+    "memory_management"
+   ]
+  },
+  {
+   "name": "scheduling",
+   "category": "operating_systems",
+   "difficulty": 6,
+   "status": "unattempted",
+   "prerequisites": []
+  },
+  {
+   "name": "sql",
+   "category": "databases",
+   "difficulty": 3,
+   "status": "unattempted",
+   "prerequisites": []
+  },
+  {
+   "name": "normalization",
+   "category": "databases",
+   "difficulty": 5,
+   "status": "unattempted",
+   "prerequisites": []
+  },
+  {
+   "name": "indexing",
+   "category": "databases",
+   "difficulty": 5,
+   "status": "locked",
+   "prerequisites": [
+    "sql",
+    "binary_search_trees"
+   ]
+  },
+  {
+   "name": "transactions",
+   "category": "databases",
+   "difficulty": 6,
+   "status": "locked",
+   "prerequisites": [
+    "sql"
+   ]
+  },
+  {
+   "name": "nosql",
+   "category": "databases",
+   "difficulty": 5,
+   "status": "unattempted",
+   "prerequisites": []
+  },
+  {
+   "name": "sharding",
+   "category": "databases",
+   "difficulty": 7,
+   "status": "locked",
+   "prerequisites": [
+    "sql",
+    "nosql",
+    "scalability"
+   ]
+  },
+  {
+   "name": "replication",
+   "category": "databases",
+   "difficulty": 7,
+   "status": "locked",
+   "prerequisites": [
+    "sql",
+    "distributed_systems"
+   ]
+  },
+  {
+   "name": "networking",
+   "category": "networking",
+   "difficulty": 4,
+   "status": "unattempted",
+   "prerequisites": []
+  },
+  {
+   "name": "load_balancing",
+   "category": "networking",
+   "difficulty": 6,
+   "status": "locked",
+   "prerequisites": [
+    "networking"
+   ]
+  },
+  {
+   "name": "dns",
+   "category": "networking",
+   "difficulty": 4,
+   "status": "unattempted",
+   "prerequisites": []
+  },
+  {
+   "name": "rest_apis",
+   "category": "networking",
+   "difficulty": 4,
+   "status": "unattempted",
+   "prerequisites": []
+  },
+  {
+   "name": "websockets",
+   "category": "networking",
+   "difficulty": 6,
+   "status": "locked",
+   "prerequisites": [
+    "networking",
+    "rest_apis"
+   ]
+  },
+  {
+   "name": "grpc",
+   "category": "networking",
+   "difficulty": 7,
+   "status": "locked",
+   "prerequisites": [
+    "networking",
+    "rest_apis"
+   ]
+  },
+  {
+   "name": "caching",
+   "category": "system_design",
+   "difficulty": 5,
+   "status": "unattempted",
+   "prerequisites": [
+    "hash_maps"
+   ]
+  },
+  {
+   "name": "microservices",
+   "category": "system_design",
+   "difficulty": 7,
+   "status": "locked",
+   "prerequisites": [
+    "rest_apis",
+    "networking"
+   ]
+  },
+  {
+   "name": "message_queues",
+   "category": "system_design",
+   "difficulty": 6,
+   "status": "locked",
+   "prerequisites": [
+    "distributed_systems"
+   ]
+  },
+  {
+   "name": "scalability",
+   "category": "system_design",
+   "difficulty": 7,
+   "status": "locked",
+   "prerequisites": [
+    "load_balancing",
+    "caching"
+   ]
+  },
+  {
+   "name": "consistency_models",
+   "category": "system_design",
+   "difficulty": 8,
+   "status": "locked",
+   "prerequisites": [
+    "distributed_systems"
+   ]
+  },
+  {
+   "name": "consensus",
+   "category": "system_design",
+   "difficulty": 9,
+   "status": "locked",
+   "prerequisites": [
+    "distributed_systems",
+    "consistency_models"
+   ]
+  },
+  {
+   "name": "distributed_systems",
+   "category": "system_design",
+   "difficulty": 8,
+   "status": "locked",
+   "prerequisites": [
+    "networking",
+    "concurrency"
+   ]
+  },
+  {
+   "name": "cdn",
+   "category": "system_design",
+   "difficulty": 6,
+   "status": "unattempted",
+   "prerequisites": []
+  },
+  {
+   "name": "rate_limiting",
+   "category": "system_design",
+   "difficulty": 6,
+   "status": "locked",
+   "prerequisites": [
+    "caching",
+    "hash_maps"
+   ]
+  },
+  {
+   "name": "api_gateway",
+   "category": "system_design",
+   "difficulty": 6,
+   "status": "locked",
+   "prerequisites": [
+    "microservices",
+    "rest_apis"
+   ]
+  },
+  {
+   "name": "event_driven_architecture",
+   "category": "system_design",
+   "difficulty": 7,
+   "status": "locked",
+   "prerequisites": [
+    "message_queues"
+   ]
+  },
+  {
+   "name": "disaster_recovery",
+   "category": "system_design",
+   "difficulty": 8,
+   "status": "locked",
+   "prerequisites": [
+    "replication",
+    "distributed_systems"
+   ]
+  },
+  {
+   "name": "linear_algebra",
+   "category": "machine_learning",
+   "difficulty": 4,
+   "status": "unattempted",
+   "prerequisites": []
+  },
+  {
+   "name": "statistics",
+   "category": "machine_learning",
+   "difficulty": 4,
+   "status": "unattempted",
+   "prerequisites": []
+  },
+  {
+   "name": "calculus",
+   "category": "machine_learning",
+   "difficulty": 4,
+   "status": "unattempted",
+   "prerequisites": []
+  },
+  {
+   "name": "machine_learning_basics",
+   "category": "machine_learning",
+   "difficulty": 5,
+   "status": "locked",
+   "prerequisites": [
+    "statistics",
+    "linear_algebra"
+   ]
+  },
+  {
+   "name": "overfitting",
+   "category": "machine_learning",
+   "difficulty": 5,
+   "status": "locked",
+   "prerequisites": [
+    "machine_learning_basics"
+   ]
+  },
+  {
+   "name": "gradient_descent",
+   "category": "machine_learning",
+   "difficulty": 6,
+   "status": "locked",
+   "prerequisites": [
+    "calculus",
+    "linear_algebra"
+   ]
+  },
+  {
+   "name": "neural_networks",
+   "category": "machine_learning",
+   "difficulty": 7,
+   "status": "locked",
+   "prerequisites": [
+    "gradient_descent",
+    "linear_algebra"
+   ]
+  },
+  {
+   "name": "cnn",
+   "category": "machine_learning",
+   "difficulty": 8,
+   "status": "locked",
+   "prerequisites": [
+    "neural_networks"
+   ]
+  },
+  {
+   "name": "rnn",
+   "category": "machine_learning",
+   "difficulty": 8,
+   "status": "locked",
+   "prerequisites": [
+    "neural_networks"
+   ]
+  },
+  {
+   "name": "attention_mechanism",
+   "category": "machine_learning",
+   "difficulty": 8,
+   "status": "locked",
+   "prerequisites": [
+    "neural_networks",
+    "embeddings"
+   ]
+  },
+  {
+   "name": "transformer_architecture",
+   "category": "machine_learning",
+   "difficulty": 9,
+   "status": "locked",
+   "prerequisites": [
+    "attention_mechanism",
+    "embeddings"
+   ]
+  },
+  {
+   "name": "embeddings",
+   "category": "machine_learning",
+   "difficulty": 6,
+   "status": "unattempted",
+   "prerequisites": []
+  },
+  {
+   "name": "model_evaluation",
+   "category": "machine_learning",
+   "difficulty": 5,
+   "status": "locked",
+   "prerequisites": [
+    "statistics",
+    "machine_learning_basics"
+   ]
+  },
+  {
+   "name": "oop",
+   "category": "software_design",
+   "difficulty": 2,
+   "status": "unattempted",
+   "prerequisites": []
+  },
+  {
+   "name": "solid_principles",
+   "category": "software_design",
+   "difficulty": 5,
+   "status": "locked",
+   "prerequisites": [
+    "oop"
+   ]
+  },
+  {
+   "name": "design_patterns",
+   "category": "software_design",
+   "difficulty": 6,
+   "status": "locked",
+   "prerequisites": [
+    "solid_principles"
+   ]
+  },
+  {
+   "name": "dependency_injection",
+   "category": "software_design",
+   "difficulty": 6,
+   "status": "locked",
+   "prerequisites": [
+    "oop",
+    "solid_principles"
+   ]
+  },
+  {
+   "name": "authentication",
+   "category": "security",
+   "difficulty": 5,
+   "status": "unattempted",
+   "prerequisites": []
+  },
+  {
+   "name": "authorization",
+   "category": "security",
+   "difficulty": 5,
+   "status": "locked",
+   "prerequisites": [
+    "authentication"
+   ]
+  },
+  {
+   "name": "encryption",
+   "category": "security",
+   "difficulty": 6,
+   "status": "unattempted",
+   "prerequisites": []
+  },
+  {
+   "name": "jwt_tokens",
+   "category": "security",
+   "difficulty": 5,
+   "status": "locked",
+   "prerequisites": [
+    "authentication",
+    "encryption"
+   ]
+  },
+  {
+   "name": "oauth",
+   "category": "security",
+   "difficulty": 6,
+   "status": "locked",
+   "prerequisites": [
+    "authentication",
+    "jwt_tokens"
+   ]
+  },
+  {
+   "name": "sql_injection",
+   "category": "security",
+   "difficulty": 4,
+   "status": "locked",
+   "prerequisites": [
+    "sql"
+   ]
+  },
+  {
+   "name": "behavioral_storytelling",
+   "category": "behavioral",
+   "difficulty": 3,
+   "status": "unattempted",
+   "prerequisites": []
+  },
+  {
+   "name": "leadership",
+   "category": "behavioral",
+   "difficulty": 5,
+   "status": "locked",
+   "prerequisites": [
+    "behavioral_storytelling"
+   ]
+  },
+  {
+   "name": "conflict_resolution",
+   "category": "behavioral",
+   "difficulty": 4,
+   "status": "locked",
+   "prerequisites": [
+    "behavioral_storytelling",
+    "communication"
+   ]
+  },
+  {
+   "name": "ownership",
+   "category": "behavioral",
+   "difficulty": 4,
+   "status": "unattempted",
+   "prerequisites": []
+  },
+  {
+   "name": "communication",
+   "category": "behavioral",
+   "difficulty": 3,
+   "status": "unattempted",
+   "prerequisites": []
+  },
+  {
+   "name": "growth_mindset",
+   "category": "behavioral",
+   "difficulty": 3,
+   "status": "unattempted",
+   "prerequisites": []
+  },
+  {
+   "name": "decision_making",
+   "category": "behavioral",
+   "difficulty": 5,
+   "status": "locked",
+   "prerequisites": [
+    "ownership",
+    "communication"
+   ]
+  }
+ ],
+ "descriptions": {
+  "variables_and_types": "Basic data types and variable declaration",
+  "control_flow": "If/else, loops, branching logic",
+  "functions": "Function definition, parameters, return values",
+  "recursion": "Functions calling themselves, base cases",
+  "complexity_analysis": "Big-O notation, time and space complexity",
+  "pointers_and_references": "Memory addresses, pass by reference vs value",
+  "arrays": "Contiguous memory storage, indexing",
+  "linked_lists": "Node-based sequential storage",
+  "stacks": "LIFO data structure",
+  "queues": "FIFO data structure",
+  "hash_maps": "Key-value storage with hashing",
+  "binary_trees": "Hierarchical node structure",
+  "binary_search_trees": "Ordered binary trees",
+  "heaps": "Priority-based tree structure",
+  "priority_queue": "Queue ordered by priority, usually heap-backed",
+  "graphs": "Nodes and edges, directed/undirected",
+  "tries": "Prefix tree for string storage",
+  "segment_trees": "Range query tree structure",
+  "union_find": "Disjoint set data structure",
+  "balanced_trees": "AVL, Red-Black trees",
+  "sorting": "Bubble, merge, quick sort and variants",
+  "binary_search": "Divide and conquer search on sorted data",
+  "two_pointers": "Two-index traversal technique",
+  "sliding_window": "Variable/fixed window subarray technique",
+  "graph_traversal": "BFS and DFS",
+  "dijkstra": "Shortest path with non-negative weights",
+  "dynamic_programming": "Optimal substructure and memoization",
+  "greedy_algorithms": "Locally optimal choice at each step",
+  "backtracking": "Exhaustive search with pruning",
+  "topological_sort": "Ordering of DAG nodes",
+  "bit_manipulation": "Bitwise operations and tricks",
+  "hashing": "Hash functions and collision handling",
+  "processes_and_threads": "Process vs thread, context switching",
+  "concurrency": "Concurrent execution, race conditions",
+  "locks": "Mutexes, semaphores, deadlock prevention",
+  "memory_management": "Heap, stack, garbage collection",
+  "virtual_memory": "Paging, address translation",
+  "scheduling": "CPU scheduling algorithms",
+  "sql": "Structured query language fundamentals",
+  "normalization": "Database schema normal forms",
+  "indexing": "B-tree indexes, query optimization",
+  "transactions": "ACID properties, isolation levels",
+  "nosql": "Document, key-value, column stores",
+  "sharding": "Horizontal database partitioning",
+  "replication": "Data duplication across nodes",
+  "networking": "TCP/IP, HTTP fundamentals",
+  "load_balancing": "Traffic distribution algorithms",
+  "dns": "Domain name resolution",
+  "rest_apis": "RESTful API design principles",
+  "websockets": "Persistent bidirectional connections",
+  "grpc": "RPC framework using protobuf",
+  "caching": "Cache strategies, eviction policies",
+  "microservices": "Service-oriented architecture",
+  "message_queues": "Async communication, pub-sub",
+  "scalability": "Horizontal vs vertical scaling",
+  "consistency_models": "Strong vs eventual consistency",
+  "consensus": "Distributed agreement protocols, Raft/Paxos",
+  "distributed_systems": "Multi-node coordination",
+  "cdn": "Content delivery networks",
+  "rate_limiting": "Token bucket, sliding window algorithms",
+  "api_gateway": "Single entry point routing pattern",
+  "event_driven_architecture": "Event-based service communication",
+  "disaster_recovery": "Backup, failover, region redundancy",
+  "linear_algebra": "Vectors, matrices, transformations",
+  "statistics": "Probability, distributions, hypothesis testing",
+  "calculus": "Derivatives, gradients",
+  "machine_learning_basics": "Supervised vs unsupervised learning",
+  "overfitting": "Bias-variance tradeoff, regularization",
+  "gradient_descent": "Optimization algorithm for training models",
+  "neural_networks": "Layers, activation functions, backprop",
+  "cnn": "Convolutional neural networks for vision",
+  "rnn": "Recurrent networks for sequences",
+  "attention_mechanism": "Weighted focus over input sequences",
+  "transformer_architecture": "Self-attention based architecture",
+  "embeddings": "Vector representations of data",
+  "model_evaluation": "Precision, recall, F1, ROC curves",
+  "oop": "Encapsulation, inheritance, polymorphism, abstraction",
+  "solid_principles": "Five OOP design principles",
+  "design_patterns": "Singleton, factory, observer, etc.",
+  "dependency_injection": "Inversion of control pattern",
+  "authentication": "Verifying user identity",
+  "authorization": "Permission and access control",
+  "encryption": "Symmetric and asymmetric cryptography",
+  "jwt_tokens": "JSON web tokens for stateless auth",
+  "oauth": "Delegated authorization protocol",
+  "sql_injection": "Common injection vulnerability",
+  "behavioral_storytelling": "STAR method, structured storytelling",
+  "leadership": "Influencing without authority",
+  "conflict_resolution": "Handling disagreement professionally",
+  "ownership": "Taking initiative and accountability",
+  "communication": "Explaining technical concepts clearly",
+  "growth_mindset": "Learning from failure, feedback",
+  "decision_making": "Trade-offs under uncertainty"
+ }
+}

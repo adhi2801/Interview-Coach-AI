@@ -46,3 +46,11 @@ test("interview room", async ({ page, backend: _, signedIn: __ }) => {
   await expect(page.getByRole("textbox", { name: "Your answer" })).toBeVisible();
   expect(await violations(page)).toEqual([]);
 });
+
+test("knowledge graph, idle and with a topic selected", async ({ page, backend: _, signedIn: __ }) => {
+  await page.goto("/study-plan");
+  await expect(page.getByRole("button", { name: /^Arrays,/ })).toBeVisible();
+  expect(await violations(page)).toEqual([]);
+  await page.getByRole("button", { name: /^Dijkstra,/ }).click();
+  expect(await violations(page)).toEqual([]);
+});

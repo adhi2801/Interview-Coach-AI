@@ -2,7 +2,12 @@
 // touch, plus the live-coaching WebSocket. Requests never leave the page,
 // so the tests are deterministic and free (no Claude, no database).
 
+import { readFileSync } from "node:fs";
 import { test as base, expect } from "@playwright/test";
+
+// The real seeded topic graph (93 topics, 96 prerequisite edges) with a
+// mid-progress candidate's statuses; generated from scripts/seed_topics.py.
+export const KNOWLEDGE = JSON.parse(readFileSync(new URL("./topics.json", import.meta.url), "utf8"));
 
 const API = "http://localhost:8000";
 const WS = "ws://localhost:8000";
@@ -75,6 +80,14 @@ export const test = base.extend({
       }
       if (path === "/auth/logout-all") return json(200, { status: "ok" });
       if (path === "/session/start") return json(200, SESSION);
+      if (path === "/topics/status") return json(200, { topics: KNOWLEDGE.topics });
+      if (path.startsWith("/study-plan/")) {
+        const topic = decodeURIComponent(path.split("/").pop());
+        const steps = [topic].map((name) => ({ name, description: KNOWLEDGE.descriptions[name] || "" }));
+        // The real endpoint returns the whole chain; descriptions for every node suffice here.
+        for (const name of Object.keys(KNOWLEDGE.descriptions)) steps.push({ name, description: KNOWLEDGE.descriptions[name] });
+        return json(200, { topic, company: null, steps });
+      }
       if (path === "/coding/next") {
         const slug = nextPicks++ % 2 === 0 ? "two_sum" : "reverse_words";
         return json(200, { id: PROBLEMS[slug].id, slug, title: PROBLEMS[slug].title, difficulty: 4 });

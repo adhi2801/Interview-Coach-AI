@@ -456,3 +456,23 @@
   .voice-bar { animation: none; transform: scaleY(0.5); }
   .tab-progress { animation: none; transform: scaleX(1); }
 }
+
+/* Knowledge map ------------------------------------------------------- */
+/* Locked topics echo the landing page's hatch bands. */
+.km-hatch {
+  background-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.6) 0 1px, transparent 1px 3px);
+}
+@keyframes km-node-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes km-trace {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  /* One orchestrated entrance: the map fills in column by column. */
+  .km-node-in { animation: km-node-in 520ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  /* A selected chain draws in from its roots. */
+  .km-trace { stroke-dasharray: 1; animation: km-trace 650ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+}
