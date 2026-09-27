@@ -7,14 +7,8 @@ import { motion } from "motion/react";
 import { ArrowRight, RefreshCw } from "lucide-react";
 import { humanize } from "../knowledge/graph";
 import { TOTAL_NODES } from "./constants";
+import ScoreBars, { overallScore } from "./ScoreBars";
 
-const DIMENSIONS = [
-  { key: "score_technical", label: "Technical depth", feedback: "technical_feedback" },
-  { key: "score_problem_solving", label: "Problem solving", feedback: "problem_solving_feedback" },
-  { key: "score_communication", label: "Communication", feedback: "communication_feedback" },
-  { key: "score_cultural_fit", label: "Culture fit" },
-  { key: "score_confidence", label: "Confidence" },
-];
 
 function Heading({ children }) {
   return <h3 className="mb-4 text-[15px] font-semibold text-white">{children}</h3>;
@@ -24,8 +18,7 @@ export default function Debrief({
   personaMeta, questionNum, isLastNode, scores, gaps, gapAnalysisUnavailable, peer, newElo, currentElo, company,
   answer, liveCoaching, currentAnswerId, feedbackRating, onRateFeedback, onOpenStudyPlan, onRetry, onNext, onFinish,
 }) {
-  const values = DIMENSIONS.map((d) => scores?.[d.key]).filter((v) => typeof v === "number");
-  const overall = values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+  const overall = overallScore(scores) ?? 0;
   const eloDelta = newElo ? Math.round(newElo - currentElo) : null;
   const summary = (scores?.overall_summary || "").toLowerCase();
   const profanity = summary.includes("inappropriate language") || summary.includes("unprofessional language");
@@ -75,29 +68,10 @@ export default function Debrief({
         {scores && (
           <section aria-labelledby="how" className="border-b border-white/[0.08] py-9">
             <Heading><span id="how">How it scored</span></Heading>
-            <ul className="divide-y divide-white/[0.06]">
-              {DIMENSIONS.map((d) => {
-                const v = scores[d.key];
-                // Coloured by the score itself (7 is a pass), not by rank:
-                // with close scores, rank colouring painted solid 7s as weak.
-                const tone = flagged ? "bg-rose-300/70" : v < 6 ? "bg-amber-300" : v >= 8 ? "bg-emerald-300" : "bg-indigo-300/80";
-                const note = d.feedback ? scores[d.feedback] : d.key === "score_confidence" && liveCoaching
-                  ? `Live coaching counted ${liveCoaching.filler_count ?? 0} filler ${liveCoaching.filler_count === 1 ? "word" : "words"}${liveCoaching.pace_source === "speech" && liveCoaching.words_per_minute ? ` at ${Math.round(liveCoaching.words_per_minute)} words a minute` : ""}.`
-                  : d.key === "score_cultural_fit" && company?.name ? `Judged against how ${company.name} interviews.` : null;
-                return (
-                  <li key={d.key} className="grid gap-x-6 gap-y-1.5 py-4 md:grid-cols-[11rem_minmax(0,1fr)_3.5rem] md:items-center">
-                    <span className="text-[14.5px] text-white">{d.label}</span>
-                    <span className="order-3 md:order-none">
-                      <span className="block h-[3px] bg-white/[0.07]">
-                        <span className={`block h-full ${tone}`} style={{ width: `${Math.max(2, Math.min(100, (v ?? 0) * 10))}%` }} />
-                      </span>
-                      {note && <span className="mt-2 block text-[13px] leading-snug text-white/60">{note}</span>}
-                    </span>
-                    <span className="font-mono text-[14px] tabular-nums text-white/85 md:text-right">{typeof v === "number" ? v.toFixed(1) : "–"}</span>
-                  </li>
-                );
-              })}
-            </ul>
+            <ScoreBars scores={scores} flagged={flagged} extraNote={(key) =>
+              key === "score_confidence" && liveCoaching
+                ? `Live coaching counted ${liveCoaching.filler_count ?? 0} filler ${liveCoaching.filler_count === 1 ? "word" : "words"}${liveCoaching.pace_source === "speech" && liveCoaching.words_per_minute ? ` at ${Math.round(liveCoaching.words_per_minute)} words a minute` : ""}.`
+                : key === "score_cultural_fit" && company?.name ? `Judged against how ${company.name} interviews.` : null} />
             {peer?.percentile != null && !flagged && (
               <p className="mt-4 text-[13.5px] text-white/60">
                 Better than {peer.percentile}% of answers at this difficulty ({peer.total_attempts} compared).
