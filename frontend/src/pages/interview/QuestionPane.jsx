@@ -6,7 +6,7 @@ export default function QuestionPane({
   question, category, scenario, constraints, ask, personaMeta,
 }) {
   return (
-    <div className="w-full lg:w-[30%] lg:h-full overflow-y-auto border-b lg:border-b-0 lg:border-r border-white/[0.08] bg-[#0a0a10]/90 p-6 lg:p-8 flex flex-col shrink-0">
+    <div tabIndex={0} role="region" aria-label="Interview question" className="w-full lg:w-[30%] lg:h-full overflow-y-auto border-b lg:border-b-0 lg:border-r border-white/[0.08] bg-[#0a0a10]/90 p-6 lg:p-8 flex flex-col shrink-0">
       <div className="flex items-center gap-2 border-b border-white/[0.08] pb-3.5 mb-6">
         <Terminal size={16} className="shrink-0" style={{ color: "var(--accent)" }} />
         <h3 className="text-xs font-bold uppercase tracking-widest text-slate-300">The Question</h3>

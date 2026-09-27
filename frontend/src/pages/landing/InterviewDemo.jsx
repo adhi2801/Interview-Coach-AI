@@ -87,21 +87,21 @@ export default function InterviewDemo({ progress, className }) {
           <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
           <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
         </div>
-        <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white/45">
+        <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white/50">
           <span className="text-white/80">{SCENARIO.company}</span>
           <span>·</span>
           <span className="hidden sm:inline">{SCENARIO.role}</span>
           <span className="rounded border border-indigo-400/30 bg-indigo-500/10 px-1.5 py-0.5 text-indigo-300">{SCENARIO.persona}</span>
         </div>
-        <span className="font-mono text-[10px] tabular-nums text-white/40">Q1 / 5</span>
+        <span className="font-mono text-[10px] tabular-nums text-white/55">Q1 / 5</span>
       </div>
 
       <div className="grid min-h-[430px] grid-cols-1 md:grid-cols-12">
         {/* Question inspector */}
         <div className="border-b border-white/[0.06] p-5 md:col-span-4 md:border-b-0 md:border-r">
-          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-white/40">Context</p>
+          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-white/55">Context</p>
           <p className="text-[13px] leading-relaxed text-white/80" style={{ opacity: seg(qT, 0, 0.3) }}>{SCENARIO.context}</p>
-          <p className="mb-2 mt-5 font-mono text-[10px] uppercase tracking-[0.16em] text-white/40">Constraints</p>
+          <p className="mb-2 mt-5 font-mono text-[10px] uppercase tracking-[0.16em] text-white/55">Constraints</p>
           <ul className="space-y-1.5">
             {SCENARIO.constraints.map((c, i) => (
               <li key={c} className="flex items-start gap-2 text-[12.5px] text-white/70 transition-opacity duration-300" style={{ opacity: qT > 0.12 + i * 0.07 ? 1 : 0.08 }}>
@@ -122,8 +122,8 @@ export default function InterviewDemo({ progress, className }) {
         {/* Answer canvas */}
         <div className="flex flex-col p-5 md:col-span-5">
           <div className="mb-3 flex items-center justify-between">
-            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/40">Your answer</p>
-            <span className={cn("flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-[10px] transition-colors", listening ? "border-rose-400/40 bg-rose-500/10 text-rose-300" : "border-white/10 text-white/35")}>
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/55">Your answer</p>
+            <span className={cn("flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-[10px] transition-colors", listening ? "border-rose-400/40 bg-rose-500/10 text-rose-300" : "border-white/10 text-white/50")}>
               <Mic size={11} /> {listening ? "Listening" : aT >= 1 ? "Submitted" : "Hold to speak"}
             </span>
           </div>
@@ -142,16 +142,16 @@ export default function InterviewDemo({ progress, className }) {
 
         {/* Telemetry + scores */}
         <div className="border-t border-white/[0.06] p-5 md:col-span-3 md:border-l md:border-t-0">
-          <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.16em] text-white/40">Live coaching</p>
+          <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.16em] text-white/55">Live coaching</p>
           <div className="grid grid-cols-3 gap-2 md:grid-cols-1">
             {[["Pace", wpm ? `${wpm}` : "--", "wpm"], ["Fillers", `${fillers}`, ""], ["Confidence", confidence, "/10"]].map(([k, v, unit]) => (
               <div key={k} className="rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-2">
-                <p className="font-mono text-[9.5px] uppercase tracking-wider text-white/40">{k}</p>
-                <p className="text-lg font-semibold tabular-nums text-white">{v}<span className="ml-1 text-[10px] font-normal text-white/35">{unit}</span></p>
+                <p className="font-mono text-[9.5px] uppercase tracking-wider text-white/55">{k}</p>
+                <p className="text-lg font-semibold tabular-nums text-white">{v}<span className="ml-1 text-[10px] font-normal text-white/50">{unit}</span></p>
               </div>
             ))}
           </div>
-          <p className="mb-2 mt-4 font-mono text-[10px] uppercase tracking-[0.16em] text-white/40">Scores {words ? `· ${words} words` : ""}</p>
+          <p className="mb-2 mt-4 font-mono text-[10px] uppercase tracking-[0.16em] text-white/55">Scores {words ? `· ${words} words` : ""}</p>
           <ul className="space-y-2">
             {SCENARIO.scores.map(([label, value], i) => {
               const t = clamp01(sT * 1.35 - i * 0.08);
@@ -175,11 +175,11 @@ export default function InterviewDemo({ progress, className }) {
       <div className="grid grid-cols-1 border-t border-white/[0.08] md:grid-cols-12" style={{ opacity: 0.25 + 0.75 * clamp01(sT * 2) }}>
         <div className="flex items-center gap-4 border-b border-white/[0.06] px-5 py-4 md:col-span-4 md:border-b-0 md:border-r">
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/40">Overall</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/55">Overall</p>
             <p className="text-2xl font-semibold tabular-nums text-white">{(overall * clamp01(sT * 1.2)).toFixed(1)}</p>
           </div>
           <div className="ml-auto text-right">
-            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/40">Rating</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/55">Rating</p>
             <p className="flex items-center justify-end gap-1.5 text-2xl font-semibold tabular-nums text-white">
               {elo}
               {oT > 0 && <span className="flex items-center text-sm text-emerald-400"><TrendingUp size={14} />+{elo - SCENARIO.eloBefore}</span>}

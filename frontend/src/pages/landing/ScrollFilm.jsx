@@ -356,10 +356,10 @@ export default function ScrollFilm() {
           {/* Top bar: title + timecode */}
           <div className="absolute inset-x-0 top-0 flex items-center justify-between border-b border-white/[0.06] px-5 py-3 md:px-8">
             <Label index="00">The loop, on film</Label>
-            <div className="flex items-center gap-3 font-mono text-[10.5px] uppercase tracking-[0.16em] text-white/45">
+            <div className="flex items-center gap-3 font-mono text-[10.5px] uppercase tracking-[0.16em] text-white/50">
               <span className="flex items-center gap-1.5 text-rose-300"><span className="rec-dot h-1.5 w-1.5 rounded-full bg-rose-400" />Rec</span>
               <span className="tabular-nums text-white/70">{tc}</span>
-              <span className="hidden text-white/30 sm:inline">/ 00:12:00</span>
+              <span className="hidden text-white/50 sm:inline">/ 00:12:00</span>
             </div>
           </div>
 
@@ -367,7 +367,7 @@ export default function ScrollFilm() {
           <div className="absolute inset-x-0 bottom-20 px-5 md:bottom-auto md:left-0 md:right-auto md:top-1/2 md:w-[40%] md:-translate-y-1/2 md:px-10 lg:w-[34%]">
             <motion.div key={chapter} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}>
               <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-indigo-300">
-                <span className="text-white/35">{pad(chapter + 1)} / {pad(CHAPTERS.length)} ·</span> {c.k}
+                <span className="text-white/50">{pad(chapter + 1)} / {pad(CHAPTERS.length)} ·</span> {c.k}
               </p>
               <h3 className="mt-3 text-[34px] font-semibold leading-[1.02] tracking-[-0.04em] text-white md:text-5xl">{c.title}</h3>
               <p className="mt-3 max-w-sm text-[15px] leading-relaxed text-white/60">{c.body}</p>
@@ -385,7 +385,7 @@ export default function ScrollFilm() {
             </div>
             <div className="mt-2 grid grid-cols-5 font-mono text-[9.5px] uppercase tracking-[0.14em]">
               {CHAPTERS.map((ch, i) => (
-                <span key={ch.k} className={cn("text-center transition-colors duration-500", i === chapter ? "text-white" : "text-white/30")}>{ch.k}</span>
+                <span key={ch.k} className={cn("text-center transition-colors duration-500", i === chapter ? "text-white" : "text-white/50")}>{ch.k}</span>
               ))}
             </div>
           </div>
@@ -403,7 +403,7 @@ function ShotData({ chapter }) {
   return (
     <>
       <ShotReadout chapter={chapter} />
-      <p className="mt-3 font-mono text-[9.5px] uppercase tracking-[0.14em] text-white/30">Example session · illustrative values</p>
+      <p className="mt-3 font-mono text-[9.5px] uppercase tracking-[0.14em] text-white/50">Example session · illustrative values</p>
     </>
   );
 }

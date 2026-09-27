@@ -104,10 +104,10 @@ function EloGauge({ elo, size = 96 }) {
   );
 }
 
-function CinematicSelect({ value, onChange, options }) {
+function CinematicSelect({ value, onChange, options, label }) {
   return (
     <SelectPrimitive.Root value={value} onValueChange={onChange}>
-      <SelectPrimitive.Trigger className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#0a0a10]/90 border border-white/10 text-sm font-semibold text-white tracking-wide shadow-inner outline-none hover:border-white/20 transition-colors">
+      <SelectPrimitive.Trigger aria-label={label} className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#0a0a10]/90 border border-white/10 text-sm font-semibold text-white tracking-wide shadow-inner outline-none hover:border-white/20 transition-colors">
         <SelectPrimitive.Value />
         <SelectPrimitive.Icon><ChevronDown size={14} className="text-slate-400" /></SelectPrimitive.Icon>
       </SelectPrimitive.Trigger>
@@ -350,11 +350,11 @@ export default function Dashboard({ onStart, user, onGoBack }) {
           <div className="grid grid-cols-2 border border-white/[0.08] bg-[#050507]/70">
             <div className="border-r border-white/[0.08] px-5 py-4">
               <p className="text-3xl font-semibold tabular-nums tracking-[-0.04em] text-white"><RollingNumber value={currentElo} /></p>
-              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">Your rating</p>
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-white/55">Your rating</p>
             </div>
             <div className="px-5 py-4">
               <p className="text-3xl font-semibold tracking-[-0.04em] text-white">4</p>
-              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">Personas</p>
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-white/55">Personas</p>
             </div>
           </div>
         }
@@ -432,7 +432,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
                 <span className="w-5 h-5 rounded-full bg-white/[0.08] border border-white/[0.14] flex items-center justify-center text-[9px] font-mono font-bold">2</span>
                 <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Scope &amp; Bracket</span>
               </div>
-              <CinematicSelect value={role} onChange={setRole} options={ROLES} />
+              <CinematicSelect label="Target role" value={role} onChange={setRole} options={ROLES} />
             </DeepGlassCard>
 
             <DeepGlassCard className="p-6 flex-1" accent="#a78bfa" delay={0.12}>

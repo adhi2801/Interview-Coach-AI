@@ -354,7 +354,7 @@ export default function UserDashboard({
               </span>
             </div>
             <div>
-              <p className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.14em] text-white/40">Target company</p>
+              <p className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.14em] text-white/55">Target company</p>
               <div className="flex flex-wrap gap-1.5">
                 {companies.map((c) => {
                   const isActive = activeTarget === c;

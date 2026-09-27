@@ -56,7 +56,7 @@ function ConfigurePreview({ on }) {
     <div className="space-y-1.5 font-mono text-[10.5px] uppercase tracking-[0.1em]">
       {rows.map(([k, v]) => (
         <div key={k} className="flex items-center justify-between gap-3 border border-white/[0.07] bg-white/[0.02] px-2.5 py-1.5">
-          <span className="text-white/35">{k}</span>
+          <span className="text-white/50">{k}</span>
           <motion.span key={v} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="truncate text-white/85">{v}</motion.span>
         </div>
       ))}
@@ -69,7 +69,7 @@ function ExecutePreview({ on }) {
     <div className="border border-white/[0.07] bg-white/[0.02] px-3 py-2.5">
       <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.12em]">
         <span className="flex items-center gap-1.5 text-rose-300"><span className="rec-dot h-1.5 w-1.5 rounded-full bg-rose-400" />Listening</span>
-        <span className="tabular-nums text-white/45">138 wpm · example</span>
+        <span className="tabular-nums text-white/50">138 wpm · example</span>
       </div>
       <div className="mt-2 flex h-7 items-center gap-[3px]" aria-hidden="true">
         {Array.from({ length: 30 }).map((_, k) => (
@@ -87,7 +87,7 @@ function DiagnosePreview({ progress }) {
   const vals = [8.2, 7.6, 6.9, 7.8, 6.4];
   return (
     <div className="space-y-1.5">
-      <p className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-white/30">Example scores</p>
+      <p className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-white/50">Example scores</p>
       {vals.map((v, k) => (
         <Bar key={k} v={v} k={k} progress={progress} />
       ))}
@@ -99,7 +99,7 @@ function Bar({ v, k, progress }) {
   const scaleX = useTransform(progress, [0.55 + k * 0.05, 0.85 + k * 0.03], [0, v / 10], { clamp: true });
   return (
     <div className="flex items-center gap-2">
-      <span className="w-5 font-mono text-[10px] text-white/35">0{k + 1}</span>
+      <span className="w-5 font-mono text-[10px] text-white/50">0{k + 1}</span>
       <div className="h-1.5 flex-1 overflow-hidden bg-white/[0.06]">
         <motion.div style={{ scaleX }} className="h-full origin-left bg-linear-to-r from-indigo-500 to-violet-300" />
       </div>
@@ -139,10 +139,10 @@ export function How() {
             <div key={h.title} className={cn("relative flex flex-col py-10 pl-12 pr-6 md:px-10", i < 2 && "border-b border-white/[0.08] md:border-b-0 md:border-r")}>
               <span aria-hidden="true" className={cn("absolute left-[21px] top-11 h-[7px] w-[7px] border transition-all duration-500 md:-top-[4px] md:left-10", on ? "border-indigo-300 bg-indigo-400 shadow-[0_0_14px_rgba(129,140,248,0.9)]" : "border-white/25 bg-[#050507]")} />
               <div className="flex items-center justify-between">
-                <span className={cn("font-mono text-[11px] uppercase tracking-[0.16em] transition-colors duration-500", on ? "text-indigo-300" : "text-white/35")}>Step 0{i + 1}</span>
+                <span className={cn("font-mono text-[11px] uppercase tracking-[0.16em] transition-colors duration-500", on ? "text-indigo-300" : "text-white/50")}>Step 0{i + 1}</span>
                 <h.icon size={18} className={cn("transition-colors duration-500", on ? "text-indigo-300" : "text-white/25")} />
               </div>
-              <p className={cn("mt-10 text-2xl font-semibold tracking-[-0.03em] transition-colors duration-500", on ? "text-white" : "text-white/40")}>{h.title}</p>
+              <p className={cn("mt-10 text-2xl font-semibold tracking-[-0.03em] transition-colors duration-500", on ? "text-white" : "text-white/55")}>{h.title}</p>
               <p className="mt-2 max-w-xs text-[15px] leading-relaxed text-white/55">{h.body}</p>
               <div className={cn("mt-8 transition-opacity duration-700", on ? "opacity-100" : "opacity-35")}>
                 {i === 0 && <ConfigurePreview on={inView && step === 0} />}
@@ -165,7 +165,7 @@ function chipClass(status, done) {
   if (!done) return "border-white/[0.06] text-white/20";
   if (status === "passed") return "border-emerald-400/25 text-emerald-200/90";
   if (status === "gap") return "border-amber-400/40 bg-amber-500/10 text-amber-200 shadow-[0_0_18px_-6px_rgba(251,191,36,0.6)]";
-  return "border-white/10 text-white/35";
+  return "border-white/10 text-white/50";
 }
 
 // A real chain from the seeded prerequisite graph (seed_topics.py):
@@ -208,17 +208,17 @@ export function Graph() {
               {[["Solid", tally.passed, "text-emerald-300", "bg-emerald-400"], ["Gaps", tally.gap, "text-amber-300", "bg-amber-400"], ["Not yet", tally.locked, "text-white/50", "bg-white/25"]].map(([k, v, c, dot], i) => (
                 <div key={k} className={cn("px-3 py-3", i < 2 && "border-r border-white/[0.08]")}>
                   <p className={cn("text-3xl font-semibold tabular-nums tracking-[-0.04em]", c)}>{v}</p>
-                  <p className="mt-1 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-white/40"><span className={cn("h-1.5 w-1.5", dot)} />{k}</p>
+                  <p className="mt-1 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-white/55"><span className={cn("h-1.5 w-1.5", dot)} />{k}</p>
                 </div>
               ))}
             </div>
-            <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white/30">
+            <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white/50">
               Scanned {done} / {TOTAL_KG_NODES} · example diagnostic
             </p>
 
             {/* Gap trace */}
             <div className="mt-8">
-              <p className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-white/40">Gap trace</p>
+              <p className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-white/55">Gap trace</p>
               <div className="relative mt-4 pl-6">
                 <span aria-hidden="true" className="absolute left-[3px] top-2 h-[calc(100%-16px)] w-px bg-white/[0.08]" />
                 <motion.span aria-hidden="true" style={{ scaleY: trace }} className="absolute left-[3px] top-2 h-[calc(100%-16px)] w-px origin-top bg-linear-to-b from-amber-400 to-indigo-400" />
@@ -234,12 +234,12 @@ export function Graph() {
           <div className="sticky top-16 z-10 flex items-center justify-between gap-3 border-b border-white/[0.08] bg-[#050507]/92 px-6 py-3 font-mono text-[10.5px] uppercase tracking-[0.12em] backdrop-blur-sm sm:col-span-2 lg:hidden">
             <span className="flex items-center gap-1.5 text-emerald-300"><span className="h-1.5 w-1.5 bg-emerald-400" />{tally.passed} solid</span>
             <span className="flex items-center gap-1.5 text-amber-300"><span className="h-1.5 w-1.5 bg-amber-400" />{tally.gap} gaps</span>
-            <span className="tabular-nums text-white/40">{done}/{TOTAL_KG_NODES}</span>
+            <span className="tabular-nums text-white/55">{done}/{TOTAL_KG_NODES}</span>
           </div>
           {KNOWLEDGE_CATEGORIES.map((cat, ci) => (
             <div key={cat.title} className={cn("border-b border-white/[0.08] p-6", ci % 2 === 0 && "sm:border-r")}>
-              <p className="mb-3 font-mono text-[10.5px] uppercase tracking-[0.14em] text-white/45">
-                {cat.title} <span className="text-white/20">· {cat.nodes.length}</span>
+              <p className="mb-3 font-mono text-[10.5px] uppercase tracking-[0.14em] text-white/50">
+                {cat.title} <span className="text-white/50">· {cat.nodes.length}</span>
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {cat.nodes.map((n) => {
@@ -266,7 +266,7 @@ function TraceStep({ t, i, progress }) {
     <motion.div style={{ opacity, x }} className="relative pb-4 last:pb-0">
       <span aria-hidden="true" className={cn("absolute -left-6 top-1.5 h-[7px] w-[7px] border", t.status === "gap" ? "border-amber-300 bg-amber-400" : "border-indigo-300 bg-[#050507]")} />
       <p className={cn("text-[15px] font-semibold tracking-[-0.01em]", t.status === "gap" ? "text-amber-200" : "text-white")}>{t.name}</p>
-      <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">{i === 0 ? t.note : `← ${t.note}`}</p>
+      <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/55">{i === 0 ? t.note : `← ${t.note}`}</p>
     </motion.div>
   );
 }
@@ -384,7 +384,7 @@ export function Stack() {
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-60" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
         <Diagram mode="wide" progress={progress} className="relative hidden w-full md:block" />
         <Diagram mode="tall" progress={progress} className="relative mx-auto block w-full max-w-[380px] md:hidden" />
-        <p className="relative mt-4 text-center font-mono text-[10px] uppercase tracking-[0.14em] text-white/30">The real request paths · animation is illustrative</p>
+        <p className="relative mt-4 text-center font-mono text-[10px] uppercase tracking-[0.14em] text-white/50">The real request paths · animation is illustrative</p>
       </div>
       <Reveal className="grid grid-cols-1 border-t border-white/[0.08] sm:grid-cols-2 lg:grid-cols-3">
         {ARCHITECTURE_CARDS.map((a, i) => (
@@ -454,7 +454,7 @@ export function BuildLog() {
               <span className="grid h-10 w-10 place-items-center bg-linear-to-br from-indigo-400 to-violet-500 text-sm font-bold">A</span>
               <div>
                 <p className="text-sm font-semibold">Adhiswauran</p>
-                <p className="text-xs text-white/45">Backend, frontend and infra, end to end</p>
+                <p className="text-xs text-white/50">Backend, frontend and infra, end to end</p>
               </div>
               <a href={`${GITHUB_URL}/commits`} target="_blank" rel="noopener noreferrer" className={cn("ml-auto flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.12em] text-indigo-300 hover:text-indigo-200", FOCUS)}>
                 Commit history <ArrowUpRight size={13} />
@@ -471,10 +471,10 @@ export function BuildLog() {
             return (
               <div key={n.title} className="relative border-b border-white/[0.08] py-10 pl-16 pr-6 md:pl-20 md:pr-10">
                 <span aria-hidden="true" className={cn("absolute left-[29px] top-[46px] h-[7px] w-[7px] border transition-all duration-500 md:left-[37px]", on ? "border-indigo-300 bg-indigo-400 shadow-[0_0_14px_rgba(129,140,248,0.9)]" : "border-white/25 bg-[#050507]")} />
-                <p className={cn("font-mono text-[10.5px] uppercase tracking-[0.14em] transition-colors duration-500", on ? "text-indigo-300" : "text-white/30")}>Incident 0{i + 1}</p>
-                <p className={cn("mt-3 text-xl font-semibold tracking-[-0.02em] transition-colors duration-500", on ? "text-white" : "text-white/40")}>{n.title}</p>
+                <p className={cn("font-mono text-[10.5px] uppercase tracking-[0.14em] transition-colors duration-500", on ? "text-indigo-300" : "text-white/50")}>Incident 0{i + 1}</p>
+                <p className={cn("mt-3 text-xl font-semibold tracking-[-0.02em] transition-colors duration-500", on ? "text-white" : "text-white/55")}>{n.title}</p>
                 <p className="mt-2 max-w-lg text-[14px] leading-relaxed text-white/55">{n.body}</p>
-                <p className={cn("mt-4 inline-flex items-center gap-2 border px-2.5 py-1 font-mono text-[10.5px] uppercase tracking-[0.1em] transition-all duration-700", on ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200" : "border-white/10 text-white/30")}>
+                <p className={cn("mt-4 inline-flex items-center gap-2 border px-2.5 py-1 font-mono text-[10.5px] uppercase tracking-[0.1em] transition-all duration-700", on ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200" : "border-white/10 text-white/50")}>
                   <span className={cn("h-1.5 w-1.5 transition-colors", on ? "bg-emerald-400" : "bg-white/20")} /> Fix · {n.fix}
                 </p>
               </div>
@@ -566,16 +566,16 @@ export function Footer({ nav, onNavigatePrivacy, onNavigateTerms }) {
             <span className="grid h-7 w-7 place-items-center bg-white text-[10px] font-extrabold text-black">IC</span>
             InterviewCoach
           </p>
-          <p className="mt-3 max-w-sm text-sm text-white/45">A solo-built AI mock interview platform. Open source.</p>
+          <p className="mt-3 max-w-sm text-sm text-white/50">A solo-built AI mock interview platform. Open source.</p>
         </div>
         <div className="space-y-2 font-mono text-[11px] uppercase tracking-[0.14em]">
-          <p className="text-white/30">Product</p>
+          <p className="text-white/50">Product</p>
           {nav.map((n) => (
             <a key={n.id} href={`#${n.id}`} onClick={(e) => { e.preventDefault(); scrollToTarget(document.getElementById(n.id)); }} className="block text-white/60 hover:text-white">{n.label}</a>
           ))}
         </div>
         <div className="space-y-2 font-mono text-[11px] uppercase tracking-[0.14em]">
-          <p className="text-white/30">More</p>
+          <p className="text-white/50">More</p>
           <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="block text-white/60 hover:text-white">GitHub</a>
           <button onClick={() => onNavigatePrivacy?.()} className="block uppercase tracking-[0.14em] text-white/60 hover:text-white">Privacy</button>
           <button onClick={() => onNavigateTerms?.()} className="block uppercase tracking-[0.14em] text-white/60 hover:text-white">Terms</button>
@@ -585,7 +585,7 @@ export function Footer({ nav, onNavigatePrivacy, onNavigateTerms }) {
         <p className="whitespace-nowrap text-center text-[clamp(44px,13.4vw,172px)] font-semibold leading-[0.85] tracking-[-0.06em] text-transparent [-webkit-text-stroke:1px_rgba(255,255,255,0.14)]">InterviewCoach</p>
         <motion.p style={{ clipPath: clip }} className="text-iridescent absolute inset-x-4 bottom-2 whitespace-nowrap text-center text-[clamp(44px,13.4vw,172px)] font-semibold leading-[0.85] tracking-[-0.06em] md:inset-x-8">InterviewCoach</motion.p>
       </div>
-      <div className={cn(FRAME, "flex flex-col justify-between gap-2 border-x border-t border-white/[0.08] px-6 py-5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-white/35 md:flex-row md:px-10")}>
+      <div className={cn(FRAME, "flex flex-col justify-between gap-2 border-x border-t border-white/[0.08] px-6 py-5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-white/50 md:flex-row md:px-10")}>
         <p>© 2026 InterviewCoach · Designed & engineered by Adhiswauran</p>
         <p>FastAPI · PostgreSQL · Claude · Judge0</p>
       </div>
