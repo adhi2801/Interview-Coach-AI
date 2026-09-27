@@ -123,8 +123,22 @@ export const test = base.extend({
       const fixtures = {
         "/health": { status: "ok", database: "ok", cache: "ok" },
         "/companies": { companies: ["google", "amazon"] },
-        "/companies/google/profile": { name: "Google", typical_rounds: "2x Coding", difficulty_bias: 1.3 },
-        "/roles/elo-bands": {},
+        // Mirrors backend/engines/company_dna.py and ROLE_ELO_BANDS.
+        "/companies/google/profile": {
+          name: "Google", focus_areas: "algorithms data-structures system-design scalability",
+          behavioral_framework: "STAR method aligned with Google's 4 core attributes",
+          typical_rounds: "2x Coding · 1x System Design · 1x Googley", difficulty_bias: 1.3,
+          question_style: "Open-ended, ambiguous, expects clarifying questions",
+          red_flags: ["No clarifying questions", "Skips edge cases", "Can't estimate complexity"],
+          green_flags: ["Structured approach", "Thinks out loud", "Tests their own solution"],
+          values: ["Googleyness", "General Cognitive Ability", "Leadership", "Role-Related Knowledge"],
+        },
+        "/roles/elo-bands": {
+          "Software Engineer — L3": { label: "L3 Band", low: 900, high: 1049 },
+          "Senior Engineer — L4": { label: "L4 Band", low: 1050, high: 1199 },
+          "Backend Engineer — L4": { label: "L4 Band", low: 1050, high: 1199 },
+          "Staff Engineer — L5": { label: "L5 Band", low: 1200, high: 1399 },
+        },
         "/topics": { topics: [] },
         "/topics/status": { topics: [] },
         "/user/sessions": { sessions: rich ? H.SESSIONS : [] },

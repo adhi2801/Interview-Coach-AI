@@ -41,7 +41,7 @@ test("settings, including the security tab", async ({ page, backend: _, signedIn
 
 test("interview room", async ({ page, backend: _, signedIn: __ }) => {
   await page.goto("/setup");
-  await page.getByRole("button", { name: "START INTERVIEW" }).click();
+  await page.getByRole("button", { name: "Start interview" }).click();
   await page.getByRole("button", { name: /Skip/ }).click();
   await expect(page.getByRole("textbox", { name: "Your answer" })).toBeVisible();
   expect(await violations(page)).toEqual([]);

@@ -57,7 +57,7 @@ test.describe("three weeks in", () => {
 
   test("interview and debrief", async ({ page, backend: _, signedIn: __ }) => {
     await page.goto("/setup");
-    await page.getByRole("button", { name: "START INTERVIEW" }).click();
+    await page.getByRole("button", { name: "Start interview" }).click();
     await shot(page, "preflight", { full: false });
     await page.getByRole("button", { name: /Skip/ }).click();
     await page.getByRole("textbox", { name: "Your answer" })

@@ -1,723 +1,350 @@
-import React, { useState, useEffect, useRef } from "react";
-import { AppHeader, PageIntro } from "../components/app/AppChrome";
-import api, { getToken } from "../lib/api";
-import { motion, AnimatePresence, LayoutGroup, useScroll, useTransform } from "motion/react";
-import {
-  Terminal, ArrowLeft, ArrowRight, Target, CheckCircle2, XCircle,
-  User, ShieldAlert, Brain, Battery, ChevronDown, Check, BookOpen,
-  AlertTriangle, RotateCcw, Play, Zap, Cpu, Activity, TrendingUp
-} from "lucide-react";
-import * as SelectPrimitive from "@radix-ui/react-select";
+// Interview setup: three decisions — company, level, interviewer — and a
+// brief of what that company's interview is like, then start. Choices are
+// remembered for next time. Any company works: known ones have a built-in
+// profile, others get one generated on the server.
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Play, Quote } from "lucide-react";
+import api from "../lib/api";
+import { readSetting, writeSetting } from "../lib/storage";
+import { AppHeader, Frame, PageIntro } from "../components/app/AppChrome";
 import { COMPANIES } from "../constants/companies";
-import { LiquidGlass } from "../components/fx/LiquidGlass";
+import { humanize } from "./knowledge/graph";
 
 const ROLES = [
   "Software Engineer — L3", "Senior Engineer — L4", "Staff Engineer — L5",
-  "Backend Engineer — L4", "Frontend Engineer — L4", "ML Engineer", "Systems Architect"
+  "Backend Engineer — L4", "Frontend Engineer — L4", "ML Engineer", "Systems Architect",
 ];
 
 const PERSONAS = [
-  { id: "standard", label: "Standard", icon: User, color: "#3b82f6", tagline: "Neutral, evaluative — closest to a real interview loop." },
-  { id: "hostile", label: "Hostile", icon: ShieldAlert, color: "#ef4444", tagline: "Pressure-tests your reasoning under active challenge." },
-  { id: "socratic", label: "Socratic", icon: Brain, color: "#10b981", tagline: "Asks open-ended questions to guide your thinking." },
-  { id: "exhausted", label: "Exhausted", icon: Battery, color: "#f59e0b", tagline: "Low engagement — tests your ability to carry the room." },
+  { id: "standard", label: "Standard", blurb: "Neutral and evaluative, closest to a real interview loop." },
+  { id: "hostile", label: "Hostile", blurb: "Pushes back on every assumption to test how you hold up under pressure." },
+  { id: "socratic", label: "Socratic", blurb: "Answers with questions that lead you toward the approach." },
+  { id: "exhausted", label: "Exhausted", blurb: "Low energy, wants it short. Tests whether you can carry the room." },
 ];
 
-const KNOWN_COMPANIES = ["google", "amazon", "meta", "microsoft", "apple", "netflix", "startup"];
+const KNOWN = new Set(COMPANIES.map((c) => c.id));
+const OTHER = "__other__";
+const titleCase = (s = "") => s.replace(/\b\w/g, (c) => c.toUpperCase());
 
-// Honest, generic progress copy tied to the real request lifecycle of
-// /session/start — not scripted technical claims (no "WebRTC socket",
-// no "calibrating engine") about things that aren't actually happening
-// at that moment. Steps 0-2 are shown while the request is in flight;
-// the final step only ever renders once the request has genuinely
-// resolved (see bootStep logic in handleLaunch).
-const BOOT_SEQUENCE = [
-  "> Sending session request...",
-  "> Waiting for the server to build your interview...",
-  "> Almost there...",
-  "SESSION READY."
-];
-
-function RollingNumber({ value, className = "" }) {
-  const digits = String(value).split("");
+function Fieldset({ legend, hint, children }) {
   return (
-    <span className={`inline-flex tabular-nums ${className}`}>
-      {digits.map((d, i) => (
-        <span key={i} className="relative inline-block overflow-hidden" style={{ height: "1em" }}>
-          <AnimatePresence mode="popLayout">
-            <motion.span key={d + i}
-              initial={{ y: "100%", opacity: 0 }} animate={{ y: "0%", opacity: 1 }} exit={{ y: "-100%", opacity: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 28 }} className="inline-block">
-              {d}
-            </motion.span>
-          </AnimatePresence>
-        </span>
-      ))}
-    </span>
+    <fieldset className="border-b border-white/[0.08] px-5 py-7 last:border-b-0 md:px-8">
+      <legend className="float-left mb-1 w-full text-[15px] font-semibold text-white">{legend}</legend>
+      {hint && <p className="clear-both mb-4 text-[13px] text-white/55">{hint}</p>}
+      <div className="clear-both">{children}</div>
+    </fieldset>
   );
 }
 
-function DeepGlassCard({ children, className = "", accent, interactive = false, onClick, delay = 0 }) {
+// A native radio, visually a selectable row: keyboard arrows, focus and
+// screen-reader semantics come for free.
+function Choice({ name, value, checked, onChange, children, className = "" }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 22 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay }}
-      className="h-full"
-    >
-      <LiquidGlass
-        interactive={interactive}
-        tilt={interactive}
-        onClick={onClick}
-        radius={10}
-        className={`overflow-hidden h-full ${className}`}
-        style={accent ? { boxShadow: `inset 3px 0 0 0 ${accent}, inset 0 1px 0 0 rgba(255,255,255,0.16), 0 24px 60px -24px rgba(0,0,0,0.85)` } : undefined}
-        contentClassName="relative z-10 w-full h-full"
-      >
-        {children}
-      </LiquidGlass>
-    </motion.div>
+    <label className={`group relative flex cursor-pointer items-start gap-3 border px-3.5 py-3 transition-colors ${
+      checked ? "border-indigo-300/70 bg-indigo-400/[0.07]" : "border-white/[0.09] hover:border-white/25"} ${className}`}>
+      <input type="radio" name={name} value={value} checked={checked} onChange={() => onChange(value)}
+        className="peer sr-only" />
+      <span aria-hidden="true" className={`mt-[3px] grid h-[14px] w-[14px] shrink-0 place-items-center border ${checked ? "border-indigo-300" : "border-white/35"}`}>
+        {checked && <span className="h-[6px] w-[6px] bg-indigo-300" />}
+      </span>
+      <span className="min-w-0 flex-1">{children}</span>
+      <span aria-hidden="true" className="pointer-events-none absolute inset-0 hidden outline outline-1 outline-offset-2 outline-indigo-300 peer-focus-visible:block" />
+    </label>
   );
 }
 
-function SkeletonLine({ className = "" }) {
-  return <div className={`bg-white/[0.06] rounded-md animate-pulse ${className}`} />;
+function bandNote(band, elo) {
+  if (!band) return null;
+  if (elo < band.low) return `${band.low - elo} below this band`;
+  if (elo > band.high) return `${elo - band.high} above this band`;
+  return "You're in this band";
 }
 
-function EloGauge({ elo, size = 96 }) {
-  const pct = Math.min(1, elo / 2000);
-  const circumference = 263.8;
+function Brief({ name, profile, loading, error, record, gap, preview, previewState, onPreview }) {
   return (
-    <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
-        <motion.circle cx="50" cy="50" r="42" fill="none" stroke="#6366f1" strokeWidth="6" strokeLinecap="round"
-          strokeDasharray={circumference} initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset: circumference - circumference * pct }}
-          transition={{ duration: 1.4, ease: "easeOut" }} />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl font-extrabold text-white leading-none"><RollingNumber value={elo} /></span>
-        <span className="text-[8px] font-mono font-bold uppercase tracking-widest text-slate-500 mt-1">ELO</span>
+    <div className="px-5 py-7 md:px-8">
+      <p className="text-[13px] text-white/55">What to expect</p>
+      <h2 className="mt-1 text-[26px] font-semibold tracking-[-0.03em] text-white">{name || "Your company"}</h2>
+
+      {loading ? (
+        <div aria-busy="true" aria-label="Loading the company profile" className="mt-5 space-y-3">
+          {[0, 1, 2].map((i) => <div key={i} className="h-10 animate-pulse bg-white/[0.03]" />)}
+        </div>
+      ) : error ? (
+        <p className="mt-4 text-[14px] text-white/65">{error}</p>
+      ) : profile && (
+        <dl className="mt-5 space-y-5 text-[14px]">
+          {profile.typical_rounds && (
+            <div><dt className="text-[12.5px] text-white/50">Typical loop</dt><dd className="mt-0.5 text-white/90">{profile.typical_rounds}</dd></div>
+          )}
+          {profile.question_style && (
+            <div><dt className="text-[12.5px] text-white/50">How they ask</dt><dd className="mt-0.5 text-white/90">{profile.question_style}</dd></div>
+          )}
+          {(profile.green_flags?.length > 0 || profile.red_flags?.length > 0) && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {profile.green_flags?.length > 0 && (
+                <div>
+                  <dt className="text-[12.5px] text-emerald-200/90">They reward</dt>
+                  <dd><ul className="mt-1 space-y-1 text-white/85">{profile.green_flags.map((f) => <li key={f}>{f}</li>)}</ul></dd>
+                </div>
+              )}
+              {profile.red_flags?.length > 0 && (
+                <div>
+                  <dt className="text-[12.5px] text-rose-200/90">They push back on</dt>
+                  <dd><ul className="mt-1 space-y-1 text-white/85">{profile.red_flags.map((f) => <li key={f}>{f}</li>)}</ul></dd>
+                </div>
+              )}
+            </div>
+          )}
+          {typeof profile.difficulty_bias === "number" && profile.difficulty_bias !== 1 && (
+            <div>
+              <dt className="text-[12.5px] text-white/50">Difficulty</dt>
+              <dd className="mt-0.5 text-white/90">
+                Questions run {profile.difficulty_bias > 1 ? "harder" : "easier"} than average ({profile.difficulty_bias}×).
+              </dd>
+            </div>
+          )}
+        </dl>
+      )}
+
+      {(record.length > 0 || gap) && (
+        <div className="mt-7 border-t border-white/[0.08] pt-5 text-[14px] leading-relaxed text-white/75">
+          {record.length > 0 && (
+            <p>
+              Your last {record.length === 1 ? "interview" : `${record.length} interviews`} here scored{" "}
+              {record.map((s, i) => (
+                <span key={s.id}>
+                  <span className="font-mono tabular-nums text-white">{s.score ?? "–"}</span>
+                  {i < record.length - 2 ? ", " : i === record.length - 2 ? " and " : ""}
+                </span>
+              ))}.
+            </p>
+          )}
+          {gap && <p className="mt-1">Your most urgent gap for them is <span className="text-amber-200">{humanize(gap)}</span>.</p>}
+        </div>
+      )}
+
+      <div className="mt-7 border-t border-white/[0.08] pt-5">
+        {preview ? (
+          <figure>
+            <figcaption className="text-[12.5px] text-white/50">The interview will open with</figcaption>
+            <blockquote className="mt-2 flex gap-2.5 text-[15px] leading-relaxed text-white">
+              <Quote size={14} aria-hidden="true" className="mt-1 shrink-0 text-indigo-300" />
+              {preview.question}
+            </blockquote>
+          </figure>
+        ) : (
+          <>
+            <button type="button" onClick={onPreview} disabled={previewState === "loading"}
+              className="border border-white/15 px-4 py-2 text-[13.5px] font-medium text-white hover:bg-white/[0.06] disabled:opacity-50">
+              {previewState === "loading" ? "Writing the question…" : "Preview the first question"}
+            </button>
+            <p className="mt-2 text-[12.5px] text-white/50">
+              {previewState === "error" ? "Couldn't write a preview. Starting still works." : "Optional. If you start afterwards, the interview opens with the same question."}
+            </p>
+          </>
+        )}
       </div>
     </div>
   );
 }
 
-function CinematicSelect({ value, onChange, options, label }) {
-  return (
-    <SelectPrimitive.Root value={value} onValueChange={onChange}>
-      <SelectPrimitive.Trigger aria-label={label} className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#0a0a10]/90 border border-white/10 text-sm font-semibold text-white tracking-wide shadow-inner outline-none hover:border-white/20 transition-colors">
-        <SelectPrimitive.Value />
-        <SelectPrimitive.Icon><ChevronDown size={14} className="text-slate-400" /></SelectPrimitive.Icon>
-      </SelectPrimitive.Trigger>
-      <SelectPrimitive.Portal>
-        <SelectPrimitive.Content className="overflow-hidden bg-[#0a0a10]/90 backdrop-blur-3xl border border-white/10 rounded-xl shadow-[0_40px_80px_rgba(0,0,0,0.8)] z-9999" position="popper" sideOffset={6}>
-          <SelectPrimitive.Viewport className="p-1.5">
-            {options.map((opt) => (
-              <SelectPrimitive.Item key={opt} value={opt} className="relative flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all outline-none text-slate-300 hover:bg-white/[0.05] hover:text-white cursor-pointer data-[highlighted]:bg-blue-500/10 data-[highlighted]:text-blue-400">
-                <SelectPrimitive.ItemText>{opt}</SelectPrimitive.ItemText>
-                <SelectPrimitive.ItemIndicator><Check size={14} className="text-blue-400" /></SelectPrimitive.ItemIndicator>
-              </SelectPrimitive.Item>
-            ))}
-          </SelectPrimitive.Viewport>
-        </SelectPrimitive.Content>
-      </SelectPrimitive.Portal>
-    </SelectPrimitive.Root>
-  );
-}
-
 export default function Dashboard({ onStart, user, onGoBack }) {
-  const [company, setCompany] = useState(() => localStorage.getItem("ic_last_company") || "google");
-  const [role, setRole] = useState(() => localStorage.getItem("ic_last_role") || ROLES[1]);
-  const [persona, setPersona] = useState(() => localStorage.getItem("ic_last_persona") || "standard");
-  const [isBooting, setIsBooting] = useState(false);
-  const [bootStep, setBootStep] = useState(0);
-  const [launchError, setLaunchError] = useState(false);
-  const [systemStatus, setSystemStatus] = useState("checking");
+  const [companyChoice, setCompanyChoice] = useState(() => {
+    const saved = readSetting("ic_last_company", "google");
+    return KNOWN.has(saved) ? saved : OTHER;
+  });
+  const [customCompany, setCustomCompany] = useState(() => {
+    const saved = readSetting("ic_last_company", "");
+    return KNOWN.has(saved) ? "" : saved;
+  });
+  const [role, setRole] = useState(() => {
+    const saved = readSetting("ic_last_role");
+    return ROLES.includes(saved) ? saved : ROLES[1];
+  });
+  const [persona, setPersona] = useState(() => {
+    const saved = readSetting("ic_last_persona");
+    return PERSONAS.some((p) => p.id === saved) ? saved : "standard";
+  });
 
-  const [companyProfile, setCompanyProfile] = useState(null);
-  const [profileLoading, setProfileLoading] = useState(true);
-  const [profileError, setProfileError] = useState(false);
-
-  const [eloBands, setEloBands] = useState(null);
-  const [companyIntel, setCompanyIntel] = useState(null);
-  const [intelLoading, setIntelLoading] = useState(true);
-  const [intelError, setIntelError] = useState(false);
-  const [companySessions, setCompanySessions] = useState([]);
-  const [sessionsError, setSessionsError] = useState(false);
-  const [topicCount, setTopicCount] = useState(null);
-
-  const [previewData, setPreviewData] = useState(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
-  const [previewError, setPreviewError] = useState(false);
-  const [previewPulse, setPreviewPulse] = useState(false);
-
-  const mainRef = useRef(null);
-  const { scrollYProgress } = useScroll({ target: mainRef, offset: ["start start", "end end"] });
-  const orbYA = useTransform(scrollYProgress, [0, 1], [0, 60]);
-  const orbYB = useTransform(scrollYProgress, [0, 1], [0, -40]);
-
-  const currentElo = Math.round(user?.elo_rating || 1200);
-  const activeComp = COMPANIES.find(c => c.id === company) || COMPANIES[0];
-  const isFreshlyGenerated = !KNOWN_COMPANIES.includes(company);
-
-  // The token itself is attached by lib/api; this only answers "signed in?"
-  const isSignedIn = () => Boolean(getToken());
+  const company = companyChoice === OTHER ? customCompany.trim().toLowerCase() : companyChoice;
+  const [profile, setProfile] = useState({ data: null, loading: true, error: "" });
+  const [bands, setBands] = useState({});
+  const [record, setRecord] = useState([]);
+  const [gap, setGap] = useState(null);
+  const [preview, setPreview] = useState({ data: null, state: "idle" });
+  const [launch, setLaunch] = useState({ state: "idle", error: "" });
+  const customRef = useRef(null);
+  const elo = Math.round(user?.elo_rating ?? 1200);
 
   useEffect(() => {
-    api.get(`/health`, { timeout: 5000 })
-      .then((res) => setSystemStatus(res.data?.status === "ok" ? "ok" : "degraded"))
-      .catch(() => setSystemStatus("degraded"));
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("ic_last_company", company);
-    localStorage.setItem("ic_last_role", role);
-    localStorage.setItem("ic_last_persona", persona);
+    if (company) writeSetting("ic_last_company", company);
+    writeSetting("ic_last_role", role);
+    writeSetting("ic_last_persona", persona);
   }, [company, role, persona]);
 
+  useEffect(() => { api.get("/roles/elo-bands").then((r) => setBands(r.data || {})).catch(() => setBands({})); }, []);
+
+  // Profile: immediate for known companies; debounced while typing another.
   useEffect(() => {
+    if (!company || company.length < 2) {
+      setProfile({ data: null, loading: false, error: "" });
+      return undefined;
+    }
     let cancelled = false;
-    setProfileLoading(true);
-    setProfileError(false);
-    api.get(`/companies/${company}/profile`)
-      .then(res => { if (!cancelled) setCompanyProfile(res.data); })
-      .catch(() => { if (!cancelled) setProfileError(true); })
-      .finally(() => { if (!cancelled) setProfileLoading(false); });
-    return () => { cancelled = true; };
+    setProfile((p) => ({ ...p, loading: true, error: "" }));
+    const timer = setTimeout(() => {
+      api.get(`/companies/${encodeURIComponent(company)}/profile`)
+        .then((r) => !cancelled && setProfile({ data: r.data, loading: false, error: "" }))
+        .catch((err) => !cancelled && setProfile({ data: null, loading: false, error: err.message }));
+    }, KNOWN.has(company) ? 0 : 700);
+    return () => { cancelled = true; clearTimeout(timer); };
   }, [company]);
 
   useEffect(() => {
-    api.get(`/roles/elo-bands`).then(res => setEloBands(res.data)).catch(() => setEloBands({}));
-  }, []);
-
-  useEffect(() => {
-    if (!isSignedIn()) { setIntelLoading(false); return; }
+    if (!company) return undefined;
     let cancelled = false;
-    setIntelLoading(true);
-    setIntelError(false);
-    Promise.all([
-      api.get(`/user/skill-radar`, { params: { company } }),
-      api.get(`/user/gap-queue`, { params: { company } }),
-    ]).then(([radarRes, gapRes]) => {
-      if (cancelled) return;
-      setCompanyIntel({
-        sampleSize: radarRes.data.sample_size, radar: radarRes.data.radar,
-        criticalGap: gapRes.data.critical_gap, queue: gapRes.data.queue || [],
-      });
-    }).catch(() => {
-      // A real fetch failure must not look identical to "you have no
-      // data for this company yet" — that was masking backend errors
-      // as empty state. Track it separately so the UI can tell the
-      // difference (see the companyIntel render block below).
-      if (!cancelled) { setCompanyIntel(null); setIntelError(true); }
-    }).finally(() => { if (!cancelled) setIntelLoading(false); });
-    return () => { cancelled = true; };
-  }, [company]);
-
-  useEffect(() => {
-    if (!isSignedIn()) return;
-    let cancelled = false;
-    setSessionsError(false);
-    api.get(`/user/sessions`)
-      .then(res => {
+    Promise.all([api.get("/user/sessions"), api.get("/user/gap-queue", { params: { company } })])
+      .then(([s, g]) => {
         if (cancelled) return;
-        const matches = (res.data.sessions || [])
-          .filter(s => (s.company_target || "").toLowerCase() === company.toLowerCase())
-          .slice(0, 3);
-        setCompanySessions(matches);
+        setRecord((s.data?.sessions || []).filter((x) => (x.company_target || "").toLowerCase() === company).slice(0, 3));
+        setGap(g.data?.queue?.[0]?.gap || null);
       })
-      .catch(() => { if (!cancelled) { setCompanySessions([]); setSessionsError(true); } });
+      .catch(() => { if (!cancelled) { setRecord([]); setGap(null); } });
     return () => { cancelled = true; };
   }, [company]);
 
-  useEffect(() => {
-    api.get(`/topics`).then(res => {
-      const list = res.data?.topics || res.data;
-      if (Array.isArray(list)) setTopicCount(list.length);
-    }).catch(() => setTopicCount(null));
-  }, []);
+  // A preview belongs to exactly one combination of choices.
+  useEffect(() => { setPreview({ data: null, state: "idle" }); }, [company, role, persona]);
 
-  useEffect(() => { setPreviewData(null); setPreviewError(false); }, [company, role, persona]);
+  const displayName = useMemo(() => {
+    if (!company) return "";
+    return COMPANIES.find((c) => c.id === company)?.name || profile.data?.name || titleCase(company);
+  }, [company, profile.data]);
+  const personaLabel = PERSONAS.find((p) => p.id === persona)?.label;
+  const ready = company.length >= 2;
 
-  const band = eloBands?.[role];
-  let strongest = null, weakest = null;
-  if (companyIntel?.radar?.length) {
-    strongest = companyIntel.radar.reduce((a, b) => (b.value > a.value ? b : a));
-    weakest = companyIntel.radar.reduce((a, b) => (b.value < a.value ? b : a));
+  async function loadPreview() {
+    setPreview({ data: null, state: "loading" });
+    try {
+      const res = await api.post("/session/preview", { user_name: user?.name || "Candidate", company, role, elo, persona });
+      setPreview({ data: res.data, state: "done" });
+    } catch {
+      setPreview({ data: null, state: "error" });
+    }
   }
 
-  async function handlePreview() {
-    if (!isSignedIn()) { setPreviewError(true); return; }
-    setPreviewPulse(true);
-    setTimeout(() => setPreviewPulse(false), 300);
-    setPreviewLoading(true);
-    setPreviewError(false);
+  async function start() {
+    if (!ready || launch.state === "starting") return;
+    setLaunch({ state: "starting", error: "" });
     try {
-      const res = await api.post(`/session/preview`,
-        { user_name: user?.name || "Candidate", company, role, elo: currentElo, persona });
-      setPreviewData(res.data);
+      const res = await api.post("/session/start", {
+        user_name: user?.name || "Candidate", company, role, elo, persona, preview_id: preview.data?.preview_id || null,
+      });
+      onStart?.({ ...res.data, company, role, persona, elo });
     } catch (err) {
-      setPreviewError(true);
+      setLaunch({ state: "idle", error: err.message || "Couldn't start the interview. Try again." });
     }
-    setPreviewLoading(false);
   }
-
-  const handleLaunch = async () => {
-    if (isBooting) return;
-    if (!isSignedIn()) { setLaunchError(true); return; }
-    setIsBooting(true);
-    setLaunchError(false);
-    let step = 0;
-    setBootStep(0);
-    // Advances through the honest "in-flight" steps only — never reaches
-    // the final "SESSION READY" step on its own. That step is set
-    // exactly once, only after the real request resolves below, so the
-    // UI never claims completion before the backend actually responds.
-    const interval = setInterval(() => {
-      step++;
-      if (step < BOOT_SEQUENCE.length - 1) setBootStep(step);
-    }, 420);
-    try {
-      const res = await api.post(`/session/start`,
-        { user_name: user?.name || "Candidate", company, role, elo: currentElo, persona, preview_id: previewData?.preview_id || null });
-      clearInterval(interval);
-      setBootStep(BOOT_SEQUENCE.length - 1);
-      setTimeout(() => { if (onStart) onStart({ ...res.data, company, role, persona, elo: currentElo }); }, 400);
-    } catch (err) {
-      clearInterval(interval);
-      setIsBooting(false);
-      setLaunchError(err.message || true);
-    }
-  };
-
-  const blurFade = {
-    initial: { opacity: 0, filter: 'blur(6px)', y: 6 },
-    animate: { opacity: 1, filter: 'blur(0px)', y: 0 },
-    exit: { opacity: 0, filter: 'blur(6px)', y: -6 }
-  };
 
   return (
-    <div ref={mainRef} className="relative flex min-h-screen flex-col overflow-x-clip bg-transparent font-sans text-slate-200 selection:bg-indigo-500/40">
-
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <motion.div style={{ y: orbYA }} animate={{ backgroundColor: activeComp.color, opacity: 0.13 }}
-          transition={{ duration: 1, ease: "easeInOut" }}
-          className="absolute top-[-20%] left-[-10%] w-[60vw] h-[60vw] rounded-full blur-[160px] mix-blend-screen" />
-        <motion.div style={{ y: orbYB }} initial={{ opacity: 0.1 }} animate={{ opacity: 0.1 }}
-          className="absolute bottom-[-10%] right-[-5%] w-[50vw] h-[50vw] rounded-full blur-[140px] mix-blend-screen bg-indigo-600" />
-        <div className="absolute inset-0 opacity-[0.025] mix-blend-soft-light" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }} />
-      </div>
-
-      <AnimatePresence>
-        {isBooting && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
-            <div className="w-[90vw] max-w-[500px] bg-[#0a0a10]/90 border border-white/10 p-6 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.9)] font-mono text-sm">
-              <div className="flex items-center gap-3 mb-6 border-b border-white/10 pb-4">
-                <Terminal size={18} className="text-blue-400" />
-                <span className="text-white font-bold tracking-tight">LAUNCHING SESSION</span>
-              </div>
-              <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mb-6">
-                <motion.div className="h-full bg-blue-500" initial={{ width: "0%" }}
-                  animate={{ width: `${(bootStep / (BOOT_SEQUENCE.length - 1)) * 100}%` }} transition={{ duration: 0.4 }} />
-              </div>
-              <div className="space-y-3 text-slate-400">
-                {BOOT_SEQUENCE.slice(0, bootStep + 1).map((step, i) => (
-                  <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}>
-                    {i === BOOT_SEQUENCE.length - 1 ? <span className="text-emerald-400 font-bold">{step}</span> : step}
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AppHeader back={{ label: "Overview", onClick: onGoBack }}>
-        <span className={`hidden items-center gap-2 border px-2.5 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em] md:flex ${systemStatus === "ok" ? "border-emerald-400/25 text-emerald-300" : systemStatus === "degraded" ? "border-rose-400/30 text-rose-300" : "border-white/10 text-white/45"}`}>
-          <span className={`h-1.5 w-1.5 ${systemStatus === "ok" ? "bg-emerald-400" : systemStatus === "degraded" ? "bg-rose-400" : "bg-white/30"}`} />
-          {systemStatus === "ok" ? "Engine ready" : systemStatus === "degraded" ? "Engine degraded" : "Checking"}
-        </span>
-      </AppHeader>
+    <div className="relative flex min-h-screen flex-col overflow-x-clip bg-transparent font-sans text-slate-200 selection:bg-indigo-500/40">
+      <AppHeader back={{ label: "Overview", onClick: onGoBack }} />
 
       <PageIntro
         index="02"
-        label="Session setup"
-        title="Configure your interview."
-        subtitle={`Three decisions: company, level and interviewer. Everything else is the engine's job.${topicCount ? ` ${topicCount} topics tracked.` : ""}`}
-        aside={
-          <div className="grid grid-cols-2 border border-white/[0.08] bg-[#050507]/70">
-            <div className="border-r border-white/[0.08] px-5 py-4">
-              <p className="text-3xl font-semibold tabular-nums tracking-[-0.04em] text-white"><RollingNumber value={currentElo} /></p>
-              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-white/55">Your rating</p>
-            </div>
-            <div className="px-5 py-4">
-              <p className="text-3xl font-semibold tracking-[-0.04em] text-white">4</p>
-              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-white/55">Personas</p>
-            </div>
-          </div>
-        }
+        label="Interview"
+        title="Set up your interview."
+        subtitle="Pick the company, the level and who's across the table. Your rating sets the difficulty; each answer is scored as you go."
       />
 
-      <main className="relative z-20 mx-auto w-full max-w-[1280px] flex-1 border-x border-white/[0.08] px-4 pb-40 pt-8 md:px-8">
-
-        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr_360px] gap-5 items-start">
-
-          {/* LEFT COLUMN — Company + Persona */}
-          <div className="flex flex-col gap-5">
-
-            <DeepGlassCard className="p-6" accent={activeComp.color} delay={0}>
-              <div className="flex items-center gap-2.5 mb-4">
-                <span className="w-5 h-5 rounded-full bg-white/[0.08] border border-white/[0.14] flex items-center justify-center text-[9px] font-mono font-bold">1</span>
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Target Company</span>
+      <Frame className="flex-1" innerClassName="border-b border-white/[0.08]">
+        <div className="grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+          <form onSubmit={(e) => { e.preventDefault(); start(); }} className="border-b border-white/[0.08] lg:border-b-0 lg:border-r">
+            <Fieldset legend="Company" hint="Known companies use a built-in profile; any other name gets one written for it.">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {COMPANIES.map((c) => (
+                  <Choice key={c.id} name="company" value={c.id} checked={companyChoice === c.id} onChange={setCompanyChoice}>
+                    <span className="flex items-center gap-2 text-[14px] text-white">
+                      <span className="grid h-4 w-4 place-items-center">{c.logo}</span>{c.name}
+                    </span>
+                  </Choice>
+                ))}
+                <Choice name="company" value={OTHER} checked={companyChoice === OTHER}
+                  onChange={(v) => { setCompanyChoice(v); requestAnimationFrame(() => customRef.current?.focus()); }}>
+                  <span className="text-[14px] text-white">Another</span>
+                </Choice>
               </div>
-              <LayoutGroup id="company-grid">
-                <div className="grid grid-cols-3 gap-2">
-                  {COMPANIES.map((c, idx) => (
-                    <button key={c.id} onClick={() => setCompany(c.id)}
-                      className={`relative flex flex-col items-center justify-center gap-2 p-3 rounded-xl border border-white/[0.06] transition-colors outline-none ${idx === COMPANIES.length - 1 && COMPANIES.length % 3 === 1 ? "col-start-2" : ""}`}>
-                      {company === c.id && (
-                        <motion.div layoutId="company-active" transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                          className="absolute inset-0 rounded-xl bg-white/[0.06] border border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]" />
+              {companyChoice === OTHER && (
+                <label className="mt-3 block">
+                  <span className="text-[12.5px] text-white/55">Company name</span>
+                  <input ref={customRef} value={customCompany} onChange={(e) => setCustomCompany(e.target.value)} maxLength={50}
+                    placeholder="e.g. Stripe" autoComplete="off"
+                    className="mt-1 w-full border border-white/15 bg-[#07070b] px-3 py-2.5 text-[14px] text-white placeholder:text-white/40 focus:border-indigo-400 focus:outline-none sm:w-80" />
+                </label>
+              )}
+            </Fieldset>
+
+            <Fieldset legend="Level" hint={`Your rating is ${elo.toLocaleString("en-US")}. Bands show where each level usually sits.`}>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {ROLES.map((r) => {
+                  const band = bands[r];
+                  return (
+                    <Choice key={r} name="role" value={r} checked={role === r} onChange={setRole}>
+                      <span className="block text-[14px] text-white">{r}</span>
+                      {band && (
+                        <span className="mt-0.5 block text-[12.5px] text-white/55">
+                          <span className="font-mono tabular-nums">{band.low}–{band.high}</span>. {bandNote(band, elo)}
+                        </span>
                       )}
-                      <div className={`relative z-10 transition-all ${company === c.id ? "grayscale-0 scale-110" : "grayscale opacity-50"}`}>{c.logo}</div>
-                      <span className={`relative z-10 text-[9px] font-bold tracking-widest uppercase ${company === c.id ? "text-white" : "text-slate-500"}`}>{c.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </LayoutGroup>
-            </DeepGlassCard>
-
-            <DeepGlassCard className="p-6" delay={0.05}>
-              <div className="flex items-center gap-2.5 mb-4">
-                <span className="w-5 h-5 rounded-full bg-white/[0.08] border border-white/[0.14] flex items-center justify-center text-[9px] font-mono font-bold">3</span>
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Interviewer Persona</span>
+                    </Choice>
+                  );
+                })}
               </div>
-              <LayoutGroup id="persona-list">
-                <div className="flex flex-col gap-2">
-                  {PERSONAS.map((p) => {
-                    const isActive = persona === p.id;
-                    const Icon = p.icon;
-                    return (
-                      <button key={p.id} onClick={() => setPersona(p.id)}
-                        className="relative p-3 rounded-xl border border-white/[0.05] text-left transition-colors outline-none">
-                        {isActive && (
-                          <motion.div layoutId="persona-active" transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                            className="absolute inset-0 rounded-xl bg-white/[0.04] border border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.07)]" />
-                        )}
-                        <div className="relative z-10 flex items-center gap-2.5">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center border shrink-0 ${isActive ? "bg-[#0a0a10]/90 border-white/20" : "bg-white/5 border-white/10"}`}>
-                            <Icon size={14} color={isActive ? p.color : "#94a3b8"} />
-                          </div>
-                          <div>
-                            <span className={`block text-[13px] font-bold ${isActive ? "text-white" : "text-slate-400"}`}>{p.label}</span>
-                            <span className="block text-[9.5px] text-slate-500 leading-snug">{p.tagline}</span>
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </LayoutGroup>
-            </DeepGlassCard>
+            </Fieldset>
 
-          </div>
-
-          {/* CENTER COLUMN — Role + full Company Playbook, real data, always visible */}
-          <div className="flex flex-col gap-5 min-w-0">
-
-            <DeepGlassCard className="p-6" delay={0.08}>
-              <div className="flex items-center gap-2.5 mb-4">
-                <span className="w-5 h-5 rounded-full bg-white/[0.08] border border-white/[0.14] flex items-center justify-center text-[9px] font-mono font-bold">2</span>
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Scope &amp; Bracket</span>
+            <Fieldset legend="Interviewer">
+              <div className="grid gap-2 sm:grid-cols-2">
+                {PERSONAS.map((p) => (
+                  <Choice key={p.id} name="persona" value={p.id} checked={persona === p.id} onChange={setPersona}>
+                    <span className="block text-[14px] text-white">{p.label}</span>
+                    <span className="mt-0.5 block text-[12.5px] leading-snug text-white/55">{p.blurb}</span>
+                  </Choice>
+                ))}
               </div>
-              <CinematicSelect label="Target role" value={role} onChange={setRole} options={ROLES} />
-            </DeepGlassCard>
+            </Fieldset>
+            <button type="submit" hidden aria-hidden="true" tabIndex={-1} />
+          </form>
 
-            <DeepGlassCard className="p-6 flex-1" accent="#a78bfa" delay={0.12}>
-              <div className="flex items-center justify-between border-b border-white/[0.06] pb-4 mb-6">
-                <div className="flex items-center gap-2">
-                  <Cpu size={16} className="text-slate-400" />
-                  <span className="text-xs font-bold uppercase tracking-[0.2em] text-slate-300">Company Playbook</span>
-                </div>
-                {isFreshlyGenerated && !profileLoading && (
-                  <span className="text-[9px] font-mono font-bold text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded flex items-center gap-1">
-                    <Zap size={10} /> Freshly Generated
-                  </span>
-                )}
-              </div>
-
-              <AnimatePresence mode="wait">
-                {profileLoading ? (
-                  <motion.div key="loading" {...blurFade} transition={{ duration: 0.2 }} className="space-y-3">
-                    <SkeletonLine className="h-6 w-[70%]" /><SkeletonLine className="h-4 w-[90%]" /><SkeletonLine className="h-4 w-[60%]" />
-                  </motion.div>
-                ) : profileError ? (
-                  <motion.div key="error" {...blurFade} className="flex flex-col items-center text-center gap-2 py-8">
-                    <AlertTriangle size={20} className="text-amber-500/70" />
-                    <p className="text-sm text-slate-400">Couldn't load the company playbook.</p>
-                  </motion.div>
-                ) : companyProfile ? (
-                  <motion.div key={`profile-${company}`} {...blurFade} transition={{ duration: 0.25 }} className="space-y-6">
-                    <div>
-                      <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2">
-                        Behavioral Framework · {activeComp.name.toUpperCase()}
-                      </span>
-                      <p className="text-lg lg:text-xl font-bold text-white leading-snug tracking-tight bg-black/30 p-5 rounded-xl border border-white/[0.05]">
-                        "{companyProfile.behavioral_framework}"
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-3">
-                      <div className="bg-[#0a0a10]/90 border border-white/10 rounded-lg p-3.5 shadow-inner">
-                        <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Interview Style</span>
-                        <span className="text-xs font-bold text-white">{companyProfile.question_style}</span>
-                      </div>
-                      <div className="bg-[#0a0a10]/90 border border-white/10 rounded-lg p-3.5 shadow-inner">
-                        <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Difficulty Bias</span>
-                        <span className="text-xs font-bold text-emerald-400 font-mono">{companyProfile.difficulty_bias}×</span>
-                      </div>
-                      {companyProfile.typical_rounds && (
-                        <div className="bg-[#0a0a10]/90 border border-white/10 rounded-lg p-3.5 shadow-inner">
-                          <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Typical Rounds</span>
-                          <span className="text-xs font-bold text-white">{companyProfile.typical_rounds}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div>
-                      <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2">Company Values</span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {companyProfile.values?.map((v, i) => (
-                          <span key={i} className="text-[10.5px] font-bold px-2.5 py-1 rounded-full bg-indigo-500/[0.08] text-indigo-300 border border-indigo-500/20">{v}</span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="pt-2 border-t border-white/[0.06]">
-                      <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2">Focus Areas</span>
-                      <p className="text-xs text-slate-400 capitalize">{companyProfile.focus_areas?.split(" ").join(" · ")}</p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <span className="block text-[9px] font-bold text-emerald-400 uppercase tracking-widest mb-2">Do This</span>
-                        <ul className="space-y-1.5">
-                          {companyProfile.green_flags?.map((g, i) => (
-                            <li key={i} className="text-[12px] font-medium text-slate-300 flex items-start gap-2"><CheckCircle2 size={13} className="text-emerald-400 mt-0.5 shrink-0" /><span>{g}</span></li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div>
-                        <span className="block text-[9px] font-bold text-rose-400 uppercase tracking-widest mb-2">Avoid This</span>
-                        <ul className="space-y-1.5">
-                          {companyProfile.red_flags?.map((r, i) => (
-                            <li key={i} className="text-[12px] font-medium text-slate-400 flex items-start gap-2"><XCircle size={13} className="text-rose-400 mt-0.5 shrink-0" /><span>{r}</span></li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-
-                    <p className="text-[10px] text-slate-600 italic pt-2 border-t border-white/[0.05]">Source: company_dna engine</p>
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
-            </DeepGlassCard>
-
-          </div>
-
-          {/* RIGHT COLUMN — Opening Line preview, Track Record, Readiness */}
-          <div className="flex flex-col gap-5">
-
-            <DeepGlassCard className="p-6" accent="#818cf8" delay={0.16}>
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 block mb-3">Interviewer Opening Line</span>
-              <AnimatePresence mode="wait">
-                {!previewData && !previewLoading && !previewError && (
-                  <motion.div key="idle" {...blurFade} transition={{ duration: 0.25 }}>
-                    <p className="text-xs text-slate-500 leading-relaxed mb-3">
-                      Generate a real preview — same engine that runs the actual interview. One real generation, on-demand.
-                    </p>
-                    <motion.button onClick={handlePreview} whileTap={{ scale: 0.97 }}
-                      animate={previewPulse ? { scale: [1, 1.03, 1] } : {}} transition={{ duration: 0.3 }}
-                      className="w-full flex items-center justify-center gap-2 text-xs font-bold text-white bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 rounded-lg py-2.5 transition-colors">
-                      <Play size={12} /> Preview Opening Line
-                    </motion.button>
-                  </motion.div>
-                )}
-                {previewLoading && (
-                  <motion.div key="loading" {...blurFade} transition={{ duration: 0.25 }} className="space-y-2">
-                    <SkeletonLine className="h-3.5 w-[90%]" /><SkeletonLine className="h-3.5 w-[75%]" /><SkeletonLine className="h-3.5 w-[82%]" />
-                  </motion.div>
-                )}
-                {previewError && (
-                  <motion.div key="error" {...blurFade} transition={{ duration: 0.25 }} className="flex flex-col items-center text-center gap-2 py-3">
-                    <AlertTriangle size={18} className="text-amber-500/70" />
-                    <p className="text-xs text-slate-400">
-                      {isSignedIn() ? "Couldn't generate a preview right now." : "Sign in to preview the opening line."}
-                    </p>
-                    {isSignedIn() && (
-                      <button onClick={handlePreview} className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
-                        <RotateCcw size={11} /> Retry
-                      </button>
-                    )}
-                  </motion.div>
-                )}
-                {previewData && (
-                  <motion.div key="filled" {...blurFade} transition={{ duration: 0.25 }}>
-                    <p className="text-sm text-slate-200 italic leading-relaxed bg-black/30 p-3.5 rounded-lg border border-white/[0.05]">
-                      "{previewData.question}"
-                    </p>
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/[0.06]">
-                      <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-slate-600">
-                        {persona} · {activeComp.name} · {role.split("—")[0].trim()}
-                      </span>
-                      <button onClick={handlePreview} className="text-[10px] font-semibold text-slate-500 hover:text-white flex items-center gap-1">
-                        <RotateCcw size={10} /> Regenerate
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </DeepGlassCard>
-
-            <DeepGlassCard className="p-6" accent="#34d399" delay={0.2}>
-              <div className="flex items-center gap-2 mb-3">
-                <TrendingUp size={13} className="text-slate-500" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Your Track Record — {activeComp.name}</span>
-              </div>
-              <AnimatePresence mode="wait">
-                {intelLoading ? (
-                  <motion.div key="loading" {...blurFade} transition={{ duration: 0.2 }} className="space-y-2">
-                    <SkeletonLine className="h-3.5 w-[80%]" /><SkeletonLine className="h-3.5 w-[60%]" />
-                  </motion.div>
-                ) : intelError ? (
-                  // Was previously indistinguishable from "no sessions yet" —
-                  // a real backend failure now says so honestly instead of
-                  // silently presenting as an empty-but-fine state.
-                  <motion.div key="intel-error" {...blurFade} transition={{ duration: 0.2 }} className="flex items-center gap-2 text-xs text-amber-400/80">
-                    <AlertTriangle size={13} /> Couldn't load your track record for this company.
-                  </motion.div>
-                ) : companyIntel?.sampleSize > 0 ? (
-                  <motion.div key="loaded" {...blurFade} transition={{ duration: 0.2 }} className="space-y-3">
-                    <p className="text-xs text-slate-400">
-                      Based on <span className="text-white font-bold">{companyIntel.sampleSize}</span> real scored answer{companyIntel.sampleSize === 1 ? "" : "s"}.
-                    </p>
-                    {strongest && weakest && (
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="bg-white/[0.03] rounded-lg px-2.5 py-2 border border-white/[0.06]">
-                          <p className="text-[8.5px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Strongest</p>
-                          <p className="text-[11.5px] font-bold text-emerald-400">{strongest.dim}</p>
-                        </div>
-                        <div className="bg-white/[0.03] rounded-lg px-2.5 py-2 border border-white/[0.06]">
-                          <p className="text-[8.5px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Needs Work</p>
-                          <p className="text-[11.5px] font-bold text-rose-400">{weakest.dim}</p>
-                        </div>
-                      </div>
-                    )}
-                    {companyIntel.criticalGap && (
-                      <div className="bg-amber-500/[0.06] border border-amber-500/20 rounded-lg px-3 py-2.5">
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-amber-400 mb-1">Recurring Gap</p>
-                        <p className="text-xs text-slate-300">{companyIntel.criticalGap.gap.replace(/_/g, " ").toUpperCase()}</p>
-                      </div>
-                    )}
-                  </motion.div>
-                ) : (
-                  <motion.p key="empty" {...blurFade} transition={{ duration: 0.2 }} className="text-xs text-slate-500">
-                    No scored {activeComp.name} sessions yet — this fills in after your first one.
-                  </motion.p>
-                )}
-              </AnimatePresence>
-            </DeepGlassCard>
-
-            {companySessions.length > 0 && (
-              <DeepGlassCard className="p-6" delay={0.21}>
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 block mb-3">Recent {activeComp.name} Sessions</span>
-                <div className="flex flex-col gap-2">
-                  {companySessions.map((s) => (
-                    <div key={s.id} className="flex items-center justify-between text-xs">
-                      <span className="text-slate-400 font-mono">
-                        {s.started_at ? new Date(s.started_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}
-                      </span>
-                      <span className="text-slate-500 capitalize">{s.persona || "—"}</span>
-                      <span className="font-bold text-white tabular-nums">{s.score != null ? `${s.score}/100` : "—"}</span>
-                    </div>
-                  ))}
-                </div>
-              </DeepGlassCard>
-            )}
-            {sessionsError && (
-              <DeepGlassCard className="p-4" delay={0.21}>
-                <div className="flex items-center gap-2 text-xs text-amber-400/80">
-                  <AlertTriangle size={13} /> Couldn't load recent sessions for this company.
-                </div>
-              </DeepGlassCard>
-            )}
-
-            {companyIntel?.queue?.length > 0 && (
-              <DeepGlassCard className="p-6" accent="#fb923c" delay={0.22}>
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 block mb-3">Gap Fix Queue — {activeComp.name}</span>
-                <div className="flex flex-col gap-2">
-                  {companyIntel.queue.slice(0, 3).map((item) => (
-                    <div key={item.gap} className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
-                      <span className="text-[11.5px] font-bold text-slate-300 capitalize">{item.gap.replace(/_/g, " ")}</span>
-                      <span className={`text-[8.5px] font-mono font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border ${item.urgency === "critical" ? "bg-rose-500/[0.12] text-rose-400 border-rose-500/25" : "bg-amber-500/[0.12] text-amber-400 border-amber-500/25"}`}>
-                        {item.urgency}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </DeepGlassCard>
-            )}
-
-            <DeepGlassCard className="p-6" delay={0.24}>
-              <div className="flex items-center gap-4 mb-1">
-                <EloGauge elo={currentElo} />
-                <div className="flex-1">
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600 mb-1">Readiness Signal</p>
-                  {band ? (
-                    <>
-                      <p className="text-[13px] font-bold text-slate-300 mb-2">{band.label}: {band.low}–{band.high}</p>
-                      <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
-                        <motion.div className="h-full bg-linear-to-r from-indigo-500 to-purple-500 rounded-full"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${Math.max(0, Math.min(100, ((currentElo - band.low) / (band.high - band.low)) * 100))}%` }}
-                          transition={{ duration: 1, delay: 0.4 }} />
-                      </div>
-                    </>
-                  ) : (
-                    <p className="text-xs text-slate-500">No target band for this role yet.</p>
-                  )}
-                </div>
-              </div>
-            </DeepGlassCard>
-
-          </div>
+          <aside aria-label="Company brief" className="lg:sticky lg:top-16 lg:self-start">
+            <Brief name={displayName} profile={profile.data} loading={profile.loading} error={profile.error}
+              record={record} gap={gap} preview={preview.data} previewState={preview.state}
+              onPreview={ready ? loadPreview : undefined} />
+          </aside>
         </div>
-      </main>
+      </Frame>
 
-      <footer className="nav-glass fixed bottom-0 left-0 right-0 z-30 border-t border-white/[0.08]">
-        <div className="mx-auto flex max-w-[1280px] flex-col items-center justify-between gap-4 border-x border-white/[0.08] px-5 py-4 sm:flex-row md:px-8">
-          <div className="flex items-center gap-2 flex-wrap text-[11px] font-mono">
-            <span className="text-slate-600 uppercase tracking-widest text-[9px]">Active</span>
-            <span className="text-white font-bold">{activeComp.name}</span><span className="text-slate-600">·</span>
-            <span className="text-white font-bold">{role}</span><span className="text-slate-600">·</span>
-            <span className="text-white font-bold capitalize">{persona}</span>
-          </div>
-          <div className="w-full sm:w-72 flex flex-col gap-1.5">
-            {launchError && (
-              <p className="text-[11px] text-rose-400 flex items-center gap-1.5">
-                <AlertTriangle size={11} /> {!isSignedIn() ? "Sign in to start a session." : typeof launchError === "string" ? launchError : "Couldn't start session — try again."}
+      <div className="sticky bottom-0 z-30 border-t border-white/[0.1] bg-[#050507]/95 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between md:px-8">
+          <div className="min-w-0 text-[14px]" aria-live="polite">
+            {launch.error ? (
+              <p role="alert" className="text-rose-300">{launch.error}</p>
+            ) : launch.state === "starting" ? (
+              <p className="text-white/70">Writing your first question. This takes a few seconds.</p>
+            ) : (
+              <p className="truncate text-white/80">
+                {ready ? <>{displayName}, {role}, {personaLabel?.toLowerCase()} interviewer</> : "Enter a company name to continue."}
               </p>
             )}
-            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={handleLaunch} disabled={isBooting}
-              className="relative overflow-hidden w-full h-12 rounded-full btn-liquid text-xs font-extrabold uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50 group">
-              <div className="absolute inset-0 w-full h-full bg-linear-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-              <span className="relative z-10 flex items-center gap-2">Start interview <ArrowRight size={16} /></span>
-            </motion.button>
           </div>
+          <button type="button" onClick={start} disabled={!ready || launch.state === "starting"}
+            className="btn-liquid flex shrink-0 items-center justify-center gap-2 px-6 py-3 text-[14.5px] font-semibold disabled:cursor-not-allowed disabled:opacity-50">
+            <Play size={14} aria-hidden="true" />
+            {launch.state === "starting" ? "Starting…" : "Start interview"}
+          </button>
         </div>
-      </footer>
+      </div>
     </div>
   );
 }

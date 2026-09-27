@@ -27,7 +27,7 @@ test.describe("login", () => {
 test.describe("interview room", () => {
   test("live coaching, keyboard submit, debrief, and retry", async ({ page, backend, signedIn: _ }) => {
     await page.goto("/setup");
-    await page.getByRole("button", { name: "START INTERVIEW" }).click();
+    await page.getByRole("button", { name: "Start interview" }).click();
     await page.getByRole("button", { name: /Skip/ }).click();
     await expect(page).toHaveURL(/\/interview$/);
     await expect(page.getByRole("region", { name: "Interview question" })).toContainText(SESSION.scenario);
@@ -58,7 +58,7 @@ test.describe("interview room", () => {
 
   test("the abort dialog is accessible and closes on Escape", async ({ page, backend: _, signedIn: __ }) => {
     await page.goto("/setup");
-    await page.getByRole("button", { name: "START INTERVIEW" }).click();
+    await page.getByRole("button", { name: "Start interview" }).click();
     await page.getByRole("button", { name: /Skip/ }).click();
 
     await page.getByRole("button", { name: "Abort" }).click();
