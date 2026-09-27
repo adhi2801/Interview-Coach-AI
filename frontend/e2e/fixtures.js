@@ -32,10 +32,26 @@ const SCORES = {
 
 const FILLER = /\b(um|uh)\b/gi;
 
+const STARTER = (name) => ({
+  python: `# ${name} in Python\n`, javascript: `// ${name} in JS\n`,
+  cpp: `// ${name} in C++\n`, java: `// ${name} in Java\n`,
+});
+export const PROBLEMS = {
+  two_sum: {
+    id: 1, slug: "two_sum", title: "Two Sum", difficulty: 4, description: "Add two numbers.",
+    starter_code: STARTER("two_sum"), sample_test_cases: [{ input: "1 2", expected_output: "3" }], topics: [],
+  },
+  reverse_words: {
+    id: 2, slug: "reverse_words", title: "Reverse Words", difficulty: 4, description: "Reverse them.",
+    starter_code: STARTER("reverse_words"), sample_test_cases: [{ input: "a b", expected_output: "b a" }], topics: [],
+  },
+};
+
 export const test = base.extend({
   backend: async ({ page }, use) => {
     const calls = [];
     const socket = { urls: [], received: [] };
+    let nextPicks = 0; // like the real endpoint, /coding/next varies between calls
 
     await page.route(`${API}/**`, async (route) => {
       const req = route.request();
@@ -59,6 +75,23 @@ export const test = base.extend({
       }
       if (path === "/auth/logout-all") return json(200, { status: "ok" });
       if (path === "/session/start") return json(200, SESSION);
+      if (path === "/coding/next") {
+        const slug = nextPicks++ % 2 === 0 ? "two_sum" : "reverse_words";
+        return json(200, { id: PROBLEMS[slug].id, slug, title: PROBLEMS[slug].title, difficulty: 4 });
+      }
+      if (path === "/coding/problems") {
+        return json(200, { problems: Object.values(PROBLEMS).map(({ id, slug, title, difficulty }) => ({ id, slug, title, difficulty })) });
+      }
+      if (path.startsWith("/coding/problems/")) return json(200, PROBLEMS[path.split("/").pop()]);
+      if (path === "/coding/run") {
+        return json(200, { results: [{ passed: true, input: "1 2", expected: "3", actual: "3", stderr: "" }], passed_count: 1, total: 1 });
+      }
+      if (path === "/coding/submit") {
+        return json(200, {
+          submission_id: 5, tests_passed: 2, tests_total: 2, complexity_estimate: "O(1)", cleanliness_score: 8,
+          naming_score: 9, feedback: "Clean and direct.", quality_review_unavailable: false, new_elo: 1216,
+        });
+      }
       if (path === "/ws/coaching/42/ticket") return json(200, { ticket: "short-lived-ticket" });
       if (path === "/answer/submit") return json(200, { job_id: 7, status: "processing" });
       if (path === "/answer/status/7") {
