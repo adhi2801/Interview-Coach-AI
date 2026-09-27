@@ -39,7 +39,7 @@ export const PERSONA_META = {
     icon: UserCheck,
     accentRgb: "16,185,129",
     accentHex: "#10b981",
-    askLabel: "THE ASK",
+    askLabel: "The ask",
   },
   hostile: {
     label: "Hostile",
@@ -49,7 +49,7 @@ export const PERSONA_META = {
     icon: Flame,
     accentRgb: "239,68,68",
     accentHex: "#ef4444",
-    askLabel: "DEFEND THIS",
+    askLabel: "Defend this",
   },
   socratic: {
     label: "Socratic",
@@ -59,7 +59,7 @@ export const PERSONA_META = {
     icon: Search,
     accentRgb: "99,102,241",
     accentHex: "#818cf8",
-    askLabel: "THE DEEPER QUESTION",
+    askLabel: "The deeper question",
   },
   exhausted: {
     label: "Exhausted",
@@ -69,7 +69,7 @@ export const PERSONA_META = {
     icon: Coffee,
     accentRgb: "245,158,11",
     accentHex: "#f59e0b",
-    askLabel: "BE CONCISE",
+    askLabel: "Be concise",
   },
 };
 

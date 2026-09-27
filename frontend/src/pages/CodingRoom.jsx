@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import api from "../lib/api";
-import { createPortal } from "react-dom";
+import { codeFor, recallProblem, rememberProblem, saveDraft } from "./coding/drafts";
+import { usePreferences } from "../lib/preferences";
 import Editor from "@monaco-editor/react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -9,173 +10,8 @@ import {
   Mic, Square, FileText, RotateCcw, Sparkles, ShieldCheck
 } from "lucide-react";
 
-const LANGUAGES = [
-  { id: "python", label: "Python 3.11", monaco: "python", ext: "py" },
-  { id: "javascript", label: "JavaScript ES6", monaco: "javascript", ext: "js" },
-  { id: "cpp", label: "C++ 20", monaco: "cpp", ext: "cpp" },
-  { id: "java", label: "Java 17", monaco: "java", ext: "java" },
-];
-
-// Difficulty tiering — derived from the real problem.difficulty number (1-10),
-// not fabricated. Drives the ambient glow and badge color.
-const DIFF_TOKENS = {
-  easy:   { label: "EASY",   hue: "#10b981", glowA: "rgba(16,185,129,.16)",  glowB: "rgba(16,185,129,.09)",  badgeBg: "rgba(16,185,129,.12)",  badgeBorder: "rgba(16,185,129,.28)" },
-  medium: { label: "MEDIUM", hue: "#f59e0b", glowA: "rgba(245,158,11,.17)",  glowB: "rgba(245,158,11,.09)",  badgeBg: "rgba(245,158,11,.12)",  badgeBorder: "rgba(245,158,11,.28)" },
-  hard:   { label: "HARD",   hue: "#f43f5e", glowA: "rgba(244,63,94,.18)",   glowB: "rgba(244,63,94,.10)",   badgeBg: "rgba(244,63,94,.12)",   badgeBorder: "rgba(244,63,94,.28)" },
-};
-function diffTier(difficulty) {
-  if (!difficulty) return DIFF_TOKENS.medium;
-  if (difficulty <= 3) return DIFF_TOKENS.easy;
-  if (difficulty <= 6) return DIFF_TOKENS.medium;
-  return DIFF_TOKENS.hard;
-}
-
-// mm:ss for the on-problem elapsed timer. Real, ticking from when the
-// current problem was actually loaded — not a decorative static value.
-function formatElapsed(totalSeconds) {
-  const m = Math.floor(totalSeconds / 60);
-  const s = totalSeconds % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
-
-function formatClock(ts) {
-  return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
-// Parses a real "12.4ms" style string from the backend into a number for
-// the per-test bar visual. Returns null (not 0) when unparseable, so we
-// never silently draw a fake zero-width bar for missing data.
-// Extracts a real line number from a real stderr/traceback string.
-// Covers Python ("line 12"), and generic compiler-style "file:12:" formats
-// used by JS/Java/C++. Returns null (not a guess) if nothing matches —
-// the UI only ever offers "Jump to Error" when this genuinely finds one.
-function parseErrorLine(stderr) {
-  if (!stderr) return null;
-  const pyMatch = stderr.match(/line (\d+)/i);
-  if (pyMatch) return parseInt(pyMatch[1], 10);
-  const genericMatch = stderr.match(/:(\d+):\d*/);
-  if (genericMatch) return parseInt(genericMatch[1], 10);
-  return null;
-}
-
-function parseMs(execTimeStr) {
-  if (!execTimeStr) return null;
-  const match = String(execTimeStr).match(/([\d.]+)\s*ms/i);
-  return match ? parseFloat(match[1]) : null;
-}
-
-// Mount-in stagger — content reveals in sequence rather than all at once.
-const staggerContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
-const staggerItem = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } };
-
-function CustomDropdown({ value, options, onChange, icon: Icon, placeholder, className = "" }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
-  const dropdownRef = useRef(null);
-  const buttonRef = useRef(null);
-  const menuRef = useRef(null); // portaled menu is no longer a DOM child of dropdownRef
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      const inButton = dropdownRef.current && dropdownRef.current.contains(event.target);
-      const inMenu = menuRef.current && menuRef.current.contains(event.target);
-      if (!inButton && !inMenu) setIsOpen(false);
-    };
-    // capture phase so a Monaco/editor click handler further down the tree
-    // can't stopPropagation() its way past this before we see it
-    document.addEventListener("mousedown", handleClickOutside, true);
-    return () => document.removeEventListener("mousedown", handleClickOutside, true);
-  }, []);
-
-  // Measures + clamps synchronously so nothing can render mid-transform or off-viewport.
-  const computeCoords = useCallback(() => {
-    if (!buttonRef.current) return;
-    const rect = buttonRef.current.getBoundingClientRect();
-    const width = Math.max(rect.width, 220);
-    const margin = 12;
-    // Prefer left-aligned to the button; if that would overflow the right
-    // edge, anchor to the button's right edge instead.
-    let left = rect.left;
-    if (left + width > window.innerWidth - margin) {
-      left = rect.right - width;
-    }
-    left = Math.max(margin, Math.min(left, window.innerWidth - width - margin));
-    let top = rect.bottom + 6;
-    top = Math.min(top, window.innerHeight - margin);
-    setCoords({ top, left, width });
-  }, []);
-
-  const openDropdown = (e) => {
-    e.stopPropagation();
-    computeCoords(); // measure BEFORE state flips, not after render
-    setIsOpen((p) => !p);
-  };
-
-  useEffect(() => {
-    if (!isOpen) return;
-    computeCoords();
-    window.addEventListener("resize", computeCoords);
-    window.addEventListener("scroll", computeCoords, true);
-    return () => {
-      window.removeEventListener("resize", computeCoords);
-      window.removeEventListener("scroll", computeCoords, true);
-    };
-  }, [isOpen, computeCoords]);
-
-  const selectedOption = options.find((opt) => opt.id === value || opt.slug === value);
-
-  return (
-    <div className={`relative ${className}`} ref={dropdownRef}>
-      <motion.button
-        ref={buttonRef}
-        type="button"
-        whileTap={{ scale: 0.98 }}
-        onClick={openDropdown}
-        className="w-full flex items-center justify-between bg-[#0a0a10]/90 border border-white/10 hover:border-white/20 rounded-xl px-3.5 py-1.5 text-xs font-bold text-slate-200 transition-all outline-none shadow-inner"
-      >
-        <div className="flex items-center gap-2 truncate">
-          {Icon && <Icon size={14} className="text-blue-400 shrink-0" />}
-          <span className="truncate">{selectedOption ? selectedOption.label || selectedOption.title : placeholder}</span>
-        </div>
-        <ChevronDown size={14} className={`text-slate-500 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
-      </motion.button>
-      {typeof document !== "undefined" && createPortal(
-        <AnimatePresence>
-          {isOpen && (
-            <motion.div ref={menuRef} initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }}
-              transition={{ duration: 0.15 }} style={{ position: "fixed", top: coords.top, left: coords.left, width: coords.width, zIndex: 99999 }}
-              className="bg-[#0a0a10]/90 border border-white/10 rounded-xl shadow-[0_25px_50px_rgba(0,0,0,0.9),inset_0_1px_0_0_rgba(255,255,255,0.1)] backdrop-blur-2xl overflow-hidden p-1.5">
-              <div className="max-h-60 overflow-y-auto space-y-1 scrollbar-hide">
-                {options.map((opt) => {
-                  const isSelected = opt.id === value || opt.slug === value;
-                  return (
-                    <button key={opt.id || opt.slug} type="button"
-                      onClick={(e) => { e.stopPropagation(); onChange(opt.id || opt.slug); setIsOpen(false); }}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-left transition-all ${
-                        isSelected ? "bg-blue-500/15 text-blue-400 font-bold border border-blue-500/20" : "text-slate-300 hover:bg-white/[0.05] hover:text-white"
-                      }`}>
-                      <span className="truncate">{opt.label || opt.title} {opt.difficulty ? `(L${opt.difficulty})` : ""}</span>
-                      {isSelected && <Check size={14} className="text-blue-400 shrink-0 ml-2" />}
-                    </button>
-                  );
-                })}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
-    </div>
-  );
-}
-
-function GlassPanel({ children, className = "" }) {
-  return (
-    <div className={`bg-[#08080d]/80 backdrop-blur-2xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),0_4px_32px_rgba(0,0,0,0.5)] transition-colors duration-300 hover:border-white/[0.14] ${className}`}>
-      {children}
-    </div>
-  );
-}
+import { LANGUAGES, diffTier, formatClock, formatElapsed, parseErrorLine, parseMs, staggerContainer, staggerItem } from "./coding/constants";
+import { CustomDropdown, GlassPanel } from "./coding/ui";
 
 export default function CodingRoom({ problemSlug = null, sessionId, user, onFinish, onEloUpdate }) {
   const [focusMode, setFocusMode] = useState(false);
@@ -184,6 +20,12 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
   const [problemError, setProblemError] = useState(false);
   const [language, setLanguage] = useState("python");
   const [code, setCode] = useState("");
+  // The editor is uncontrolled: Monaco owns its text and reports changes.
+  // Feeding `value` back from React state dropped keystrokes whenever a
+  // render lagged behind typing (a stale value overwrote newer input). It
+  // remounts, keyed on this, only when code changes from outside the editor.
+  const [editorVersion, setEditorVersion] = useState(0);
+  const { high_contrast_editor: highContrast } = usePreferences();
 
   const [activeLeftTab, setActiveLeftTab] = useState("spec");
   const [activeRightTab, setActiveRightTab] = useState("terminal");
@@ -206,6 +48,31 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
   const decorationsRef = useRef([]);
+
+  // fetchProblem reads the language through a ref: depending on it made
+  // every language switch refetch — and, with no fixed slug, pick a new
+  // random problem and throw the candidate's code away.
+  const languageRef = useRef(language);
+  useEffect(() => { languageRef.current = language; }, [language]);
+  const saveTimer = useRef(null);
+
+  function handleCodeChange(value) {
+    const next = value || "";
+    setCode(next);
+    if (!problem?.slug) return;
+    const { slug } = problem;
+    const starter = problem.starter_code?.[language] || "";
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => saveDraft(slug, language, next, starter), 400);
+  }
+
+  function resetToStarter() {
+    const starter = problem?.starter_code?.[language] || "";
+    clearTimeout(saveTimer.current);
+    saveDraft(problem.slug, language, starter, starter);
+    setCode(starter);
+    setEditorVersion((v) => v + 1);
+  }
 
   const currentLangObj = LANGUAGES.find((l) => l.id === language) || LANGUAGES[0];
   const tier = diffTier(problem?.difficulty);
@@ -254,22 +121,26 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
     setProblemLoading(true);
     setProblemError(false);
     try {
-      let slugToLoad = problemSlug;
-      if (!slugToLoad) {
+      // An explicit slug, else the problem this candidate was last on (so a
+      // reload doesn't swap it for a new random pick), else an adaptive one.
+      let slugToLoad = problemSlug || recallProblem();
+      let res = slugToLoad ? await api.get(`/coding/problems/${slugToLoad}`).catch(() => null) : null;
+      if (!res?.data) {
         const nextRes = await api.get(`/coding/next`);
         slugToLoad = nextRes?.data?.slug;
+        if (!slugToLoad) throw new Error("No problem slug available");
+        res = await api.get(`/coding/problems/${slugToLoad}`);
       }
-      if (!slugToLoad) throw new Error("No problem slug available");
-      const res = await api.get(`/coding/problems/${slugToLoad}`);
+      rememberProblem(res.data.slug);
       setProblem(res.data);
-      setCode(res.data.starter_code?.[language] || "");
+      setCode(codeFor(res.data, languageRef.current));
       setProblemLoading(false);
     } catch (err) {
       console.error("Failed to load problem:", err);
       setProblemError(true);
       setProblemLoading(false);
     }
-  }, [problemSlug, language]);
+  }, [problemSlug]);
 
   const fetchAllProblems = useCallback(async () => {
     try {
@@ -293,17 +164,24 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); runCode(); }
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+        e.preventDefault();
+        if (runState !== "running") runCode();
+      }
       if ((e.metaKey || e.ctrlKey) && e.key === "b") { e.preventDefault(); setFocusMode((p) => !p); }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code, language, problem]);
+  }, [code, language, problem, runState]);
 
   const handleLanguageChange = (newLang) => {
+    if (problem?.slug) {
+      clearTimeout(saveTimer.current);
+      saveDraft(problem.slug, language, code, problem.starter_code?.[language] || "");
+    }
     setLanguage(newLang);
-    setCode(problem?.starter_code?.[newLang] || "");
+    setCode(codeFor(problem, newLang));
     setRunState("idle"); setRunResults(null);
     setReviewState("idle"); setReviewData(null);
     setHintCards([]);
@@ -315,15 +193,17 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
     setHintCards([]);
     const found = allProblems.find((p) => p.slug === slug);
     if (found?.starter_code) {
+      rememberProblem(found.slug);
       setProblem(found);
-      setCode(found.starter_code[language] || "");
+      setCode(codeFor(found, language));
       return;
     }
     setProblemLoading(true);
     try {
       const res = await api.get(`/coding/problems/${slug}`);
+      rememberProblem(res.data.slug);
       setProblem(res.data);
-      setCode(res.data.starter_code?.[language] || "");
+      setCode(codeFor(res.data, language));
       setProblemError(false);
     } catch (err) {
       setProblemError(true);
@@ -475,7 +355,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
             <div className="w-48 sm:w-56">
               <CustomDropdown value={problem.slug} onChange={loadProblemBySlug}
                 options={allProblems.map((p) => ({ id: p.slug, title: p.title, difficulty: p.difficulty }))}
-                icon={Layers} placeholder="Select Problem" />
+                icon={Layers} placeholder="Select Problem" label="Problem" />
             </div>
           )}
 
@@ -632,8 +512,16 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
             <div className="h-full flex items-center gap-2 px-4 text-xs font-mono font-bold border-t-2 border-t-blue-500 text-white bg-white/[0.03] border-x border-white/[0.08]">
               <Code2 size={13} className="text-blue-400" /> solution.{currentLangObj.ext}
             </div>
+            <div className="flex items-center gap-2">
+            {code !== (problem?.starter_code?.[language] || "") && (
+              <button type="button" onClick={resetToStarter} title="Discard your changes for this language"
+                className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white px-2 py-1 rounded-md border border-white/10 bg-white/[0.03]">
+                <RotateCcw size={11} aria-hidden="true" /> Reset
+              </button>
+            )}
             <div className="w-44">
               <CustomDropdown
+                label="Language"
                 value={language}
                 onChange={handleLanguageChange}
                 options={LANGUAGES}
@@ -641,11 +529,13 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
                 placeholder="Language"
               />
             </div>
+            </div>
           </div>
 
           <div className="flex-1 relative pt-2">
-            <Editor height="100%" language={currentLangObj.monaco} beforeMount={handleEditorBeforeMount} onMount={handleEditorDidMount}
-              theme="oled-dark" value={code} onChange={(v) => setCode(v || "")}
+            <Editor key={`${problem.slug}:${language}:${editorVersion}`} height="100%" language={currentLangObj.monaco}
+              beforeMount={handleEditorBeforeMount} onMount={handleEditorDidMount}
+              theme={highContrast ? "hc-black" : "oled-dark"} defaultValue={code} onChange={handleCodeChange}
               options={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false, lineHeight: 24, padding: { top: 16, bottom: 60 }, overviewRulerBorder: false, hideCursorInOverviewRuler: true, renderLineHighlight: "all", cursorBlinking: "smooth" }} />
           </div>
 

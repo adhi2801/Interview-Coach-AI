@@ -7,6 +7,7 @@ import { COMPANIES } from "../constants/companies";
 import { TOTAL_NODES, computeTimeLimit, formatTime, getPersonaMeta } from "./interview/constants";
 import { useCoachingSocket } from "./interview/useCoachingSocket";
 import { useRecorder } from "./interview/useRecorder";
+import { usePreferences } from "../lib/preferences";
 import QuestionPane from "./interview/QuestionPane";
 import TelemetryPane from "./interview/TelemetryPane";
 import Debrief from "./interview/Debrief";
@@ -97,6 +98,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const prefs = usePreferences();
   const coach = useCoachingSocket(sessionData?.session_id, {
     onTranscription: (text) => setAnswer((prev) => (prev + " " + text).trim()),
   });
@@ -347,16 +349,16 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
           </div>
           <div className="w-px h-4 bg-white/10 hidden sm:block" />
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-white text-xs font-bold uppercase tracking-widest bg-white/5 border border-white/10 px-2.5 py-1 rounded flex items-center gap-1.5 shrink-0">
+            <span className="text-white text-[13.5px] font-medium flex items-center gap-1.5 shrink-0">
               {companyMeta ? <span className="shrink-0">{companyMeta.logo}</span> : <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "var(--accent)" }} />}
               {company?.name || "Target"}
             </span>
-            <span className="text-slate-300 text-xs font-bold uppercase tracking-widest hidden md:inline truncate">
-              &middot; {sessionData?.role || "SWE L4"}
+            <span className="text-slate-400 text-[13.5px] hidden md:inline truncate">
+              {sessionData?.role || "Software Engineer"}
             </span>
             <span
-              className="text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded ml-1 border hidden sm:flex items-center gap-1.5 shrink-0"
-              style={{ background: `rgba(var(--accent-rgb), 0.1)`, borderColor: `rgba(var(--accent-rgb), 0.25)`, color: "var(--accent)" }}
+              className="text-[13.5px] ml-1 hidden sm:flex items-center gap-1.5 shrink-0"
+              style={{ color: "var(--accent)" }}
             >
               <PersonaIcon size={11} />
               {personaMeta.label}
@@ -368,36 +370,36 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
           {phase === "answering" ? (
             <>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-widest text-slate-300 hidden sm:block">Time</span>
+                <span className="text-slate-400 text-[13px] hidden sm:block">Time left</span>
                 <span className={`text-base font-bold tabular-nums font-mono ${timeLeft <= 20 ? "text-rose-400 animate-pulse" : timeLeft <= 60 ? "text-amber-400" : "text-white"}`}>
                   {formatTime(timeLeft)}
                 </span>
               </div>
               <div className="w-px h-4 bg-white/10 hidden sm:block" />
               <div className="flex items-center gap-2 hidden sm:flex">
-                <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Node</span>
-                <span className="text-sm font-mono font-bold text-white">{questionNum}/{TOTAL_NODES}</span>
+                <span className="text-slate-400 text-[13px]">Question</span>
+                <span className="text-sm font-mono font-bold text-white">{questionNum} of {TOTAL_NODES}</span>
               </div>
               <div className="w-px h-4 bg-white/10 hidden xl:block" />
               <div className="items-center gap-2 hidden xl:flex" title="Real time elapsed since this session started">
-                <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Session</span>
+                <span className="text-slate-400 text-[13px]">Session</span>
                 <span className="text-sm font-mono font-bold text-slate-300 tabular-nums">{formatTime(sessionElapsed)}</span>
               </div>
               <div className="w-px h-4 bg-white/10 hidden lg:block" />
               <div className="items-center gap-2 hidden lg:flex">
-                <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">ELO</span>
+                <span className="text-slate-400 text-[13px]">Rating</span>
                 <span className="text-sm font-mono font-bold text-slate-100 tabular-nums">{Math.round(currentElo)}</span>
               </div>
               <div className="w-px h-4 bg-white/10" />
-              <button onClick={() => setShowAbortConfirm(true)} className="text-xs font-mono font-bold text-slate-300 hover:text-white uppercase tracking-widest border border-white/10 px-3 py-1 rounded bg-white/5 transition-colors">
-                Abort
+              <button onClick={() => setShowAbortConfirm(true)} className="text-[13px] text-slate-300 hover:text-white border border-white/15 px-3 py-1 hover:bg-white/[0.06] transition-colors">
+                End early
               </button>
             </>
           ) : (
             <>
               <div className="flex items-center gap-2 text-emerald-400">
                 <CheckCircle2 size={16} />
-                <span className="text-xs font-bold uppercase tracking-widest hidden sm:inline">Node Logged</span>
+                <span className="text-[13px] hidden sm:inline">Answer scored</span>
               </div>
               <button onClick={handleFinish} className="text-slate-200 bg-white/[0.04] border border-white/10 px-4 py-1.5 rounded-lg hover:bg-white/[0.08] hover:text-white text-xs font-bold uppercase tracking-widest transition-colors flex items-center gap-1.5">
                 End Session <ChevronRight size={16} />
@@ -549,6 +551,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
             <TelemetryPane
               personaMeta={personaMeta} liveCoaching={liveCoaching} wsConnected={wsConnected}
               intervention={intervention} eloBand={eloBand} currentElo={currentElo}
+              showCoaching={prefs.live_coaching_telemetry !== false}
             />
           </div>
         ) : (

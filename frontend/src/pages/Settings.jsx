@@ -1,647 +1,323 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { AppHeader, PageIntro } from "../components/app/AppChrome";
+// Settings, as one page of sections: profile, how interviews behave, the
+// microphone, password and sign-in, and deleting the account. Every control
+// here changes something real; nothing is decorative.
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Check, LogOut, Mic, Pencil, Square, X } from "lucide-react";
 import api from "../lib/api";
-import { motion, AnimatePresence } from "motion/react";
-import {
-  LogOut, User, Activity,
-  ShieldAlert, Key, Trash2, Mic,
-  Volume2, Settings2, Check, X, AlertTriangle,
-  RotateCcw, Pencil, Square
-} from "lucide-react";
-import { GlassCard as LiquidCard } from "../components/fx/LiquidGlass";
+import { AppHeader, Frame, PageIntro } from "../components/app/AppChrome";
+import { PREFERENCE_DEFAULTS, readMicDevice, updatePreferenceCache, writeMicDevice } from "../lib/preferences";
+import SecurityPanel from "./settings/SecurityPanel";
 
-// Sensible app defaults for any preference key not yet present on the
-// user record — NOT what gets sent to the backend, only what's shown
-// until the person actually changes something for the first time.
-const PREFERENCE_DEFAULTS = {
-  sound_effects: false,
-  live_coaching_telemetry: true,
-  high_contrast_editor: true,
-};
-
-const PREFERENCE_ROWS = [
-  { key: "sound_effects", label: "Sound Effects", description: "Mechanical UI sounds and alerts during sessions." },
-  { key: "live_coaching_telemetry", label: "Live Coaching Telemetry", description: "Show WPM and real-time confidence scores during interview." },
-  { key: "high_contrast_editor", label: "High Contrast Editor", description: "Use strict dark mode themes in the coding sandbox." },
+const SECTIONS = [
+  ["profile", "Profile"], ["interviews", "Interviews"], ["microphone", "Microphone"],
+  ["security", "Password and sign-in"], ["delete", "Delete account"],
 ];
 
-export default function Settings({ user, onLogout, onGoBack, onProfileUpdate }) {
-  const [activeTab, setActiveTab] = useState("profile");
+const PREFERENCES = [
+  { key: "live_coaching_telemetry", label: "Live coaching", description: "Show confidence, pace and filler words while you answer. Scoring is the same either way." },
+  { key: "high_contrast_editor", label: "High-contrast code editor", description: "Use a high-contrast theme in the coding room." },
+];
 
-  // Real profile summary — name, email, ELO, real session/score
-  // aggregates, stored preferences, role-scoped bracket. Fetched once
-  // from /user/profile-summary, not assembled from fabricated pieces.
-  const [profile, setProfile] = useState(null);
-  const [profileLoading, setProfileLoading] = useState(true);
-  const [profileError, setProfileError] = useState(false);
-
-  // Name editing
-  const [editingName, setEditingName] = useState(false);
-  const [nameDraft, setNameDraft] = useState("");
-  const [nameSaveState, setNameSaveState] = useState("idle"); // idle | saving | saved | error
-
-  // Preferences — local optimistic copy layered on top of PREFERENCE_DEFAULTS
-  // + whatever the backend actually has stored, with per-row save-state.
-  const [prefs, setPrefs] = useState(PREFERENCE_DEFAULTS);
-  const [prefSaveState, setPrefSaveState] = useState({}); // key -> 'saving' | 'saved' | 'error'
-
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState("");
-
-  // Real audio devices — from navigator.mediaDevices, not a hardcoded list.
-  const [devices, setDevices] = useState([]);
-  const [devicesLoading, setDevicesLoading] = useState(false);
-  const [devicesError, setDevicesError] = useState(false);
-  const [selectedDeviceId, setSelectedDeviceId] = useState("");
-
-  // Real mic test — same AnalyserNode pattern as InterviewRoom's live
-  // waveform, not Math.random() bars.
-  const [micTesting, setMicTesting] = useState(false);
-  const [micError, setMicError] = useState("");
-  const [levels, setLevels] = useState(Array(32).fill(2));
-  const micStreamRef = useRef(null);
-  const micCtxRef = useRef(null);
-  const micAnimRef = useRef(null);
-
-  const fetchProfile = useCallback(() => {
-    setProfileLoading(true);
-    setProfileError(false);
-    api.get(`/user/profile-summary`)
-      .then(res => {
-        setProfile(res.data);
-        setPrefs({ ...PREFERENCE_DEFAULTS, ...(res.data.preferences || {}) });
-      })
-      .catch(() => setProfileError(true))
-      .finally(() => setProfileLoading(false));
-  }, []);
-
-  useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
-
-  // Real device enumeration — only fetched when the Hardware tab is
-  // actually opened, and only after permission (labels are blank
-  // without it, which is an honest browser limitation, not a bug).
-  useEffect(() => {
-    if (activeTab !== "hardware" || devices.length > 0) return;
-    setDevicesLoading(true);
-    setDevicesError(false);
-    navigator.mediaDevices?.enumerateDevices()
-      .then((list) => {
-        const mics = list.filter((d) => d.kind === "audioinput");
-        setDevices(mics);
-        if (mics[0]) setSelectedDeviceId(mics[0].deviceId);
-        setDevicesLoading(false);
-      })
-      .catch(() => { setDevicesError(true); setDevicesLoading(false); });
-  }, [activeTab, devices.length]);
-
-  useEffect(() => {
-    return () => {
-      if (micAnimRef.current) cancelAnimationFrame(micAnimRef.current);
-      if (micCtxRef.current && micCtxRef.current.state !== "closed") micCtxRef.current.close();
-      if (micStreamRef.current) micStreamRef.current.getTracks().forEach((t) => t.stop());
-    };
-  }, []);
-
-  const initial = profile?.name ? profile.name.charAt(0).toUpperCase() : (user?.name?.charAt(0).toUpperCase() || "U");
-  const getGradient = (name) => {
-    if (!name) return "linear-gradient(135deg, #3b82f6, #8b5cf6)";
-    const colors = [
-      "linear-gradient(135deg, #3b82f6, #8b5cf6)",
-      "linear-gradient(135deg, #10b981, #3b82f6)",
-      "linear-gradient(135deg, #f59e0b, #ef4444)",
-      "linear-gradient(135deg, #ec4899, #8b5cf6)"
-    ];
-    return colors[(name.charCodeAt(0) || 0) % colors.length];
-  };
-
-  function startEditingName() {
-    setNameDraft(profile?.name || "");
-    setEditingName(true);
-    setNameSaveState("idle");
-  }
-
-  async function saveName() {
-    const trimmed = nameDraft.trim();
-    if (!trimmed || trimmed === profile?.name) { setEditingName(false); return; }
-    const previous = profile.name;
-    setProfile((p) => ({ ...p, name: trimmed })); // optimistic
-    setNameSaveState("saving");
-    try {
-      await api.patch(`/user/profile`, { name: trimmed });
-      setNameSaveState("saved");
-      setEditingName(false);
-      onProfileUpdate?.({ name: trimmed });
-      setTimeout(() => setNameSaveState("idle"), 2000);
-    } catch (err) {
-      setProfile((p) => ({ ...p, name: previous })); // rollback
-      setNameSaveState("error");
-      setTimeout(() => setNameSaveState("idle"), 2500);
-    }
-  }
-
-  async function togglePreference(key) {
-    const newValue = !prefs[key];
-    const previous = prefs[key];
-
-    setPrefs((p) => ({ ...p, [key]: newValue })); // optimistic
-    setPrefSaveState((s) => ({ ...s, [key]: "saving" }));
-
-    try {
-      await api.patch(`/user/preferences`, { key, value: newValue });
-      setPrefSaveState((s) => ({ ...s, [key]: "saved" }));
-      setTimeout(() => setPrefSaveState((s) => ({ ...s, [key]: null })), 2000);
-    } catch (err) {
-      setPrefs((p) => ({ ...p, [key]: previous })); // rollback
-      setPrefSaveState((s) => ({ ...s, [key]: "error" }));
-      setTimeout(() => setPrefSaveState((s) => ({ ...s, [key]: null })), 2500);
-    }
-  }
-
-  async function startMicTest() {
-    setMicError("");
-    try {
-      const constraints = selectedDeviceId ? { audio: { deviceId: { exact: selectedDeviceId } } } : { audio: true };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      micStreamRef.current = stream;
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      micCtxRef.current = ctx;
-      const source = ctx.createMediaStreamSource(stream);
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 128;
-      source.connect(analyser);
-
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-      const barCount = 32;
-
-      const render = () => {
-        analyser.getByteFrequencyData(dataArray);
-        const step = Math.floor(bufferLength / barCount) || 1;
-        setLevels(Array.from({ length: barCount }, (_, i) => {
-          const v = dataArray[i * step] || 0;
-          return Math.max(3, Math.min(32, (v / 255) * 32));
-        }));
-        micAnimRef.current = requestAnimationFrame(render);
-      };
-      render();
-      setMicTesting(true);
-    } catch (err) {
-      setMicError("Microphone access denied or unavailable.");
-    }
-  }
-
-  function stopMicTest() {
-    setMicTesting(false);
-    if (micAnimRef.current) cancelAnimationFrame(micAnimRef.current);
-    if (micCtxRef.current && micCtxRef.current.state !== "closed") micCtxRef.current.close();
-    if (micStreamRef.current) micStreamRef.current.getTracks().forEach((t) => t.stop());
-    setLevels(Array(32).fill(2));
-  }
-
-  async function handleDeleteAccount() {
-    setDeleting(true);
-    setDeleteError("");
-    try {
-      await api.delete(`/user/me`);
-      onLogout();
-    } catch (err) {
-      setDeleteError(err.message || "Something went wrong. Please try again.");
-      setDeleting(false);
-    }
-  }
-
-
-  const tabs = [
-    { id: "profile", label: "General & Profile", icon: User },
-    { id: "telemetry", label: "ELO & Telemetry", icon: Activity },
-    { id: "hardware", label: "Audio & Hardware", icon: Mic },
-    { id: "danger", label: "Danger Zone", icon: ShieldAlert, danger: true }
-  ];
-
+function Section({ id, title, children }) {
   return (
-    <div className="relative flex min-h-screen flex-col overflow-x-clip bg-transparent font-sans text-slate-200 selection:bg-indigo-500/40">
-
-      <AppHeader back={{ label: "Overview", onClick: onGoBack }} />
-
-      <PageIntro index="06" label="Settings" title="Your account." subtitle="Profile, interview preferences, rating history and data controls." />
-
-      <main className="relative z-20 mx-auto flex w-full max-w-[1280px] flex-1 flex-col items-stretch gap-8 border-x border-white/[0.08] px-4 pb-20 pt-10 md:flex-row md:px-8">
-
-        <aside className="w-full md:w-[260px] shrink-0">
-          <div className="sticky top-24">
-            <nav className="flex flex-col gap-1.5">
-              {tabs.map((tab) => {
-                const isActive = activeTab === tab.id;
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      setActiveTab(tab.id);
-                      if (tab.id !== "danger") setConfirmingDelete(false);
-                    }}
-                    className={`relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                      isActive
-                        ? tab.danger ? "text-rose-400" : "text-white"
-                        : tab.danger ? "text-rose-400/90 hover:text-rose-300 hover:bg-rose-500/10" : "text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
-                    }`}
-                  >
-                    {isActive && (
-                      <motion.div
-                        layoutId="activeSettingsTab"
-                        className={`absolute inset-0 rounded-xl border ${tab.danger ? 'bg-rose-500/10 border-rose-500/20' : 'bg-white/[0.06] border-white/[0.1] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]'}`}
-                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                      />
-                    )}
-                    <Icon size={16} className="relative z-10" />
-                    <span className="relative z-10">{tab.label}</span>
-                    {tab.id === "telemetry" && profile?.elo_rating != null && (
-                      <span className="relative z-10 ml-auto text-[10px] font-mono font-bold text-indigo-300 bg-indigo-500/15 border border-indigo-500/25 px-1.5 py-0.5 rounded-full tabular-nums">
-                        {Math.round(profile.elo_rating)}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
-        </aside>
-
-        <div className="flex-1 min-w-0">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
-              className="space-y-8"
-            >
-              {activeTab === "profile" && (
-                <>
-                  <GlassCard className="p-8">
-                    {profileLoading ? (
-                      <div className="space-y-3">
-                        <div className="h-6 w-40 bg-white/[0.06] rounded-md animate-pulse" />
-                        <div className="h-4 w-64 bg-white/[0.06] rounded-md animate-pulse" />
-                      </div>
-                    ) : profileError ? (
-                      <div className="flex flex-col items-center text-center gap-2 py-6">
-                        <AlertTriangle size={20} className="text-amber-500/70" />
-                        <p className="text-sm text-slate-400">Couldn't load your profile.</p>
-                        <button onClick={fetchProfile} className="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
-                          <RotateCcw size={11} /> Retry
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-6 mb-8 pb-8 border-b border-white/[0.06]">
-                        <div
-                          className="w-20 h-20 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-[0_0_30px_rgba(139,92,246,0.3)] border-2 border-black shrink-0"
-                          style={{ background: getGradient(profile?.name) }}
-                        >
-                          {initial}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 mb-1.5">
-                            {editingName ? (
-                              <>
-                                <input
-                                  autoFocus
-                                  value={nameDraft}
-                                  onChange={(e) => setNameDraft(e.target.value)}
-                                  onKeyDown={(e) => { if (e.key === "Enter") saveName(); if (e.key === "Escape") setEditingName(false); }}
-                                  className="text-2xl font-extrabold tracking-tight text-white bg-white/[0.05] border border-indigo-500/40 rounded-lg px-2 py-1 outline-none min-w-0"
-                                />
-                                <button onClick={saveName} aria-label="Save name" className="p-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25">
-                                  <Check size={14} />
-                                </button>
-                                <button onClick={() => setEditingName(false)} aria-label="Cancel editing name" className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white">
-                                  <X size={14} />
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <h2 className="text-2xl font-extrabold tracking-tight text-white">{profile?.name || "Candidate"}</h2>
-                                <button onClick={startEditingName} aria-label="Edit name" className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/[0.06] transition-colors">
-                                  <Pencil size={13} />
-                                </button>
-                              </>
-                            )}
-                            <AnimatePresence>
-                              {nameSaveState !== "idle" && (
-                                <motion.span
-                                  initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                  className={`text-[10px] font-mono font-bold flex items-center gap-1 ${nameSaveState === "error" ? "text-rose-400" : "text-emerald-400"}`}
-                                >
-                                  {nameSaveState === "saving" && <>Saving…</>}
-                                  {nameSaveState === "saved" && <><Check size={10} /> Saved</>}
-                                  {nameSaveState === "error" && <><AlertTriangle size={10} /> Failed — reverted</>}
-                                </motion.span>
-                              )}
-                            </AnimatePresence>
-                          </div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {profile?.bracket ? (
-                              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-300 bg-white/5 border border-white/10 px-2.5 py-0.5 rounded-full">
-                                {profile.bracket.label} &middot; {profile.bracket.role}
-                              </span>
-                            ) : (
-                              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 bg-white/[0.03] border border-white/10 px-2.5 py-0.5 rounded-full italic">
-                                No bracket yet — complete a session
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="hidden sm:flex items-center gap-5 pl-5 border-l border-white/[0.07] shrink-0">
-                          <div className="text-center">
-                            <div className="text-xl font-extrabold text-white font-mono tabular-nums">{Math.round(profile?.elo_rating ?? 1200)}</div>
-                            <div className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mt-0.5">ELO</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-xl font-extrabold text-white font-mono tabular-nums">{profile?.total_sessions ?? 0}</div>
-                            <div className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mt-0.5">Sessions</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-xl font-extrabold text-white font-mono tabular-nums">
-                              {profile?.avg_score != null ? profile.avg_score.toFixed(1) : "—"}
-                            </div>
-                            <div className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mt-0.5">Avg Score</div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="space-y-1 font-mono text-xs">
-                      <ConfigRow
-                        label="EMAIL ADDRESS"
-                        value={<span className="flex items-center gap-2">{profile?.email || user?.email || "—"}</span>}
-                        managedNote="Not editable — tied to your login"
-                      />
-                      <ConfigRow
-                        label="AUTHENTICATION"
-                        value={<span className="flex items-center gap-2 text-slate-400"><Key size={14} /> Password securely hashed</span>}
-                        managedNote="Managed — no manual reset needed"
-                      />
-                    </div>
-                  </GlassCard>
-
-                  <GlassCard className="p-8">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-300 mb-6 flex items-center gap-2">
-                      <Settings2 size={16} className="text-slate-400" /> Interview Preferences
-                    </h3>
-                    <div className="space-y-2">
-                      {PREFERENCE_ROWS.map((row) => (
-                        <ToggleRow
-                          key={row.key}
-                          label={row.label}
-                          description={row.description}
-                          isOn={!!prefs[row.key]}
-                          saveState={prefSaveState[row.key]}
-                          onToggle={() => togglePreference(row.key)}
-                        />
-                      ))}
-                    </div>
-                  </GlassCard>
-                </>
-              )}
-
-              {activeTab === "telemetry" && (
-                <GlassCard className="p-8">
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-slate-300 mb-6 flex items-center gap-2 font-mono">
-                    <Activity size={16} className="text-emerald-400" /> Real Rating & Session Stats
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                    <div className="bg-[#0a0a10]/90 border border-white/[0.06] p-6 rounded-2xl shadow-inner">
-                      <span className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-2">Current Rating</span>
-                      <span className="text-4xl font-extrabold text-white tabular-nums tracking-tighter font-mono">
-                        {Math.round(profile?.elo_rating ?? 1200)}
-                      </span>
-                    </div>
-                    <div className="bg-[#0a0a10]/90 border border-white/[0.06] p-6 rounded-2xl shadow-inner">
-                      <span className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-2">Total Sessions</span>
-                      <span className="text-4xl font-extrabold text-white tabular-nums tracking-tighter font-mono">
-                        {profile?.total_sessions ?? 0}
-                      </span>
-                    </div>
-                    <div className="bg-[#0a0a10]/90 border border-white/[0.06] p-6 rounded-2xl shadow-inner">
-                      <span className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-2">Average Score</span>
-                      <span className="text-4xl font-extrabold text-emerald-400 tabular-nums tracking-tighter font-mono">
-                        {profile?.avg_score != null ? profile.avg_score.toFixed(1) : "—"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {profile?.bracket ? (
-                    <div className="bg-indigo-500/[0.06] border border-indigo-500/20 p-5 rounded-2xl mb-6">
-                      <span className="block text-[10px] font-mono font-bold text-indigo-400 uppercase tracking-widest mb-2">Current Bracket</span>
-                      <p className="text-sm text-slate-200 font-medium">
-                        Based on your most recent session (<span className="font-bold text-white">{profile.bracket.role}</span>), you're rated
-                        {" "}<span className="font-bold text-white">{profile.bracket.label}</span> ({profile.bracket.low}–{profile.bracket.high}).
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="bg-white/[0.03] border border-white/[0.08] p-5 rounded-2xl mb-6">
-                      <p className="text-sm text-slate-500">No bracket yet — this appears once you complete a session in a tracked role.</p>
-                    </div>
-                  )}
-
-                  <p className="text-xs text-slate-400 font-medium leading-relaxed bg-blue-500/5 border border-blue-500/10 p-4 rounded-xl">
-                    Your progression data is strictly private and is only used to calibrate the adaptive difficulty of your simulations.
-                  </p>
-                </GlassCard>
-              )}
-
-              {activeTab === "hardware" && (
-                <GlassCard className="p-8">
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-slate-300 mb-6 flex items-center gap-2 font-mono">
-                    <Mic size={16} className="text-indigo-400" /> Audio Configuration
-                  </h3>
-
-                  <div className="space-y-6">
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 font-mono">Input Device Selector</label>
-                      {devicesLoading ? (
-                        <div className="h-11 bg-white/[0.05] rounded-xl animate-pulse" />
-                      ) : devicesError ? (
-                        <p className="text-xs text-amber-400/80 flex items-center gap-1.5"><AlertTriangle size={12} /> Couldn't list audio devices — check browser permissions.</p>
-                      ) : devices.length > 0 ? (
-                        <select
-                          value={selectedDeviceId}
-                          onChange={(e) => setSelectedDeviceId(e.target.value)}
-                          className="w-full bg-[#0a0a10]/90 border border-white/10 rounded-xl px-4 py-3 text-sm font-semibold text-white outline-none focus:border-indigo-500 appearance-none shadow-inner cursor-pointer"
-                        >
-                          {devices.map((d, i) => (
-                            <option key={d.deviceId || i} value={d.deviceId}>
-                              {d.label || `Microphone ${i + 1} (grant permission to see its name)`}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <p className="text-xs text-slate-500">No input devices found, or permission hasn't been granted yet — click "Test Microphone" below to request access.</p>
-                      )}
-                    </div>
-
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 font-mono">
-                          <Volume2 size={12} /> Live Input Level
-                        </label>
-                        <button
-                          onClick={micTesting ? stopMicTest : startMicTest}
-                          className={`flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg border transition-colors ${
-                            micTesting ? "bg-rose-500/10 border-rose-500/30 text-rose-400" : "bg-white/[0.04] border-white/10 text-slate-300 hover:text-white"
-                          }`}
-                        >
-                          {micTesting ? <><Square size={11} fill="currentColor" /> Stop Test</> : <><Mic size={11} /> Test Microphone</>}
-                        </button>
-                      </div>
-                      {micError && <p className="text-xs text-rose-400 mb-2">{micError}</p>}
-                      <div className="flex items-end gap-1 h-12 w-full p-2.5 bg-[#0a0a10]/90 border border-white/10 rounded-xl shadow-inner overflow-hidden">
-                        {levels.map((h, i) => (
-                          <div
-                            key={i}
-                            className={`flex-1 rounded-t-sm transition-[height] duration-75 ${micTesting ? "bg-emerald-400" : "bg-white/10"}`}
-                            style={{ height: `${h}px` }}
-                          />
-                        ))}
-                      </div>
-                      <p className="text-[10px] text-slate-600 mt-2">
-                        {micTesting ? "Reading your real mic signal — speak to see it move." : "Real signal from your microphone — not simulated. Click Test to start."}
-                      </p>
-                    </div>
-                  </div>
-                </GlassCard>
-              )}
-
-              {activeTab === "danger" && (
-                <GlassCard className="p-8 border-rose-500/20 bg-rose-950/10">
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-rose-400 mb-6 flex items-center gap-2 font-mono">
-                    <ShieldAlert size={16} /> Danger Zone
-                  </h3>
-
-                  <div className="space-y-6">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl border border-rose-500/10 bg-rose-500/5">
-                      <div>
-                        <p className="text-sm font-bold text-white mb-1">End Current Session</p>
-                        <p className="text-xs font-medium text-slate-400">Log out of your account on this device. Your data will remain safe.</p>
-                      </div>
-                      <button
-                        onClick={onLogout}
-                        className="shrink-0 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-white text-sm font-bold hover:bg-white/10 active:scale-95 transition-all w-full sm:w-auto outline-none"
-                      >
-                        <LogOut size={14} /> Log Out
-                      </button>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl border border-rose-500/20 bg-rose-500/[0.03]">
-                      {!confirmingDelete ? (
-                        <>
-                          <div>
-                            <p className="text-sm font-bold text-rose-400 mb-1">Delete Account</p>
-                            <p className="text-xs font-medium text-rose-200/50">
-                              Permanently deletes your account, interview transcripts, and ELO history. Cannot be undone.
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => setConfirmingDelete(true)}
-                            className="shrink-0 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-rose-500/30 text-rose-400 text-sm font-bold hover:bg-rose-500/10 active:scale-95 transition-all w-full sm:w-auto outline-none"
-                          >
-                            <Trash2 size={14} /> Delete Account
-                          </button>
-                        </>
-                      ) : (
-                        <div className="w-full">
-                          <p className="text-sm font-bold text-rose-400 mb-1">Are you sure?</p>
-                          <p className="text-xs font-medium text-rose-200/50 mb-4">
-                            This permanently deletes your account and all associated data. There is no undo.
-                          </p>
-                          {deleteError && (
-                            <p className="text-xs font-bold text-rose-400 mb-4 bg-rose-500/10 p-2 rounded">{deleteError}</p>
-                          )}
-                          <div className="flex flex-col sm:flex-row gap-3">
-                            <button
-                              onClick={() => setConfirmingDelete(false)}
-                              disabled={deleting}
-                              className="flex-1 px-5 py-2.5 rounded-xl border border-white/10 text-slate-300 text-sm font-bold hover:bg-white/[0.05] transition-all outline-none"
-                            >
-                              Cancel
-                            </button>
-                            <button
-                              onClick={handleDeleteAccount}
-                              disabled={deleting}
-                              className="flex-1 px-5 py-2.5 rounded-xl bg-rose-600 text-white text-sm font-bold hover:bg-rose-500 active:scale-95 transition-all disabled:opacity-50 outline-none"
-                            >
-                              {deleting ? "Deleting..." : "Yes, delete everything"}
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </GlassCard>
-              )}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </main>
-    </div>
-  );
-}
-
-function GlassCard({ children, className = "" }) {
-  return (
-    <LiquidCard radius={10} className={className}>
+    <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-20 border-b border-white/[0.08] px-5 py-9 last:border-b-0 md:px-8">
+      <h2 id={`${id}-title`} className="mb-5 text-[18px] font-semibold tracking-[-0.01em] text-white">{title}</h2>
       {children}
-    </LiquidCard>
+    </section>
   );
 }
 
-function ConfigRow({ label, value, managedNote }) {
+// SecurityPanel renders its parts as cards; inside this page they're plain blocks.
+function Block({ children }) {
+  return <div className="mb-8 last:mb-0">{children}</div>;
+}
+
+function Switch({ checked, onChange, label, description, state }) {
   return (
-    <div className="flex items-center justify-between p-4 rounded-xl hover:bg-white/[0.02] transition-colors">
+    <div className="flex items-start justify-between gap-6 py-4">
       <div>
-        <p className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 mb-1">{label}</p>
-        <div className="text-sm font-semibold text-white">{value}</div>
+        <p className="text-[14.5px] text-white">{label}</p>
+        <p className="mt-0.5 max-w-lg text-[13px] leading-relaxed text-white/60">{description}</p>
+        {state === "error" && <p role="alert" className="mt-1 text-[12.5px] text-rose-300">Couldn't save that. Try again.</p>}
       </div>
-      <span className="text-[10px] font-mono text-slate-600 uppercase text-right max-w-[180px]">{managedNote}</span>
+      <button type="button" role="switch" aria-checked={checked} aria-label={label} onClick={onChange}
+        className={`relative mt-0.5 h-6 w-11 shrink-0 border transition-colors focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-indigo-300 ${
+          checked ? "border-indigo-300 bg-indigo-400/30" : "border-white/25 bg-white/[0.04]"}`}>
+        <span className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 transition-[left] ${checked ? "left-[22px] bg-indigo-200" : "left-[3px] bg-white/60"}`} />
+      </button>
     </div>
   );
 }
 
-function ToggleRow({ label, description, isOn, onToggle, saveState }) {
-  return (
-    <div className="flex items-center justify-between p-4 rounded-xl hover:bg-white/[0.02] transition-colors cursor-pointer" onClick={onToggle}>
-      <div className="pr-4">
-        <div className="flex items-center gap-2 mb-1">
-          <p className="text-sm font-bold text-white">{label}</p>
-          <AnimatePresence>
-            {saveState && (
-              <motion.span
-                initial={{ opacity: 0, y: -3 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                className={`text-[9.5px] font-mono font-bold flex items-center gap-1 ${saveState === "error" ? "text-rose-400" : "text-emerald-400"}`}
-              >
-                {saveState === "saving" && "Saving…"}
-                {saveState === "saved" && <><Check size={9} /> Saved</>}
-                {saveState === "error" && <><AlertTriangle size={9} /> Failed — reverted</>}
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </div>
-        <p className="text-xs font-medium text-slate-500">{description}</p>
-      </div>
+function Profile({ profile, onRename, onLogout }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [state, setState] = useState("idle");
 
-      <div className={`relative w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 ease-in-out shrink-0 ${isOn ? 'bg-indigo-600' : 'bg-white/10'}`}>
-        <motion.div
-          layout
-          initial={false}
-          className="w-4 h-4 bg-white rounded-full shadow-sm"
-          animate={{ x: isOn ? 20 : 0 }}
-          transition={{ type: "spring", stiffness: 500, damping: 30 }}
-        />
+  async function save(e) {
+    e.preventDefault();
+    const name = draft.trim();
+    if (!name || name === profile.name) { setEditing(false); return; }
+    setState("saving");
+    try {
+      await onRename(name);
+      setEditing(false);
+      setState("saved");
+    } catch {
+      setState("error");
+    }
+  }
+
+  return (
+    <>
+      <dl className="grid gap-5 sm:grid-cols-2">
+        <div>
+          <dt className="text-[12.5px] text-white/55">Name</dt>
+          <dd className="mt-1">
+            {editing ? (
+              <form onSubmit={save} className="flex items-center gap-2">
+                <label className="sr-only" htmlFor="name-input">Name</label>
+                <input id="name-input" autoFocus value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={100}
+                  className="w-56 border border-white/15 bg-[#07070b] px-3 py-1.5 text-[14.5px] text-white focus:border-indigo-400 focus:outline-none" />
+                <button type="submit" aria-label="Save name" disabled={state === "saving"} className="p-1.5 text-emerald-300 hover:text-emerald-200"><Check size={16} /></button>
+                <button type="button" aria-label="Cancel editing name" onClick={() => setEditing(false)} className="p-1.5 text-white/60 hover:text-white"><X size={16} /></button>
+              </form>
+            ) : (
+              <span className="flex items-center gap-2 text-[15px] text-white">
+                {profile.name}
+                <button type="button" aria-label="Edit name" onClick={() => { setDraft(profile.name); setEditing(true); setState("idle"); }}
+                  className="p-1 text-white/55 hover:text-white"><Pencil size={13} /></button>
+              </span>
+            )}
+            {state === "saved" && <span role="status" className="mt-1 block text-[12.5px] text-emerald-300">Saved.</span>}
+            {state === "error" && <span role="alert" className="mt-1 block text-[12.5px] text-rose-300">Couldn't save your name. Try again.</span>}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[12.5px] text-white/55">Email</dt>
+          <dd className="mt-1 text-[15px] text-white">{profile.email}<span className="block text-[12.5px] text-white/50">You sign in with this.</span></dd>
+        </div>
+      </dl>
+      <p className="mt-6 text-[14px] leading-relaxed text-white/70">
+        Rating <span className="font-mono tabular-nums text-white">{Math.round(profile.elo_rating).toLocaleString("en-US")}</span>
+        {" "}across {profile.total_sessions} {profile.total_sessions === 1 ? "interview" : "interviews"}
+        {profile.avg_score != null && <>, averaging <span className="font-mono tabular-nums text-white">{profile.avg_score}</span> out of 100</>}.
+        {profile.bracket && <> Your latest role, {profile.bracket.role}, has a {profile.bracket.label.replace(" Band", "")} band of {profile.bracket.low}–{profile.bracket.high}.</>}
+      </p>
+      <button type="button" onClick={onLogout} className="mt-6 flex items-center gap-2 border border-white/15 px-4 py-2 text-[13.5px] text-white hover:bg-white/[0.06]">
+        <LogOut size={14} aria-hidden="true" /> Log out of this device
+      </button>
+    </>
+  );
+}
+
+function Microphone() {
+  const [devices, setDevices] = useState(null);
+  const [deviceId, setDeviceId] = useState(readMicDevice());
+  const [testing, setTesting] = useState(false);
+  const [error, setError] = useState("");
+  const [level, setLevel] = useState(0);
+  const streamRef = useRef(null), ctxRef = useRef(null), frameRef = useRef(null);
+
+  const listDevices = useCallback(() => {
+    navigator.mediaDevices?.enumerateDevices()
+      .then((all) => setDevices(all.filter((d) => d.kind === "audioinput")))
+      .catch(() => setDevices([]));
+  }, []);
+  useEffect(listDevices, [listDevices]);
+
+  const stop = useCallback(() => {
+    setTesting(false);
+    setLevel(0);
+    if (frameRef.current) cancelAnimationFrame(frameRef.current);
+    if (ctxRef.current && ctxRef.current.state !== "closed") ctxRef.current.close();
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  }, []);
+  useEffect(() => stop, [stop]);
+
+  async function start() {
+    setError("");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia(deviceId ? { audio: { deviceId: { exact: deviceId } } } : { audio: true });
+      streamRef.current = stream;
+      listDevices(); // names appear once permission is granted
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      ctxRef.current = ctx;
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      ctx.createMediaStreamSource(stream).connect(analyser);
+      const data = new Uint8Array(analyser.fftSize);
+      const tick = () => {
+        analyser.getByteTimeDomainData(data);
+        let peak = 0;
+        for (const v of data) peak = Math.max(peak, Math.abs(v - 128));
+        setLevel(Math.min(1, peak / 90));
+        frameRef.current = requestAnimationFrame(tick);
+      };
+      tick();
+      setTesting(true);
+    } catch {
+      setError("Microphone access was blocked or the device isn't available. Allow it in your browser and try again.");
+    }
+  }
+
+  function choose(id) {
+    setDeviceId(id);
+    writeMicDevice(id);
+    if (testing) stop();
+  }
+
+  return (
+    <>
+      <label className="block">
+        <span className="text-[13px] text-white/60">Microphone for voice answers (saved on this device)</span>
+        <select value={deviceId} onChange={(e) => choose(e.target.value)}
+          className="mt-1.5 block w-full max-w-md border border-white/15 bg-[#07070b] px-3 py-2.5 text-[14px] text-white focus:border-indigo-400 focus:outline-none">
+          <option value="">Browser default</option>
+          {(devices || []).filter((d) => d.deviceId).map((d, i) => (
+            <option key={d.deviceId} value={d.deviceId}>{d.label || `Microphone ${i + 1}`}</option>
+          ))}
+        </select>
+      </label>
+      {devices?.some((d) => !d.label) && <p className="mt-1.5 text-[12.5px] text-white/50">Names appear after you allow microphone access, for example by testing it.</p>}
+      <div className="mt-5 flex items-center gap-4">
+        <button type="button" onClick={testing ? stop : start}
+          className="flex items-center gap-2 border border-white/15 px-4 py-2 text-[13.5px] text-white hover:bg-white/[0.06]">
+          {testing ? <><Square size={12} aria-hidden="true" /> Stop test</> : <><Mic size={13} aria-hidden="true" /> Test microphone</>}
+        </button>
+        <div className="h-[6px] w-56 bg-white/[0.07]" role="meter" aria-label="Input level" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(level * 100)}>
+          <div className="h-full bg-emerald-400 transition-[width] duration-75" style={{ width: `${level * 100}%` }} />
+        </div>
       </div>
+      <p className="mt-2 text-[12.5px] text-white/50">{testing ? "Speak and the bar should move." : "Nothing is recorded during a test."}</p>
+      {error && <p role="alert" className="mt-2 text-[13px] text-rose-300">{error}</p>}
+    </>
+  );
+}
+
+function DeleteAccount({ onDeleted }) {
+  const [confirming, setConfirming] = useState(false);
+  const [typed, setTyped] = useState("");
+  const [state, setState] = useState({ busy: false, error: "" });
+
+  async function remove() {
+    setState({ busy: true, error: "" });
+    try {
+      await api.delete("/user/me");
+      onDeleted();
+    } catch (err) {
+      setState({ busy: false, error: err.message || "Couldn't delete the account. Try again." });
+    }
+  }
+
+  return (
+    <>
+      <p className="max-w-xl text-[14px] leading-relaxed text-white/70">
+        Deletes your account, every interview and coding submission, your answers and your rating history. This can't be undone.
+      </p>
+      {!confirming ? (
+        <button type="button" onClick={() => setConfirming(true)} className="mt-5 border border-rose-400/40 px-4 py-2 text-[13.5px] text-rose-200 hover:bg-rose-500/10">
+          Delete my account
+        </button>
+      ) : (
+        <div className="mt-5 max-w-md">
+          <label className="block text-[13px] text-white/70" htmlFor="confirm-delete">Type <span className="font-mono text-white">delete</span> to confirm</label>
+          <input id="confirm-delete" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off"
+            className="mt-1.5 w-full border border-white/15 bg-[#07070b] px-3 py-2 text-[14px] text-white focus:border-rose-400 focus:outline-none" />
+          {state.error && <p role="alert" className="mt-2 text-[13px] text-rose-300">{state.error}</p>}
+          <div className="mt-3 flex gap-2">
+            <button type="button" onClick={() => { setConfirming(false); setTyped(""); }} className="border border-white/15 px-4 py-2 text-[13.5px] text-white hover:bg-white/[0.06]">Cancel</button>
+            <button type="button" onClick={remove} disabled={typed.trim().toLowerCase() !== "delete" || state.busy}
+              className="bg-rose-600 px-4 py-2 text-[13.5px] font-medium text-white hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-40">
+              {state.busy ? "Deleting…" : "Delete everything"}
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+export default function Settings({ onLogout, onGoBack, onProfileUpdate }) {
+  const [profile, setProfile] = useState(null);
+  const [error, setError] = useState("");
+  const [prefs, setPrefs] = useState(PREFERENCE_DEFAULTS);
+  const [prefState, setPrefState] = useState({});
+
+  const load = useCallback(() => {
+    setError("");
+    api.get("/user/profile-summary")
+      .then((r) => { setProfile(r.data); setPrefs({ ...PREFERENCE_DEFAULTS, ...(r.data.preferences || {}) }); })
+      .catch((err) => setError(err.message || "Couldn't load your settings."));
+  }, []);
+  useEffect(load, [load]);
+
+  async function rename(name) {
+    await api.patch("/user/profile", { name });
+    setProfile((p) => ({ ...p, name }));
+    onProfileUpdate?.({ name });
+  }
+
+  async function toggle(key) {
+    const next = !prefs[key];
+    setPrefs((p) => ({ ...p, [key]: next }));
+    setPrefState((s) => ({ ...s, [key]: "saving" }));
+    try {
+      await api.patch("/user/preferences", { key, value: next });
+      updatePreferenceCache(key, next);
+      setPrefState((s) => ({ ...s, [key]: null }));
+    } catch {
+      setPrefs((p) => ({ ...p, [key]: !next }));
+      setPrefState((s) => ({ ...s, [key]: "error" }));
+    }
+  }
+
+  return (
+    <div className="relative flex min-h-screen flex-col overflow-x-clip bg-transparent font-sans text-slate-200">
+      <AppHeader back={{ label: "Overview", onClick: onGoBack }} />
+      <PageIntro index="06" label="Settings" title="Your account." subtitle="Your profile, how interviews behave, your microphone, sign-in, and your data." />
+
+      <Frame className="flex-1" innerClassName="border-b border-white/[0.08]">
+        <div className="grid lg:grid-cols-[14rem_minmax(0,1fr)]">
+          <nav aria-label="Settings sections" className="hidden border-r border-white/[0.08] lg:block">
+            <ul className="sticky top-16 py-8">
+              {SECTIONS.map(([id, label]) => (
+                <li key={id}>
+                  <a href={`#${id}`} className={`block px-6 py-2 text-[14px] hover:text-white ${id === "delete" ? "text-rose-200/80" : "text-white/65"}`}>{label}</a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          <div className="min-w-0">
+            {error ? (
+              <div className="px-5 py-16 md:px-8">
+                <p className="text-[15px] text-white/80">{error}</p>
+                <button type="button" onClick={load} className="mt-4 border border-white/15 px-4 py-2 text-[13.5px] text-white hover:bg-white/[0.06]">Try again</button>
+              </div>
+            ) : !profile ? (
+              <div aria-busy="true" aria-label="Loading your settings" className="space-y-px p-8">{[0, 1, 2].map((i) => <div key={i} className="h-24 animate-pulse bg-white/[0.03]" />)}</div>
+            ) : (
+              <>
+                <Section id="profile" title="Profile"><Profile profile={profile} onRename={rename} onLogout={onLogout} /></Section>
+                <Section id="interviews" title="Interviews">
+                  <div className="divide-y divide-white/[0.06]">
+                    {PREFERENCES.map((p) => (
+                      <Switch key={p.key} label={p.label} description={p.description} checked={prefs[p.key] !== false && !!prefs[p.key]}
+                        state={prefState[p.key]} onChange={() => toggle(p.key)} />
+                    ))}
+                  </div>
+                </Section>
+                <Section id="microphone" title="Microphone"><Microphone /></Section>
+                <Section id="security" title="Password and sign-in"><SecurityPanel Card={Block} onLogout={onLogout} /></Section>
+                <Section id="delete" title="Delete account"><DeleteAccount onDeleted={onLogout} /></Section>
+              </>
+            )}
+          </div>
+        </div>
+      </Frame>
     </div>
   );
 }

@@ -22,9 +22,12 @@ RUN useradd --create-home --uid 10001 app
 COPY --chown=app:app . .
 USER app
 
+# Migrations run before the server starts, so the schema always matches the
+# code being deployed (they are additive and idempotent; a failure stops the
+# boot instead of serving against the wrong schema).
 # Railway provides the PORT environment variable dynamically.
 # --proxy-headers + --forwarded-allow-ips: Railway terminates TLS at a proxy,
 # so without these every request appears to come from the proxy's IP — and
 # the per-IP rate limiter would lump ALL users into one shared bucket.
 EXPOSE 8000
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*'"]
+CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*'"]

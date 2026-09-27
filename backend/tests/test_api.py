@@ -518,3 +518,53 @@ def test_retrying_an_earlier_node_grades_that_nodes_question(client, monkeypatch
     monkeypatch.setattr(services.scorer, "score", lambda question, answer: graded.append(question) or dict(FAKE_SCORES))
     client.post("/answer/submit", headers=headers, json=answer_payload(session, question=first_question))
     assert graded == [first_question]
+
+
+# ---------- token revocation ----------
+
+def test_sign_out_everywhere_revokes_every_token(client):
+    headers, _ = signup(client)
+    second_device = {"Authorization": "Bearer " + client.post(
+        "/auth/login", json={"email": "ada@example.com", "password": "correct-horse"}).json()["access_token"]}
+    assert client.get("/user/sessions", headers=second_device).status_code == 200
+
+    assert client.post("/auth/logout-all", headers=headers).json() == {"status": "ok"}
+    assert client.get("/user/sessions", headers=headers).status_code == 401
+    assert client.get("/user/sessions", headers=second_device).status_code == 401
+
+    fresh = client.post("/auth/login", json={"email": "ada@example.com", "password": "correct-horse"})
+    assert client.get("/user/sessions", headers={"Authorization": "Bearer " + fresh.json()["access_token"]}).status_code == 200
+
+
+def test_change_password_signs_out_other_devices(client):
+    headers, _ = signup(client)
+    body = {"current_password": "correct-horse", "new_password": "new-battery-staple"}
+
+    wrong = client.post("/auth/change-password", headers=headers, json={**body, "current_password": "nope"})
+    assert wrong.status_code == 400 and "incorrect" in wrong.json()["error"]
+    same = client.post("/auth/change-password", headers=headers, json={**body, "new_password": "correct-horse"})
+    assert same.status_code == 400
+    weak = client.post("/auth/change-password", headers=headers, json={**body, "new_password": "short"})
+    assert weak.status_code == 400
+
+    res = client.post("/auth/change-password", headers=headers, json=body)
+    assert res.status_code == 200
+    assert client.get("/user/sessions", headers=headers).status_code == 401          # old token revoked
+    new_headers = {"Authorization": "Bearer " + res.json()["access_token"]}
+    assert client.get("/user/sessions", headers=new_headers).status_code == 200      # this device stays in
+
+    assert client.post("/auth/login", json={"email": "ada@example.com", "password": "correct-horse"}).status_code == 401
+    assert client.post("/auth/login", json={"email": "ada@example.com", "password": "new-battery-staple"}).status_code == 200
+
+
+def test_tokens_issued_before_versioning_still_work(client, db_factory):
+    from auth import create_access_token
+    _, user_id = signup(client)
+    legacy = create_access_token({"user_id": user_id, "email": "ada@example.com"})  # no "tv" claim
+    assert client.get("/user/sessions", headers={"Authorization": f"Bearer {legacy}"}).status_code == 200
+
+
+def test_deleted_accounts_tokens_stop_working(client):
+    headers, _ = signup(client)
+    assert client.delete("/user/me", headers=headers).status_code == 200
+    assert client.get("/user/sessions", headers=headers).status_code == 401

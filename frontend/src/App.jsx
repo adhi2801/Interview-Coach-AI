@@ -200,12 +200,13 @@ function AuthenticatedRoutes({ user, onLogout, onEloUpdate, onUserPatch, session
             <Route path="/preflight" element={<PreflightCheck sessionData={sessionData} onReady={() => navigate("/interview")} onSkip={() => navigate("/interview")} />} />
             <Route path="/interview" element={
               <RequireSession sessionData={sessionData}>
-                <InterviewRoom sessionData={sessionData} onFinish={() => navigate("/replay")} onEloUpdate={onEloUpdate} />
+                <InterviewRoom sessionData={sessionData} onFinish={() => navigate(`/replay/${sessionData.session_id}`)} onEloUpdate={onEloUpdate} />
               </RequireSession>
             } />
             <Route path="/coding" element={<CodingRoom sessionId={sessionData?.session_id} user={user} onFinish={() => navigate("/")} onEloUpdate={onEloUpdate} />} />
-            <Route path="/replay" element={<ReplayViewer sessionId={sessionData?.session_id} onExit={() => navigate("/")} onSelectSession={(id) => navigate(`/replay/${id}`)} />} />
-            <Route path="/replay/:id" element={<ReplayViewerWithParam onExit={() => navigate("/")} />} />
+            {/* /replay is always the list; a finished interview goes straight to its own replay. */}
+            <Route path="/replay" element={<ReplayViewer onExit={() => navigate("/")} onSelectSession={(id) => navigate(`/replay/${id}`)} />} />
+            <Route path="/replay/:id" element={<ReplayViewerWithParam onExit={() => navigate("/")} onBackToList={() => navigate("/replay")} />} />
             <Route path="/study-plan" element={<StudyPlanBrowser onGoBack={() => navigate("/")} />} />
             <Route path="/settings" element={<Settings user={user} onLogout={onLogout} onGoBack={() => navigate("/")} onProfileUpdate={onUserPatch} />} />
             <Route path="/privacy" element={<PrivacyPolicy onGoBack={() => navigate("/")} />} />
@@ -245,9 +246,9 @@ function UnauthenticatedRoutes({ onAuth }) {
   );
 }
 
-function ReplayViewerWithParam({ onExit }) {
+function ReplayViewerWithParam({ onExit, onBackToList }) {
   const { id } = useParams();
-  return <ReplayViewer sessionId={parseInt(id, 10)} onExit={onExit} />;
+  return <ReplayViewer sessionId={parseInt(id, 10)} onExit={onExit} onBackToList={onBackToList} />;
 }
 
 function AppContent({ user, handleAuth, handleLogout, handleEloUpdate, handleUserPatch, sessionData, setSessionData }) {

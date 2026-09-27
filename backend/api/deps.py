@@ -8,6 +8,8 @@ from slowapi.util import get_remote_address
 
 from api.errors import APIError
 from auth import decode_access_token
+from database import SessionLocal
+from models import User
 
 security = HTTPBearer(auto_error=False)
 
@@ -30,6 +32,18 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
         return None
     payload = decode_access_token(credentials.credentials)
     if not payload or not payload.get("user_id"):
+        raise APIError(401, "Your session has expired. Please log in again.")
+
+    # Revocation: the token's version must match the account's current one
+    # (bumped by "sign out everywhere" and password changes). Tokens issued
+    # before versions existed carry none and count as 0. A deleted account
+    # also fails here instead of reaching the route.
+    db = SessionLocal()
+    try:
+        current = db.query(User.token_version).filter(User.id == payload["user_id"]).scalar()
+    finally:
+        db.close()
+    if current is None or payload.get("tv", 0) != current:
         raise APIError(401, "Your session has expired. Please log in again.")
     return payload["user_id"]
 

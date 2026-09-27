@@ -5,6 +5,7 @@
 // (and the browser's recording indicator lit).
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { readMicDevice } from "../../lib/preferences";
 
 const BARS = 16;
 const IDLE_LEVELS = Array(BARS).fill(2);
@@ -44,7 +45,14 @@ export function useRecorder({ onRecording } = {}) {
     setError("");
     let stream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // The microphone chosen in Settings; if it's gone, the default one.
+      const deviceId = readMicDevice();
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(deviceId ? { audio: { deviceId: { exact: deviceId } } } : { audio: true });
+      } catch (err) {
+        if (!deviceId) throw err;
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
     } catch (err) {
       console.error("Microphone access denied:", err);
       setError("Microphone access was blocked. Allow it in your browser to answer by voice.");
