@@ -148,7 +148,13 @@ A candidate's answer decides their rating and feeds everyone else's percentiles,
 - **Server-side truth.** Answers are graded against the question the server actually asked, and ELO uses the server's difficulty and rating, never values the client sends.
 - **Ownership checks** on every session, job, replay and submission route; the same 404 whether a record is missing or someone else's.
 - **WebSocket tickets.** The live-coaching socket takes a one-minute ticket bound to one session, so the login token never appears in a URL or access log.
-- Rate limits per IP plus a per-user daily token budget in front of every paid API call.
+- Rate limits per IP plus a per-user daily token budget in front of every paid API call; generating a profile for an unknown company needs an account.
+- Every response carries an `X-Request-ID` that is bound to every log line for that request, and a server error shows the user a short reference to it.
+- Security headers on the API and the frontend; CORS limited to this project's own deployments.
+
+## Accessibility
+
+Every route (landing, auth, legal, dashboard, setup, study plan, settings, replays, coding, interview room) is audited with axe-core against WCAG 2 A/AA and has no violations. Animated text keeps a real, screen-reader-visible copy; icon-only controls are labelled; dialogs are `alertdialog`s that close on Escape.
 
 ---
 
@@ -206,13 +212,14 @@ npm run dev
 ## Testing
 
 ```bash
-cd backend && ruff check . && pytest        # 66 tests, ~17s, no network or real database needed
-cd frontend && npm run lint && npm test      # ESLint + Vitest
+cd backend && ruff check . && pytest               # 97 tests, ~25s, no network or real database needed
+cd frontend && npm run lint && npm test             # ESLint + 17 Vitest unit tests
+cd frontend && npm run build && npm run test:e2e    # 4 Playwright browser tests, API mocked
 ```
 
-CI runs all of the above on every push and pull request, and also applies every Alembic migration to a fresh Postgres and fails if `models.py` has drifted from them.
+CI runs all of the above on every push and pull request (Dependabot keeps dependencies current), and also applies every Alembic migration to a fresh Postgres and fails if `models.py` has drifted from them.
 
-Backend coverage includes auth and ownership on every user-data route, the atomic scoring/ELO pipeline, grading-integrity and prompt-injection defences, the live-coaching socket and its tickets, filler/pace detection in the confidence coach, ELO math, category classification, and knowledge-graph traversal and gap extraction.
+Backend coverage includes the Judge0 client against a fake Judge0 (verdicts, polling, failure reasons), peer percentiles, company profiles, request tracing, auth and ownership on every user-data route, the atomic scoring/ELO pipeline, grading-integrity and prompt-injection defences, the live-coaching socket and its tickets, filler/pace detection in the confidence coach, ELO math, category classification, and knowledge-graph traversal and gap extraction.
 
 ---
 
