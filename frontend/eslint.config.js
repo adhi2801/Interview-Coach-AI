@@ -23,7 +23,12 @@ export default [
     },
   },
   {
-    files: ["**/*.test.{js,jsx}", "vite.config.js", "eslint.config.js"],
+    files: ["**/*.test.{js,jsx}", "e2e/**/*.js", "vite.config.js", "eslint.config.js", "playwright.config.js"],
     languageOptions: { globals: { ...globals.node } },
+  },
+  {
+    // Playwright fixtures call use(), which is not a React hook.
+    files: ["e2e/**/*.js"],
+    rules: { "react-hooks/rules-of-hooks": "off" },
   },
 ];

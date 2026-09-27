@@ -61,7 +61,7 @@ jobs:
         run: alembic check
 
   frontend:
-    name: Frontend · lint + tests + build
+    name: Frontend · lint + unit + build + browser tests
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -77,3 +77,13 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      - name: Browser tests (API and coaching socket mocked)
+        run: |
+          npx playwright install --with-deps --only-shell chromium
+          npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: frontend/test-results/
+          retention-days: 7

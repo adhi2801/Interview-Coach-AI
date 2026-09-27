@@ -13,7 +13,7 @@ export default defineConfig({
   // after the move off Create React App.
   envPrefix: ["VITE_", "REACT_APP_"],
   server: { port: 3000 },
-  test: { environment: "jsdom" },
+  test: { environment: "jsdom", include: ["src/**/*.test.{js,jsx}"] },
   preview: { port: 3000 },
   build: {
     // Same output folder CRA used, so Vercel / nginx config is unchanged.
