@@ -189,7 +189,7 @@ class CodeExecutor:
                 ]
 
             results = []
-            for case, token in zip(test_cases, tokens):
+            for case, token in zip(test_cases, tokens, strict=False):
                 item = data_by_token.get(token, {})
                 stdout = self._decode(item, "stdout")
                 stderr = self._decode(item, "stderr") or self._decode(item, "compile_output")
@@ -205,7 +205,7 @@ class CodeExecutor:
                 ))
             return results
 
-        except (httpx.HTTPError, KeyError) as e:
+        except (httpx.HTTPError, KeyError):
             # Batch endpoint itself failed — fall back to the original
             # one-at-a-time approach rather than failing the whole submission.
             # Slower and costs more real calls, but still correct.

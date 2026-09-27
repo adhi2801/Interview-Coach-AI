@@ -1,0 +1,9 @@
+# Lint for bugs, not style: pyflakes (F), syntax errors (E9) and bugbear (B).
+target-version = "py312"
+line-length = 130
+extend-exclude = ["venv", "alembic/versions"]
+
+[lint]
+select = ["F", "E9", "B"]
+# FastAPI's dependency-injection idiom is Depends(...) in argument defaults.
+ignore = ["B008"]

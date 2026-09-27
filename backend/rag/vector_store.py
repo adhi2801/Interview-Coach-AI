@@ -5,8 +5,9 @@
 # Postgres instead, and does cosine similarity in plain Python — fine
 # at this scale (dozens to low hundreds of questions).
 
+import threading
+
 import numpy as np
-from sentence_transformers import SentenceTransformer
 from sqlalchemy.orm import Session
 from database import SessionLocal
 from models import QuestionEmbedding
@@ -14,9 +15,26 @@ from models import QuestionEmbedding
 
 class QuestionVectorStore:
     def __init__(self):
-        print("Loading embedding model...")
-        self.embedder = SentenceTransformer("all-MiniLM-L6-v2")
-        print("Embedding model loaded")
+        # Loaded on first use, not at import: loading torch + the model
+        # added seconds to every cold start and every test run, even for
+        # requests that never search questions.
+        self._embedder = None
+        self._load_lock = threading.Lock()
+
+    @property
+    def embedder(self):
+        if self._embedder is None:
+            with self._load_lock:
+                if self._embedder is None:
+                    from sentence_transformers import SentenceTransformer
+                    print("Loading embedding model...")
+                    self._embedder = SentenceTransformer("all-MiniLM-L6-v2")
+                    print("Embedding model loaded")
+        return self._embedder
+
+    def warm_up(self) -> None:
+        """Loads the model now. Called from a background thread at startup."""
+        self.embedder.encode(["warm-up"])
 
     def seed_database(self, questions: list):
         db: Session = SessionLocal()
@@ -30,7 +48,7 @@ class QuestionVectorStore:
             print(f"Generating embeddings for {len(texts)} questions...")
             embeddings = self.embedder.encode(texts).tolist()
 
-            for q, emb in zip(questions, embeddings):
+            for q, emb in zip(questions, embeddings, strict=False):
                 existing = db.query(QuestionEmbedding).filter_by(id=q["id"]).first()
                 if existing:
                     existing.text = q["text"]

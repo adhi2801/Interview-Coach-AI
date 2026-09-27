@@ -6,3 +6,6 @@ __pycache__/
 replays/
 chroma_db/
 debug_last_chunk.webm
+tests/
+.pytest_cache/
+.ruff_cache/

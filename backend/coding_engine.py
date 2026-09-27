@@ -1,9 +1,7 @@
-import os
 import json
-import re
 import time
 import structlog
-import anthropic
+from llm import CLAUDE_MODEL, make_client, strip_markdown_fence
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -25,11 +23,7 @@ Return ONLY valid JSON: {"hint": "<your response>", "severity": "gentle" | "dire
 
 class CodingEngine:
     def __init__(self):
-        self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), timeout=30.0)
-
-    def _strip_markdown_fence(self, raw: str) -> str:
-        match = re.search(r"```(?:json)?\s*(.*?)\s*```", raw, re.DOTALL)
-        return match.group(1).strip() if match else raw
+        self.client = make_client()
 
     def _call_claude_json(self, required_keys=None, **create_kwargs) -> dict:
         """
@@ -46,7 +40,7 @@ class CodingEngine:
             try:
                 response = self.client.messages.create(**create_kwargs)
                 raw = response.content[0].text.strip()
-                raw = self._strip_markdown_fence(raw)
+                raw = strip_markdown_fence(raw)
                 result = json.loads(raw)
 
                 if required_keys:
@@ -71,7 +65,7 @@ class CodingEngine:
     def get_hint(self, problem: str, current_code: str, language: str) -> dict:
         return self._call_claude_json(
             required_keys=["hint"],
-            model="claude-sonnet-4-6",
+            model=CLAUDE_MODEL,
             max_tokens=200,
             system=SOCRATIC_SYSTEM_PROMPT,
             messages=[{
@@ -85,7 +79,7 @@ class CodingEngine:
 
         quality = self._call_claude_json(
             required_keys=["complexity_estimate", "cleanliness_score", "naming_score", "feedback"],
-            model="claude-sonnet-4-6",
+            model=CLAUDE_MODEL,
             max_tokens=500,
             system="""You are grading a coding interview submission. Test results are already
             computed objectively — do not re-judge correctness. Grade QUALITY only.

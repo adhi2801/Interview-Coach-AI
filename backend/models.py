@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, JSON, Text, ForeignKey
 from sqlalchemy.orm import declarative_base, relationship
-from datetime import datetime
+from timeutil import utcnow
 
 Base = declarative_base()
 
@@ -13,7 +13,7 @@ class User(Base):
     name = Column(String)
     hashed_password = Column(String, nullable=False)
     elo_rating = Column(Float, default=1200.0)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
     # Real per-user settings — sound effects, live coaching telemetry,
     # high-contrast editor. Nullable/defaults to {} for existing users;
     # the frontend applies its own sensible defaults for any key that
@@ -34,7 +34,7 @@ class InterviewSession(Base):
     difficulty_level = Column(Integer, default=5)
     audio_file_path = Column(String)
     elo_after = Column(Float, nullable=True)  # snapshot of user's ELO after the latest scored answer in this session — powers the Rating History chart with real data instead of always showing the current live ELO
-    started_at = Column(DateTime, default=datetime.utcnow)
+    started_at = Column(DateTime, default=utcnow)
     ended_at = Column(DateTime)
 
     user = relationship("User", back_populates="sessions")
@@ -56,7 +56,7 @@ class Answer(Base):
     topics_covered = Column(JSON)
     gaps_identified = Column(JSON)
     feedback_helpful = Column(Integer, nullable=True)  # 1 = thumbs up, 0 = thumbs down, null = not rated
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=utcnow)
 
     session = relationship("InterviewSession", back_populates="answers")
 
@@ -95,7 +95,7 @@ class ScoringJob(Base):
     session_id = Column(Integer, ForeignKey("sessions.id", ondelete="CASCADE"))
     status = Column(String, default="processing")  # processing | done | failed
     result = Column(JSON, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
 
 # ADD THESE THREE CLASSES to backend/models.py
@@ -158,7 +158,7 @@ class CodingSubmission(Base):
     feedback = Column(Text, nullable=True)
     elo_after = Column(Float, nullable=True)
 
-    submitted_at = Column(DateTime, default=datetime.utcnow)    
+    submitted_at = Column(DateTime, default=utcnow)    
 
 
 # ADD THIS CLASS to backend/models.py
@@ -177,7 +177,7 @@ class ReplayManifest(Base):
     user_name = Column(String)
     company = Column(String)
     role = Column(String)
-    started_at = Column(DateTime, default=datetime.utcnow)
+    started_at = Column(DateTime, default=utcnow)
     ended_at = Column(DateTime, nullable=True)
     events = Column(JSON, default=list)  # same event shape as before: {"type", "timestamp", "data"}    
 

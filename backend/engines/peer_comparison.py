@@ -2,7 +2,6 @@ import os
 import json
 import redis
 import statistics
-from sqlalchemy.orm import Session
 from database import SessionLocal
 from models import Answer, InterviewSession
 from dotenv import load_dotenv

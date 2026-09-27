@@ -1,10 +1,9 @@
 import os
-import re
 import time
 import redis
 import json as json_module
 import structlog
-import anthropic
+from llm import CLAUDE_MODEL, make_client, strip_markdown_fence
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -88,7 +87,7 @@ COMPANY_PROFILES = {
 
 class CompanyDNAEngine:
     def __init__(self):
-        self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), timeout=30.0)
+        self.client = make_client()
 
     def get_profile(self, company_name: str) -> dict:
         key = company_name.lower().strip()
@@ -108,15 +107,11 @@ class CompanyDNAEngine:
 
         return profile
 
-    def _strip_markdown_fence(self, raw: str) -> str:
-        match = re.search(r"```(?:json)?\s*(.*?)\s*```", raw, re.DOTALL)
-        return match.group(1).strip() if match else raw
-
     def _generate_dynamic_profile(self, company_name: str) -> tuple:
         for attempt in range(2):
             try:
                 response = self.client.messages.create(
-                    model="claude-sonnet-4-6",
+                    model=CLAUDE_MODEL,
                     max_tokens=500,
                     system="Return only valid JSON. No preamble. No markdown.",
                     messages=[{"role": "user", "content":
@@ -128,7 +123,7 @@ class CompanyDNAEngine:
                         f"interviews are relative to average, 1.0 = average)"}]
                 )
                 raw = response.content[0].text.strip()
-                raw = self._strip_markdown_fence(raw)
+                raw = strip_markdown_fence(raw)
 
                 profile = json_module.loads(raw)
                 if all(k in profile for k in REQUIRED_PROFILE_KEYS):
