@@ -3,7 +3,7 @@ import { expect, test, ROTATED_TOKEN } from "./fixtures";
 test.describe("password & security", () => {
   test.beforeEach(async ({ page, backend: _, signedIn: __ }) => {
     await page.goto("/settings");
-    await page.getByRole("button", { name: /Password & Security/ }).click();
+    await expect(page.getByRole("heading", { name: "Password and sign-in" })).toBeVisible();
   });
 
   test("changing the password validates, reports errors, and keeps this device signed in", async ({ page }) => {
@@ -29,4 +29,18 @@ test.describe("password & security", () => {
     await page.getByRole("button", { name: "Yes, sign out everywhere" }).click();
     await expect.poll(() => page.evaluate(() => localStorage.getItem("access_token"))).toBeNull();
   });
+});
+
+test("turning live coaching off in Settings hides it in the interview", async ({ page, backend: _, signedIn: __ }) => {
+  await page.goto("/settings");
+  const toggle = page.getByRole("switch", { name: "Live coaching" });
+  await expect(toggle).toHaveAttribute("aria-checked", "true");
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-checked", "false");
+
+  await page.goto("/setup");
+  await page.getByRole("button", { name: "Start interview" }).click();
+  await page.getByRole("button", { name: /Skip/ }).click();
+  await expect(page.getByText("Live coaching is off.")).toBeVisible();
+  await expect(page.getByText("Filler words", { exact: true })).toHaveCount(0);
 });

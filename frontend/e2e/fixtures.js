@@ -62,6 +62,7 @@ export const test = base.extend({
     const calls = [];
     const socket = { urls: [], received: [] };
     let nextPicks = 0; // like the real endpoint, /coding/next varies between calls
+    const preferences = {}; // PATCH /user/preferences persists for the test
 
     await page.route(`${API}/**`, async (route) => {
       const req = route.request();
@@ -84,6 +85,11 @@ export const test = base.extend({
           : json(400, { error: "Current password is incorrect" });
       }
       if (path === "/auth/logout-all") return json(200, { status: "ok" });
+      if (path === "/user/preferences" && method === "PATCH") {
+        const { key, value } = req.postDataJSON();
+        preferences[key] = value;
+        return json(200, { status: "ok", preferences });
+      }
       if (path === "/session/start") return json(200, SESSION);
       if (path === "/topics/status") return json(200, { topics: KNOWLEDGE.topics });
       if (path.startsWith("/study-plan/")) {
@@ -146,7 +152,7 @@ export const test = base.extend({
         "/user/skill-radar": rich ? H.RADAR : { radar: null, sample_size: 0 },
         "/user/gap-queue": rich ? H.GAP_QUEUE : { critical_gap: null, queue: [] },
         "/user/skill-matrix": rich ? H.SKILL_MATRIX : { categories: [], total_touched: 0, total_topics: 0 },
-        "/user/profile-summary": rich ? H.PROFILE : { ...USER, total_sessions: 0, avg_score: null, preferences: {}, bracket: null },
+        "/user/profile-summary": { ...(rich ? H.PROFILE : { ...USER, total_sessions: 0, avg_score: null, bracket: null }), preferences },
         "/replays": { replays: rich ? H.REPLAYS : [] },
         "/coding/submissions": { submissions: rich ? H.SUBMISSIONS : [] },
       };

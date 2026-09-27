@@ -7,6 +7,7 @@ import { COMPANIES } from "../constants/companies";
 import { TOTAL_NODES, computeTimeLimit, formatTime, getPersonaMeta } from "./interview/constants";
 import { useCoachingSocket } from "./interview/useCoachingSocket";
 import { useRecorder } from "./interview/useRecorder";
+import { usePreferences } from "../lib/preferences";
 import QuestionPane from "./interview/QuestionPane";
 import TelemetryPane from "./interview/TelemetryPane";
 import Debrief from "./interview/Debrief";
@@ -97,6 +98,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const prefs = usePreferences();
   const coach = useCoachingSocket(sessionData?.session_id, {
     onTranscription: (text) => setAnswer((prev) => (prev + " " + text).trim()),
   });
@@ -549,6 +551,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
             <TelemetryPane
               personaMeta={personaMeta} liveCoaching={liveCoaching} wsConnected={wsConnected}
               intervention={intervention} eloBand={eloBand} currentElo={currentElo}
+              showCoaching={prefs.live_coaching_telemetry !== false}
             />
           </div>
         ) : (

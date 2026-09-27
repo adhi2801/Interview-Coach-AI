@@ -24,7 +24,7 @@ function Meter({ label, value, suffix, fraction, note, warn }) {
   );
 }
 
-export default function TelemetryPane({ personaMeta, liveCoaching, wsConnected, intervention, eloBand, currentElo }) {
+export default function TelemetryPane({ personaMeta, liveCoaching, wsConnected, intervention, eloBand, currentElo, showCoaching = true }) {
   const PersonaIcon = personaMeta.icon;
   const fillers = liveCoaching?.filler_count ?? 0;
   const wpm = liveCoaching?.words_per_minute;
@@ -42,6 +42,9 @@ export default function TelemetryPane({ personaMeta, liveCoaching, wsConnected, 
         </div>
       </div>
 
+      {!showCoaching ? (
+        <p className="text-[13px] leading-relaxed text-white/55">Live coaching is off. Turn it on in Settings to see confidence, pace and filler words while you answer.</p>
+      ) : (
       <div className="space-y-6">
         <h3 className="text-[14px] font-semibold text-white">Live coaching</h3>
         <Meter label="Confidence" value={liveCoaching?.confidence_score} suffix="/10"
@@ -59,6 +62,7 @@ export default function TelemetryPane({ personaMeta, liveCoaching, wsConnected, 
           )}
         </AnimatePresence>
       </div>
+      )}
 
       {eloBand && (
         <div className="mt-auto border-t border-white/[0.08] pt-5">

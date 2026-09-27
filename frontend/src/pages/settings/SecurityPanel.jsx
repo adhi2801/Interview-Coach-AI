@@ -7,9 +7,8 @@ import { Check, Key, LogOut } from "lucide-react";
 import api, { saveAuth } from "../../lib/api";
 
 const inputClass =
-  "w-full bg-[#0a0a10]/90 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none " +
-  "focus:border-indigo-500 focus-visible:ring-1 focus-visible:ring-indigo-500/50 shadow-inner";
-const labelClass = "text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 font-mono";
+  "w-full border border-white/15 bg-[#07070b] px-3 py-2.5 text-[14px] text-white outline-none focus:border-indigo-400";
+const labelClass = "mb-1.5 block text-[13px] text-white/60";
 
 export default function SecurityPanel({ Card, onLogout }) {
   const [form, setForm] = useState({ current: "", next: "", confirm: "" });
@@ -49,9 +48,9 @@ export default function SecurityPanel({ Card, onLogout }) {
 
   return (
     <>
-      <Card className="p-8">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-slate-300 mb-6 flex items-center gap-2 font-mono">
-          <Key size={16} className="text-indigo-400" aria-hidden="true" /> Change Password
+      <Card>
+        <h3 className="mb-4 flex items-center gap-2 text-[15px] font-medium text-white">
+          <Key size={15} className="text-indigo-300" aria-hidden="true" /> Change password
         </h3>
         <form onSubmit={changePassword} className="space-y-4 max-w-md" noValidate>
           <div>
@@ -83,15 +82,15 @@ export default function SecurityPanel({ Card, onLogout }) {
           </div>
 
           <button type="submit" disabled={!canSubmit}
-            className="px-5 py-2.5 rounded-xl bg-white text-black text-sm font-bold hover:bg-slate-200 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+            className="btn-liquid px-5 py-2.5 text-[14px] font-semibold disabled:cursor-not-allowed disabled:opacity-40">
             {status.state === "saving" ? "Changing…" : "Change password"}
           </button>
         </form>
       </Card>
 
-      <Card className="p-8">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-slate-300 mb-6 flex items-center gap-2 font-mono">
-          <LogOut size={16} className="text-indigo-400" aria-hidden="true" /> Sessions
+      <Card>
+        <h3 className="mb-4 flex items-center gap-2 text-[15px] font-medium text-white">
+          <LogOut size={15} className="text-indigo-300" aria-hidden="true" /> Other devices
         </h3>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
@@ -102,17 +101,17 @@ export default function SecurityPanel({ Card, onLogout }) {
           {confirmingSignOut ? (
             <div className="flex gap-2 shrink-0">
               <button onClick={() => setConfirmingSignOut(false)}
-                className="px-4 py-2.5 rounded-xl border border-white/10 text-slate-300 text-sm font-bold hover:bg-white/[0.05]">
+                className="px-4 py-2.5 border border-white/10 text-slate-300 text-sm font-bold hover:bg-white/[0.05]">
                 Cancel
               </button>
               <button onClick={signOutEverywhere}
-                className="px-4 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-bold hover:bg-indigo-400">
+                className="px-4 py-2.5 bg-indigo-500 text-white text-sm font-bold hover:bg-indigo-400">
                 Yes, sign out everywhere
               </button>
             </div>
           ) : (
             <button onClick={() => setConfirmingSignOut(true)}
-              className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-white text-sm font-bold hover:bg-white/10">
+              className="shrink-0 flex items-center gap-2 px-5 py-2.5 bg-white/[0.04] border border-white/10 text-white text-sm font-bold hover:bg-white/10">
               <LogOut size={14} aria-hidden="true" /> Sign out everywhere
             </button>
           )}

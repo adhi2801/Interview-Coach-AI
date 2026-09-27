@@ -35,8 +35,7 @@ test("settings, including the security tab", async ({ page, backend: _, signedIn
   await page.goto("/settings");
   await page.waitForLoadState("networkidle");
   expect(await violations(page)).toEqual([]);
-  await page.getByRole("button", { name: /Password & Security/ }).click();
-  expect(await violations(page)).toEqual([]);
+  await expect(page.getByRole("heading", { name: "Password and sign-in" })).toBeVisible();
 });
 
 test("interview room", async ({ page, backend: _, signedIn: __ }) => {

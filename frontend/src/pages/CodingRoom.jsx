@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import api from "../lib/api";
 import { codeFor, recallProblem, rememberProblem, saveDraft } from "./coding/drafts";
+import { usePreferences } from "../lib/preferences";
 import Editor from "@monaco-editor/react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -24,6 +25,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
   // render lagged behind typing (a stale value overwrote newer input). It
   // remounts, keyed on this, only when code changes from outside the editor.
   const [editorVersion, setEditorVersion] = useState(0);
+  const { high_contrast_editor: highContrast } = usePreferences();
 
   const [activeLeftTab, setActiveLeftTab] = useState("spec");
   const [activeRightTab, setActiveRightTab] = useState("terminal");
@@ -533,7 +535,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
           <div className="flex-1 relative pt-2">
             <Editor key={`${problem.slug}:${language}:${editorVersion}`} height="100%" language={currentLangObj.monaco}
               beforeMount={handleEditorBeforeMount} onMount={handleEditorDidMount}
-              theme="oled-dark" defaultValue={code} onChange={handleCodeChange}
+              theme={highContrast ? "hc-black" : "oled-dark"} defaultValue={code} onChange={handleCodeChange}
               options={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false, lineHeight: 24, padding: { top: 16, bottom: 60 }, overviewRulerBorder: false, hideCursorInOverviewRuler: true, renderLineHighlight: "all", cursorBlinking: "smooth" }} />
           </div>
 
