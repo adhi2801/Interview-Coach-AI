@@ -4,6 +4,7 @@
 
 import { readFileSync } from "node:fs";
 import { test as base, expect } from "@playwright/test";
+import * as H from "./history.js";
 
 // The real seeded topic graph (93 topics, 96 prerequisite edges) with a
 // mid-progress candidate's statuses; generated from scripts/seed_topics.py.
@@ -53,7 +54,11 @@ export const PROBLEMS = {
 };
 
 export const test = base.extend({
-  backend: async ({ page }, use) => {
+  // "empty" = a brand-new account; "rich" = three weeks of real-looking use.
+  history: ["empty", { option: true }],
+
+  backend: async ({ page, history }, use) => {
+    const rich = history === "rich";
     const calls = [];
     const socket = { urls: [], received: [] };
     let nextPicks = 0; // like the real endpoint, /coding/next varies between calls
@@ -122,13 +127,18 @@ export const test = base.extend({
         "/roles/elo-bands": {},
         "/topics": { topics: [] },
         "/topics/status": { topics: [] },
-        "/user/sessions": { sessions: [] },
-        "/user/activity": { activity: [] },
-        "/user/skill-radar": { radar: null, sample_size: 0 },
-        "/user/gap-queue": { critical_gap: null, queue: [] },
-        "/user/skill-matrix": { categories: [], total_touched: 0, total_topics: 0 },
-        "/user/profile-summary": { ...USER, total_sessions: 0, avg_score: null, preferences: {}, bracket: null },
+        "/user/sessions": { sessions: rich ? H.SESSIONS : [] },
+        "/user/activity": { activity: rich ? H.ACTIVITY : [] },
+        "/user/skill-radar": rich ? H.RADAR : { radar: null, sample_size: 0 },
+        "/user/gap-queue": rich ? H.GAP_QUEUE : { critical_gap: null, queue: [] },
+        "/user/skill-matrix": rich ? H.SKILL_MATRIX : { categories: [], total_touched: 0, total_topics: 0 },
+        "/user/profile-summary": rich ? H.PROFILE : { ...USER, total_sessions: 0, avg_score: null, preferences: {}, bracket: null },
+        "/replays": { replays: rich ? H.REPLAYS : [] },
+        "/coding/submissions": { submissions: rich ? H.SUBMISSIONS : [] },
       };
+      if (/^\/replay\/\d+$/.test(path)) {
+        return rich ? json(200, { ...H.REPLAY_DETAIL, session_id: Number(path.split("/").pop()) }) : json(404, { error: "Replay not found" });
+      }
       return json(200, fixtures[path] ?? {});
     });
 

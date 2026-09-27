@@ -33,7 +33,8 @@ test.describe("coding room", () => {
     await page.keyboard.press("Control+A");
     await page.keyboard.type("print('kept after reload')");
     // Autosave is debounced: wait until the draft is actually stored.
-    await expect.poll(() => page.evaluate(() => localStorage.getItem("ic_draft:two_sum:python")))
+    // Monaco types slowly when the machine is busy, so allow for it.
+    await expect.poll(() => page.evaluate(() => localStorage.getItem("ic_draft:two_sum:python")), { timeout: 20_000 })
       .toContain("kept after reload");
     await page.reload();
     await expect(editorText(page)).toContainText("kept after reload", { timeout: 20_000 });

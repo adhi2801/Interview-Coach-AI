@@ -4,6 +4,7 @@
 // what to learn, in what order.
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Search } from "lucide-react";
 import { AppHeader, Frame, PageIntro } from "../components/app/AppChrome";
 import api from "../lib/api";
@@ -49,7 +50,9 @@ function Legend({ stats, value, onChange }) {
 export default function StudyPlanBrowser({ onGoBack }) {
   const [topics, setTopics] = useState(null);
   const [error, setError] = useState("");
-  const [selected, setSelected] = useState(null);
+  // ?topic=name (from a study plan's "see it on the knowledge graph") preselects it.
+  const [params] = useSearchParams();
+  const [selected, setSelected] = useState(() => params.get("topic"));
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState(null);
   const inspectorRef = useRef(null);
@@ -64,6 +67,8 @@ export default function StudyPlanBrowser({ onGoBack }) {
   useEffect(load, []);
 
   const graph = useMemo(() => (topics?.length ? buildGraph(topics) : null), [topics]);
+  // Drop a preselection that names no real topic.
+  useEffect(() => { if (graph && selected && !graph.byName.has(selected)) setSelected(null); }, [graph, selected]);
   const stats = useMemo(() => (graph ? summarize(graph) : null), [graph]);
   const readySet = useMemo(() => new Set(graph ? readyTopics(graph).map((t) => t.name) : []), [graph]);
   const matches = useMemo(() => {

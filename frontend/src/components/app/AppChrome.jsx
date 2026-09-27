@@ -179,7 +179,9 @@ export function PageIntro({ index, label, title, accent, subtitle, aside, childr
         <div className="relative flex flex-col gap-8 px-5 pb-10 pt-12 md:px-10 md:pt-16 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0 max-w-3xl">
             <Label index={index}>{label}</Label>
-            <SplitReveal as="h1" by="lines" trigger="mount" delay={0.05} className="mt-6 text-[40px] font-semibold leading-[1] tracking-[-0.045em] text-white md:text-6xl">
+            {/* Keyed by the text: SplitReveal splits once per mount, so a title that
+                arrives with data (e.g. the knowledge graph headline) needs a remount. */}
+            <SplitReveal key={typeof title === "string" ? title : undefined} as="h1" by="lines" trigger="mount" delay={0.05} className="mt-6 text-[40px] font-semibold leading-[1] tracking-[-0.045em] text-white md:text-6xl">
               {title}
             </SplitReveal>
             {accent && (

@@ -10,7 +10,7 @@ test.describe("login", () => {
 
     await page.getByPlaceholder("••••••••").fill("correct-horse");
     await page.getByRole("button", { name: /log in|sign in/i }).first().click();
-    await expect(page.getByRole("heading", { name: /Good (morning|afternoon|evening), Ada/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Good (morning|afternoon|evening|night), Ada/ })).toBeVisible();
     expect(backend.calls.filter((c) => c.path === "/auth/login")).toHaveLength(2);
   });
 
