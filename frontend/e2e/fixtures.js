@@ -113,7 +113,7 @@ export const test = base.extend({
       if (path === "/coding/submit") {
         return json(200, {
           submission_id: 5, tests_passed: 2, tests_total: 2, complexity_estimate: "O(1)", cleanliness_score: 8,
-          naming_score: 9, feedback: "Clean and direct.", quality_review_unavailable: false, new_elo: 1216,
+          naming_score: 9, feedback: "Clean and direct.", quality_review_unavailable: false, previous_elo: 1200, new_elo: 1216,
         });
       }
       if (path === "/ws/coaching/42/ticket") return json(200, { ticket: "short-lived-ticket" });

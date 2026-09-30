@@ -314,6 +314,7 @@ def test_coding_submit_survives_quality_grader_outage(client, db_factory, proble
     body = res.json()
     assert (body["tests_passed"], body["tests_total"]) == (2, 2)
     assert body["quality_review_unavailable"] is True
+    assert body["previous_elo"] == 1200
     assert user_elo(db_factory, user_id) == body["new_elo"]
 
 

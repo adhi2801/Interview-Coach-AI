@@ -40,12 +40,49 @@ test.describe("coding room", () => {
     await expect(editorText(page)).toContainText("kept after reload", { timeout: 20_000 });
   });
 
-  test("run shows sample results; submit shows the review and new rating", async ({ page, backend }) => {
+  test("run shows sample results; submit shows the review and the rating change", async ({ page, backend }) => {
     await page.getByRole("button", { name: /^Run/ }).click();
-    await expect(page.getByText(/1\s*\/\s*1/).first()).toBeVisible();
+    await expect(page.getByText("1 of 1 examples passed")).toBeVisible();
 
     await page.getByRole("button", { name: /^Submit/ }).click();
+    await expect(page.getByRole("tab", { name: "Review" })).toHaveAttribute("aria-selected", "true");
     await expect(page.getByText("Clean and direct.")).toBeVisible();
+    await expect(page.getByText("+16")).toBeVisible();                       // 1,200 → 1,216
     expect(backend.calls.filter((c) => c.path === "/coding/submit")).toHaveLength(1);
+
+    await page.getByRole("tab", { name: "Output" }).click();
+    await expect(page.getByText("2 of 2 tests passed")).toBeVisible();
+    await expect(page.getByRole("region", { name: "Attempts on this problem" }).getByRole("listitem")).toHaveCount(2);
+  });
+
+  test("Ctrl+Enter runs the examples while typing in the editor, once", async ({ page, backend }) => {
+    await editor(page).click();
+    await page.keyboard.press("Control+Enter");
+    await expect(page.getByText("1 of 1 examples passed")).toBeVisible();
+    expect(backend.calls.filter((c) => c.path === "/coding/run")).toHaveLength(1);
+  });
+
+  test("a failing example shows what went wrong and links to the line", async ({ page }) => {
+    await page.route("http://localhost:8000/coding/run", (route) => route.fulfill({
+      status: 200, contentType: "application/json",
+      body: JSON.stringify({
+        results: [{ passed: false, input: "1 2", expected: "3", actual: "", stderr: `File "main.py", line 1\nNameError: name 'x' is not defined` }],
+        passed_count: 0, total: 1,
+      }),
+    }));
+    await page.getByRole("button", { name: /^Run/ }).click();
+    await expect(page.getByText("0 of 1 examples passed")).toBeVisible();
+    await expect(page.getByText("(nothing printed)")).toBeVisible();
+    await expect(page.getByText(/NameError/)).toBeVisible();
+    await page.getByRole("button", { name: "Go to line 1" }).click();
+  });
+
+  test("a failed run says nothing was scored and can be retried", async ({ page }) => {
+    await page.route("http://localhost:8000/coding/run", (route) => route.fulfill({
+      status: 503, contentType: "application/json", body: JSON.stringify({ error: "The code sandbox is busy." }),
+    }));
+    await page.getByRole("button", { name: /^Run/ }).click();
+    await expect(page.getByRole("alert").filter({ hasText: "Your code wasn't run" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
   });
 });

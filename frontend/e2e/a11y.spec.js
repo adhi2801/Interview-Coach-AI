@@ -59,3 +59,18 @@ test("knowledge graph, idle and with a topic selected", async ({ page, backend: 
   await page.getByRole("button", { name: /^Dijkstra,/ }).click();
   expect(await violations(page)).toEqual([]);
 });
+
+test("coding room, with results and the review", async ({ page, backend: _, signedIn: __ }) => {
+  await page.goto("/coding");
+  await expect(page.getByRole("heading", { name: "Two Sum" })).toBeVisible();
+  await expect(page.locator(".monaco-editor").first()).toBeVisible({ timeout: 20_000 });
+  expect(await violations(page)).toEqual([]);
+
+  await page.getByRole("button", { name: /^Run/ }).click();
+  await expect(page.getByText("1 of 1 examples passed")).toBeVisible();
+  expect(await violations(page)).toEqual([]);
+
+  await page.getByRole("button", { name: /^Submit/ }).click();
+  await expect(page.getByText("Clean and direct.")).toBeVisible();
+  expect(await violations(page)).toEqual([]);
+});

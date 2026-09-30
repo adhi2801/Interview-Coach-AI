@@ -188,6 +188,7 @@ def submit_code(request: Request, payload: SubmitCodeRequest, user_id: int = Dep
         user = db.query(User).filter(User.id == user_id).with_for_update().first()
         if not user:
             raise APIError(401, "Account not found. Please log in again.")
+        previous_elo = user.elo_rating
         new_elo = services.difficulty_engine.update_elo(
             current_elo=user.elo_rating, question_difficulty=problem_difficulty, score=coding_score
         )
@@ -223,6 +224,7 @@ def submit_code(request: Request, payload: SubmitCodeRequest, user_id: int = Dep
             "naming_score": grading.get("naming_score"),
             "feedback": grading.get("feedback"),
             "quality_review_unavailable": grading.get("feedback") is None,
+            "previous_elo": previous_elo,
             "new_elo": new_elo,
             # hidden test case inputs/expected outputs intentionally never returned here
         }
