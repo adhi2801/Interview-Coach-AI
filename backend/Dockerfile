@@ -30,4 +30,4 @@ USER app
 # so without these every request appears to come from the proxy's IP — and
 # the per-IP rate limiter would lump ALL users into one shared bucket.
 EXPOSE 8000
-CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*'"]
+CMD ["sh", "-c", "alembic upgrade head && python -m scripts.seed_verified_problems all && uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*'"]

@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { expect, test, REFERENCE_SOLUTION } from "./fixtures";
 
 const editor = (page) => page.locator(".monaco-editor").first();
 const editorText = (page) => page.locator(".monaco-editor .view-lines").first();
@@ -55,6 +55,21 @@ test.describe("coding room", () => {
     await expect(page.getByRole("region", { name: "Attempts on this problem" }).getByRole("listitem")).toHaveCount(2);
   });
 
+  test("a reference solution opens only after submitting, and stays open after a reload", async ({ page }) => {
+    await page.getByRole("tab", { name: "Review" }).click();
+    await expect(page.getByText("Once you've submitted, a reference solution opens up here")).toBeVisible();
+    await expect(page.getByRole("button", { name: "See a reference solution" })).toHaveCount(0);
+
+    await page.getByRole("button", { name: /^Submit/ }).click();
+    await expect(page.getByText("Clean and direct.")).toBeVisible();
+    await page.getByRole("button", { name: "See a reference solution" }).click();
+    await expect(page.getByLabel("Reference solution code")).toHaveText(REFERENCE_SOLUTION);
+
+    await page.reload();
+    await page.getByRole("tab", { name: "Review" }).click();
+    await expect(page.getByRole("button", { name: "See a reference solution" })).toBeVisible();
+  });
+
   test("Ctrl+Enter runs the examples while typing in the editor, once", async ({ page, backend }) => {
     await editor(page).click();
     await page.keyboard.press("Control+Enter");
@@ -63,7 +78,7 @@ test.describe("coding room", () => {
   });
 
   test("a failing example shows what went wrong and links to the line", async ({ page }) => {
-    await page.route("http://localhost:8000/coding/run", (route) => route.fulfill({
+    await page.route("**/api/coding/run", (route) => route.fulfill({
       status: 200, contentType: "application/json",
       body: JSON.stringify({
         results: [{ passed: false, input: "1 2", expected: "3", actual: "", stderr: `File "main.py", line 1\nNameError: name 'x' is not defined` }],
@@ -78,7 +93,7 @@ test.describe("coding room", () => {
   });
 
   test("a failed run says nothing was scored and can be retried", async ({ page }) => {
-    await page.route("http://localhost:8000/coding/run", (route) => route.fulfill({
+    await page.route("**/api/coding/run", (route) => route.fulfill({
       status: 503, contentType: "application/json", body: JSON.stringify({ error: "The code sandbox is busy." }),
     }));
     await page.getByRole("button", { name: /^Run/ }).click();

@@ -23,7 +23,7 @@ export default [
     },
   },
   {
-    files: ["**/*.test.{js,jsx}", "e2e/**/*.js", "vite.config.js", "eslint.config.js", "playwright.config.js"],
+    files: ["**/*.test.{js,jsx}", "e2e/**/*.js", "api/**/*.js", "vite.config.js", "eslint.config.js", "playwright.config.js"],
     languageOptions: { globals: { ...globals.node } },
   },
   {

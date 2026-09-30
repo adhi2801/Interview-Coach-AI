@@ -1,0 +1,2236 @@
+[
+ {
+  "slug": "ship-capacity-within-days",
+  "title": "Shipping Capacity Within a Deadline",
+  "difficulty": 4,
+  "category": "Binary Search",
+  "description": "A warehouse ships packages in the order they sit on the conveyor. Each day one truck leaves, loaded with a contiguous run of packages whose total weight doesn't exceed the truck's capacity.\n\nGiven the package weights and a deadline of `d` days, print the **smallest truck capacity** that ships everything within `d` days.",
+  "constraints": [
+   "1 ≤ d ≤ n ≤ 10^5",
+   "1 ≤ weight ≤ 500"
+  ],
+  "input_format": "First line: n and d. Second line: n weights.",
+  "output_format": "The minimum capacity.",
+  "python_solution": "\nimport sys\nx = sys.stdin.read().split()\nn, d = int(x[0]), int(x[1])\nw = list(map(int, x[2:2 + n]))\ndef days(cap):\n    used, load = 1, 0\n    for v in w:\n        if load + v > cap:\n            used += 1\n            load = 0\n        load += v\n    return used\nlo, hi = max(w), sum(w)\nwhile lo < hi:\n    mid = (lo + hi) // 2\n    if days(mid) <= d:\n        hi = mid\n    else:\n        lo = mid + 1\nprint(lo)\n",
+  "starter_code_python": "import sys\n\n# Input: First line: n and d. Second line: n weights.\n# Output: The minimum capacity.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: First line: n and d. Second line: n weights.\n// Output: The minimum capacity.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: First line: n and d. Second line: n weights.\n// Output: The minimum capacity.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: First line: n and d. Second line: n weights.\n// Output: The minimum capacity.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "amazon",
+   "google",
+   "microsoft"
+  ],
+  "time_complexity_target": "O(n log S)",
+  "space_complexity_target": "O(1)",
+  "test_cases": [
+   {
+    "input": "10 5\n1 2 3 4 5 6 7 8 9 10",
+    "expected_output": "15"
+   },
+   {
+    "input": "6 3\n3 2 2 4 1 4",
+    "expected_output": "6"
+   },
+   {
+    "input": "5 4\n1 2 3 1 1",
+    "expected_output": "3"
+   },
+   {
+    "input": "1 1\n7",
+    "expected_output": "7"
+   },
+   {
+    "input": "25 14\n22 25 4 13 12 3 15 6 18 14 5 8 22 8 12 22 16 7 22 22 12 8 26 15 6",
+    "expected_output": "34"
+   },
+   {
+    "input": "2 2\n5 15",
+    "expected_output": "15"
+   },
+   {
+    "input": "23 23\n14 23 29 7 1 25 27 18 15 23 26 25 7 18 6 29 23 23 4 9 6 10 3",
+    "expected_output": "29"
+   },
+   {
+    "input": "1 1\n27",
+    "expected_output": "27"
+   },
+   {
+    "input": "1 1\n10",
+    "expected_output": "10"
+   },
+   {
+    "input": "17 4\n7 30 10 13 11 22 8 8 12 20 16 29 28 4 10 13 15",
+    "expected_output": "70"
+   },
+   {
+    "input": "12 8\n20 9 16 11 1 2 5 15 21 23 3 8",
+    "expected_output": "23"
+   },
+   {
+    "input": "10 1\n30 28 12 5 7 29 5 21 24 17",
+    "expected_output": "178"
+   }
+  ]
+ },
+ {
+  "slug": "running-median-latency",
+  "title": "Running Median Latency",
+  "difficulty": 5,
+  "category": "Heaps",
+  "description": "A dashboard shows the median request latency after every new sample arrives.\n\nGiven latencies in arrival order, print the median after each one. With an even count, the median is the **lower** of the two middle values.",
+  "constraints": [
+   "1 ≤ n ≤ 10^5",
+   "0 ≤ latency ≤ 10^9"
+  ],
+  "input_format": "First line: n. Second line: n latencies.",
+  "output_format": "n integers on one line: the median after each sample.",
+  "python_solution": "\nimport sys, heapq\nx = sys.stdin.read().split()\nn = int(x[0])\nlo, hi, out = [], [], []\nfor v in map(int, x[1:1 + n]):\n    if not lo or v <= -lo[0]:\n        heapq.heappush(lo, -v)\n    else:\n        heapq.heappush(hi, v)\n    if len(lo) > len(hi) + 1:\n        heapq.heappush(hi, -heapq.heappop(lo))\n    elif len(hi) > len(lo):\n        heapq.heappush(lo, -heapq.heappop(hi))\n    out.append(-lo[0])\nprint(*out)\n",
+  "starter_code_python": "import sys\n\n# Input: First line: n. Second line: n latencies.\n# Output: n integers on one line: the median after each sample.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: First line: n. Second line: n latencies.\n// Output: n integers on one line: the median after each sample.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: First line: n. Second line: n latencies.\n// Output: n integers on one line: the median after each sample.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: First line: n. Second line: n latencies.\n// Output: n integers on one line: the median after each sample.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "google",
+   "meta",
+   "netflix"
+  ],
+  "time_complexity_target": "O(n log n)",
+  "space_complexity_target": "O(n)",
+  "test_cases": [
+   {
+    "input": "5\n5 15 1 3 8",
+    "expected_output": "5 5 5 3 5"
+   },
+   {
+    "input": "1\n42",
+    "expected_output": "42"
+   },
+   {
+    "input": "4\n2 2 2 2",
+    "expected_output": "2 2 2 2"
+   },
+   {
+    "input": "6\n6 5 4 3 2 1",
+    "expected_output": "6 5 5 4 4 3"
+   },
+   {
+    "input": "26\n3 48 48 12 5 35 24 50 10 26 46 23 36 41 49 25 49 36 12 38 3 1 47 45 47 31",
+    "expected_output": "3 3 48 12 12 12 24 24 24 24 26 24 26 26 35 26 35 35 35 35 35 26 35 35 36 35"
+   },
+   {
+    "input": "23\n44 41 39 47 12 32 46 39 9 1 36 6 40 26 43 8 6 16 27 37 4 34 35",
+    "expected_output": "44 41 41 41 41 39 41 39 39 39 39 36 39 36 39 36 36 32 32 32 32 32 34"
+   },
+   {
+    "input": "26\n25 5 19 22 10 25 2 9 6 38 13 0 27 37 49 21 12 49 8 34 28 13 36 2 3 23",
+    "expected_output": "25 5 19 19 19 19 19 10 10 10 13 10 13 13 19 19 19 19 19 19 21 19 21 19 19 19"
+   },
+   {
+    "input": "14\n11 7 44 22 33 13 2 39 5 14 33 37 23 30",
+    "expected_output": "11 7 11 11 22 13 13 13 13 13 14 14 22 22"
+   },
+   {
+    "input": "1\n46",
+    "expected_output": "46"
+   },
+   {
+    "input": "22\n48 28 3 41 8 9 7 46 30 41 16 16 6 1 14 49 7 31 12 35 33 23",
+    "expected_output": "48 28 28 28 28 9 9 9 28 28 28 16 16 16 16 16 16 16 16 16 16 16"
+   },
+   {
+    "input": "4\n4 39 21 33",
+    "expected_output": "4 4 21 21"
+   },
+   {
+    "input": "11\n30 1 50 29 16 21 31 25 19 32 34",
+    "expected_output": "30 1 30 29 29 21 29 25 25 25 29"
+   }
+  ]
+ },
+ {
+  "slug": "max-product-growth-window",
+  "title": "Best Compounded Growth Window",
+  "difficulty": 4,
+  "category": "Dynamic Programming",
+  "description": "Each day's growth factor is an integer (negative means a reversal, zero a reset). The compounded growth of a run of consecutive days is the product of their factors.\n\nPrint the **largest product** of any non-empty contiguous run.",
+  "constraints": [
+   "1 ≤ n ≤ 10^4",
+   "-10 ≤ factor ≤ 10",
+   "The answer fits in 64 bits for the given tests"
+  ],
+  "input_format": "First line: n. Second line: n integers.",
+  "output_format": "The maximum product.",
+  "python_solution": "\nimport sys\nx = sys.stdin.read().split()\nn = int(x[0])\na = list(map(int, x[1:1 + n]))\nbest = hi = lo = a[0]\nfor v in a[1:]:\n    cands = (v, hi * v, lo * v)\n    hi, lo = max(cands), min(cands)\n    best = max(best, hi)\nprint(best)\n",
+  "starter_code_python": "import sys\n\n# Input: First line: n. Second line: n integers.\n# Output: The maximum product.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: First line: n. Second line: n integers.\n// Output: The maximum product.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: First line: n. Second line: n integers.\n// Output: The maximum product.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: First line: n. Second line: n integers.\n// Output: The maximum product.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "amazon",
+   "microsoft",
+   "apple"
+  ],
+  "time_complexity_target": "O(n)",
+  "space_complexity_target": "O(1)",
+  "test_cases": [
+   {
+    "input": "4\n2 3 -2 4",
+    "expected_output": "6"
+   },
+   {
+    "input": "3\n-2 0 -1",
+    "expected_output": "0"
+   },
+   {
+    "input": "1\n-5",
+    "expected_output": "-5"
+   },
+   {
+    "input": "5\n-2 -3 0 -2 -40",
+    "expected_output": "80"
+   },
+   {
+    "input": "3\n0 0 0",
+    "expected_output": "0"
+   },
+   {
+    "input": "14\n-1 -2 -2 0 3 -2 -3 2 4 -4 -1 -1 -4 2",
+    "expected_output": "4608"
+   },
+   {
+    "input": "1\n4",
+    "expected_output": "4"
+   },
+   {
+    "input": "5\n-2 0 3 0 -3",
+    "expected_output": "3"
+   },
+   {
+    "input": "15\n0 -3 -3 2 -3 -3 2 1 -2 2 -3 3 -3 4 4",
+    "expected_output": "186624"
+   },
+   {
+    "input": "6\n-4 -3 -3 2 -3 3",
+    "expected_output": "648"
+   },
+   {
+    "input": "2\n3 0",
+    "expected_output": "3"
+   },
+   {
+    "input": "1\n-4",
+    "expected_output": "-4"
+   }
+  ]
+ },
+ {
+  "slug": "split-workload-evenly",
+  "title": "Split the Workload Evenly",
+  "difficulty": 4,
+  "category": "Dynamic Programming",
+  "description": "Two on-call engineers split a batch of tickets; each ticket takes a whole number of hours and can't be split.\n\nPrint `YES` if the tickets can be divided into two groups with **exactly equal** total hours, otherwise `NO`.",
+  "constraints": [
+   "1 ≤ n ≤ 200",
+   "1 ≤ hours ≤ 100"
+  ],
+  "input_format": "First line: n. Second line: n ticket durations.",
+  "output_format": "`YES` or `NO`.",
+  "python_solution": "\nimport sys\nx = sys.stdin.read().split()\nn = int(x[0])\na = list(map(int, x[1:1 + n]))\ns = sum(a)\nif s % 2:\n    print(\"NO\")\nelse:\n    reach = 1\n    for v in a:\n        reach |= reach << v\n    print(\"YES\" if reach >> (s // 2) & 1 else \"NO\")\n",
+  "starter_code_python": "import sys\n\n# Input: First line: n. Second line: n ticket durations.\n# Output: `YES` or `NO`.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: First line: n. Second line: n ticket durations.\n// Output: `YES` or `NO`.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: First line: n. Second line: n ticket durations.\n// Output: `YES` or `NO`.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: First line: n. Second line: n ticket durations.\n// Output: `YES` or `NO`.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "google",
+   "amazon",
+   "meta"
+  ],
+  "time_complexity_target": "O(n · S)",
+  "space_complexity_target": "O(S)",
+  "test_cases": [
+   {
+    "input": "4\n1 5 11 5",
+    "expected_output": "YES"
+   },
+   {
+    "input": "4\n1 2 3 5",
+    "expected_output": "NO"
+   },
+   {
+    "input": "1\n2",
+    "expected_output": "NO"
+   },
+   {
+    "input": "2\n7 7",
+    "expected_output": "YES"
+   },
+   {
+    "input": "3\n3 3 3",
+    "expected_output": "NO"
+   },
+   {
+    "input": "8\n9 6 4 12 8 8 9 8",
+    "expected_output": "YES"
+   },
+   {
+    "input": "7\n1 12 6 2 8 9 8",
+    "expected_output": "YES"
+   },
+   {
+    "input": "9\n2 5 6 10 9 12 11 12 1",
+    "expected_output": "YES"
+   },
+   {
+    "input": "11\n4 11 9 9 1 6 4 11 9 9 1",
+    "expected_output": "YES"
+   },
+   {
+    "input": "3\n7 6 1",
+    "expected_output": "YES"
+   },
+   {
+    "input": "9\n4 12 7 1 5 7 3 5 7",
+    "expected_output": "NO"
+   },
+   {
+    "input": "7\n4 4 5 8 4 11 3",
+    "expected_output": "NO"
+   }
+  ]
+ },
+ {
+  "slug": "common-event-subsequence",
+  "title": "Longest Common Event Sequence",
+  "difficulty": 4,
+  "category": "Dynamic Programming",
+  "description": "Two services log the same user journey, but each drops some events. Events are single lowercase letters.\n\nPrint the length of the **longest sequence of events that appears in both logs in the same order** (not necessarily contiguously).",
+  "constraints": [
+   "1 ≤ |a|, |b| ≤ 2000",
+   "Lowercase letters only"
+  ],
+  "input_format": "Two lines: the two logs.",
+  "output_format": "The length of the longest common subsequence.",
+  "python_solution": "\nimport sys\na, b = sys.stdin.read().split()[:2]\nprev = [0] * (len(b) + 1)\nfor ca in a:\n    cur = [0] * (len(b) + 1)\n    for j, cb in enumerate(b, 1):\n        cur[j] = prev[j - 1] + 1 if ca == cb else max(prev[j], cur[j - 1])\n    prev = cur\nprint(prev[-1])\n",
+  "starter_code_python": "import sys\n\n# Input: Two lines: the two logs.\n# Output: The length of the longest common subsequence.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: Two lines: the two logs.\n// Output: The length of the longest common subsequence.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: Two lines: the two logs.\n// Output: The length of the longest common subsequence.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: Two lines: the two logs.\n// Output: The length of the longest common subsequence.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "google",
+   "microsoft",
+   "apple"
+  ],
+  "time_complexity_target": "O(n · m)",
+  "space_complexity_target": "O(m)",
+  "test_cases": [
+   {
+    "input": "abcde\nace",
+    "expected_output": "3"
+   },
+   {
+    "input": "abc\nabc",
+    "expected_output": "3"
+   },
+   {
+    "input": "abc\ndef",
+    "expected_output": "0"
+   },
+   {
+    "input": "a\na",
+    "expected_output": "1"
+   },
+   {
+    "input": "acccccc\naabcaccacba",
+    "expected_output": "5"
+   },
+   {
+    "input": "acaacaaaa\nbbbaababc",
+    "expected_output": "4"
+   },
+   {
+    "input": "b\naaacbbbac",
+    "expected_output": "1"
+   },
+   {
+    "input": "cbb\ncbbaabaa",
+    "expected_output": "3"
+   },
+   {
+    "input": "acaabacb\nacbabbcbc",
+    "expected_output": "6"
+   },
+   {
+    "input": "bcacbbca\nbbabccaa",
+    "expected_output": "5"
+   },
+   {
+    "input": "bbcaaab\nac",
+    "expected_output": "1"
+   },
+   {
+    "input": "bc\nbcbabaac",
+    "expected_output": "2"
+   }
+  ]
+ },
+ {
+  "slug": "charging-station-loop",
+  "title": "Charging Station Loop",
+  "difficulty": 4,
+  "category": "Greedy",
+  "description": "A delivery drone flies a fixed loop of `n` charging stations. At station `i` it can take `charge[i]` units, and flying on to station `i + 1` (wrapping round to 0) costs `cost[i]`. It starts empty.\n\nPrint the **smallest station index** from which the drone can complete the full loop, or `-1` if none can.",
+  "constraints": [
+   "1 ≤ n ≤ 10^5",
+   "0 ≤ charge[i], cost[i] ≤ 10^4"
+  ],
+  "input_format": "First line: n. Second line: charge. Third line: cost.",
+  "output_format": "The starting station, or `-1`.",
+  "python_solution": "\nimport sys\nx = sys.stdin.read().split()\nn = int(x[0])\ng = list(map(int, x[1:1 + n]))\nc = list(map(int, x[1 + n:1 + 2 * n]))\nif sum(g) < sum(c):\n    print(-1)\nelse:\n    start, tank = 0, 0\n    for i in range(n):\n        tank += g[i] - c[i]\n        if tank < 0:\n            start, tank = i + 1, 0\n    print(start)\n",
+  "starter_code_python": "import sys\n\n# Input: First line: n. Second line: charge. Third line: cost.\n# Output: The starting station, or `-1`.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: First line: n. Second line: charge. Third line: cost.\n// Output: The starting station, or `-1`.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: First line: n. Second line: charge. Third line: cost.\n// Output: The starting station, or `-1`.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: First line: n. Second line: charge. Third line: cost.\n// Output: The starting station, or `-1`.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "amazon",
+   "apple",
+   "google"
+  ],
+  "time_complexity_target": "O(n)",
+  "space_complexity_target": "O(1)",
+  "test_cases": [
+   {
+    "input": "5\n1 2 3 4 5\n3 4 5 1 2",
+    "expected_output": "3"
+   },
+   {
+    "input": "3\n2 3 4\n3 4 3",
+    "expected_output": "-1"
+   },
+   {
+    "input": "1\n5\n5",
+    "expected_output": "0"
+   },
+   {
+    "input": "2\n0 0\n0 0",
+    "expected_output": "0"
+   },
+   {
+    "input": "8\n6 3 4 3 4 5 2 2\n4 5 1 3 0 4 2 2",
+    "expected_output": "0"
+   },
+   {
+    "input": "4\n6 0 5 5\n4 6 0 2",
+    "expected_output": "2"
+   },
+   {
+    "input": "1\n2\n3",
+    "expected_output": "-1"
+   },
+   {
+    "input": "2\n2 1\n0 2",
+    "expected_output": "0"
+   },
+   {
+    "input": "11\n0 3 1 6 6 4 3 2 6 5 4\n0 2 6 5 5 2 6 2 3 4 3",
+    "expected_output": "3"
+   },
+   {
+    "input": "8\n3 2 4 6 2 4 0 6\n6 0 2 4 3 2 4 6",
+    "expected_output": "1"
+   },
+   {
+    "input": "6\n6 4 1 4 3 4\n5 6 5 5 6 1",
+    "expected_output": "-1"
+   },
+   {
+    "input": "1\n4\n0",
+    "expected_output": "0"
+   }
+  ]
+ },
+ {
+  "slug": "spiral-rack-inventory",
+  "title": "Spiral Rack Inventory Walk",
+  "difficulty": 3,
+  "category": "Arrays & Matrices",
+  "description": "A robot counts stock on a rectangular rack, starting at the top-left slot and walking clockwise in a spiral toward the centre.\n\nPrint the slot values in the order the robot visits them.",
+  "constraints": [
+   "1 ≤ r, c ≤ 100"
+  ],
+  "input_format": "First line: r and c. Then r lines of c integers.",
+  "output_format": "All r · c values on one line, in spiral order.",
+  "python_solution": "\nimport sys\nx = sys.stdin.read().split()\nr, c = int(x[0]), int(x[1])\nm = [list(map(int, x[2 + i * c:2 + (i + 1) * c])) for i in range(r)]\ntop, bot, left, right = 0, r - 1, 0, c - 1\nout = []\nwhile top <= bot and left <= right:\n    out += m[top][left:right + 1]\n    out += [m[i][right] for i in range(top + 1, bot + 1)]\n    if top < bot:\n        out += m[bot][left:right][::-1]\n    if left < right:\n        out += [m[i][left] for i in range(bot - 1, top, -1)]\n    top, bot, left, right = top + 1, bot - 1, left + 1, right - 1\nprint(*out)\n",
+  "starter_code_python": "import sys\n\n# Input: First line: r and c. Then r lines of c integers.\n# Output: All r · c values on one line, in spiral order.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: First line: r and c. Then r lines of c integers.\n// Output: All r · c values on one line, in spiral order.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: First line: r and c. Then r lines of c integers.\n// Output: All r · c values on one line, in spiral order.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: First line: r and c. Then r lines of c integers.\n// Output: All r · c values on one line, in spiral order.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "microsoft",
+   "amazon",
+   "apple"
+  ],
+  "time_complexity_target": "O(r · c)",
+  "space_complexity_target": "O(1) beyond the output",
+  "test_cases": [
+   {
+    "input": "3 3\n1 2 3\n4 5 6\n7 8 9",
+    "expected_output": "1 2 3 6 9 8 7 4 5"
+   },
+   {
+    "input": "3 4\n1 2 3 4\n5 6 7 8\n9 10 11 12",
+    "expected_output": "1 2 3 4 8 12 11 10 9 5 6 7"
+   },
+   {
+    "input": "1 1\n5",
+    "expected_output": "5"
+   },
+   {
+    "input": "1 4\n1 2 3 4",
+    "expected_output": "1 2 3 4"
+   },
+   {
+    "input": "4 1\n1\n2\n3\n4",
+    "expected_output": "1 2 3 4"
+   },
+   {
+    "input": "3 1\n29\n56\n1",
+    "expected_output": "29 56 1"
+   },
+   {
+    "input": "2 5\n41 84 0 98 26\n66 97 39 81 19",
+    "expected_output": "41 84 0 98 26 19 81 39 97 66"
+   },
+   {
+    "input": "5 1\n51\n3\n39\n0\n34",
+    "expected_output": "51 3 39 0 34"
+   },
+   {
+    "input": "1 3\n94 98 97",
+    "expected_output": "94 98 97"
+   },
+   {
+    "input": "6 1\n5\n33\n36\n11\n11\n78",
+    "expected_output": "5 33 36 11 11 78"
+   },
+   {
+    "input": "4 1\n57\n48\n62\n45",
+    "expected_output": "57 48 62 45"
+   },
+   {
+    "input": "3 4\n13 67 99 52\n81 72 82 23\n91 88 58 32",
+    "expected_output": "13 67 99 52 23 32 58 88 91 81 72 82"
+   }
+  ]
+ },
+ {
+  "slug": "validate-permission-tree",
+  "title": "Validate a Permission Search Tree",
+  "difficulty": 4,
+  "category": "Trees",
+  "description": "Permission IDs are stored in a binary search tree: every ID in a node's left subtree must be strictly smaller than the node's, and every ID in its right subtree strictly larger.\n\nThe tree is given in level order, with `null` for a missing child. Print `VALID` or `INVALID`.",
+  "constraints": [
+   "1 ≤ nodes ≤ 10^4",
+   "-10^9 ≤ id ≤ 10^9"
+  ],
+  "input_format": "First line: k, the number of tokens. Second line: k tokens in level order (integers or `null`).",
+  "output_format": "`VALID` or `INVALID`.",
+  "python_solution": "\nimport sys\nx = sys.stdin.read().split()\nk = int(x[0])\nt = x[1:1 + k]\nleft, right, val = {}, {}, {}\nval[0] = int(t[0])\nqueue, i = [0], 1\nfor node in queue:\n    for side in (left, right):\n        if i < k:\n            if t[i] != \"null\":\n                idx = len(val)\n                val[idx] = int(t[i])\n                side[node] = idx\n                queue.append(idx)\n            i += 1\nok = True\nstack = [(0, None, None)]\nwhile stack and ok:\n    n, lo, hi = stack.pop()\n    v = val[n]\n    if (lo is not None and v <= lo) or (hi is not None and v >= hi):\n        ok = False\n    if n in left:\n        stack.append((left[n], lo, v))\n    if n in right:\n        stack.append((right[n], v, hi))\nprint(\"VALID\" if ok else \"INVALID\")\n",
+  "starter_code_python": "import sys\n\n# Input: First line: k, the number of tokens. Second line: k tokens in level order (integers or `null`).\n# Output: `VALID` or `INVALID`.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: First line: k, the number of tokens. Second line: k tokens in level order (integers or `null`).\n// Output: `VALID` or `INVALID`.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: First line: k, the number of tokens. Second line: k tokens in level order (integers or `null`).\n// Output: `VALID` or `INVALID`.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: First line: k, the number of tokens. Second line: k tokens in level order (integers or `null`).\n// Output: `VALID` or `INVALID`.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "google",
+   "meta",
+   "microsoft"
+  ],
+  "time_complexity_target": "O(n)",
+  "space_complexity_target": "O(h)",
+  "test_cases": [
+   {
+    "input": "3\n2 1 3",
+    "expected_output": "VALID"
+   },
+   {
+    "input": "7\n5 1 4 null null 3 6",
+    "expected_output": "INVALID"
+   },
+   {
+    "input": "7\n5 4 6 null null 3 7",
+    "expected_output": "INVALID"
+   },
+   {
+    "input": "1\n1",
+    "expected_output": "VALID"
+   },
+   {
+    "input": "3\n1 1 null",
+    "expected_output": "INVALID"
+   },
+   {
+    "input": "7\n10 5 15 null null 6 20",
+    "expected_output": "INVALID"
+   },
+   {
+    "input": "7\n8 4 12 2 6 10 14",
+    "expected_output": "VALID"
+   },
+   {
+    "input": "3\n2 10 8",
+    "expected_output": "INVALID"
+   },
+   {
+    "input": "9\n7 null null 20 null 7 3 null null",
+    "expected_output": "VALID"
+   },
+   {
+    "input": "4\n10 null null 3",
+    "expected_output": "VALID"
+   },
+   {
+    "input": "8\n19 null null null null null 6 null",
+    "expected_output": "VALID"
+   }
+  ]
+ },
+ {
+  "slug": "network-tree-diameter",
+  "title": "Longest Hop Count in a Tree Network",
+  "difficulty": 4,
+  "category": "Graphs & Trees",
+  "description": "A private network of `n` routers is wired as a tree (connected, no cycles). The worst-case latency is set by the two routers that are the most hops apart.\n\nPrint that largest number of hops.",
+  "constraints": [
+   "1 ≤ n ≤ 10^5"
+  ],
+  "input_format": "First line: n. Then n − 1 lines, each an edge `u v` (0-indexed).",
+  "output_format": "The diameter in hops.",
+  "python_solution": "\nimport sys\nfrom collections import deque\nx = sys.stdin.read().split()\nn = int(x[0])\ng = [[] for _ in range(n)]\nfor i in range(n - 1):\n    u, v = int(x[1 + 2 * i]), int(x[2 + 2 * i])\n    g[u].append(v)\n    g[v].append(u)\ndef far(s):\n    dist = [-1] * n\n    dist[s] = 0\n    q = deque([s])\n    while q:\n        u = q.popleft()\n        for v in g[u]:\n            if dist[v] < 0:\n                dist[v] = dist[u] + 1\n                q.append(v)\n    best = max(range(n), key=lambda i: dist[i])\n    return best, dist[best]\na, _ = far(0)\nprint(far(a)[1])\n",
+  "starter_code_python": "import sys\n\n# Input: First line: n. Then n − 1 lines, each an edge `u v` (0-indexed).\n# Output: The diameter in hops.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: First line: n. Then n − 1 lines, each an edge `u v` (0-indexed).\n// Output: The diameter in hops.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: First line: n. Then n − 1 lines, each an edge `u v` (0-indexed).\n// Output: The diameter in hops.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: First line: n. Then n − 1 lines, each an edge `u v` (0-indexed).\n// Output: The diameter in hops.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "amazon",
+   "netflix",
+   "google"
+  ],
+  "time_complexity_target": "O(n)",
+  "space_complexity_target": "O(n)",
+  "test_cases": [
+   {
+    "input": "1",
+    "expected_output": "0"
+   },
+   {
+    "input": "2\n0 1",
+    "expected_output": "1"
+   },
+   {
+    "input": "5\n0 1\n1 2\n2 3\n1 4",
+    "expected_output": "3"
+   },
+   {
+    "input": "4\n0 1\n0 2\n0 3",
+    "expected_output": "2"
+   },
+   {
+    "input": "17\n1 0\n2 1\n3 0\n4 0\n5 0\n6 5\n7 5\n8 2\n9 1\n10 9\n11 5\n12 10\n13 0\n14 8\n15 12\n16 10",
+    "expected_output": "7"
+   },
+   {
+    "input": "9\n1 0\n2 1\n3 0\n4 0\n5 1\n6 1\n7 5\n8 1",
+    "expected_output": "4"
+   },
+   {
+    "input": "8\n1 0\n2 1\n3 0\n4 0\n5 1\n6 1\n7 2",
+    "expected_output": "4"
+   },
+   {
+    "input": "8\n1 0\n2 0\n3 1\n4 3\n5 2\n6 2\n7 6",
+    "expected_output": "6"
+   },
+   {
+    "input": "5\n1 0\n2 1\n3 1\n4 2",
+    "expected_output": "3"
+   },
+   {
+    "input": "14\n1 0\n2 1\n3 1\n4 2\n5 0\n6 4\n7 4\n8 3\n9 7\n10 2\n11 4\n12 0\n13 3",
+    "expected_output": "6"
+   },
+   {
+    "input": "16\n1 0\n2 1\n3 1\n4 3\n5 3\n6 3\n7 1\n8 0\n9 1\n10 1\n11 8\n12 7\n13 4\n14 0\n15 1",
+    "expected_output": "6"
+   },
+   {
+    "input": "5\n1 0\n2 0\n3 1\n4 3",
+    "expected_output": "4"
+   }
+  ]
+ },
+ {
+  "slug": "two-team-split",
+  "title": "Split Rivals Into Two Teams",
+  "difficulty": 4,
+  "category": "Graphs & BFS",
+  "description": "For a hackathon, `n` people must be split into two teams. Some pairs are rivals and must end up on **different** teams.\n\nPrint `YES` if such a split exists, otherwise `NO`.",
+  "constraints": [
+   "1 ≤ n ≤ 10^5",
+   "0 ≤ m ≤ 2·10^5",
+   "No self-rivalries"
+  ],
+  "input_format": "First line: n and m. Then m lines `u v` (0-indexed).",
+  "output_format": "`YES` or `NO`.",
+  "python_solution": "\nimport sys\nfrom collections import deque\nx = sys.stdin.read().split()\nn, m = int(x[0]), int(x[1])\ng = [[] for _ in range(n)]\nfor i in range(m):\n    u, v = int(x[2 + 2 * i]), int(x[3 + 2 * i])\n    g[u].append(v)\n    g[v].append(u)\ncolor = [-1] * n\nok = True\nfor s in range(n):\n    if color[s] >= 0 or not ok:\n        continue\n    color[s] = 0\n    q = deque([s])\n    while q and ok:\n        u = q.popleft()\n        for v in g[u]:\n            if color[v] < 0:\n                color[v] = 1 - color[u]\n                q.append(v)\n            elif color[v] == color[u]:\n                ok = False\nprint(\"YES\" if ok else \"NO\")\n",
+  "starter_code_python": "import sys\n\n# Input: First line: n and m. Then m lines `u v` (0-indexed).\n# Output: `YES` or `NO`.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: First line: n and m. Then m lines `u v` (0-indexed).\n// Output: `YES` or `NO`.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: First line: n and m. Then m lines `u v` (0-indexed).\n// Output: `YES` or `NO`.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: First line: n and m. Then m lines `u v` (0-indexed).\n// Output: `YES` or `NO`.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "meta",
+   "google",
+   "amazon"
+  ],
+  "time_complexity_target": "O(n + m)",
+  "space_complexity_target": "O(n + m)",
+  "test_cases": [
+   {
+    "input": "4 4\n0 1\n1 2\n2 3\n3 0",
+    "expected_output": "YES"
+   },
+   {
+    "input": "3 3\n0 1\n1 2\n2 0",
+    "expected_output": "NO"
+   },
+   {
+    "input": "1 0",
+    "expected_output": "YES"
+   },
+   {
+    "input": "5 2\n0 1\n3 4",
+    "expected_output": "YES"
+   },
+   {
+    "input": "3 0",
+    "expected_output": "YES"
+   },
+   {
+    "input": "8 1\n6 7",
+    "expected_output": "YES"
+   },
+   {
+    "input": "3 2\n0 1\n0 2",
+    "expected_output": "YES"
+   },
+   {
+    "input": "11 7\n0 8\n1 9\n2 5\n2 7\n2 8\n2 9\n5 7",
+    "expected_output": "NO"
+   },
+   {
+    "input": "4 3\n0 3\n1 2\n1 3",
+    "expected_output": "YES"
+   },
+   {
+    "input": "5 3\n0 3\n2 3\n2 4",
+    "expected_output": "YES"
+   },
+   {
+    "input": "9 4\n1 5\n2 8\n3 5\n5 8",
+    "expected_output": "YES"
+   }
+  ]
+ },
+ {
+  "slug": "longest-consecutive-ticket-ids",
+  "title": "Longest Run of Consecutive Ticket IDs",
+  "difficulty": 3,
+  "category": "Hash Tables",
+  "description": "Support tickets were imported out of order and some are duplicated.\n\nPrint the length of the **longest run of consecutive IDs** (like 7, 8, 9, 10) present in the list.",
+  "constraints": [
+   "0 ≤ n ≤ 10^5",
+   "-10^9 ≤ id ≤ 10^9"
+  ],
+  "input_format": "First line: n. Second line: n IDs (empty when n = 0).",
+  "output_format": "The length of the longest run.",
+  "python_solution": "\nimport sys\nx = sys.stdin.read().split()\nn = int(x[0])\ns = set(map(int, x[1:1 + n]))\nbest = 0\nfor v in s:\n    if v - 1 not in s:\n        end = v\n        while end + 1 in s:\n            end += 1\n        best = max(best, end - v + 1)\nprint(best)\n",
+  "starter_code_python": "import sys\n\n# Input: First line: n. Second line: n IDs (empty when n = 0).\n# Output: The length of the longest run.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: First line: n. Second line: n IDs (empty when n = 0).\n// Output: The length of the longest run.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: First line: n. Second line: n IDs (empty when n = 0).\n// Output: The length of the longest run.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: First line: n. Second line: n IDs (empty when n = 0).\n// Output: The length of the longest run.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "google",
+   "amazon",
+   "meta"
+  ],
+  "time_complexity_target": "O(n)",
+  "space_complexity_target": "O(n)",
+  "test_cases": [
+   {
+    "input": "6\n100 4 200 1 3 2",
+    "expected_output": "4"
+   },
+   {
+    "input": "0\n",
+    "expected_output": "0"
+   },
+   {
+    "input": "10\n0 3 7 2 5 8 4 6 0 1",
+    "expected_output": "9"
+   },
+   {
+    "input": "3\n5 5 5",
+    "expected_output": "1"
+   },
+   {
+    "input": "22\n9 -3 7 -8 3 3 3 -5 -6 3 -4 -7 6 10 6 1 -2 8 -6 2 5 9",
+    "expected_output": "7"
+   },
+   {
+    "input": "25\n1 6 -8 -10 6 6 7 -1 -6 -6 6 -5 -10 -4 3 -7 -10 10 -10 -8 7 -9 9 8 8",
+    "expected_output": "7"
+   },
+   {
+    "input": "2\n-1 -4",
+    "expected_output": "1"
+   },
+   {
+    "input": "8\n-8 -3 -1 8 -1 -3 6 -4",
+    "expected_output": "2"
+   },
+   {
+    "input": "11\n-6 0 10 -8 5 5 2 -9 1 -5 -8",
+    "expected_output": "3"
+   },
+   {
+    "input": "20\n-3 4 -2 -10 -7 -9 2 9 6 -7 0 -4 -3 -9 -7 5 4 1 -9 -1",
+    "expected_output": "7"
+   },
+   {
+    "input": "24\n-7 6 -10 -5 -8 9 6 7 8 10 -10 4 -3 -10 -9 -3 -4 -2 10 2 0 9 7 -4",
+    "expected_output": "5"
+   },
+   {
+    "input": "9\n-2 5 -4 -10 -6 4 -9 10 5",
+    "expected_output": "2"
+   }
+  ]
+ },
+ {
+  "slug": "cheapest-transit-passes",
+  "title": "Cheapest Transit Passes",
+  "difficulty": 4,
+  "category": "Dynamic Programming",
+  "description": "You know the days of the year you'll commute. A 1-day pass costs `a`, a 7-day pass `b` and a 30-day pass `c`; a k-day pass bought on day d covers days d through d + k − 1.\n\nPrint the **minimum total cost** to cover every commuting day.",
+  "constraints": [
+   "1 ≤ n ≤ 365",
+   "1 ≤ day ≤ 365, strictly increasing",
+   "1 ≤ a, b, c ≤ 1000"
+  ],
+  "input_format": "First line: n, a, b, c. Second line: the n commuting days.",
+  "output_format": "The minimum cost.",
+  "python_solution": "\nimport sys\nx = sys.stdin.read().split()\nn, a, b, c = map(int, x[:4])\ndays = set(map(int, x[4:4 + n]))\ndp = [0] * 400\nfor d in range(1, 366):\n    if d not in days:\n        dp[d] = dp[d - 1]\n    else:\n        dp[d] = min(dp[d - 1] + a, dp[max(0, d - 7)] + b, dp[max(0, d - 30)] + c)\nprint(dp[365])\n",
+  "starter_code_python": "import sys\n\n# Input: First line: n, a, b, c. Second line: the n commuting days.\n# Output: The minimum cost.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: First line: n, a, b, c. Second line: the n commuting days.\n// Output: The minimum cost.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: First line: n, a, b, c. Second line: the n commuting days.\n// Output: The minimum cost.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: First line: n, a, b, c. Second line: the n commuting days.\n// Output: The minimum cost.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "apple",
+   "amazon",
+   "google"
+  ],
+  "time_complexity_target": "O(n)",
+  "space_complexity_target": "O(n)",
+  "test_cases": [
+   {
+    "input": "6 2 7 15\n1 4 6 7 8 20",
+    "expected_output": "11"
+   },
+   {
+    "input": "12 2 7 15\n1 2 3 4 5 6 7 8 9 10 30 31",
+    "expected_output": "17"
+   },
+   {
+    "input": "1 5 3 10\n100",
+    "expected_output": "3"
+   },
+   {
+    "input": "12 3 3 36\n16 23 34 38 49 52 57 60 65 80 85 88",
+    "expected_output": "24"
+   },
+   {
+    "input": "4 3 9 15\n45 56 62 73",
+    "expected_output": "12"
+   },
+   {
+    "input": "1 4 8 44\n1",
+    "expected_output": "4"
+   },
+   {
+    "input": "9 5 20 20\n12 13 17 30 33 34 58 61 64",
+    "expected_output": "35"
+   },
+   {
+    "input": "5 4 9 26\n13 24 40 66 86",
+    "expected_output": "20"
+   },
+   {
+    "input": "16 4 4 21\n5 6 9 17 18 19 20 22 25 30 34 36 47 58 68 73",
+    "expected_output": "28"
+   },
+   {
+    "input": "7 3 8 18\n19 23 39 44 57 58 63",
+    "expected_output": "20"
+   },
+   {
+    "input": "11 4 3 58\n5 11 12 14 20 27 35 64 66 80 81",
+    "expected_output": "21"
+   },
+   {
+    "input": "19 5 20 36\n6 18 20 22 23 28 30 32 41 42 54 58 59 62 67 68 72 84 85",
+    "expected_output": "82"
+   }
+  ]
+ },
+ {
+  "slug": "fewest-palindrome-segments",
+  "title": "Fewest Cuts Into Palindromic Segments",
+  "difficulty": 6,
+  "category": "Dynamic Programming",
+  "description": "A barcode string must be cut into pieces that each read the same forwards and backwards.\n\nPrint the **minimum number of cuts** needed.",
+  "constraints": [
+   "1 ≤ length ≤ 2000",
+   "Lowercase letters only"
+  ],
+  "input_format": "A single line with the string.",
+  "output_format": "The minimum number of cuts.",
+  "python_solution": "\nimport sys\ns = sys.stdin.read().split()[0]\nn = len(s)\npal = [[False] * n for _ in range(n)]\nfor i in range(n - 1, -1, -1):\n    for j in range(i, n):\n        pal[i][j] = s[i] == s[j] and (j - i < 2 or pal[i + 1][j - 1])\ncuts = [0] * n\nfor j in range(n):\n    if pal[0][j]:\n        cuts[j] = 0\n    else:\n        cuts[j] = min(cuts[i - 1] + 1 for i in range(1, j + 1) if pal[i][j])\nprint(cuts[-1])\n",
+  "starter_code_python": "import sys\n\n# Input: A single line with the string.\n# Output: The minimum number of cuts.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: A single line with the string.\n// Output: The minimum number of cuts.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: A single line with the string.\n// Output: The minimum number of cuts.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: A single line with the string.\n// Output: The minimum number of cuts.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "google",
+   "amazon",
+   "microsoft"
+  ],
+  "time_complexity_target": "O(n²)",
+  "space_complexity_target": "O(n²)",
+  "test_cases": [
+   {
+    "input": "aab",
+    "expected_output": "1"
+   },
+   {
+    "input": "a",
+    "expected_output": "0"
+   },
+   {
+    "input": "ab",
+    "expected_output": "1"
+   },
+   {
+    "input": "racecar",
+    "expected_output": "0"
+   },
+   {
+    "input": "abccbaxy",
+    "expected_output": "2"
+   },
+   {
+    "input": "aabaab",
+    "expected_output": "1"
+   },
+   {
+    "input": "baabb",
+    "expected_output": "1"
+   },
+   {
+    "input": "b",
+    "expected_output": "0"
+   },
+   {
+    "input": "ababbbaa",
+    "expected_output": "2"
+   },
+   {
+    "input": "babbaaaaba",
+    "expected_output": "2"
+   },
+   {
+    "input": "aaabaaaaa",
+    "expected_output": "1"
+   },
+   {
+    "input": "bbababaaa",
+    "expected_output": "2"
+   }
+  ]
+ },
+ {
+  "slug": "kth-smallest-sorted-grid",
+  "title": "k-th Smallest Reading in a Sorted Grid",
+  "difficulty": 5,
+  "category": "Binary Search",
+  "description": "Sensor readings are arranged in an n × n grid where every row and every column is sorted in non-decreasing order.\n\nPrint the **k-th smallest** reading (counting duplicates).",
+  "constraints": [
+   "1 ≤ n ≤ 300",
+   "1 ≤ k ≤ n²",
+   "-10^9 ≤ value ≤ 10^9"
+  ],
+  "input_format": "First line: n and k. Then n lines of n integers.",
+  "output_format": "The k-th smallest value.",
+  "python_solution": "\nimport sys\nx = sys.stdin.read().split()\nn, k = int(x[0]), int(x[1])\nm = [list(map(int, x[2 + i * n:2 + (i + 1) * n])) for i in range(n)]\ndef count_le(v):\n    i, j, c = n - 1, 0, 0\n    while i >= 0 and j < n:\n        if m[i][j] <= v:\n            c += i + 1\n            j += 1\n        else:\n            i -= 1\n    return c\nlo, hi = m[0][0], m[-1][-1]\nwhile lo < hi:\n    mid = (lo + hi) // 2\n    if count_le(mid) >= k:\n        hi = mid\n    else:\n        lo = mid + 1\nprint(lo)\n",
+  "starter_code_python": "import sys\n\n# Input: First line: n and k. Then n lines of n integers.\n# Output: The k-th smallest value.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: First line: n and k. Then n lines of n integers.\n// Output: The k-th smallest value.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: First line: n and k. Then n lines of n integers.\n// Output: The k-th smallest value.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: First line: n and k. Then n lines of n integers.\n// Output: The k-th smallest value.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "google",
+   "meta",
+   "apple"
+  ],
+  "time_complexity_target": "O(n log(max − min))",
+  "space_complexity_target": "O(1)",
+  "test_cases": [
+   {
+    "input": "3 8\n1 5 9\n10 11 13\n12 13 15",
+    "expected_output": "13"
+   },
+   {
+    "input": "1 1\n-5",
+    "expected_output": "-5"
+   },
+   {
+    "input": "2 3\n1 2\n1 3",
+    "expected_output": "2"
+   },
+   {
+    "input": "4 1\n-9 -5 5 5\n-7 -2 9 10\n-2 4 16 18\n-2 5 18 21",
+    "expected_output": "-9"
+   },
+   {
+    "input": "4 1\n-15 -9 -7 -3\n-12 -5 -2 3\n-11 -3 1 7\n-9 0 5 12",
+    "expected_output": "-15"
+   },
+   {
+    "input": "6 5\n-12 -4 -4 0 4 6\n-8 1 2 7 12 15\n-8 2 4 10 16 20\n-6 5 8 15 22 27\n-4 8 12 20 28 34\n-3 10 15 24 33 40",
+    "expected_output": "-4"
+   },
+   {
+    "input": "2 2\n-3 -3\n-3 -2",
+    "expected_output": "-3"
+   },
+   {
+    "input": "4 7\n0 0 10 10\n0 1 12 13\n5 7 19 21\n5 8 21 24",
+    "expected_output": "7"
+   },
+   {
+    "input": "1 1\n15",
+    "expected_output": "15"
+   },
+   {
+    "input": "4 16\n-12 -12 -2 -2\n-12 -11 0 1\n-7 -5 7 9\n-7 -4 9 12",
+    "expected_output": "12"
+   },
+   {
+    "input": "5 11\n-12 -10 -6 6 6\n-11 -8 -3 10 11\n-9 -5 1 15 17\n-3 2 9 24 27\n-3 3 11 27 31",
+    "expected_output": "1"
+   },
+   {
+    "input": "3 5\n-15 -9 3\n-12 -5 8\n-6 2 16",
+    "expected_output": "-5"
+   }
+  ]
+ },
+ {
+  "slug": "merge-sorted-log-feeds",
+  "title": "Merge k Sorted Log Feeds",
+  "difficulty": 4,
+  "category": "Heaps",
+  "description": "Each of k servers produces a feed of event timestamps already sorted ascending.\n\nPrint one merged, sorted feed of all timestamps.",
+  "constraints": [
+   "1 ≤ k ≤ 10^4",
+   "Total timestamps N ≤ 10^5"
+  ],
+  "input_format": "First line: k. Then k lines, each starting with its length L followed by L sorted timestamps.",
+  "output_format": "All timestamps on one line in sorted order (an empty line if there are none).",
+  "python_solution": "\nimport sys, heapq\nx = sys.stdin.read().split()\nk = int(x[0])\npos, feeds = 1, []\nfor _ in range(k):\n    L = int(x[pos])\n    feeds.append(list(map(int, x[pos + 1:pos + 1 + L])))\n    pos += 1 + L\nheap = [(f[0], i, 0) for i, f in enumerate(feeds) if f]\nheapq.heapify(heap)\nout = []\nwhile heap:\n    v, i, j = heapq.heappop(heap)\n    out.append(v)\n    if j + 1 < len(feeds[i]):\n        heapq.heappush(heap, (feeds[i][j + 1], i, j + 1))\nprint(*out)\n",
+  "starter_code_python": "import sys\n\n# Input: First line: k. Then k lines, each starting with its length L followed by L sorted timestamps.\n# Output: All timestamps on one line in sorted order (an empty line if there are none).\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: First line: k. Then k lines, each starting with its length L followed by L sorted timestamps.\n// Output: All timestamps on one line in sorted order (an empty line if there are none).\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: First line: k. Then k lines, each starting with its length L followed by L sorted timestamps.\n// Output: All timestamps on one line in sorted order (an empty line if there are none).\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: First line: k. Then k lines, each starting with its length L followed by L sorted timestamps.\n// Output: All timestamps on one line in sorted order (an empty line if there are none).\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "amazon",
+   "google",
+   "netflix"
+  ],
+  "time_complexity_target": "O(N log k)",
+  "space_complexity_target": "O(k)",
+  "test_cases": [
+   {
+    "input": "3\n3 1 4 5\n3 1 3 4\n2 2 6",
+    "expected_output": "1 1 2 3 4 4 5 6"
+   },
+   {
+    "input": "2\n0\n1 7",
+    "expected_output": "7"
+   },
+   {
+    "input": "1\n0",
+    "expected_output": ""
+   },
+   {
+    "input": "5\n0\n1 8\n0\n3 13 19 21\n4 5 14 16 30",
+    "expected_output": "5 8 13 14 16 19 21 30"
+   },
+   {
+    "input": "4\n2 22 25\n3 3 15 18\n0\n6 4 6 7 18 23 24",
+    "expected_output": "3 4 6 7 15 18 18 22 23 24 25"
+   },
+   {
+    "input": "5\n1 11\n4 10 16 17 24\n1 5\n1 1\n6 8 11 14 15 16 20",
+    "expected_output": "1 5 8 10 11 11 14 15 16 16 17 20 24"
+   },
+   {
+    "input": "4\n0\n0\n2 25 28\n4 5 18 27 29",
+    "expected_output": "5 18 25 27 28 29"
+   },
+   {
+    "input": "5\n1 14\n5 3 6 16 17 24\n1 2\n6 2 15 23 23 23 27\n6 3 6 12 15 26 28",
+    "expected_output": "2 2 3 3 6 6 12 14 15 15 16 17 23 23 23 24 26 27 28"
+   },
+   {
+    "input": "1\n4 14 21 24 25",
+    "expected_output": "14 21 24 25"
+   },
+   {
+    "input": "2\n5 0 19 21 28 29\n5 2 4 9 12 18",
+    "expected_output": "0 2 4 9 12 18 19 21 28 29"
+   },
+   {
+    "input": "3\n0\n5 1 3 4 14 24\n4 0 8 10 23",
+    "expected_output": "0 1 3 4 8 10 14 23 24"
+   },
+   {
+    "input": "5\n0\n1 23\n4 1 11 20 28\n5 5 13 18 24 28\n1 23",
+    "expected_output": "1 5 11 13 18 20 23 23 24 28 28"
+   }
+  ]
+ },
+ {
+  "slug": "keyword-grid-search",
+  "title": "Find a Keyword in a Letter Grid",
+  "difficulty": 5,
+  "category": "Backtracking",
+  "description": "A puzzle screen shows a grid of letters. A keyword can be traced by starting on any cell and stepping up, down, left or right, using each cell **at most once**.\n\nPrint `FOUND` or `NOT FOUND`.",
+  "constraints": [
+   "1 ≤ r, c ≤ 6",
+   "1 ≤ keyword length ≤ 15",
+   "Uppercase letters only"
+  ],
+  "input_format": "First line: r, c and the keyword. Then r lines of c letters.",
+  "output_format": "`FOUND` or `NOT FOUND`.",
+  "python_solution": "\nimport sys\nx = sys.stdin.read().split()\nr, c, w = int(x[0]), int(x[1]), x[2]\ng = [list(x[3 + i]) for i in range(r)]\ndef dfs(i, j, k):\n    if g[i][j] != w[k]:\n        return False\n    if k == len(w) - 1:\n        return True\n    ch, g[i][j] = g[i][j], \"#\"\n    found = any(0 <= a < r and 0 <= b < c and dfs(a, b, k + 1)\n                for a, b in ((i + 1, j), (i - 1, j), (i, j + 1), (i, j - 1)))\n    g[i][j] = ch\n    return found\nprint(\"FOUND\" if any(dfs(i, j, 0) for i in range(r) for j in range(c)) else \"NOT FOUND\")\n",
+  "starter_code_python": "import sys\n\n# Input: First line: r, c and the keyword. Then r lines of c letters.\n# Output: `FOUND` or `NOT FOUND`.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: First line: r, c and the keyword. Then r lines of c letters.\n// Output: `FOUND` or `NOT FOUND`.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: First line: r, c and the keyword. Then r lines of c letters.\n// Output: `FOUND` or `NOT FOUND`.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: First line: r, c and the keyword. Then r lines of c letters.\n// Output: `FOUND` or `NOT FOUND`.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "microsoft",
+   "amazon",
+   "meta"
+  ],
+  "time_complexity_target": "O(r · c · 3^L)",
+  "space_complexity_target": "O(L)",
+  "test_cases": [
+   {
+    "input": "3 4 ABCCED\nABCE\nSFCS\nADEE",
+    "expected_output": "FOUND"
+   },
+   {
+    "input": "3 4 SEE\nABCE\nSFCS\nADEE",
+    "expected_output": "FOUND"
+   },
+   {
+    "input": "3 4 ABCB\nABCE\nSFCS\nADEE",
+    "expected_output": "NOT FOUND"
+   },
+   {
+    "input": "1 1 A\nA",
+    "expected_output": "FOUND"
+   },
+   {
+    "input": "2 2 AAAAA\nAA\nAA",
+    "expected_output": "NOT FOUND"
+   },
+   {
+    "input": "1 3 BBBB\nBAA",
+    "expected_output": "NOT FOUND"
+   },
+   {
+    "input": "4 4 BAAB\nAABA\nABBB\nBBBA\nBAAA",
+    "expected_output": "FOUND"
+   },
+   {
+    "input": "2 1 BAAA\nA\nA",
+    "expected_output": "NOT FOUND"
+   },
+   {
+    "input": "1 4 AB\nABBB",
+    "expected_output": "FOUND"
+   },
+   {
+    "input": "3 2 BABAA\nAB\nAB\nBA",
+    "expected_output": "FOUND"
+   },
+   {
+    "input": "2 2 AB\nBA\nBA",
+    "expected_output": "FOUND"
+   },
+   {
+    "input": "2 1 ABBBAB\nA\nA",
+    "expected_output": "NOT FOUND"
+   }
+  ]
+ },
+ {
+  "slug": "signed-budget-ways",
+  "title": "Ways to Sign a Budget",
+  "difficulty": 4,
+  "category": "Dynamic Programming",
+  "description": "Each line item in a budget is either added or subtracted. Given the item amounts and a target net total, print **how many ways** there are to choose a sign for every item so the total equals the target.",
+  "constraints": [
+   "1 ≤ n ≤ 20",
+   "0 ≤ amount ≤ 1000",
+   "sum of amounts ≤ 1000",
+   "-1000 ≤ target ≤ 1000"
+  ],
+  "input_format": "First line: n and target. Second line: n amounts.",
+  "output_format": "The number of ways.",
+  "python_solution": "\nimport sys\nx = sys.stdin.read().split()\nn, t = int(x[0]), int(x[1])\na = list(map(int, x[2:2 + n]))\nways = {0: 1}\nfor v in a:\n    nxt = {}\n    for s, c in ways.items():\n        nxt[s + v] = nxt.get(s + v, 0) + c\n        nxt[s - v] = nxt.get(s - v, 0) + c\n    ways = nxt\nprint(ways.get(t, 0))\n",
+  "starter_code_python": "import sys\n\n# Input: First line: n and target. Second line: n amounts.\n# Output: The number of ways.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: First line: n and target. Second line: n amounts.\n// Output: The number of ways.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: First line: n and target. Second line: n amounts.\n// Output: The number of ways.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: First line: n and target. Second line: n amounts.\n// Output: The number of ways.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "meta",
+   "google",
+   "amazon"
+  ],
+  "time_complexity_target": "O(n · S)",
+  "space_complexity_target": "O(S)",
+  "test_cases": [
+   {
+    "input": "5 3\n1 1 1 1 1",
+    "expected_output": "5"
+   },
+   {
+    "input": "1 1\n1",
+    "expected_output": "1"
+   },
+   {
+    "input": "2 0\n0 0",
+    "expected_output": "4"
+   },
+   {
+    "input": "3 100\n1 2 3",
+    "expected_output": "0"
+   },
+   {
+    "input": "6 5\n3 4 2 4 1 0",
+    "expected_output": "0"
+   },
+   {
+    "input": "6 1\n0 3 4 3 4 4",
+    "expected_output": "0"
+   },
+   {
+    "input": "7 3\n1 4 3 1 0 4 2",
+    "expected_output": "12"
+   },
+   {
+    "input": "6 -1\n2 2 2 2 2 1",
+    "expected_output": "10"
+   },
+   {
+    "input": "10 -1\n2 0 3 1 1 1 2 4 2 2",
+    "expected_output": "0"
+   },
+   {
+    "input": "6 6\n4 1 2 2 2 3",
+    "expected_output": "5"
+   },
+   {
+    "input": "2 -3\n4 3",
+    "expected_output": "0"
+   },
+   {
+    "input": "10 -3\n1 1 2 4 2 0 0 2 3 2",
+    "expected_output": "108"
+   }
+  ]
+ },
+ {
+  "slug": "sliding-log-rate-limiter",
+  "title": "Sliding-Log Rate Limiter",
+  "difficulty": 3,
+  "category": "Queues & Simulation",
+  "description": "An API allows at most `k` **accepted** requests in any window of `w` seconds: a request at time `t` is accepted if fewer than `k` accepted requests have times in `(t − w, t]`. Rejected requests don't count.\n\nGiven request times in non-decreasing order, print `1` for each accepted request and `0` for each rejected one.",
+  "constraints": [
+   "1 ≤ n ≤ 10^5",
+   "1 ≤ k ≤ n",
+   "1 ≤ w ≤ 10^9"
+  ],
+  "input_format": "First line: n, k and w. Second line: n request times.",
+  "output_format": "n digits separated by spaces.",
+  "python_solution": "\nimport sys\nfrom collections import deque\nx = sys.stdin.read().split()\nn, k, w = int(x[0]), int(x[1]), int(x[2])\nlog, out = deque(), []\nfor t in map(int, x[3:3 + n]):\n    while log and log[0] <= t - w:\n        log.popleft()\n    if len(log) < k:\n        log.append(t)\n        out.append(1)\n    else:\n        out.append(0)\nprint(*out)\n",
+  "starter_code_python": "import sys\n\n# Input: First line: n, k and w. Second line: n request times.\n# Output: n digits separated by spaces.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: First line: n, k and w. Second line: n request times.\n// Output: n digits separated by spaces.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: First line: n, k and w. Second line: n request times.\n// Output: n digits separated by spaces.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: First line: n, k and w. Second line: n request times.\n// Output: n digits separated by spaces.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "stripe",
+   "amazon",
+   "google"
+  ],
+  "time_complexity_target": "O(n)",
+  "space_complexity_target": "O(k)",
+  "test_cases": [
+   {
+    "input": "6 2 10\n1 2 3 11 12 25",
+    "expected_output": "1 1 0 1 1 1"
+   },
+   {
+    "input": "3 1 1\n5 5 6",
+    "expected_output": "1 0 1"
+   },
+   {
+    "input": "1 1 5\n0",
+    "expected_output": "1"
+   },
+   {
+    "input": "16 4 4\n0 3 3 8 9 9 9 10 11 13 15 15 16 18 19 20",
+    "expected_output": "1 1 1 1 1 1 1 0 0 1 1 1 1 1 1 1"
+   },
+   {
+    "input": "9 4 2\n2 3 4 8 14 14 15 16 20",
+    "expected_output": "1 1 1 1 1 1 1 1 1"
+   },
+   {
+    "input": "5 4 4\n4 4 4 8 18",
+    "expected_output": "1 1 1 1 1"
+   },
+   {
+    "input": "13 4 7\n0 1 2 3 6 9 9 15 17 17 18 20 20",
+    "expected_output": "1 1 1 1 0 1 1 1 1 1 1 0 0"
+   },
+   {
+    "input": "4 4 6\n8 12 12 16",
+    "expected_output": "1 1 1 1"
+   },
+   {
+    "input": "2 1 2\n4 15",
+    "expected_output": "1 1"
+   },
+   {
+    "input": "10 4 3\n1 1 4 9 10 11 15 16 18 20",
+    "expected_output": "1 1 1 1 1 1 1 1 1 1"
+   },
+   {
+    "input": "20 2 6\n0 1 3 4 4 6 9 10 11 11 13 13 14 17 17 18 20 20 20 20",
+    "expected_output": "1 1 0 0 0 1 1 0 0 0 1 0 0 1 0 0 1 0 0 0"
+   },
+   {
+    "input": "12 3 3\n1 1 2 2 3 6 12 14 15 15 17 19",
+    "expected_output": "1 1 1 0 0 1 1 1 1 1 1 1"
+   }
+  ]
+ },
+ {
+  "slug": "release-critical-path",
+  "title": "Release Critical Path",
+  "difficulty": 5,
+  "category": "Graphs",
+  "description": "A release has `n` tasks with known durations and dependencies (task `v` can start only after task `u` finishes). With unlimited engineers working in parallel, the release takes as long as its critical path.\n\nThe dependencies never form a cycle. Print the **shortest possible release time**.",
+  "constraints": [
+   "1 ≤ n ≤ 10^5",
+   "0 ≤ m ≤ 2·10^5",
+   "1 ≤ duration ≤ 1000"
+  ],
+  "input_format": "First line: n and m. Second line: n durations. Then m lines `u v` (0-indexed).",
+  "output_format": "The minimum total time.",
+  "python_solution": "\nimport sys\nfrom collections import deque\nx = sys.stdin.read().split()\nn, m = int(x[0]), int(x[1])\ndur = list(map(int, x[2:2 + n]))\ng = [[] for _ in range(n)]\nindeg = [0] * n\nfor i in range(m):\n    u, v = int(x[2 + n + 2 * i]), int(x[3 + n + 2 * i])\n    g[u].append(v)\n    indeg[v] += 1\nfinish = dur[:]\nq = deque(i for i in range(n) if indeg[i] == 0)\nwhile q:\n    u = q.popleft()\n    for v in g[u]:\n        finish[v] = max(finish[v], finish[u] + dur[v])\n        indeg[v] -= 1\n        if indeg[v] == 0:\n            q.append(v)\nprint(max(finish))\n",
+  "starter_code_python": "import sys\n\n# Input: First line: n and m. Second line: n durations. Then m lines `u v` (0-indexed).\n# Output: The minimum total time.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: First line: n and m. Second line: n durations. Then m lines `u v` (0-indexed).\n// Output: The minimum total time.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: First line: n and m. Second line: n durations. Then m lines `u v` (0-indexed).\n// Output: The minimum total time.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: First line: n and m. Second line: n durations. Then m lines `u v` (0-indexed).\n// Output: The minimum total time.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "microsoft",
+   "amazon",
+   "google"
+  ],
+  "time_complexity_target": "O(n + m)",
+  "space_complexity_target": "O(n + m)",
+  "test_cases": [
+   {
+    "input": "4 4\n3 2 4 1\n0 1\n0 2\n1 3\n2 3",
+    "expected_output": "8"
+   },
+   {
+    "input": "1 0\n5",
+    "expected_output": "5"
+   },
+   {
+    "input": "3 0\n1 9 2",
+    "expected_output": "9"
+   },
+   {
+    "input": "3 2\n1 1 1\n0 1\n1 2",
+    "expected_output": "3"
+   },
+   {
+    "input": "7 9\n7 9 3 3 7 1 7\n0 1\n0 5\n1 2\n1 5\n3 5\n3 6\n4 5\n4 6\n5 6",
+    "expected_output": "24"
+   },
+   {
+    "input": "3 3\n8 8 5\n0 1\n0 2\n1 2",
+    "expected_output": "21"
+   },
+   {
+    "input": "1 0\n6",
+    "expected_output": "6"
+   },
+   {
+    "input": "3 0\n6 2 3",
+    "expected_output": "6"
+   },
+   {
+    "input": "3 2\n3 1 3\n0 1\n0 2",
+    "expected_output": "6"
+   },
+   {
+    "input": "5 3\n8 5 8 3 1\n0 1\n1 3\n1 4",
+    "expected_output": "16"
+   },
+   {
+    "input": "8 3\n9 6 5 7 6 4 9 4\n0 5\n1 5\n1 7",
+    "expected_output": "13"
+   },
+   {
+    "input": "6 1\n5 4 5 8 2 2\n0 1",
+    "expected_output": "9"
+   }
+  ]
+ },
+ {
+  "slug": "distinct-search-tree-shapes",
+  "title": "Distinct Index Tree Shapes",
+  "difficulty": 4,
+  "category": "Dynamic Programming",
+  "description": "An index stores the keys 1..n in a binary search tree. Different insertion orders can produce different tree shapes.\n\nPrint how many **structurally different** binary search trees hold exactly the keys 1..n.",
+  "constraints": [
+   "1 ≤ n ≤ 35"
+  ],
+  "input_format": "A single integer n.",
+  "output_format": "The number of distinct trees.",
+  "python_solution": "\nimport sys\nn = int(sys.stdin.read().split()[0])\nt = [1] + [0] * n\nfor k in range(1, n + 1):\n    t[k] = sum(t[i] * t[k - 1 - i] for i in range(k))\nprint(t[n])\n",
+  "starter_code_python": "import sys\n\n# Input: A single integer n.\n# Output: The number of distinct trees.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: A single integer n.\n// Output: The number of distinct trees.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: A single integer n.\n// Output: The number of distinct trees.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: A single integer n.\n// Output: The number of distinct trees.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "amazon",
+   "google",
+   "apple"
+  ],
+  "time_complexity_target": "O(n²)",
+  "space_complexity_target": "O(n)",
+  "test_cases": [
+   {
+    "input": "1",
+    "expected_output": "1"
+   },
+   {
+    "input": "2",
+    "expected_output": "2"
+   },
+   {
+    "input": "3",
+    "expected_output": "5"
+   },
+   {
+    "input": "5",
+    "expected_output": "42"
+   },
+   {
+    "input": "10",
+    "expected_output": "16796"
+   },
+   {
+    "input": "19",
+    "expected_output": "1767263190"
+   },
+   {
+    "input": "35",
+    "expected_output": "3116285494907301262"
+   },
+   {
+    "input": "11",
+    "expected_output": "58786"
+   },
+   {
+    "input": "7",
+    "expected_output": "429"
+   },
+   {
+    "input": "4",
+    "expected_output": "14"
+   },
+   {
+    "input": "25",
+    "expected_output": "4861946401452"
+   }
+  ]
+ },
+ {
+  "slug": "out-of-order-deliveries",
+  "title": "Count Out-of-Order Deliveries",
+  "difficulty": 5,
+  "category": "Divide & Conquer",
+  "description": "Parcels were numbered in dispatch order but arrived in some other order. A pair of parcels is out of order when the one that arrived earlier has the larger number.\n\nGiven the arrival sequence, print the number of out-of-order pairs.",
+  "constraints": [
+   "1 ≤ n ≤ 10^5",
+   "-10^9 ≤ value ≤ 10^9"
+  ],
+  "input_format": "First line: n. Second line: n integers in arrival order.",
+  "output_format": "The number of pairs i < j with a[i] > a[j].",
+  "python_solution": "\nimport sys\nx = sys.stdin.read().split()\nn = int(x[0])\na = list(map(int, x[1:1 + n]))\ndef sort_count(v):\n    if len(v) < 2:\n        return v, 0\n    mid = len(v) // 2\n    left, cl = sort_count(v[:mid])\n    right, cr = sort_count(v[mid:])\n    merged, i, j, c = [], 0, 0, cl + cr\n    while i < len(left) and j < len(right):\n        if left[i] <= right[j]:\n            merged.append(left[i])\n            i += 1\n        else:\n            merged.append(right[j])\n            c += len(left) - i\n            j += 1\n    merged += left[i:] + right[j:]\n    return merged, c\nprint(sort_count(a)[1])\n",
+  "starter_code_python": "import sys\n\n# Input: First line: n. Second line: n integers in arrival order.\n# Output: The number of pairs i < j with a[i] > a[j].\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: First line: n. Second line: n integers in arrival order.\n// Output: The number of pairs i < j with a[i] > a[j].\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: First line: n. Second line: n integers in arrival order.\n// Output: The number of pairs i < j with a[i] > a[j].\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: First line: n. Second line: n integers in arrival order.\n// Output: The number of pairs i < j with a[i] > a[j].\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "google",
+   "amazon",
+   "microsoft"
+  ],
+  "time_complexity_target": "O(n log n)",
+  "space_complexity_target": "O(n)",
+  "test_cases": [
+   {
+    "input": "5\n2 4 1 3 5",
+    "expected_output": "3"
+   },
+   {
+    "input": "5\n5 4 3 2 1",
+    "expected_output": "10"
+   },
+   {
+    "input": "1\n7",
+    "expected_output": "0"
+   },
+   {
+    "input": "4\n1 1 1 1",
+    "expected_output": "0"
+   },
+   {
+    "input": "8\n-10 4 2 8 -5 -1 -5 9",
+    "expected_output": "11"
+   },
+   {
+    "input": "18\n1 3 6 6 -2 -1 3 -9 4 -6 -9 9 5 -5 3 8 10 -7",
+    "expected_output": "70"
+   },
+   {
+    "input": "6\n-6 2 2 6 -8 10",
+    "expected_output": "4"
+   },
+   {
+    "input": "32\n-10 2 2 -3 -5 -1 -7 -6 -5 0 -3 -2 1 -9 7 0 -4 -8 0 6 -6 9 2 -5 -8 -4 6 -2 3 7 -10 -5",
+    "expected_output": "215"
+   },
+   {
+    "input": "19\n-1 -7 1 10 0 -4 -7 9 -7 7 -5 0 -2 9 -2 -5 10 1 6",
+    "expected_output": "69"
+   },
+   {
+    "input": "12\n6 -6 10 4 8 6 -10 5 -2 8 -6 -4",
+    "expected_output": "39"
+   },
+   {
+    "input": "24\n4 -10 -6 5 -8 2 -8 9 3 -3 -5 -5 -9 -2 -7 7 9 3 7 -2 5 1 -9 -4",
+    "expected_output": "122"
+   },
+   {
+    "input": "1\n-2",
+    "expected_output": "0"
+   }
+  ]
+ },
+ {
+  "slug": "next-release-version",
+  "title": "Next Build Permutation",
+  "difficulty": 4,
+  "category": "Arrays & Two Pointers",
+  "description": "Build IDs are sequences of digits, and builds are numbered through every arrangement of the same digits in lexicographic order.\n\nGiven a build ID, print the **next** arrangement in that order; after the largest arrangement, wrap round to the smallest.",
+  "constraints": [
+   "1 ≤ n ≤ 10^5",
+   "0 ≤ digit ≤ 9"
+  ],
+  "input_format": "First line: n. Second line: n digits separated by spaces.",
+  "output_format": "The next arrangement, as n digits separated by spaces.",
+  "python_solution": "\nimport sys\nx = sys.stdin.read().split()\nn = int(x[0])\na = list(map(int, x[1:1 + n]))\ni = n - 2\nwhile i >= 0 and a[i] >= a[i + 1]:\n    i -= 1\nif i >= 0:\n    j = n - 1\n    while a[j] <= a[i]:\n        j -= 1\n    a[i], a[j] = a[j], a[i]\na[i + 1:] = reversed(a[i + 1:])\nprint(*a)\n",
+  "starter_code_python": "import sys\n\n# Input: First line: n. Second line: n digits separated by spaces.\n# Output: The next arrangement, as n digits separated by spaces.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: First line: n. Second line: n digits separated by spaces.\n// Output: The next arrangement, as n digits separated by spaces.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: First line: n. Second line: n digits separated by spaces.\n// Output: The next arrangement, as n digits separated by spaces.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: First line: n. Second line: n digits separated by spaces.\n// Output: The next arrangement, as n digits separated by spaces.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "google",
+   "meta",
+   "microsoft"
+  ],
+  "time_complexity_target": "O(n)",
+  "space_complexity_target": "O(1)",
+  "test_cases": [
+   {
+    "input": "3\n1 2 3",
+    "expected_output": "1 3 2"
+   },
+   {
+    "input": "3\n3 2 1",
+    "expected_output": "1 2 3"
+   },
+   {
+    "input": "3\n1 1 5",
+    "expected_output": "1 5 1"
+   },
+   {
+    "input": "1\n4",
+    "expected_output": "4"
+   },
+   {
+    "input": "4\n1 3 2 2",
+    "expected_output": "2 1 2 3"
+   },
+   {
+    "input": "5\n1 1 2 3 3",
+    "expected_output": "1 1 3 2 3"
+   },
+   {
+    "input": "6\n3 2 0 0 3 2",
+    "expected_output": "3 2 0 2 0 3"
+   },
+   {
+    "input": "2\n3 0",
+    "expected_output": "0 3"
+   },
+   {
+    "input": "3\n0 1 3",
+    "expected_output": "0 3 1"
+   },
+   {
+    "input": "3\n3 0 1",
+    "expected_output": "3 1 0"
+   },
+   {
+    "input": "3\n2 3 3",
+    "expected_output": "3 2 3"
+   },
+   {
+    "input": "4\n3 0 0 1",
+    "expected_output": "3 0 1 0"
+   }
+  ]
+ },
+ {
+  "slug": "largest-clear-square",
+  "title": "Largest Clear Square on a Floor Plan",
+  "difficulty": 5,
+  "category": "Dynamic Programming",
+  "description": "A floor plan marks each cell as free (`1`) or blocked (`0`). A new server rack needs a square of free cells.\n\nPrint the **area** of the largest all-free square.",
+  "constraints": [
+   "1 ≤ r, c ≤ 300"
+  ],
+  "input_format": "First line: r and c. Then r lines of c characters, each `0` or `1`.",
+  "output_format": "The largest square's area.",
+  "python_solution": "\nimport sys\nx = sys.stdin.read().split()\nr, c = int(x[0]), int(x[1])\ngrid = x[2:2 + r]\nprev = [0] * (c + 1)\nbest = 0\nfor i in range(r):\n    cur = [0] * (c + 1)\n    for j in range(1, c + 1):\n        if grid[i][j - 1] == \"1\":\n            cur[j] = 1 + min(prev[j], cur[j - 1], prev[j - 1])\n            best = max(best, cur[j])\n    prev = cur\nprint(best * best)\n",
+  "starter_code_python": "import sys\n\n# Input: First line: r and c. Then r lines of c characters, each `0` or `1`.\n# Output: The largest square's area.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: First line: r and c. Then r lines of c characters, each `0` or `1`.\n// Output: The largest square's area.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: First line: r and c. Then r lines of c characters, each `0` or `1`.\n// Output: The largest square's area.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: First line: r and c. Then r lines of c characters, each `0` or `1`.\n// Output: The largest square's area.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "amazon",
+   "apple",
+   "google"
+  ],
+  "time_complexity_target": "O(r · c)",
+  "space_complexity_target": "O(c)",
+  "test_cases": [
+   {
+    "input": "4 5\n10100\n10111\n11111\n10010",
+    "expected_output": "4"
+   },
+   {
+    "input": "2 2\n01\n10",
+    "expected_output": "1"
+   },
+   {
+    "input": "1 1\n0",
+    "expected_output": "0"
+   },
+   {
+    "input": "3 3\n111\n111\n111",
+    "expected_output": "9"
+   },
+   {
+    "input": "2 4\n1010\n1110",
+    "expected_output": "1"
+   },
+   {
+    "input": "7 3\n111\n101\n110\n110\n111\n111\n110",
+    "expected_output": "4"
+   },
+   {
+    "input": "1 6\n011110",
+    "expected_output": "1"
+   },
+   {
+    "input": "1 6\n111111",
+    "expected_output": "1"
+   },
+   {
+    "input": "6 2\n11\n01\n10\n11\n10\n01",
+    "expected_output": "1"
+   },
+   {
+    "input": "4 3\n110\n111\n011\n111",
+    "expected_output": "4"
+   },
+   {
+    "input": "2 4\n1101\n0111",
+    "expected_output": "1"
+   }
+  ]
+ },
+ {
+  "slug": "fewest-relay-hops",
+  "title": "Fewest Relay Hops",
+  "difficulty": 4,
+  "category": "Greedy",
+  "description": "Relay towers stand in a line. From tower `i` a signal can jump forward to any tower up to `reach[i]` positions ahead.\n\nPrint the **fewest jumps** to get from tower 0 to the last tower, or `-1` if it can't be reached.",
+  "constraints": [
+   "1 ≤ n ≤ 10^5",
+   "0 ≤ reach[i] ≤ 10^5"
+  ],
+  "input_format": "First line: n. Second line: n reaches.",
+  "output_format": "The minimum number of jumps, or `-1`.",
+  "python_solution": "\nimport sys\nx = sys.stdin.read().split()\nn = int(x[0])\na = list(map(int, x[1:1 + n]))\njumps, end, far = 0, 0, 0\nans = 0\nfor i in range(n - 1):\n    if i > far:\n        break\n    far = max(far, i + a[i])\n    if i == end:\n        jumps += 1\n        end = far\n        if end >= n - 1:\n            break\nif n == 1:\n    ans = 0\nelif end >= n - 1:\n    ans = jumps\nelse:\n    ans = -1\nprint(ans)\n",
+  "starter_code_python": "import sys\n\n# Input: First line: n. Second line: n reaches.\n# Output: The minimum number of jumps, or `-1`.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: First line: n. Second line: n reaches.\n// Output: The minimum number of jumps, or `-1`.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: First line: n. Second line: n reaches.\n// Output: The minimum number of jumps, or `-1`.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: First line: n. Second line: n reaches.\n// Output: The minimum number of jumps, or `-1`.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "amazon",
+   "google",
+   "microsoft"
+  ],
+  "time_complexity_target": "O(n)",
+  "space_complexity_target": "O(1)",
+  "test_cases": [
+   {
+    "input": "5\n2 3 1 1 4",
+    "expected_output": "2"
+   },
+   {
+    "input": "5\n3 2 1 0 4",
+    "expected_output": "-1"
+   },
+   {
+    "input": "1\n0",
+    "expected_output": "0"
+   },
+   {
+    "input": "2\n0 5",
+    "expected_output": "-1"
+   },
+   {
+    "input": "6\n1 1 1 1 1 1",
+    "expected_output": "5"
+   },
+   {
+    "input": "16\n3 3 1 3 2 0 3 2 2 2 3 3 2 0 2 3",
+    "expected_output": "6"
+   },
+   {
+    "input": "4\n1 1 1 0",
+    "expected_output": "3"
+   },
+   {
+    "input": "11\n2 2 3 3 2 3 1 3 0 3 2",
+    "expected_output": "4"
+   },
+   {
+    "input": "17\n3 2 3 3 1 2 1 0 1 0 3 3 1 1 3 1 3",
+    "expected_output": "-1"
+   },
+   {
+    "input": "12\n2 2 3 1 1 0 3 2 2 2 1 0",
+    "expected_output": "-1"
+   },
+   {
+    "input": "8\n2 3 3 2 2 2 3 3",
+    "expected_output": "3"
+   },
+   {
+    "input": "2\n3 1",
+    "expected_output": "1"
+   }
+  ]
+ },
+ {
+  "slug": "most-bookable-meetings",
+  "title": "Book the Most Meetings in One Room",
+  "difficulty": 3,
+  "category": "Greedy",
+  "description": "Requests for a single meeting room each have a start and end time `[s, e)`. A meeting that ends at time t doesn't clash with one that starts at t.\n\nPrint the **largest number of requests** that can all be booked.",
+  "constraints": [
+   "1 ≤ n ≤ 10^5",
+   "0 ≤ s < e ≤ 10^9"
+  ],
+  "input_format": "First line: n. Then n lines `s e`.",
+  "output_format": "The maximum number of non-clashing meetings.",
+  "python_solution": "\nimport sys\nx = sys.stdin.read().split()\nn = int(x[0])\niv = sorted(((int(x[1 + 2 * i]), int(x[2 + 2 * i])) for i in range(n)), key=lambda p: p[1])\ncount, last = 0, None\nfor s, e in iv:\n    if last is None or s >= last:\n        count += 1\n        last = e\nprint(count)\n",
+  "starter_code_python": "import sys\n\n# Input: First line: n. Then n lines `s e`.\n# Output: The maximum number of non-clashing meetings.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: First line: n. Then n lines `s e`.\n// Output: The maximum number of non-clashing meetings.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: First line: n. Then n lines `s e`.\n// Output: The maximum number of non-clashing meetings.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: First line: n. Then n lines `s e`.\n// Output: The maximum number of non-clashing meetings.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "google",
+   "microsoft",
+   "meta"
+  ],
+  "time_complexity_target": "O(n log n)",
+  "space_complexity_target": "O(n)",
+  "test_cases": [
+   {
+    "input": "4\n1 2\n2 3\n3 4\n1 3",
+    "expected_output": "3"
+   },
+   {
+    "input": "3\n1 2\n1 2\n1 2",
+    "expected_output": "1"
+   },
+   {
+    "input": "1\n0 5",
+    "expected_output": "1"
+   },
+   {
+    "input": "3\n0 10\n1 2\n3 4",
+    "expected_output": "2"
+   },
+   {
+    "input": "1\n15 19",
+    "expected_output": "1"
+   },
+   {
+    "input": "6\n3 7\n11 14\n12 13\n4 8\n3 7\n4 8",
+    "expected_output": "2"
+   },
+   {
+    "input": "8\n14 19\n11 16\n2 3\n2 3\n3 6\n10 11\n11 14\n5 7",
+    "expected_output": "5"
+   },
+   {
+    "input": "3\n12 15\n5 6\n7 12",
+    "expected_output": "3"
+   },
+   {
+    "input": "2\n14 19\n0 4",
+    "expected_output": "2"
+   },
+   {
+    "input": "1\n0 2",
+    "expected_output": "1"
+   },
+   {
+    "input": "3\n10 13\n14 19\n5 10",
+    "expected_output": "3"
+   },
+   {
+    "input": "7\n1 2\n12 13\n12 14\n6 7\n5 10\n10 13\n13 17",
+    "expected_output": "4"
+   }
+  ]
+ },
+ {
+  "slug": "best-circular-revenue-run",
+  "title": "Best Revenue Run on a Circular Calendar",
+  "difficulty": 5,
+  "category": "Dynamic Programming",
+  "description": "Daily net revenue for a repeating weekly-style cycle is given; the cycle wraps round, so the last day is followed by the first.\n\nPrint the **largest total** of any non-empty run of consecutive days (each day used at most once).",
+  "constraints": [
+   "1 ≤ n ≤ 10^5",
+   "-10^4 ≤ value ≤ 10^4"
+  ],
+  "input_format": "First line: n. Second line: n integers.",
+  "output_format": "The maximum circular subarray sum.",
+  "python_solution": "\nimport sys\nx = sys.stdin.read().split()\nn = int(x[0])\na = list(map(int, x[1:1 + n]))\nbest_max = cur_max = best_min = cur_min = a[0]\nfor v in a[1:]:\n    cur_max = max(v, cur_max + v)\n    best_max = max(best_max, cur_max)\n    cur_min = min(v, cur_min + v)\n    best_min = min(best_min, cur_min)\ntotal = sum(a)\nprint(best_max if best_max < 0 else max(best_max, total - best_min))\n",
+  "starter_code_python": "import sys\n\n# Input: First line: n. Second line: n integers.\n# Output: The maximum circular subarray sum.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: First line: n. Second line: n integers.\n// Output: The maximum circular subarray sum.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: First line: n. Second line: n integers.\n// Output: The maximum circular subarray sum.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: First line: n. Second line: n integers.\n// Output: The maximum circular subarray sum.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "amazon",
+   "google",
+   "netflix"
+  ],
+  "time_complexity_target": "O(n)",
+  "space_complexity_target": "O(1)",
+  "test_cases": [
+   {
+    "input": "4\n1 -2 3 -2",
+    "expected_output": "3"
+   },
+   {
+    "input": "3\n5 -3 5",
+    "expected_output": "10"
+   },
+   {
+    "input": "3\n-3 -2 -3",
+    "expected_output": "-2"
+   },
+   {
+    "input": "1\n-7",
+    "expected_output": "-7"
+   },
+   {
+    "input": "7\n-7 -7 -2 3 -1 -1 4",
+    "expected_output": "5"
+   },
+   {
+    "input": "11\n7 3 -4 1 -6 -5 2 -2 1 -5 -5",
+    "expected_output": "10"
+   },
+   {
+    "input": "1\n0",
+    "expected_output": "0"
+   },
+   {
+    "input": "2\n-7 2",
+    "expected_output": "2"
+   },
+   {
+    "input": "6\n2 5 2 -1 2 -7",
+    "expected_output": "10"
+   },
+   {
+    "input": "6\n4 -7 4 3 -8 -8",
+    "expected_output": "7"
+   },
+   {
+    "input": "8\n3 2 1 0 -1 -1 2 -8",
+    "expected_output": "6"
+   },
+   {
+    "input": "6\n0 8 -2 -1 -8 1",
+    "expected_output": "9"
+   }
+  ]
+ },
+ {
+  "slug": "integer-square-root",
+  "title": "Integer Square Root Without a Math Library",
+  "difficulty": 2,
+  "category": "Binary Search",
+  "description": "An embedded controller has no floating point. Given a non-negative integer `x`, print the largest integer `r` with `r · r ≤ x`.",
+  "constraints": [
+   "0 ≤ x ≤ 10^18"
+  ],
+  "input_format": "A single integer x.",
+  "output_format": "floor(√x).",
+  "python_solution": "\nimport sys\nv = int(sys.stdin.read().split()[0])\nlo, hi = 0, 10 ** 9 + 1\nwhile lo < hi:\n    mid = (lo + hi + 1) // 2\n    if mid * mid <= v:\n        lo = mid\n    else:\n        hi = mid - 1\nprint(lo)\n",
+  "starter_code_python": "import sys\n\n# Input: A single integer x.\n# Output: floor(√x).\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: A single integer x.\n// Output: floor(√x).\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: A single integer x.\n// Output: floor(√x).\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: A single integer x.\n// Output: floor(√x).\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "apple",
+   "microsoft",
+   "amazon"
+  ],
+  "time_complexity_target": "O(log x)",
+  "space_complexity_target": "O(1)",
+  "test_cases": [
+   {
+    "input": "0",
+    "expected_output": "0"
+   },
+   {
+    "input": "1",
+    "expected_output": "1"
+   },
+   {
+    "input": "8",
+    "expected_output": "2"
+   },
+   {
+    "input": "16",
+    "expected_output": "4"
+   },
+   {
+    "input": "2147395599",
+    "expected_output": "46339"
+   },
+   {
+    "input": "3433151",
+    "expected_output": "1852"
+   },
+   {
+    "input": "63613777",
+    "expected_output": "7975"
+   },
+   {
+    "input": "35702387",
+    "expected_output": "5975"
+   },
+   {
+    "input": "52061870",
+    "expected_output": "7215"
+   },
+   {
+    "input": "93109783",
+    "expected_output": "9649"
+   },
+   {
+    "input": "1175056",
+    "expected_output": "1084"
+   },
+   {
+    "input": "5574320",
+    "expected_output": "2360"
+   }
+  ]
+ },
+ {
+  "slug": "trading-with-cooldown",
+  "title": "Trading With a Cooldown Day",
+  "difficulty": 5,
+  "category": "Dynamic Programming",
+  "description": "Given a share's daily prices, you may buy and sell as many times as you like, holding at most one share at a time. After selling, you must wait **one full day** before buying again.\n\nPrint the maximum profit.",
+  "constraints": [
+   "1 ≤ n ≤ 10^5",
+   "0 ≤ price ≤ 10^4"
+  ],
+  "input_format": "First line: n. Second line: n prices.",
+  "output_format": "The maximum profit.",
+  "python_solution": "\nimport sys\nx = sys.stdin.read().split()\nn = int(x[0])\np = list(map(int, x[1:1 + n]))\nhold, sold, rest = -p[0], 0, 0\nfor v in p[1:]:\n    hold, sold, rest = max(hold, rest - v), hold + v, max(rest, sold)\nprint(max(sold, rest))\n",
+  "starter_code_python": "import sys\n\n# Input: First line: n. Second line: n prices.\n# Output: The maximum profit.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: First line: n. Second line: n prices.\n// Output: The maximum profit.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: First line: n. Second line: n prices.\n// Output: The maximum profit.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: First line: n. Second line: n prices.\n// Output: The maximum profit.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "google",
+   "amazon",
+   "meta"
+  ],
+  "time_complexity_target": "O(n)",
+  "space_complexity_target": "O(1)",
+  "test_cases": [
+   {
+    "input": "5\n1 2 3 0 2",
+    "expected_output": "3"
+   },
+   {
+    "input": "1\n1",
+    "expected_output": "0"
+   },
+   {
+    "input": "3\n3 2 1",
+    "expected_output": "0"
+   },
+   {
+    "input": "4\n1 4 2 7",
+    "expected_output": "6"
+   },
+   {
+    "input": "3\n8 7 3",
+    "expected_output": "0"
+   },
+   {
+    "input": "1\n9",
+    "expected_output": "0"
+   },
+   {
+    "input": "14\n8 0 8 8 0 9 9 4 5 4 7 0 6 1",
+    "expected_output": "24"
+   },
+   {
+    "input": "4\n9 1 8 4",
+    "expected_output": "7"
+   },
+   {
+    "input": "10\n0 7 8 5 6 7 3 6 7 9",
+    "expected_output": "14"
+   },
+   {
+    "input": "2\n1 8",
+    "expected_output": "7"
+   },
+   {
+    "input": "5\n2 4 4 8 0",
+    "expected_output": "6"
+   }
+  ]
+ },
+ {
+  "slug": "nearest-exit-distances",
+  "title": "Distance to the Nearest Exit",
+  "difficulty": 5,
+  "category": "Graphs & BFS",
+  "description": "A building floor is a grid where `0` marks an exit and `1` a walkable cell; people move up, down, left or right. There is at least one exit.\n\nFor every cell, print the number of steps to the **nearest exit**.",
+  "constraints": [
+   "1 ≤ r, c ≤ 300",
+   "At least one exit"
+  ],
+  "input_format": "First line: r and c. Then r lines of c characters, each `0` or `1`.",
+  "output_format": "r lines of c integers: the distance for each cell.",
+  "python_solution": "\nimport sys\nfrom collections import deque\nx = sys.stdin.read().split()\nr, c = int(x[0]), int(x[1])\ng = x[2:2 + r]\ndist = [[-1] * c for _ in range(r)]\nq = deque()\nfor i in range(r):\n    for j in range(c):\n        if g[i][j] == \"0\":\n            dist[i][j] = 0\n            q.append((i, j))\nwhile q:\n    i, j = q.popleft()\n    for a, b in ((i + 1, j), (i - 1, j), (i, j + 1), (i, j - 1)):\n        if 0 <= a < r and 0 <= b < c and dist[a][b] < 0:\n            dist[a][b] = dist[i][j] + 1\n            q.append((a, b))\nprint(\"\\n\".join(\" \".join(map(str, row)) for row in dist))\n",
+  "starter_code_python": "import sys\n\n# Input: First line: r and c. Then r lines of c characters, each `0` or `1`.\n# Output: r lines of c integers: the distance for each cell.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: First line: r and c. Then r lines of c characters, each `0` or `1`.\n// Output: r lines of c integers: the distance for each cell.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: First line: r and c. Then r lines of c characters, each `0` or `1`.\n// Output: r lines of c integers: the distance for each cell.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: First line: r and c. Then r lines of c characters, each `0` or `1`.\n// Output: r lines of c integers: the distance for each cell.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "amazon",
+   "microsoft",
+   "google"
+  ],
+  "time_complexity_target": "O(r · c)",
+  "space_complexity_target": "O(r · c)",
+  "test_cases": [
+   {
+    "input": "3 3\n000\n010\n111",
+    "expected_output": "0 0 0\n0 1 0\n1 2 1"
+   },
+   {
+    "input": "1 1\n0",
+    "expected_output": "0"
+   },
+   {
+    "input": "2 3\n111\n110",
+    "expected_output": "3 2 1\n2 1 0"
+   },
+   {
+    "input": "4 5\n11111\n11000\n01000\n10111",
+    "expected_output": "2 2 1 1 1\n1 1 0 0 0\n0 1 0 0 0\n1 0 1 1 1"
+   },
+   {
+    "input": "2 5\n11011\n01101",
+    "expected_output": "1 1 0 1 2\n0 1 1 0 1"
+   },
+   {
+    "input": "6 6\n011111\n101010\n001101\n111011\n101111\n110101",
+    "expected_output": "0 1 2 1 2 1\n1 0 1 0 1 0\n0 0 1 1 0 1\n1 1 1 0 1 2\n1 0 1 1 1 2\n2 1 0 1 0 1"
+   },
+   {
+    "input": "5 1\n0\n0\n1\n0\n1",
+    "expected_output": "0\n0\n1\n0\n1"
+   },
+   {
+    "input": "5 6\n010111\n111111\n111111\n111111\n001101",
+    "expected_output": "0 1 0 1 2 3\n1 2 1 2 3 4\n2 2 2 3 2 3\n1 1 2 2 1 2\n0 0 1 1 0 1"
+   },
+   {
+    "input": "4 2\n10\n01\n01\n10",
+    "expected_output": "1 0\n0 1\n0 1\n1 0"
+   },
+   {
+    "input": "4 6\n111100\n111101\n101011\n011010",
+    "expected_output": "3 2 2 1 0 0\n2 1 2 1 0 1\n1 0 1 0 1 1\n0 1 1 0 1 0"
+   },
+   {
+    "input": "1 3\n001",
+    "expected_output": "0 0 1"
+   },
+   {
+    "input": "5 4\n1001\n0011\n1111\n1111\n1111",
+    "expected_output": "1 0 0 1\n0 0 1 2\n1 1 2 3\n2 2 3 4\n3 3 4 5"
+   }
+  ]
+ },
+ {
+  "slug": "postfix-metric-evaluator",
+  "title": "Postfix Metric Formula Evaluator",
+  "difficulty": 2,
+  "category": "Stacks",
+  "description": "A monitoring tool stores alert formulas in postfix (reverse Polish) notation, like `3 4 + 2 *`.\n\nEvaluate the formula and print the result. Operators are `+`, `-`, `*` and `/`; division truncates toward zero. The formula is always valid and never divides by zero.",
+  "constraints": [
+   "1 ≤ tokens ≤ 10^4",
+   "Intermediate values fit in 32-bit signed integers"
+  ],
+  "input_format": "First line: n. Second line: n tokens.",
+  "output_format": "The formula's value.",
+  "python_solution": "\nimport sys\nx = sys.stdin.read().split()\nn = int(x[0])\nst = []\nfor tok in x[1:1 + n]:\n    if tok in \"+-*/\" and len(tok) == 1:\n        b, a = st.pop(), st.pop()\n        if tok == \"+\":\n            st.append(a + b)\n        elif tok == \"-\":\n            st.append(a - b)\n        elif tok == \"*\":\n            st.append(a * b)\n        else:\n            q = abs(a) // abs(b)\n            st.append(q if (a >= 0) == (b >= 0) else -q)\n    else:\n        st.append(int(tok))\nprint(st[-1])\n",
+  "starter_code_python": "import sys\n\n# Input: First line: n. Second line: n tokens.\n# Output: The formula's value.\n\ndef main():\n    data = sys.stdin.read().split()\n    # TODO: parse `data`, solve, and print the answer\n\n\nmain()\n",
+  "starter_code_javascript": "const data = require('fs').readFileSync('/dev/stdin', 'utf8').split(/\\s+/).filter(Boolean);\nlet pos = 0;\nconst next = () => data[pos++];\n\n// Input: First line: n. Second line: n tokens.\n// Output: The formula's value.\n\n// TODO: parse with next(), solve, and console.log the answer\n",
+  "starter_code_cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\n// Input: First line: n. Second line: n tokens.\n// Output: The formula's value.\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    // TODO: read input with cin >> ..., solve, and print the answer\n    return 0;\n}\n",
+  "starter_code_java": "import java.util.*;\nimport java.io.*;\n\n// Input: First line: n. Second line: n tokens.\n// Output: The formula's value.\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        String[] data = new String(System.in.readAllBytes()).trim().split(\"\\\\s+\");\n        int pos = 0;\n        // TODO: parse data[pos++], solve, and print the answer\n    }\n}\n",
+  "companies": [
+   "microsoft",
+   "amazon",
+   "apple"
+  ],
+  "time_complexity_target": "O(n)",
+  "space_complexity_target": "O(n)",
+  "test_cases": [
+   {
+    "input": "5\n3 4 + 2 *",
+    "expected_output": "14"
+   },
+   {
+    "input": "5\n4 13 5 / +",
+    "expected_output": "6"
+   },
+   {
+    "input": "13\n10 6 9 3 + -11 * / * 17 + 5 +",
+    "expected_output": "22"
+   },
+   {
+    "input": "1\n-7",
+    "expected_output": "-7"
+   },
+   {
+    "input": "3\n-7 2 /",
+    "expected_output": "-3"
+   },
+   {
+    "input": "9\n0 9 + 9 * 9 - 5 -",
+    "expected_output": "67"
+   },
+   {
+    "input": "5\n-6 5 - 5 -",
+    "expected_output": "-16"
+   },
+   {
+    "input": "11\n8 8 - 9 - 2 - 4 + 5 +",
+    "expected_output": "-2"
+   },
+   {
+    "input": "11\n-9 6 + 1 + 9 - 9 - 3 +",
+    "expected_output": "-17"
+   },
+   {
+    "input": "3\n9 5 +",
+    "expected_output": "14"
+   },
+   {
+    "input": "5\n2 2 * 1 +",
+    "expected_output": "5"
+   },
+   {
+    "input": "11\n-3 6 + 1 + 1 * 9 + 3 *",
+    "expected_output": "39"
+   }
+  ]
+ }
+]

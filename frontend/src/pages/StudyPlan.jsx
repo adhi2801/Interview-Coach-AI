@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { ArrowUpRight, X } from "lucide-react";
-import api, { getToken } from "../lib/api";
+import api, { hasSession } from "../lib/api";
 import { useTransitionNavigate } from "../lib/navigation";
 import { humanize } from "./knowledge/graph";
 import { StatusMark } from "./knowledge/TopicMap";
@@ -56,7 +56,7 @@ export default function StudyPlan({ topicName, company, onClose }) {
   useEffect(load, [topicName, company]);
 
   useEffect(() => {
-    if (!getToken()) return;
+    if (!hasSession()) return;
     api.get("/topics/status")
       .then((res) => setStatuses(Object.fromEntries((res.data?.topics || []).map((t) => [t.name, t.status]))))
       .catch(() => setStatuses(null));

@@ -9,6 +9,8 @@ from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from api.session_cookie import clear_session_cookie
+
 
 logger = structlog.get_logger()
 
@@ -21,15 +23,21 @@ class APIError(Exception):
     disguised as a 200 OK, so clients, logs, and monitoring can tell a
     failure from a success.
     """
-    def __init__(self, status_code: int, message: str):
+    def __init__(self, status_code: int, message: str, clear_session: bool = False):
         self.status_code = status_code
         self.message = message
+        # Set when a session cookie turned out to be expired or revoked, so
+        # the browser drops it instead of sending it with every request.
+        self.clear_session = clear_session
 
 
 def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(APIError)
     async def api_error_handler(request: Request, exc: APIError):
-        return JSONResponse(status_code=exc.status_code, content={"error": exc.message})
+        response = JSONResponse(status_code=exc.status_code, content={"error": exc.message})
+        if exc.clear_session:
+            clear_session_cookie(response, request)
+        return response
 
     @app.exception_handler(RateLimitExceeded)
     async def rate_limit_handler(request: Request, exc: RateLimitExceeded):

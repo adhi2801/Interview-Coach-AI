@@ -1,4 +1,4 @@
-import { expect, test, ROTATED_TOKEN } from "./fixtures";
+import { expect, test, RENEWED_EXPIRES_AT } from "./fixtures";
 
 test("forgot password: from the login page to 'check your email'", async ({ page, backend }) => {
   await page.goto("/login");
@@ -48,8 +48,8 @@ test("signup counts down to the password minimum", async ({ page, backend: _ }) 
   await expect(page.getByText("5 more characters to go.")).toBeVisible();
 });
 
-test("a token close to expiry is renewed while the app is open", async ({ page, backend, signedIn: _ }) => {
+test("a login close to expiry is renewed while the app is open", async ({ page, backend, signedIn: _ }) => {
   await page.goto("/");
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("access_token"))).toBe(ROTATED_TOKEN);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("session_expires_at"))).toBe(RENEWED_EXPIRES_AT);
   expect(backend.calls.filter((c) => c.path === "/auth/refresh")).toHaveLength(1);
 });

@@ -8,10 +8,17 @@ test.describe("knowledge graph", () => {
     await expect(node(page, "Arrays")).toBeVisible();
   });
 
-  test("lays out every topic and leads with a true headline", async ({ page }) => {
+  test("leads with touched subjects, folds the rest, and can show every topic", async ({ page }) => {
     const total = KNOWLEDGE.topics.length;
-    await expect(page.getByRole("button", { name: /, (shown in your answers|gap in your answers|locked|not attempted yet|ready to learn)$/ }))
-      .toHaveCount(total);
+    const topics = page.getByRole("button", { name: /, (shown in your answers|gap in your answers|locked|not attempted yet|ready to learn)$/ });
+    expect(await topics.count()).toBeLessThan(total);                         // untouched subjects start folded
+    await expect(page.getByText(/7 subjects you haven't tried are folded/)).toBeVisible();
+
+    await page.getByRole("button", { name: "Show Databases topics" }).click();
+    await expect(node(page, "SQL")).toBeVisible();
+
+    await page.getByRole("button", { name: "Show every subject" }).click();
+    await expect(topics).toHaveCount(total);
     await expect(page.getByRole("heading", { level: 1 })).toContainText(/3 gaps are holding back \d+ topics\./);
     await expect(page.getByRole("heading", { name: "Where to start" })).toBeVisible();
   });
@@ -32,6 +39,8 @@ test.describe("knowledge graph", () => {
     await page.getByRole("searchbox", { name: "Find a topic" }).fill("tree");
     await expect(node(page, "Binary trees")).toHaveAttribute("data-dimmed", "false");
     await expect(node(page, "Arrays")).toHaveAttribute("data-dimmed", "true");
+    await page.getByRole("searchbox", { name: "Find a topic" }).fill("sharding");
+    await expect(node(page, "Sharding")).toBeVisible();                       // a search opens its folded subject
     await page.getByRole("searchbox", { name: "Find a topic" }).fill("");
 
     await page.getByRole("button", { name: /^Gap/ }).click();

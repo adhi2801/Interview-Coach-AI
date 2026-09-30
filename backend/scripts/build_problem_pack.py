@@ -1,5 +1,6 @@
 """
-Builds verified_problems_pack2.json from problem_bank/pack2.py.
+Builds data/verified_problems_<pack>.json from problem_bank/<pack>.py
+(pack2 by default).
 
 For every problem:
   1. generate test inputs (fixed examples first, then seeded random ones)
@@ -9,22 +10,22 @@ For every problem:
 
 The first two test cases become the visible samples (seed script rule).
 
-Usage: python -m scripts.build_problem_pack
+Usage: python -m scripts.build_problem_pack [pack2|pack3]
 """
 
+import importlib
 import json
 import random
 import subprocess
 import sys
-
-from problem_bank.pack2 import P
 from pathlib import Path
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 MAX_TESTS = 12
 
-# Complexity targets of the reference solutions (shown in the coding room).
+# Complexity targets of pack2's reference solutions (shown in the coding
+# room). Later packs carry theirs on each problem as "targets".
 TARGETS = {
     "payment-reconciliation-pair": ("O(n)", "O(n)"),
     "config-bracket-validator": ("O(n)", "O(n)"),
@@ -125,6 +126,8 @@ def starters(p):
 
 
 def main():
+    pack = sys.argv[1] if len(sys.argv) > 1 else "pack2"
+    P = importlib.import_module(f"problem_bank.{pack}").P
     out, failed = [], []
     slugs = set()
     for idx, p in enumerate(P):
@@ -160,15 +163,16 @@ def main():
             "python_solution": p["solution"],
             **starters(p),
             "companies": p["companies"],
-            "time_complexity_target": TARGETS[p["slug"]][0],
-            "space_complexity_target": TARGETS[p["slug"]][1],
+            "time_complexity_target": (p.get("targets") or TARGETS[p["slug"]])[0],
+            "space_complexity_target": (p.get("targets") or TARGETS[p["slug"]])[1],
             "test_cases": cases,
         }
         out.append(entry)
         print(f"ok   {p['slug']:<40} {len(cases)} cases")
-    with open(DATA_DIR / "verified_problems_pack2.json", "w", encoding="utf-8") as f:
+    target = f"verified_problems_{pack}.json"
+    with open(DATA_DIR / target, "w", encoding="utf-8") as f:
         json.dump(out, f, indent=1, ensure_ascii=False)
-    print(f"\n{len(out)} verified, {len(failed)} failed -> verified_problems_pack2.json")
+    print(f"\n{len(out)} verified, {len(failed)} failed -> {target}")
     sys.exit(1 if failed else 0)
 
 

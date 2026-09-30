@@ -3,7 +3,7 @@
 // shared; Settings updates the cache so changes apply without a reload.
 
 import { useEffect, useState } from "react";
-import api, { getToken } from "./api";
+import api, { hasSession, loadSavedUser } from "./api";
 import { readSetting, writeSetting } from "./storage";
 
 export const PREFERENCE_DEFAULTS = {
@@ -12,7 +12,7 @@ export const PREFERENCE_DEFAULTS = {
 };
 
 let cache = null;
-let cacheToken = null;
+let cacheAccount = null;
 let inflight = null;
 const listeners = new Set();
 
@@ -22,11 +22,11 @@ function publish(next) {
 }
 
 export function loadPreferences() {
-  const token = getToken();
-  if (cache && cacheToken === token) return Promise.resolve(cache);
-  if (inflight && cacheToken === token) return inflight;
-  cacheToken = token;
-  inflight = (token ? api.get("/user/profile-summary") : Promise.reject(new Error("signed out")))
+  const account = hasSession() ? loadSavedUser()?.id ?? null : null;
+  if (cache && cacheAccount === account) return Promise.resolve(cache);
+  if (inflight && cacheAccount === account) return inflight;
+  cacheAccount = account;
+  inflight = (account !== null ? api.get("/user/profile-summary") : Promise.reject(new Error("signed out")))
     .then((res) => ({ ...PREFERENCE_DEFAULTS, ...(res.data?.preferences || {}) }))
     .catch(() => ({ ...PREFERENCE_DEFAULTS }))
     .then((prefs) => { inflight = null; publish(prefs); return prefs; });

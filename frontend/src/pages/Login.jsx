@@ -19,7 +19,7 @@ export default function Login({ onAuth, onSwitchToSignup, onForgotPassword, onBa
     setError("");
     try {
       const res = await api.post("/auth/login", { email, password });
-      saveAuth(res.data.access_token, res.data.user);
+      saveAuth(res.data);
       writeSetting(REMEMBERED_EMAIL_KEY, rememberMe ? email : null);
       onAuth(res.data.user);
     } catch (err) {

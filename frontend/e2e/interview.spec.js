@@ -1,4 +1,4 @@
-import { expect, test, SESSION, LOGIN_TOKEN } from "./fixtures";
+import { expect, test, SESSION } from "./fixtures";
 
 test.describe("login", () => {
   test("a wrong password shows the server's message; the right one opens the dashboard", async ({ page, backend }) => {
@@ -32,10 +32,9 @@ test.describe("interview room", () => {
     await expect(page).toHaveURL(/\/interview$/);
     await expect(page.getByRole("region", { name: "Interview question" })).toContainText(SESSION.scenario);
 
-    // The socket connects with the short-lived ticket — never the login token.
+    // The socket connects with a short-lived ticket, never the login.
     await expect.poll(() => backend.socket.urls.length).toBe(1);
     expect(backend.socket.urls[0]).toContain("ticket=short-lived-ticket");
-    expect(backend.socket.urls[0]).not.toContain(LOGIN_TOKEN);
 
     // Typing streams the answer to the coach; the filler count is a number.
     const answerBox = page.getByRole("textbox", { name: "Your answer" });
@@ -56,16 +55,16 @@ test.describe("interview room", () => {
     await expect.poll(() => backend.socket.received.some((m) => m.type === "reset")).toBe(true);
   });
 
-  test("the abort dialog is accessible and closes on Escape", async ({ page, backend: _, signedIn: __ }) => {
+  test("the end-early dialog is accessible and closes on Escape", async ({ page, backend: _, signedIn: __ }) => {
     await page.goto("/setup");
     await page.getByRole("button", { name: "Start interview" }).click();
     await page.getByRole("button", { name: /Skip/ }).click();
 
     await page.getByRole("button", { name: "End early" }).click();
-    const dialog = page.getByRole("alertdialog", { name: "Abort this session?" });
+    const dialog = page.getByRole("alertdialog", { name: "End the interview now?" });
     await expect(dialog).toBeVisible();
-    await expect(dialog).toContainText("Answers you already submitted in this session stay scored");
-    await expect(dialog.getByRole("button", { name: "Keep Going" })).toBeFocused();
+    await expect(dialog).toContainText("Answers you already submitted stay scored");
+    await expect(dialog.getByRole("button", { name: "Keep going" })).toBeFocused();
     await page.keyboard.press("Escape");
     await expect(dialog).toBeHidden();
   });

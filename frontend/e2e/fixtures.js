@@ -10,20 +10,19 @@ import * as H from "./history.js";
 // mid-progress candidate's statuses; generated from scripts/seed_topics.py.
 export const KNOWLEDGE = JSON.parse(readFileSync(new URL("./topics.json", import.meta.url), "utf8"));
 
-const API = "http://localhost:8000";
+// The app calls its API same-origin at /api (see src/config.js); the
+// coaching socket goes to the backend directly.
+const API = "**/api/**";
 const WS = "ws://localhost:8000";
 
 import { CODING_RUN, CODING_SUBMIT, FORGOT_PASSWORD, SESSION, USER, authResponse } from "./responses.js";
 
 export { SESSION, USER };
 
-// Unsigned, but shaped like our JWTs: the client only reads `exp`.
-function fakeJwt(payload) {
-  const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
-  return `${b64({ alg: "HS256", typ: "JWT" })}.${b64(payload)}.signature`;
-}
-export const LOGIN_TOKEN = fakeJwt({ user_id: 1, exp: Math.floor(Date.now() / 1000) + 3600 });
-export const ROTATED_TOKEN = fakeJwt({ user_id: 1, tv: 1, exp: Math.floor(Date.now() / 1000) + 3600 });
+// The session itself is an HttpOnly cookie the page never sees; the app
+// only keeps when it runs out. A login due for renewal, and a fresh one.
+export const LOGIN_EXPIRES_AT = new Date(Date.now() + 3600_000).toISOString();
+export const RENEWED_EXPIRES_AT = new Date(Date.now() + 24 * 3600_000).toISOString();
 
 
 const SCORES = {
@@ -38,14 +37,18 @@ const STARTER = (name) => ({
   python: `# ${name} in Python\n`, javascript: `// ${name} in JS\n`,
   cpp: `// ${name} in C++\n`, java: `// ${name} in Java\n`,
 });
+export const REFERENCE_SOLUTION = "a, b = map(int, input().split())\nprint(a + b)";
+
 export const PROBLEMS = {
   two_sum: {
     id: 1, slug: "two_sum", title: "Two Sum", difficulty: 4, description: "Add two numbers.",
     starter_code: STARTER("two_sum"), sample_test_cases: [{ input: "1 2", expected_output: "3" }], topics: [],
+    has_reference_solution: true,
   },
   reverse_words: {
     id: 2, slug: "reverse_words", title: "Reverse Words", difficulty: 4, description: "Reverse them.",
     starter_code: STARTER("reverse_words"), sample_test_cases: [{ input: "a b", expected_output: "b a" }], topics: [],
+    has_reference_solution: false,
   },
 };
 
@@ -59,35 +62,36 @@ export const test = base.extend({
     const socket = { urls: [], received: [] };
     let nextPicks = 0; // like the real endpoint, /coding/next varies between calls
     const preferences = {}; // PATCH /user/preferences persists for the test
+    const submitted = new Set(); // problem ids this account has submitted, as the real API tracks
 
     await page.route(`${API}/**`, async (route) => {
       const req = route.request();
-      const path = new URL(req.url()).pathname;
+      const path = new URL(req.url()).pathname.replace(/^\/api/, "");
       const method = req.method();
-      calls.push({ method, path, body: req.postDataJSON?.() ?? null, auth: req.headers().authorization });
+      calls.push({ method, path, body: req.postDataJSON?.() ?? null, auth: req.headers().authorization, mode: req.headers()["x-session-mode"] });
       const json = (status, body) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 
       if (method === "OPTIONS") return route.fulfill({ status: 204 });
       if (path === "/auth/login") {
         const { password } = req.postDataJSON();
         return password === "correct-horse"
-          ? json(200, authResponse(LOGIN_TOKEN))
+          ? json(200, authResponse(LOGIN_EXPIRES_AT))
           : json(401, { error: "Invalid email or password" });
       }
       if (path === "/auth/change-password") {
         const { current_password } = req.postDataJSON();
         return current_password === "correct-horse"
-          ? json(200, authResponse(ROTATED_TOKEN))
+          ? json(200, authResponse(RENEWED_EXPIRES_AT))
           : json(400, { error: "Current password is incorrect" });
       }
-      if (path === "/auth/logout-all") return json(200, { status: "ok" });
-      if (path === "/auth/refresh") return json(200, authResponse(ROTATED_TOKEN));
+      if (path === "/auth/logout-all" || path === "/auth/logout") return json(200, { status: "ok" });
+      if (path === "/auth/refresh") return json(200, authResponse(RENEWED_EXPIRES_AT));
       if (path === "/auth/forgot-password") {
         return json(200, FORGOT_PASSWORD);
       }
       if (path === "/auth/reset-password") {
         return req.postDataJSON().token === "good-token"
-          ? json(200, authResponse(ROTATED_TOKEN))
+          ? json(200, authResponse(RENEWED_EXPIRES_AT))
           : json(400, { error: "This reset link has already been used or has expired. Ask for a new one." });
       }
       if (path === "/user/preferences" && method === "PATCH") {
@@ -111,11 +115,21 @@ export const test = base.extend({
       if (path === "/coding/problems") {
         return json(200, { problems: Object.values(PROBLEMS).map(({ id, slug, title, difficulty }) => ({ id, slug, title, difficulty })) });
       }
-      if (path.startsWith("/coding/problems/")) return json(200, PROBLEMS[path.split("/").pop()]);
+      if (/^\/coding\/problems\/[^/]+\/solution$/.test(path)) {
+        const problem = PROBLEMS[path.split("/")[3]];
+        return submitted.has(problem.id)
+          ? json(200, { language: "python", code: REFERENCE_SOLUTION })
+          : json(403, { error: "Submit your own solution first, then the reference solution opens up." });
+      }
+      if (path.startsWith("/coding/problems/")) {
+        const problem = PROBLEMS[path.split("/").pop()];
+        return json(200, { ...problem, reference_solution_unlocked: problem.has_reference_solution && submitted.has(problem.id) });
+      }
       if (path === "/coding/run") {
         return json(200, CODING_RUN);
       }
       if (path === "/coding/submit") {
+        submitted.add(req.postDataJSON().problem_id);
         return json(200, CODING_SUBMIT);
       }
       if (path === "/ws/coaching/42/ticket") return json(200, { ticket: "short-lived-ticket" });
@@ -189,10 +203,10 @@ export const test = base.extend({
   },
 
   signedIn: async ({ page }, use) => {
-    await page.addInitScript(([token, user]) => {
-      localStorage.setItem("access_token", token);
+    await page.addInitScript(([expiresAt, user]) => {
+      localStorage.setItem("session_expires_at", expiresAt);
       localStorage.setItem("user", JSON.stringify(user));
-    }, [LOGIN_TOKEN, USER]);
+    }, [LOGIN_EXPIRES_AT, USER]);
     await use(true);
   },
 });

@@ -1,16 +1,21 @@
 // frontend/src/config.js
-// In production, this comes from an environment variable set in Vercel.
-// Locally, it falls back to localhost.
+// The API is reached at /api on the app's own origin: Vercel (api/backend.js),
+// nginx (Dockerfile) and the dev server all forward it to the backend. Being
+// same-origin is what lets the login live in an HttpOnly cookie.
+//
+// REACT_APP_API_URL can still point straight at the backend (an absolute
+// URL); the app then falls back to a bearer token it keeps itself.
 
-export const API_URL = import.meta.env.REACT_APP_API_URL || "http://localhost:8000";
+export const API_URL = import.meta.env.REACT_APP_API_URL || "/api";
 export const WS_URL = import.meta.env.REACT_APP_WS_URL || "ws://localhost:8000";
 
-// Real safety net: if this ever loads in a production build without the
-// env var set, every API call would silently fail against a localhost
-// address that doesn't exist there — with no clue why. Loudly warn
-// instead of failing mysteriously.
-if (import.meta.env.PROD && !import.meta.env.REACT_APP_API_URL) {
+// Cookie sessions whenever the API is same-origin.
+export const COOKIE_SESSIONS = API_URL.startsWith("/");
+
+// The coaching socket connects to the backend directly (with a one-minute
+// ticket), so a production build needs its address.
+if (import.meta.env.PROD && !import.meta.env.REACT_APP_WS_URL) {
   console.error(
-    "[config] REACT_APP_API_URL is not set in this production build — falling back to localhost, which will not work. Check your Vercel environment variables."
+    "[config] REACT_APP_WS_URL is not set in this production build, so live coaching will try localhost. Check your Vercel environment variables."
   );
 }

@@ -14,7 +14,7 @@ from api.deps import limiter, require_user_id
 from api.errors import APIError
 from api.schemas import FeedbackRatingRequest, StartSessionRequest, SubmitAnswerRequest
 from content_filter import contains_profanity, sanitize_for_storage
-from database import SessionLocal
+from database import db_session
 from models import Answer, InterviewSession, ScoringJob, User
 from timeutil import utcnow
 
@@ -34,13 +34,10 @@ def preview_session(payload: StartSessionRequest, request: Request, user_id: int
     if the user goes on to actually launch.
     """
     real_elo = payload.elo
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         user = db.query(User).filter(User.id == user_id).first()
         if user:
             real_elo = user.elo_rating
-    finally:
-        db.close()
 
     question_data = services.difficulty_engine.select_question(
         elo=real_elo, company=payload.company, role=payload.role, persona=payload.persona
@@ -59,8 +56,7 @@ def start_session(payload: StartSessionRequest, request: Request, user_id: int =
     logger.info("session_start_requested", company=payload.company, role=payload.role, user_id=user_id)
 
     real_elo = payload.elo
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
             # Token outlived its account (e.g. account deleted in another tab).
@@ -78,8 +74,6 @@ def start_session(payload: StartSessionRequest, request: Request, user_id: int =
         db.commit()
         db.refresh(session_record)
         new_session_id = session_record.id
-    finally:
-        db.close()
 
     services.replay_system.start_recording(
         session_id=new_session_id,
@@ -124,15 +118,12 @@ SCORING_JOB_TIMEOUT = timedelta(minutes=3)
 
 
 def _mark_job_failed(job_id: int, reason: str):
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         job = db.query(ScoringJob).filter(ScoringJob.id == job_id).first()
         if job and job.status == "processing":
             job.status = "failed"
             job.result = {"error": reason}
             db.commit()
-    finally:
-        db.close()
 
 
 def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest, user_id: int):
@@ -155,151 +146,148 @@ def process_answer_scoring(job_id: int, payload: SubmitAnswerRequest, user_id: i
     coding submission that finishes while this answer is being scored is
     built upon instead of silently overwritten with a stale value.
     """
-    db = SessionLocal()
-    try:
-        # Ownership was already verified in /answer/submit; re-checked here
-        # only because the session could be deleted in the meantime.
-        session_record = db.query(InterviewSession).filter(
-            InterviewSession.id == payload.session_id,
-            InterviewSession.user_id == user_id,
-        ).first()
-        user = db.query(User).filter(User.id == user_id).first()
-        if not session_record or not user:
-            _mark_job_failed(job_id, "Session no longer exists")
-            return
-        # Server-side values only. payload.elo / payload.difficulty are
-        # client-supplied and must never feed the ELO formula or peer stats.
-        start_elo = user.elo_rating
-        real_difficulty = session_record.difficulty_level or payload.difficulty
-        default_company = session_record.company_target or "google"
-        db.rollback()  # release the read snapshot before the slow phase
-
-        # Grade against a question the server actually asked in this session,
-        # never arbitrary client text (which could be swapped for an easier
-        # one). Any asked question is accepted, so "Retry this node" grades
-        # the question being retried; otherwise the latest one is used. The
-        # client text is only a fallback if the replay recorded nothing.
-        asked = services.replay_system.asked_questions(payload.session_id)
-        question = payload.question if payload.question in asked else (asked[-1] if asked else payload.question)
-
-        # ---- Phase 1: slow external calls, no transaction held ----
-        has_profanity = contains_profanity(payload.answer)
-        clean_answer = sanitize_for_storage(payload.answer) if has_profanity else payload.answer
-
-        scores = services.scorer.score(question=question, answer=clean_answer)
-        if has_profanity:
-            scores["overall_summary"] = (
-                "Your answer contained inappropriate language and could not be evaluated. "
-                "Please provide a professional response to receive accurate feedback. " + scores.get("overall_summary", "")
-            )
-
-        overall = round((
-            scores["score_technical"] + scores["score_communication"] +
-            scores["score_problem_solving"] + scores["score_cultural_fit"] +
-            scores["score_confidence"]
-        ) / 5, 1)
-
-        gaps, gap_analysis_failed = services.gap_engine.extract_gaps(
-            question=question, answer=clean_answer,
-            technical_score=scores["score_technical"], company=payload.company
-        )
-        topics_addressed, _topics_analysis_failed = services.gap_engine.identify_topics_addressed(
-            question=question, answer=clean_answer
-        )
-        peer = services.peer_engine.get_percentile(your_score=overall, difficulty=real_difficulty)
-
-        # Used only to pick the next question's difficulty; the persisted
-        # value is recomputed below from the locked, current ELO.
-        provisional_elo = services.difficulty_engine.update_elo(
-            current_elo=start_elo, question_difficulty=real_difficulty, score=overall
-        )
-        company = payload.company or default_company
-        if overall >= 7:
-            next_question_data = services.difficulty_engine.select_followup_question(
-                previous_question=question,
-                previous_answer=clean_answer,
-                elo=provisional_elo,
-                company=company,
-                role=payload.role,
-                previous_category=payload.category,
-                persona=payload.persona
-            )
-        else:
-            failed_topic = gaps[0].get("gap") if (overall < 5 and gaps) else None
-            next_question_data = services.difficulty_engine.select_question(
-                elo=provisional_elo,
-                company=company,
-                role=payload.role,
-                failed_topic=failed_topic,
-                persona=payload.persona
-            )
-
-        # ---- Phase 2: every write in one transaction ----
-        user = db.query(User).filter(User.id == user_id).with_for_update().first()
-        session_record = db.query(InterviewSession).filter(InterviewSession.id == payload.session_id).first()
-        job = db.query(ScoringJob).filter(ScoringJob.id == job_id).first()
-        if not user or not session_record or not job:
-            db.rollback()
-            _mark_job_failed(job_id, "Session no longer exists")
-            return
-
-        new_elo = services.difficulty_engine.update_elo(
-            current_elo=user.elo_rating, question_difficulty=real_difficulty, score=overall
-        )
-        user.elo_rating = new_elo
-        # Per-session snapshot powers the Rating History chart.
-        session_record.elo_after = new_elo
-
-        answer_record = Answer(
-            session_id=payload.session_id, question_text=question, answer_text=clean_answer,
-            score_technical=scores["score_technical"], score_communication=scores["score_communication"],
-            score_problem_solving=scores["score_problem_solving"], score_cultural_fit=scores["score_cultural_fit"],
-            score_confidence=scores["score_confidence"], gaps_identified=gaps,
-            topics_covered=topics_addressed
-        )
-        db.add(answer_record)
-        db.flush()  # assigns answer_record.id without committing
-
-        job.status = "done"
-        job.result = {
-            "scores": scores, "overall_score": overall, "gaps": gaps,
-            "peer_comparison": peer, "new_elo": new_elo,
-            "gap_analysis_unavailable": gap_analysis_failed,
-            "next_question": next_question_data["question"],
-            "next_scenario": next_question_data.get("scenario", ""),
-            "next_constraints": next_question_data.get("constraints", []),
-            "next_ask": next_question_data.get("ask", ""),
-            "next_category": next_question_data.get("category", "General"),
-            "next_sub_category": next_question_data.get("sub_category", ""),
-            "answer_id": answer_record.id
-        }
-        db.commit()
-        logger.info("scoring_job_completed", job_id=job_id, session_id=payload.session_id,
-                    elo_before=start_elo, elo_after=new_elo)
-
-        # Replay logging after the commit: the replay is a derived view, and
-        # a failure writing it must not roll back the user's real result.
+    with db_session() as db:
         try:
-            services.replay_system.log_event(payload.session_id, "answer_submitted", {"text": clean_answer})
-            services.replay_system.log_event(payload.session_id, "scores_calculated", scores)
-            services.replay_system.log_event(payload.session_id, "gaps_identified", gaps)
-            services.replay_system.log_event(payload.session_id, "question_asked", next_question_data)
-        except Exception as e:
-            logger.error("replay_logging_failed", session_id=payload.session_id, error=str(e))
+            # Ownership was already verified in /answer/submit; re-checked here
+            # only because the session could be deleted in the meantime.
+            session_record = db.query(InterviewSession).filter(
+                InterviewSession.id == payload.session_id,
+                InterviewSession.user_id == user_id,
+            ).first()
+            user = db.query(User).filter(User.id == user_id).first()
+            if not session_record or not user:
+                _mark_job_failed(job_id, "Session no longer exists")
+                return
+            # Server-side values only. payload.elo / payload.difficulty are
+            # client-supplied and must never feed the ELO formula or peer stats.
+            start_elo = user.elo_rating
+            real_difficulty = session_record.difficulty_level or payload.difficulty
+            default_company = session_record.company_target or "google"
+            db.rollback()  # release the read snapshot before the slow phase
 
-    except Exception as e:
-        db.rollback()
-        logger.error("scoring_job_failed", job_id=job_id, error=str(e), error_type=type(e).__name__)
-        _mark_job_failed(job_id, "Scoring failed")
-    finally:
-        db.close()
+            # Grade against a question the server actually asked in this session,
+            # never arbitrary client text (which could be swapped for an easier
+            # one). Any asked question is accepted, so "Retry this node" grades
+            # the question being retried; otherwise the latest one is used. The
+            # client text is only a fallback if the replay recorded nothing.
+            asked = services.replay_system.asked_questions(payload.session_id)
+            question = payload.question if payload.question in asked else (asked[-1] if asked else payload.question)
+
+            # ---- Phase 1: slow external calls, no transaction held ----
+            has_profanity = contains_profanity(payload.answer)
+            clean_answer = sanitize_for_storage(payload.answer) if has_profanity else payload.answer
+
+            scores = services.scorer.score(question=question, answer=clean_answer)
+            if has_profanity:
+                scores["overall_summary"] = (
+                    "Your answer contained inappropriate language and could not be evaluated. "
+                    "Please provide a professional response to receive accurate feedback. " + scores.get("overall_summary", "")
+                )
+
+            overall = round((
+                scores["score_technical"] + scores["score_communication"] +
+                scores["score_problem_solving"] + scores["score_cultural_fit"] +
+                scores["score_confidence"]
+            ) / 5, 1)
+
+            gaps, gap_analysis_failed = services.gap_engine.extract_gaps(
+                question=question, answer=clean_answer,
+                technical_score=scores["score_technical"], company=payload.company
+            )
+            topics_addressed, _topics_analysis_failed = services.gap_engine.identify_topics_addressed(
+                question=question, answer=clean_answer
+            )
+            peer = services.peer_engine.get_percentile(your_score=overall, difficulty=real_difficulty)
+
+            # Used only to pick the next question's difficulty; the persisted
+            # value is recomputed below from the locked, current ELO.
+            provisional_elo = services.difficulty_engine.update_elo(
+                current_elo=start_elo, question_difficulty=real_difficulty, score=overall
+            )
+            company = payload.company or default_company
+            if overall >= 7:
+                next_question_data = services.difficulty_engine.select_followup_question(
+                    previous_question=question,
+                    previous_answer=clean_answer,
+                    elo=provisional_elo,
+                    company=company,
+                    role=payload.role,
+                    previous_category=payload.category,
+                    persona=payload.persona
+                )
+            else:
+                failed_topic = gaps[0].get("gap") if (overall < 5 and gaps) else None
+                next_question_data = services.difficulty_engine.select_question(
+                    elo=provisional_elo,
+                    company=company,
+                    role=payload.role,
+                    failed_topic=failed_topic,
+                    persona=payload.persona
+                )
+
+            # ---- Phase 2: every write in one transaction ----
+            user = db.query(User).filter(User.id == user_id).with_for_update().first()
+            session_record = db.query(InterviewSession).filter(InterviewSession.id == payload.session_id).first()
+            job = db.query(ScoringJob).filter(ScoringJob.id == job_id).first()
+            if not user or not session_record or not job:
+                db.rollback()
+                _mark_job_failed(job_id, "Session no longer exists")
+                return
+
+            new_elo = services.difficulty_engine.update_elo(
+                current_elo=user.elo_rating, question_difficulty=real_difficulty, score=overall
+            )
+            user.elo_rating = new_elo
+            # Per-session snapshot powers the Rating History chart.
+            session_record.elo_after = new_elo
+
+            answer_record = Answer(
+                session_id=payload.session_id, question_text=question, answer_text=clean_answer,
+                score_technical=scores["score_technical"], score_communication=scores["score_communication"],
+                score_problem_solving=scores["score_problem_solving"], score_cultural_fit=scores["score_cultural_fit"],
+                score_confidence=scores["score_confidence"], gaps_identified=gaps,
+                topics_covered=topics_addressed
+            )
+            db.add(answer_record)
+            db.flush()  # assigns answer_record.id without committing
+
+            job.status = "done"
+            job.result = {
+                "scores": scores, "overall_score": overall, "gaps": gaps,
+                "peer_comparison": peer, "new_elo": new_elo,
+                "gap_analysis_unavailable": gap_analysis_failed,
+                "next_question": next_question_data["question"],
+                "next_scenario": next_question_data.get("scenario", ""),
+                "next_constraints": next_question_data.get("constraints", []),
+                "next_ask": next_question_data.get("ask", ""),
+                "next_category": next_question_data.get("category", "General"),
+                "next_sub_category": next_question_data.get("sub_category", ""),
+                "answer_id": answer_record.id
+            }
+            db.commit()
+            logger.info("scoring_job_completed", job_id=job_id, session_id=payload.session_id,
+                        elo_before=start_elo, elo_after=new_elo)
+
+            # Replay logging after the commit: the replay is a derived view, and
+            # a failure writing it must not roll back the user's real result.
+            try:
+                services.replay_system.log_event(payload.session_id, "answer_submitted", {"text": clean_answer})
+                services.replay_system.log_event(payload.session_id, "scores_calculated", scores)
+                services.replay_system.log_event(payload.session_id, "gaps_identified", gaps)
+                services.replay_system.log_event(payload.session_id, "question_asked", next_question_data)
+            except Exception as e:
+                logger.error("replay_logging_failed", session_id=payload.session_id, error=str(e))
+
+        except Exception as e:
+            db.rollback()
+            logger.error("scoring_job_failed", job_id=job_id, error=str(e), error_type=type(e).__name__)
+            _mark_job_failed(job_id, "Scoring failed")
 
 
 @router.post("/answer/submit")
 @limiter.limit("20/minute")
 def submit_answer(payload: SubmitAnswerRequest, background_tasks: BackgroundTasks, request: Request, user_id: int = Depends(require_user_id)):
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         # Ownership check. Without it, any logged-in user could submit an
         # answer against someone else's session_id — and the scoring job
         # would then rewrite THAT user's ELO.
@@ -324,8 +312,6 @@ def submit_answer(payload: SubmitAnswerRequest, background_tasks: BackgroundTask
         db.commit()
         db.refresh(job)
         job_id = job.id
-    finally:
-        db.close()
 
     logger.info("answer_submitted", session_id=payload.session_id, job_id=job_id, user_id=user_id)
     background_tasks.add_task(process_answer_scoring, job_id, payload, user_id)
@@ -334,8 +320,7 @@ def submit_answer(payload: SubmitAnswerRequest, background_tasks: BackgroundTask
 
 @router.get("/answer/status/{job_id}")
 def get_scoring_status(job_id: int, user_id: int = Depends(require_user_id)):
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         row = db.query(ScoringJob, InterviewSession).join(
             InterviewSession, ScoringJob.session_id == InterviewSession.id
         ).filter(ScoringJob.id == job_id, InterviewSession.user_id == user_id).first()
@@ -359,14 +344,11 @@ def get_scoring_status(job_id: int, user_id: int = Depends(require_user_id)):
         if job.status == "failed":
             response["error"] = (job.result or {}).get("error", "Scoring failed")
         return response
-    finally:
-        db.close()
 
 
 @router.post("/feedback/rate")
 def rate_feedback(payload: FeedbackRatingRequest, user_id: int = Depends(require_user_id)):
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         answer = db.query(Answer).filter(Answer.id == payload.answer_id).first()
         if not answer:
             return {"status": "ok"}  # silent no-op, don't reveal existence
@@ -381,5 +363,3 @@ def rate_feedback(payload: FeedbackRatingRequest, user_id: int = Depends(require
         db.commit()
         logger.info("feedback_rated", answer_id=payload.answer_id, helpful=payload.helpful)
         return {"status": "ok"}
-    finally:
-        db.close()

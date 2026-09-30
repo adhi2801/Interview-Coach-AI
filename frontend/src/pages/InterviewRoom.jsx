@@ -1,17 +1,18 @@
 import api from "../lib/api";
 import React, { useState, useEffect, useRef } from "react";
 import StudyPlan from "./StudyPlan";
-import { motion, AnimatePresence } from "motion/react";
-import { Mic, Square, AlertTriangle, Lightbulb, CheckCircle2, Send } from "lucide-react";
-import { MOD_KEY } from "../lib/utils";
+import { AnimatePresence } from "motion/react";
 import { COMPANIES } from "../constants/companies";
-import { TOTAL_NODES, computeTimeLimit, formatTime, getPersonaMeta } from "./interview/constants";
+import { TOTAL_NODES, computeTimeLimit, getPersonaMeta } from "./interview/constants";
 import { useCoachingSocket } from "./interview/useCoachingSocket";
 import { useRecorder } from "./interview/useRecorder";
 import { usePreferences } from "../lib/preferences";
 import QuestionPane from "./interview/QuestionPane";
 import TelemetryPane from "./interview/TelemetryPane";
 import Debrief from "./interview/Debrief";
+import InterviewHeader from "./interview/InterviewHeader";
+import AnswerCanvas from "./interview/AnswerCanvas";
+import EndEarlyDialog from "./interview/EndEarlyDialog";
 
 export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   const [question, setQuestion] = useState(sessionData?.question || "");
@@ -59,7 +60,6 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
 
   const isBehavioral = category?.toLowerCase().includes("behavioral") || category?.toLowerCase().includes("leadership");
   const personaMeta = getPersonaMeta(persona);
-  const PersonaIcon = personaMeta.icon;
   const isLastNode = questionNum >= TOTAL_NODES;
 
   useEffect(() => {
@@ -341,85 +341,11 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
         />
       </div>
 
-      {/* TOP HUD HEADER */}
-      <header className="nav-glass h-14 flex items-center justify-between px-4 md:px-6 z-50 shrink-0 sticky top-0">
-        <div className="flex items-center gap-3 md:gap-4 min-w-0">
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="w-6 h-6 bg-white flex items-center justify-center font-extrabold text-black text-[10px]">IC</div>
-            <span className="text-white text-xs font-bold tracking-tight hidden sm:block">InterviewCoach</span>
-          </div>
-          <div className="w-px h-4 bg-white/10 hidden sm:block" />
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-white text-[13.5px] font-medium flex items-center gap-1.5 shrink-0">
-              {companyMeta ? <span className="shrink-0">{companyMeta.logo}</span> : <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "var(--accent)" }} />}
-              {company?.name || "Target"}
-            </span>
-            <span className="text-slate-400 text-[13.5px] hidden md:inline truncate">
-              {sessionData?.role || "Software Engineer"}
-            </span>
-            <span
-              className="text-[13.5px] ml-1 hidden sm:flex items-center gap-1.5 shrink-0"
-              style={{ color: "var(--accent)" }}
-            >
-              <PersonaIcon size={11} />
-              {personaMeta.label}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 md:gap-6 shrink-0">
-          {phase === "answering" ? (
-            <>
-              <div className="flex items-center gap-2">
-                <span className="text-slate-400 text-[13px] hidden sm:block">Time left</span>
-                <span className={`text-base font-bold tabular-nums font-mono ${timeLeft <= 20 ? "text-rose-400 animate-pulse" : timeLeft <= 60 ? "text-amber-400" : "text-white"}`}>
-                  {formatTime(timeLeft)}
-                </span>
-              </div>
-              <div className="w-px h-4 bg-white/10 hidden sm:block" />
-              <div className="flex items-center gap-2 hidden sm:flex">
-                <span className="text-slate-400 text-[13px]">Question</span>
-                <span className="text-sm font-mono font-bold text-white">{questionNum} of {TOTAL_NODES}</span>
-              </div>
-              <div className="w-px h-4 bg-white/10 hidden xl:block" />
-              <div className="items-center gap-2 hidden xl:flex" title="Real time elapsed since this session started">
-                <span className="text-slate-400 text-[13px]">Session</span>
-                <span className="text-sm font-mono font-bold text-slate-300 tabular-nums">{formatTime(sessionElapsed)}</span>
-              </div>
-              <div className="w-px h-4 bg-white/10 hidden lg:block" />
-              <div className="items-center gap-2 hidden lg:flex">
-                <span className="text-slate-400 text-[13px]">Rating</span>
-                <span className="text-sm font-mono font-bold text-slate-100 tabular-nums">{Math.round(currentElo)}</span>
-              </div>
-              <div className="w-px h-4 bg-white/10" />
-              <button onClick={() => setShowAbortConfirm(true)} className="text-[13px] text-slate-300 hover:text-white glass-control rounded-lg px-3 py-1 hover:bg-white/[0.06] transition-colors">
-                End early
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="flex items-center gap-2 text-emerald-400">
-                <CheckCircle2 size={16} />
-                <span className="text-[13px] hidden sm:inline">Answer scored</span>
-              </div>
-            </>
-          )}
-        </div>
-      </header>
-
-      {/* NODE PROGRESS STRIP */}
-      <div className="h-[3px] w-full flex gap-[3px] shrink-0 z-40 bg-black/40">
-        {Array.from({ length: TOTAL_NODES }).map((_, i) => (
-          <div key={i} className="flex-1 h-full transition-colors duration-500"
-            style={{
-              background: i < questionNum - 1 ? `rgba(var(--accent-rgb), 0.6)`
-                : i === questionNum - 1 ? "var(--accent)"
-                : "rgba(255,255,255,0.06)",
-              boxShadow: i === questionNum - 1 ? `0 0 6px var(--accent)` : "none"
-            }}
-          />
-        ))}
-      </div>
+      <InterviewHeader
+        company={company} companyMeta={companyMeta} role={sessionData?.role} personaMeta={personaMeta} phase={phase}
+        timeLeft={timeLeft} questionNum={questionNum} sessionElapsed={sessionElapsed} currentElo={currentElo}
+        onEndEarly={() => setShowAbortConfirm(true)}
+      />
 
       {/* MAIN WORKSPACE SHELL */}
       <main className="flex-1 w-full flex flex-col overflow-hidden relative z-10 min-h-0">
@@ -438,100 +364,13 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
               constraints={constraints} ask={ask} personaMeta={personaMeta}
             />
 
-            {/* CENTER PANE: ZEN WRITING CANVAS */}
-            <div className="w-full lg:w-[48%] min-h-[420px] lg:h-full relative bg-[#05060c]/70 flex flex-col border-r border-white/[0.08] shrink-0">
-
-              {/* Evaluator identity bar — reflects real session persona */}
-              <div className="h-12 border-b border-white/[0.06] bg-white/[0.02] flex items-center px-4 md:px-6 gap-3 shrink-0">
-                <span
-                  className="w-2 h-2 rounded-full"
-                  style={{ background: "var(--accent)", animation: "evalPulse 2s ease-in-out infinite" }}
-                />
-                <span className="text-sm font-bold text-white tracking-wide truncate">{personaMeta.name}</span>
-                <span className="text-[13px] text-slate-400 ml-1 hidden sm:inline truncate">“{personaMeta.quote}”</span>
-                {isRecording && (
-                  <div className="ml-auto flex items-end gap-[2px] h-4 shrink-0">
-                    {waveLevels.map((h, i) => (
-                      <div
-                        key={i}
-                        className="w-[2px] rounded-full transition-[height] duration-75"
-                        style={{ height: `${h}px`, background: "var(--accent)" }}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Text Area */}
-              <div className="flex-1 relative w-full min-h-[280px]">
-                {scoringError && (
-                  <div role="alert" className="absolute top-2 left-8 right-8 z-20 bg-rose-500/10 border border-rose-500/20 rounded-lg p-3 text-xs text-rose-300 flex items-center justify-between gap-3">
-                    <span>{scoringError}</span>
-                    <button onClick={() => setScoringError("")} aria-label="Dismiss error" className="text-rose-400 hover:text-rose-200 shrink-0">✕</button>
-                  </div>
-                )}
-                {micError && !scoringError && (
-                  <div role="alert" className="absolute top-2 left-8 right-8 z-20 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-xs text-amber-200">
-                    {micError}
-                  </div>
-                )}
-                {showHint && constraints?.length > 0 && (
-                <div className="absolute top-2 left-8 right-8 z-20 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-xs text-amber-200">
-                <strong>Tip:</strong> Make sure your answer directly addresses: "{constraints[0]}"
-                </div>
-                 )}
-                <textarea
-                  value={answer}
-                  onChange={(e) => handleAnswerChange(e.target.value)}
-                  disabled={timeLeft === 0}
-                  aria-label="Your answer"
-                  placeholder={isBehavioral
-                    ? "Set the scene, say what you did and why, then the result and what you'd do differently."
-                    : "Start with what you'd clarify, then your approach, then the trade-offs and limits."}
-                  className="w-full h-full bg-transparent text-slate-100 placeholder:text-white/40 text-[16px] leading-[1.75] p-8 pb-32 resize-none outline-none z-10 relative scrollbar-hide"
-                  style={{ caretColor: "var(--accent)" }}
-                />
-              </div>
-
-              {/* Action Dock */}
-              <div className="lg:absolute lg:bottom-5 lg:left-5 lg:right-5 flex items-center justify-between z-20 glass p-3 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.8)] m-4 lg:m-0">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={isRecording ? stopRecording : startRecording}
-                    aria-pressed={isRecording}
-                    aria-label={isRecording ? "Stop recording" : "Answer by voice"}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all outline-none ${
-                      isRecording ? 'bg-red-500/10 text-red-400 border border-red-500/30' : 'bg-white/[0.04] glass-control text-slate-200 hover:text-white'
-                    }`}
-                  >
-                    {isRecording ? <Square fill="currentColor" size={14}/> : <Mic size={14}/>}
-                    <span className="hidden sm:inline">{isRecording ? "Stop" : "Speak"}</span>
-                  </button>
-                  <button onClick={() => setShowHint(!showHint)} aria-expanded={showHint} className="text-xs font-bold text-slate-300 hover:text-white transition-colors bg-white/5 glass-control px-3.5 py-2 rounded-xl">
-                  <Lightbulb size={13} aria-hidden="true" className="inline mr-1" /> Hint
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <span className="text-[13px] text-slate-400 tabular-nums hidden xl:block">
-                    {answer.trim() ? answer.trim().split(/\s+/).length : 0} words
-                  </span>
-                  <button
-                    onClick={() => submitAnswer()}
-                    disabled={loading}
-                    className={`relative overflow-hidden px-6 py-2.5 rounded-xl text-xs md:text-sm font-bold flex items-center gap-2 transition-transform active:scale-95 outline-none ${
-                      loading ? "bg-white/10 text-slate-500 cursor-wait" : "btn-liquid shadow-[0_0_20px_rgba(255,255,255,0.15)]"
-                    }`}
-                  >
-                    {loading ? (
-                      <><span aria-hidden="true" className="w-3.5 h-3.5 border-2 border-slate-600 border-t-slate-400 rounded-full animate-spin inline-block" /> Scoring…</>
-                    ) : (
-                      <><Send size={13} aria-hidden="true" /> Submit answer <kbd className="hidden sm:inline font-mono text-[11px] bg-black/10 px-1.5 py-0.5 rounded ml-1 text-black/60">{MOD_KEY}+Enter</kbd></>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
+            <AnswerCanvas
+              personaMeta={personaMeta} answer={answer} onAnswerChange={handleAnswerChange} timeUp={timeLeft === 0}
+              isBehavioral={isBehavioral} constraints={constraints}
+              isRecording={isRecording} waveLevels={waveLevels} onStartRecording={startRecording} onStopRecording={stopRecording} micError={micError}
+              scoringError={scoringError} onDismissError={() => setScoringError("")}
+              showHint={showHint} onToggleHint={() => setShowHint((v) => !v)} loading={loading} onSubmit={() => submitAnswer()}
+            />
 
             <TelemetryPane
               personaMeta={personaMeta} liveCoaching={liveCoaching} wsConnected={wsConnected}
@@ -562,28 +401,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
         )}
       </main>
 
-      <AnimatePresence>
-        {showAbortConfirm && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-200 bg-black/70 backdrop-blur-md flex items-center justify-center">
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              role="alertdialog" aria-modal="true" aria-labelledby="abort-title" aria-describedby="abort-desc"
-              className="glass rounded-2xl p-8 max-w-[360px] w-[calc(100%-40px)] text-center shadow-[0_24px_80px_rgba(0,0,0,0.7)]">
-              <div className="w-11 h-11 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mx-auto mb-4">
-                <AlertTriangle size={18} className="text-rose-400" />
-              </div>
-              <h3 id="abort-title" className="text-base font-extrabold text-white mb-2">Abort this session?</h3>
-              <p id="abort-desc" className="text-xs text-slate-400 leading-relaxed mb-5">Your answer to this node will be discarded. Answers you already submitted in this session stay scored.</p>
-              <button onClick={handleFinish} className="w-full py-2.5 rounded-lg bg-rose-500/15 border border-rose-500/35 text-rose-400 font-bold text-xs hover:bg-rose-500/25 transition-colors">
-                End Session
-              </button>
-              <button autoFocus onClick={() => setShowAbortConfirm(false)} className="w-full py-2.5 rounded-lg bg-white/5 glass-control text-slate-400 font-semibold text-xs mt-2 hover:bg-white/10 transition-colors">
-                Keep Going
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <EndEarlyDialog open={showAbortConfirm} onConfirm={handleFinish} onCancel={() => setShowAbortConfirm(false)} />
     </div>
   );
 }

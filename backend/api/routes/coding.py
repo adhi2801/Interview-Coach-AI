@@ -10,7 +10,7 @@ from api import services
 from api.deps import get_current_user_id, limiter, require_user_id
 from api.errors import APIError
 from api.schemas import HintRequest, RunCodeRequest, SubmitCodeRequest
-from database import SessionLocal
+from database import db_session
 from models import CodingProblem, CodingSubmission, CodingTestCase, InterviewSession, User
 
 logger = structlog.get_logger()
@@ -26,8 +26,7 @@ def get_coding_hint(payload: HintRequest, request: Request, user_id: int = Depen
 @router.get("/coding/problems")
 def list_coding_problems():
     """List problems without exposing test cases — just enough to build a picker UI."""
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         problems = db.query(CodingProblem).all()
         return {
             "problems": [
@@ -42,18 +41,22 @@ def list_coding_problems():
                 for p in problems
             ]
         }
-    finally:
-        db.close()
+
+
+def _has_submitted(db, user_id: int | None, problem_id: int) -> bool:
+    return bool(user_id) and db.query(CodingSubmission.id).filter(
+        CodingSubmission.user_id == user_id, CodingSubmission.problem_id == problem_id,
+    ).first() is not None
 
 
 @router.get("/coding/problems/{slug}")
-def get_coding_problem(slug: str):
+def get_coding_problem(slug: str, user_id: int | None = Depends(get_current_user_id)):
     """Full problem detail — starter code + VISIBLE test cases only. Hidden cases never leave the server."""
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         problem = db.query(CodingProblem).filter(CodingProblem.slug == slug).first()
         if not problem:
             raise APIError(404, "Problem not found")
+        has_solution = bool(problem.reference_solution)
 
         visible_cases = db.query(CodingTestCase).filter(
             CodingTestCase.problem_id == problem.id,
@@ -76,9 +79,24 @@ def get_coding_problem(slug: str):
             "sample_test_cases": [
                 {"input": tc.input_data, "expected_output": tc.expected_output} for tc in visible_cases
             ],
+            "has_reference_solution": has_solution,
+            "reference_solution_unlocked": has_solution and _has_submitted(db, user_id, problem.id),
         }
-    finally:
-        db.close()
+
+
+@router.get("/coding/problems/{slug}/solution")
+def get_reference_solution(slug: str, user_id: int = Depends(require_user_id)):
+    """The verified solution, once the user has submitted an attempt of
+    their own: seeing it first would turn practice into copying."""
+    with db_session() as db:
+        problem = db.query(CodingProblem).filter(CodingProblem.slug == slug).first()
+        if not problem:
+            raise APIError(404, "Problem not found")
+        if not problem.reference_solution:
+            raise APIError(404, "This problem doesn't have a reference solution yet.")
+        if not _has_submitted(db, user_id, problem.id):
+            raise APIError(403, "Submit your own solution first, then the reference solution opens up.")
+        return {"language": "python", "code": problem.reference_solution}
 
 
 @router.post("/coding/run")
@@ -90,8 +108,7 @@ def run_code(request: Request, payload: RunCodeRequest, user_id: int = Depends(r
     """
     # Auth required (require_user_id): every Judge0 call here costs real
     # money against the RapidAPI quota, so it must be tied to an account.
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         problem = db.query(CodingProblem).filter(CodingProblem.id == payload.problem_id).first()
         if not problem:
             raise APIError(404, "Problem not found")
@@ -100,8 +117,6 @@ def run_code(request: Request, payload: RunCodeRequest, user_id: int = Depends(r
             CodingTestCase.problem_id == problem.id,
             CodingTestCase.is_hidden == 0
         ).all()
-    finally:
-        db.close()
 
     test_cases = [{"input": tc.input_data, "expected_output": tc.expected_output} for tc in visible_cases]
     results = services.code_executor.run_test_cases(payload.code, payload.language, test_cases)
@@ -128,8 +143,7 @@ def submit_code(request: Request, payload: SubmitCodeRequest, user_id: int = Dep
     concurrent submissions could exhaust SQLAlchemy's connection pool and
     stall every other request in the app.
     """
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         problem = db.query(CodingProblem).filter(CodingProblem.id == payload.problem_id).first()
         if not problem:
             raise APIError(404, "Problem not found")
@@ -144,8 +158,6 @@ def submit_code(request: Request, payload: SubmitCodeRequest, user_id: int = Dep
         all_cases = db.query(CodingTestCase).filter(CodingTestCase.problem_id == problem.id).all()
         test_cases = [{"input": tc.input_data, "expected_output": tc.expected_output} for tc in all_cases]
         problem_id, problem_difficulty, problem_description = problem.id, problem.difficulty, problem.description
-    finally:
-        db.close()
 
     exec_results = services.code_executor.run_test_cases(payload.code, payload.language, test_cases)
     test_results_for_grading = [
@@ -181,8 +193,7 @@ def submit_code(request: Request, payload: SubmitCodeRequest, user_id: int = Dep
     else:
         coding_score = pass_ratio_score
 
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         # Locked read so a concurrently-finishing interview answer can't
         # overwrite this update with a stale ELO (or vice versa).
         user = db.query(User).filter(User.id == user_id).with_for_update().first()
@@ -228,8 +239,6 @@ def submit_code(request: Request, payload: SubmitCodeRequest, user_id: int = Dep
             "new_elo": new_elo,
             # hidden test case inputs/expected outputs intentionally never returned here
         }
-    finally:
-        db.close()
 
 
 @router.get("/coding/next")
@@ -240,8 +249,7 @@ def get_next_coding_problem(user_id: int = Depends(get_current_user_id)):
     (elo-800)/100 — and skips problems they've already fully passed, so
     the coding track finally adapts instead of always serving 'two_sum'.
     """
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         user = db.query(User).filter(User.id == user_id).first() if user_id else None
         elo = user.elo_rating if user else 1200.0
         difficulty = min(10, max(1, int((elo - 800) / 100)))
@@ -277,15 +285,12 @@ def get_next_coding_problem(user_id: int = Depends(get_current_user_id)):
             "difficulty": chosen.difficulty,
             "your_current_difficulty_target": difficulty,
         }
-    finally:
-        db.close()
 
 
 @router.get("/coding/submissions")
 def get_coding_submissions(user_id: int = Depends(require_user_id)):
     """Returns the authenticated user's past coding submissions, most recent first."""
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         submissions = db.query(CodingSubmission).filter(
             CodingSubmission.user_id == user_id
         ).order_by(CodingSubmission.submitted_at.desc()).limit(20).all()
@@ -311,5 +316,3 @@ def get_coding_submissions(user_id: int = Depends(require_user_id)):
                 "submitted_at": s.submitted_at.isoformat() if s.submitted_at else None,
             })
         return {"submissions": result}
-    finally:
-        db.close()

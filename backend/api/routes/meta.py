@@ -9,7 +9,7 @@ from sqlalchemy import text
 from api import services
 from api.deps import get_current_user_id, limiter
 from api.errors import APIError
-from database import SessionLocal
+from database import db_session
 from engines.adaptive_difficulty import ROLE_ELO_BANDS
 from engines.company_dna import is_known_company
 from models import Answer, InterviewSession, Topic, TopicPrerequisite
@@ -46,14 +46,12 @@ def health_check():
     serve a single real request.
     """
     db_ok = True
-    db = SessionLocal()
-    try:
-        db.execute(text("SELECT 1"))
-    except Exception as e:
-        db_ok = False
-        logger.error("health_check_db_failed", error=str(e))
-    finally:
-        db.close()
+    with db_session() as db:
+        try:
+            db.execute(text("SELECT 1"))
+        except Exception as e:
+            db_ok = False
+            logger.error("health_check_db_failed", error=str(e))
 
     redis_ok = False
     if services.redis_client:
@@ -82,8 +80,7 @@ def list_companies():
 
 @router.get("/topics")
 def list_topics():
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         topics = db.query(Topic).order_by(Topic.category, Topic.name).all()
         return {
             "topics": [
@@ -91,8 +88,6 @@ def list_topics():
                 for t in topics
             ]
         }
-    finally:
-        db.close()
 
 
 @router.get("/topics/status")
@@ -110,8 +105,7 @@ def get_topics_status(user_id: int = Depends(get_current_user_id)):
     If the caller isn't logged in, every topic is "unattempted" since there's
     no user history to derive status from.
     """
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         all_topics = db.query(Topic).order_by(Topic.category, Topic.name).all()
         base = [{"name": t.name, "category": t.category, "difficulty": t.difficulty_level} for t in all_topics]
 
@@ -171,8 +165,6 @@ def get_topics_status(user_id: int = Depends(get_current_user_id)):
             result.append(entry)
 
         return {"topics": result}
-    finally:
-        db.close()
 
 
 @router.get("/study-plan/{topic_name}")
@@ -182,8 +174,7 @@ def get_study_plan(topic_name: str, company: str = None):
     relevance weighting if a company is specified.
     """
     path = services.gap_engine.get_full_study_path(topic_name)
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         # Batched: one query for every topic in the path instead of one
         # query PER step (same fix as /user/sessions, /coding/submissions).
         topics_by_name = {}
@@ -205,5 +196,3 @@ def get_study_plan(topic_name: str, company: str = None):
                 "company_relevance": weight
             })
         return {"topic": topic_name, "company": company, "steps": steps}
-    finally:
-        db.close()

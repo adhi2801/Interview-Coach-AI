@@ -141,12 +141,23 @@ function layout(width, height) {
   return { portrait, cx: 0.26, cy: 0.02, boxW: 0.6, boxH: 0.62 };
 }
 
-function useFilmRenderer(hostRef, shotRef, active) {
+// Devices that should get the static backdrop instead of the WebGL film:
+// the user asked to save data, or the device is short on memory or cores.
+function lowPower() {
+  const nav = typeof navigator === "undefined" ? {} : navigator;
+  return Boolean(nav.connection?.saveData) || (nav.deviceMemory && nav.deviceMemory <= 2) ||
+    (nav.hardwareConcurrency && nav.hardwareConcurrency <= 2);
+}
+
+function useFilmRenderer(hostRef, shotRef, active, near) {
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     const host = hostRef.current;
-    if (!host) return undefined;
+    // Built only when the film is about to scroll into view, so the hero
+    // paints without paying for WebGL setup and the particle shapes.
+    if (!host || !near) return undefined;
+    if (lowPower()) { setFailed(true); return undefined; }
     const canvas = document.createElement("canvas");
     canvas.className = "absolute inset-0 h-full w-full";
     host.appendChild(canvas);
@@ -293,7 +304,7 @@ function useFilmRenderer(hostRef, shotRef, active) {
       gl.getExtension("WEBGL_lose_context")?.loseContext();
       canvas.remove();
     };
-  }, [hostRef, shotRef, active]);
+  }, [hostRef, shotRef, active, near]);
 
   return failed;
 }
@@ -307,6 +318,7 @@ export default function ScrollFilm() {
   const hostRef = useRef(null);
   const shotRef = useRef(0);
   const active = useRef(false);
+  const [near, setNear] = useState(false);
   const [chapter, setChapter] = useState(0);
 
   const { scrollYProgress } = useScroll({ target: trackRef, offset: ["start start", "end end"] });
@@ -326,11 +338,14 @@ export default function ScrollFilm() {
       active.current = e.isIntersecting;
       if (e.isIntersecting) active.kick?.();
     }, { rootMargin: "200px 0px" });
+    // A wider margin wakes the renderer a screen or so before it's needed.
+    const warm = new IntersectionObserver(([e]) => { if (e.isIntersecting) setNear(true); }, { rootMargin: "100% 0px" });
     io.observe(el);
-    return () => io.disconnect();
+    warm.observe(el);
+    return () => { io.disconnect(); warm.disconnect(); };
   }, []);
 
-  const failed = useFilmRenderer(hostRef, shotRef, active);
+  const failed = useFilmRenderer(hostRef, shotRef, active, near);
   const c = CHAPTERS[chapter];
 
   return (

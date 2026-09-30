@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
@@ -38,12 +40,23 @@ engine = create_engine(
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-def get_db():
+@contextmanager
+def db_session():
+    """One session for one block of work, always closed on the way out.
+
+    Commits stay explicit in the caller; closing an uncommitted session rolls
+    it back, so an exception mid-block never leaves half a change behind.
+    """
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
+
+def get_db():
+    with db_session() as db:
+        yield db
 
 def create_tables():
     from models import Base

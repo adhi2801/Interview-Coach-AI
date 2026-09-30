@@ -63,6 +63,14 @@ def create_access_token(data: dict) -> str:
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
+def access_token_expires_at(token: str) -> str:
+    """When a token this service just issued stops working, as ISO 8601 UTC.
+    Lets a client that can't read the token (it's in an HttpOnly cookie)
+    know when to renew it."""
+    exp = jwt.get_unverified_claims(token)["exp"]
+    return datetime.fromtimestamp(exp, timezone.utc).isoformat().replace("+00:00", "Z")
+
+
 def decode_access_token(token: str) -> dict | None:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])

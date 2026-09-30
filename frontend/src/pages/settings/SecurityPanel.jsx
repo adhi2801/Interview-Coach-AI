@@ -28,7 +28,7 @@ export default function SecurityPanel({ Card, onLogout }) {
       const res = await api.post("/auth/change-password", {
         current_password: form.current, new_password: form.next,
       });
-      saveAuth(res.data.access_token, res.data.user);
+      saveAuth(res.data);
       setForm({ current: "", next: "", confirm: "" });
       setStatus({ state: "saved", message: "Password changed. Other devices have been signed out." });
     } catch (err) {

@@ -7,9 +7,12 @@ HOW TO USE:
 1. Make sure verified_problems.json is in backend/data/
 2. Run: python -m scripts.seed_verified_problems
    or:  python -m scripts.seed_verified_problems verified_problems_pack2.json
-   (pack 2 is built and cross-checked by build_problem_pack.py)
+   or:  python -m scripts.seed_verified_problems all   (every data/verified_problems*.json;
+        the container runs this on start, so a new pack reaches the database on deploy)
+   (packs 2 and 3 are built and cross-checked by build_problem_pack.py)
 3. It will print each problem as it's inserted, and skip any that already
-   exist (matched by slug) so it's safe to run more than once.
+   exist (matched by slug) so it's safe to run more than once. An existing
+   problem missing its reference solution gets it filled in.
 
 This uses your existing database.py / models.py — same DB connection your
 app already uses. It writes real rows to your real Postgres database.
@@ -25,6 +28,10 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 
 def main(path="verified_problems.json"):
+    if path == "all":
+        for pack in sorted(DATA_DIR.glob("verified_problems*.json")):
+            main(str(pack))
+        return
     # A bare file name is looked up in backend/data/.
     if not Path(path).exists():
         path = DATA_DIR / Path(path).name
@@ -38,6 +45,7 @@ def main(path="verified_problems.json"):
     db = SessionLocal()
     inserted_count = 0
     skipped_count = 0
+    solutions_added = 0
 
     try:
         for p in problems:
@@ -48,7 +56,13 @@ def main(path="verified_problems.json"):
 
             existing = db.query(CodingProblem).filter(CodingProblem.slug == slug).first()
             if existing:
-                print(f"SKIPPED (already exists): {slug}")
+                if not existing.reference_solution and p.get("python_solution"):
+                    existing.reference_solution = p["python_solution"]
+                    db.commit()
+                    print(f"ADDED reference solution: {slug}")
+                    solutions_added += 1
+                else:
+                    print(f"SKIPPED (already exists): {slug}")
                 skipped_count += 1
                 continue
 
@@ -78,6 +92,7 @@ def main(path="verified_problems.json"):
                 constraints=p.get("constraints"),
                 time_complexity_target=p.get("time_complexity_target"),
                 space_complexity_target=p.get("space_complexity_target"),
+                reference_solution=p.get("python_solution"),
             )
             db.add(problem_row)
             db.flush()  # get problem_row.id without committing yet
@@ -106,7 +121,8 @@ def main(path="verified_problems.json"):
         db.close()
 
     print("\n" + "=" * 60)
-    print(f"DONE. Inserted {inserted_count} new problems, skipped {skipped_count} duplicates.")
+    print(f"DONE. Inserted {inserted_count} new problems, skipped {skipped_count} duplicates "
+          f"({solutions_added} given their reference solution).")
     print("=" * 60)
 
 
