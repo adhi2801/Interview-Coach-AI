@@ -157,7 +157,7 @@ function Brief({ name, profile, loading, error, record, gap, preview, previewSta
   );
 }
 
-export default function Dashboard({ onStart, user, onGoBack }) {
+export default function InterviewSetup({ onStart, user, onGoBack }) {
   const [companyChoice, setCompanyChoice] = useState(() => {
     const saved = readSetting("ic_last_company", "google");
     return KNOWN.has(saved) ? saved : OTHER;

@@ -289,7 +289,7 @@ function Replay({ sessionId, onBack }) {
   );
 }
 
-export default function ReplayViewer({ sessionId, onExit, onSelectSession, onBackToList }) {
+export default function Sessions({ sessionId, onExit, onSelectSession, onBackToList }) {
   if (sessionId) return <Replay sessionId={sessionId} onBack={onBackToList || onExit} />;
   return <SessionsList onSelectSession={onSelectSession} onExit={onExit} />;
 }

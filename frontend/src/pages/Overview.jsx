@@ -215,7 +215,7 @@ function ActivityTable({ rows, onOpen, onAll }) {
   );
 }
 
-export default function UserDashboard({ user, onStartNew, onStartCoding, onNavigateHistory, onEloUpdate }) {
+export default function Overview({ user, onStartNew, onStartCoding, onNavigateHistory, onEloUpdate }) {
   const navigate = useTransitionNavigate();
   const [rows, setRows] = useState(null);
   const [companies, setCompanies] = useState(["google", "amazon", "meta", "microsoft", "apple", "netflix", "startup"]);

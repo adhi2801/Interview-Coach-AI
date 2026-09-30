@@ -28,7 +28,7 @@ export function formatCategory(category) {
 
 // Persona-reactive visual identity. Drives accent color, ambient glow,
 // evaluator copy, and framing language across the answering phase.
-// Persona is set once per session (chosen in Dashboard) — this is not
+// Persona is set once per session (chosen in interview setup) — this is not
 // a live switcher, just a styling lookup keyed off sessionData.persona.
 export const PERSONA_META = {
   standard: {
