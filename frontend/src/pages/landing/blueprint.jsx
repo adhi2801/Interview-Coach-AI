@@ -51,17 +51,16 @@ export function Hatch({ className }) {
   );
 }
 
-// Mono section label: "::: 02 / THE INTERVIEW"
-export function Label({ index, children, className }) {
+// Section label: a small mark and the section's name.
+export function Label({ children, className }) {
   return (
-    <div className={cn("flex items-center gap-2.5 font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-indigo-300", className)}>
+    <div className={cn("flex items-center gap-2.5 text-[13px] font-medium text-indigo-300", className)}>
       <span aria-hidden="true" className="grid grid-cols-2 gap-[2px]">
         <span className="h-[3px] w-[3px] bg-indigo-400" />
         <span className="h-[3px] w-[3px] bg-indigo-400/40" />
         <span className="h-[3px] w-[3px] bg-indigo-400/40" />
         <span className="h-[3px] w-[3px] bg-indigo-400" />
       </span>
-      {index && <span className="text-white/50">{index} /</span>}
       <ScrambleText>{children}</ScrambleText>
     </div>
   );

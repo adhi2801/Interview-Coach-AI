@@ -35,7 +35,7 @@ import InterviewDemo, { DEMO_STEPS, PH, stepFor } from "./landing/InterviewDemo"
 import FeatureTabs from "./landing/FeatureTabs";
 import ScrollFilm from "./landing/ScrollFilm";
 import { useProblemCount } from "./landing/liveCounts";
-import { BuildLog, FinalCta, Footer, GITHUB_URL, Graph, How, Prompts, Stack } from "./landing/LowerSections";
+import { FinalCta, Footer, GITHUB_URL, Graph, How, Prompts } from "./landing/LowerSections";
 
 const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black";
 
@@ -45,7 +45,6 @@ const NAV = [
   { id: "features", label: "Features" },
   { id: "how", label: "How it works" },
   { id: "graph", label: "Knowledge graph" },
-  { id: "stack", label: "Stack" },
 ];
 
 const STATS = [
@@ -72,8 +71,6 @@ export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onN
         <NumbersBand />
         <How />
         <Graph />
-        <Stack />
-        <BuildLog />
         <Prompts />
         <FinalCta onGetStarted={onGetStarted} />
       </main>
@@ -107,15 +104,15 @@ function TopNav({ onGetStarted, onSignIn }) {
           <ul className="hidden items-center gap-7 lg:flex">
             {NAV.map((n) => (
               <li key={n.id}>
-                <a href={`#${n.id}`} onClick={(e) => go(e, n.id)} className={cn("font-mono text-[11px] uppercase tracking-[0.16em] text-white/55 transition-colors hover:text-white", FOCUS)}>
+                <a href={`#${n.id}`} onClick={(e) => go(e, n.id)} className={cn("text-[13px] text-white/55 transition-colors hover:text-white", FOCUS)}>
                   {n.label}
                 </a>
               </li>
             ))}
           </ul>
           <div className="flex items-center gap-4">
-            <button onClick={onSignIn} className={cn("hidden font-mono text-[11px] uppercase tracking-[0.16em] text-white/60 transition-colors hover:text-white sm:block", FOCUS)}>Sign in</button>
-            <button onClick={onGetStarted} className={cn("group flex items-center gap-2 bg-white px-4 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-black transition-colors hover:bg-indigo-100", FOCUS)}>
+            <button onClick={onSignIn} className={cn("hidden text-[13px] text-white/60 transition-colors hover:text-white sm:block", FOCUS)}>Sign in</button>
+            <button onClick={onGetStarted} className={cn("group flex items-center gap-2 bg-white px-4 py-2 text-[13px] font-semibold text-black transition-colors hover:bg-indigo-100", FOCUS)}>
               Start free <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
             </button>
           </div>
@@ -200,7 +197,7 @@ function Hero({ onGetStarted }) {
             className={cn("px-6 py-6 md:px-8", i % 2 === 0 && "border-r border-white/[0.08]", i < 2 && "border-b border-white/[0.08] md:border-b-0", i === 1 && "md:border-r")}
           >
             <p className="text-4xl font-semibold tracking-[-0.04em] tabular-nums md:text-5xl">{n === "problems" ? problems : n}</p>
-            <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.14em] text-white/55">{label}</p>
+            <p className="mt-1 text-[13px] text-white/55">{label}</p>
           </motion.div>
         ))}
       </div>
@@ -315,7 +312,7 @@ function DemoSection() {
       <div ref={pinRef} className="grid grid-cols-1 bg-[#050507] lg:min-h-[calc(100vh-64px)] lg:grid-cols-12">
         <div className="flex flex-col border-b border-white/[0.08] px-6 py-10 md:px-10 lg:col-span-4 lg:justify-center lg:border-b-0 lg:border-r">
           <div>
-            <Label index="01">One interview, start to finish</Label>
+            <Label>One interview, start to finish</Label>
             <SplitReveal by="lines" pinned className="mt-6 text-4xl font-semibold leading-[1.02] tracking-[-0.04em] md:text-5xl">
               Watch it think with you.
             </SplitReveal>
@@ -327,7 +324,7 @@ function DemoSection() {
               return (
                 <li key={s.title} className="relative py-3 pl-5">
                   <StepRail progress={progress} i={i} on={on} />
-                  <p className={cn("font-mono text-[11px] uppercase tracking-[0.14em] transition-colors duration-500", on ? "text-indigo-300" : "text-white/50")}>0{i + 1}</p>
+                  <p className={cn("text-[13px] transition-colors duration-500", on ? "text-indigo-300" : "text-white/50")}>0{i + 1}</p>
                   <p className={cn("mt-1 text-lg font-semibold tracking-[-0.02em] transition-colors duration-500", on ? "text-white" : "text-white/50")}>{s.title}</p>
                   <p className={cn("mt-1 text-sm leading-relaxed transition-colors duration-500", on ? "text-white/60" : "text-white/25")}>{s.body}</p>
                 </li>
@@ -362,7 +359,7 @@ function Features() {
   return (
     <Section id="features">
       <div className="px-6 pb-10 pt-20 md:px-12">
-        <Label index="02">What's inside</Label>
+        <Label>What's inside</Label>
         <SplitReveal by="lines" className="mt-6 max-w-3xl text-4xl font-semibold leading-[1.02] tracking-[-0.04em] md:text-6xl">
           Four engines, one interview.
         </SplitReveal>
@@ -416,7 +413,7 @@ function NumbersBand() {
   const drift = useTransform(scrollYProgress, [0, 1], [1, -1]);
   const x1 = useTransform(drift, (d) => -w + d * w * 0.35);
   const x2 = useTransform(drift, (d) => -w - d * w * 0.35);
-  const row = "flex w-max whitespace-nowrap text-6xl font-semibold uppercase tracking-[-0.04em] md:text-[128px]";
+  const row = "flex w-max whitespace-nowrap text-6xl font-semibold md:text-[128px]";
   return (
     <Section>
       <div ref={ref} className="overflow-hidden py-14">

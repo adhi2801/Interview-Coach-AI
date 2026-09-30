@@ -26,6 +26,7 @@ const InterviewRoom = lazy(() => import("./pages/InterviewRoom"));
 const ReplayViewer = lazy(() => import("./pages/ReplayViewer"));
 const CodingRoom = lazy(() => import("./pages/CodingRoom"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const About = lazy(() => import("./pages/About"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Settings = lazy(() => import("./pages/Settings"));
 const StudyPlanBrowser = lazy(() => import("./pages/StudyPlanBrowser"));
@@ -169,6 +170,7 @@ function AuthenticatedRoutes({ user, onLogout, onEloUpdate, onUserPatch, session
             <Route path="/replay/:id" element={<ReplayViewerWithParam onExit={() => navigate("/")} onBackToList={() => navigate("/replay")} />} />
             <Route path="/study-plan" element={<StudyPlanBrowser onGoBack={() => navigate("/")} />} />
             <Route path="/settings" element={<Settings user={user} onLogout={onLogout} onGoBack={() => navigate("/")} onProfileUpdate={onUserPatch} />} />
+            <Route path="/about" element={<About onGoBack={() => navigate("/")} onNavigatePrivacy={() => navigate("/privacy")} onNavigateTerms={() => navigate("/terms")} />} />
             {/* A reset link opened while already logged in still works. */}
             <Route path="/reset-password" element={<ResetPassword onAuth={() => navigate("/")} onForgotPassword={() => navigate("/settings")} onBackToHome={() => navigate("/")} />} />
             <Route path="/privacy" element={<PrivacyPolicy onGoBack={() => navigate("/")} />} />
@@ -203,6 +205,7 @@ function UnauthenticatedRoutes({ onAuth }) {
             <Route path="/signup" element={<Signup onAuth={onAuth} onSwitchToLogin={() => navigate("/login")} onBackToHome={() => navigate("/")} />} />
             <Route path="/privacy" element={<PrivacyPolicy onGoBack={() => navigate("/")} />} />
             <Route path="/terms" element={<TermsOfService onGoBack={() => navigate("/")} />} />
+            <Route path="/about" element={<About onGoBack={() => navigate("/")} onNavigatePrivacy={() => navigate("/privacy")} onNavigateTerms={() => navigate("/terms")} />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

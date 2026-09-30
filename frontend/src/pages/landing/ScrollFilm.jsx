@@ -308,7 +308,6 @@ export default function ScrollFilm() {
   const shotRef = useRef(0);
   const active = useRef(false);
   const [chapter, setChapter] = useState(0);
-  const [tc, setTc] = useState("00:00:00");
 
   const { scrollYProgress } = useScroll({ target: trackRef, offset: ["start start", "end end"] });
 
@@ -317,10 +316,6 @@ export default function ScrollFilm() {
     shotRef.current = s;
     const ch = Math.min(CHAPTERS.length - 1, Math.round(s));
     setChapter((c) => (c === ch ? c : ch));
-    // A 12-second "reel": timecode as mm:ss:ff at 24 fps.
-    const frames = Math.round(p * 12 * 24);
-    const next = `00:${pad(Math.floor(frames / 24))}:${pad(frames % 24)}`;
-    setTc((t) => (t === next ? t : next));
   });
 
   // Render only while the film is on screen.
@@ -340,7 +335,7 @@ export default function ScrollFilm() {
 
   return (
     <Section id="film">
-      <div ref={trackRef} className="relative h-[460svh] lg:h-[520vh]">
+      <div ref={trackRef} className="relative h-[330svh] lg:h-[360vh]">
         <div className="sticky top-16 h-[calc(100svh-4rem)] overflow-hidden bg-[#030305]">
           {/* Stage */}
           <div
@@ -353,20 +348,15 @@ export default function ScrollFilm() {
           <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_60%_45%,transparent_35%,rgba(3,3,5,0.85)_100%)]" />
           <div aria-hidden="true" className="film-grain pointer-events-none absolute inset-0" />
 
-          {/* Top bar: title + timecode */}
-          <div className="absolute inset-x-0 top-0 flex items-center justify-between border-b border-white/[0.06] px-5 py-3 md:px-8">
-            <Label index="00">The loop, on film</Label>
-            <div className="flex items-center gap-3 font-mono text-[10.5px] uppercase tracking-[0.16em] text-white/50">
-              <span className="flex items-center gap-1.5 text-rose-300"><span className="rec-dot h-1.5 w-1.5 rounded-full bg-rose-400" />Rec</span>
-              <span className="tabular-nums text-white/70">{tc}</span>
-              <span className="hidden text-white/50 sm:inline">/ 00:12:00</span>
-            </div>
+          {/* Top bar: title */}
+          <div className="absolute inset-x-0 top-0 flex items-center border-b border-white/[0.06] px-5 py-3 md:px-8">
+            <Label>One answer, start to finish</Label>
           </div>
 
           {/* Caption */}
           <div className="absolute inset-x-0 bottom-20 px-5 md:bottom-auto md:left-0 md:right-auto md:top-1/2 md:w-[40%] md:-translate-y-1/2 md:px-10 lg:w-[34%]">
             <motion.div key={chapter} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}>
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-indigo-300">
+              <p className="text-[13px] text-indigo-300">
                 <span className="text-white/50">{pad(chapter + 1)} / {pad(CHAPTERS.length)} ·</span> {c.k}
               </p>
               <h3 className="mt-3 text-[34px] font-semibold leading-[1.02] tracking-[-0.04em] text-white md:text-5xl">{c.title}</h3>
@@ -383,7 +373,7 @@ export default function ScrollFilm() {
                 <span key={i} className="absolute top-1/2 h-2 w-[2px] -translate-y-1/2 bg-white/30" style={{ left: `${((i + 0.5) / CHAPTERS.length) * 100}%` }} />
               ))}
             </div>
-            <div className="mt-2 grid grid-cols-5 font-mono text-[9.5px] uppercase tracking-[0.14em]">
+            <div className="mt-2 grid grid-cols-5 text-[9.5px]">
               {CHAPTERS.map((ch, i) => (
                 <span key={ch.k} className={cn("text-center transition-colors duration-500", i === chapter ? "text-white" : "text-white/50")}>{ch.k}</span>
               ))}
@@ -403,13 +393,13 @@ function ShotData({ chapter }) {
   return (
     <>
       <ShotReadout chapter={chapter} />
-      <p className="mt-3 font-mono text-[9.5px] uppercase tracking-[0.14em] text-white/50">Example session · illustrative values</p>
+      <p className="mt-3 text-[9.5px] text-white/50">Example session · illustrative values</p>
     </>
   );
 }
 
 function ShotReadout({ chapter }) {
-  const base = "mt-5 flex flex-wrap gap-2 font-mono text-[10.5px] uppercase tracking-[0.12em]";
+  const base = "mt-5 flex flex-wrap gap-2 text-[12.5px]";
   const chip = "border border-white/10 bg-white/[0.03] px-2 py-1 text-white/60";
   if (chapter === 0) return <div className={base}><span className={chip}>142 wpm</span><span className={chip}>2 fillers</span><span className={cn(chip, "border-rose-400/30 text-rose-200")}>Listening</span></div>;
   if (chapter === 1) return <div className={base}><span className={chip}>63 words</span><span className={cn(chip, "border-violet-400/30 text-violet-200")}>Claim: regional budgets</span></div>;
