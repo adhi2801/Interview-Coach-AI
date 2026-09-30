@@ -16,7 +16,7 @@ function Tip({ active, payload }) {
   if (!active || !payload?.length) return null;
   const p = payload[0].payload;
   return (
-    <div className="border border-white/15 bg-[#0b0b10] px-3 py-2 text-[12.5px] text-white shadow-xl">
+    <div className="border border-white/15 rounded-lg bg-[#0b0b10] px-3 py-2 text-[12.5px] text-white shadow-xl">
       <p className="font-mono tabular-nums">{p.elo}</p>
       <p className="text-white/55">{p.track === "coding" ? "Coding" : "Interview"}, {fmtDay(p.t)}</p>
     </div>

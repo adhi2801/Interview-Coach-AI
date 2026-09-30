@@ -100,7 +100,7 @@ export default function Debrief({
                       </p>
                     </div>
                     <button type="button" onClick={() => onOpenStudyPlan(g.gap)}
-                      className="shrink-0 border border-white/15 px-3 py-1.5 text-[13px] text-white hover:bg-white/[0.06]">
+                      className="shrink-0 glass-control rounded-lg px-3 py-1.5 text-[13px] text-white hover:bg-white/[0.06]">
                       Study plan
                     </button>
                   </li>
@@ -120,7 +120,7 @@ export default function Debrief({
         </div>
       </motion.div>
 
-      <div className="sticky bottom-0 z-20 border-t border-white/[0.1] bg-[#050507]/95 backdrop-blur">
+      <div className="nav-glass sticky bottom-0 z-20">
         <div className="mx-auto flex w-full max-w-[1080px] flex-wrap items-center gap-3 px-5 py-4 md:px-8">
           <button type="button" onClick={isLastNode ? onFinish : onNext}
             className="btn-liquid flex items-center gap-2 px-5 py-2.5 text-[14px] font-semibold">
@@ -128,7 +128,7 @@ export default function Debrief({
             <kbd className="hidden rounded bg-black/10 px-1.5 py-0.5 font-mono text-[10.5px] text-black/60 sm:inline">Ctrl ↵</kbd>
           </button>
           <button type="button" onClick={onRetry}
-            className="flex items-center gap-2 border border-white/15 px-4 py-2.5 text-[14px] text-white hover:bg-white/[0.06]">
+            className="flex items-center gap-2 glass-control rounded-lg px-4 py-2.5 text-[14px] text-white hover:bg-white/[0.06]">
             <RefreshCw size={13} aria-hidden="true" /> Retry this question
           </button>
           {currentAnswerId && (

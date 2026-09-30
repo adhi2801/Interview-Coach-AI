@@ -38,7 +38,7 @@ export default function AuthShell({ title, intro, onBackToHome, footer, children
 }
 
 export const inputClass =
-  "w-full border border-white/15 bg-[#0a0a10] px-3.5 py-2.5 text-[15px] text-white placeholder-white/35 focus:border-indigo-300 focus:outline-none focus:ring-1 focus:ring-indigo-300/60 aria-[invalid=true]:border-rose-400";
+  "w-full border border-white/15 rounded-lg bg-[#0a0a10] px-3.5 py-2.5 text-[15px] text-white placeholder-white/35 focus:border-indigo-300 focus:outline-none focus:ring-1 focus:ring-indigo-300/60 aria-[invalid=true]:border-rose-400";
 
 export function Field({ id, label, hint, children }) {
   return (

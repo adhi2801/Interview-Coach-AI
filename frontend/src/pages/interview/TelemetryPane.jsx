@@ -38,7 +38,7 @@ export default function TelemetryPane({ personaMeta, liveCoaching, wsConnected, 
   const confidence = enough ? liveCoaching?.confidence_score : null;
 
   return (
-    <aside aria-label="Live coaching" className="flex w-full shrink-0 flex-col gap-7 bg-[#08080c] p-6 lg:w-[22%] lg:min-w-[250px]">
+    <aside aria-label="Live coaching" className="flex w-full shrink-0 flex-col gap-7 bg-[#07080f]/55 p-6 lg:w-[22%] lg:min-w-[250px]">
       <p className="border-b border-white/[0.08] pb-5 text-[13px] leading-relaxed text-white/60">{personaMeta.moodDesc}</p>
 
       {!showCoaching ? (

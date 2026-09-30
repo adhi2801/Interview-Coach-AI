@@ -93,7 +93,7 @@ export default function StudyPlan({ topicName, company, onClose }) {
           {error ? (
             <div>
               <p className="text-[14.5px] text-white/80">{error}</p>
-              <button type="button" onClick={load} className="mt-4 border border-white/15 px-4 py-2 text-[13px] text-white hover:bg-white/[0.06]">
+              <button type="button" onClick={load} className="mt-4 glass-control rounded-lg px-4 py-2 text-[13px] text-white hover:bg-white/[0.06]">
                 Try again
               </button>
             </div>
@@ -138,7 +138,7 @@ export default function StudyPlan({ topicName, company, onClose }) {
             className="flex items-center gap-1.5 text-[13.5px] text-indigo-200 hover:text-white">
             See it on the knowledge graph <ArrowUpRight size={14} aria-hidden="true" />
           </button>
-          <button type="button" onClick={onClose} className="border border-white/15 px-4 py-2 text-[13.5px] font-medium text-white hover:bg-white/[0.06]">
+          <button type="button" onClick={onClose} className="glass-control rounded-lg px-4 py-2 text-[13.5px] font-medium text-white hover:bg-white/[0.06]">
             Done
           </button>
         </footer>

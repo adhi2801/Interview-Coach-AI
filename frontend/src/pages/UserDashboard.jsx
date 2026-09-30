@@ -54,7 +54,7 @@ function Actions({ onStartNew, onStartCoding }) {
         <Play size={14} aria-hidden="true" /> Start an interview
       </button>
       <button type="button" onClick={onStartCoding}
-        className="flex items-center gap-2 border border-white/15 px-5 py-3 text-[14px] font-semibold text-white hover:bg-white/[0.06]">
+        className="flex items-center gap-2 glass-control rounded-lg px-5 py-3 text-[14px] font-semibold text-white hover:bg-white/[0.06]">
         <Code2 size={14} aria-hidden="true" /> Solve a coding problem
       </button>
     </div>
@@ -68,7 +68,7 @@ function WorkOnNext({ gaps, loading, company, companies, onCompany, onStudy }) {
         <label className="flex items-center gap-2 text-[13px] text-white/55">
           For
           <select value={company} onChange={(e) => onCompany(e.target.value)}
-            className="border border-white/15 bg-[#07070b] px-2 py-1 text-[13px] text-white focus:border-indigo-400 focus:outline-none">
+            className="border border-white/15 rounded-lg bg-[#07070b] px-2 py-1 text-[13px] text-white focus:border-indigo-400 focus:outline-none">
             {companies.map((c) => <option key={c} value={c}>{capitalize(c)}</option>)}
           </select>
         </label>
