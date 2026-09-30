@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends
 from api.deps import require_user_id
 from api.errors import APIError
 from api.schemas import UpdatePreferenceRequest, UpdateProfileRequest
-from database import SessionLocal
+from database import db_session
 from engines.adaptive_difficulty import ROLE_ELO_BANDS
 from models import (
     Answer, CodingProblem, CodingSubmission, InterviewSession, ReplayManifest, ScoringJob, Topic,
@@ -23,8 +23,7 @@ router = APIRouter(tags=["user"])
 
 @router.get("/user/sessions")
 def get_user_sessions(user_id: int = Depends(require_user_id)):
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         sessions = db.query(InterviewSession).filter(
             InterviewSession.user_id == user_id
         ).order_by(InterviewSession.started_at.desc()).limit(20).all()
@@ -70,8 +69,6 @@ def get_user_sessions(user_id: int = Depends(require_user_id)):
                 "score": avg_score,
             })
         return {"sessions": result}
-    finally:
-        db.close()
 
 
 @router.get("/user/activity")
@@ -94,8 +91,7 @@ def get_user_activity(user_id: int = Depends(require_user_id)):
     total (Answer.session_id.in_(...), CodingProblem.id.in_(...)) and
     grouped in Python, same result, a fraction of the round trips.
     """
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         sessions = db.query(InterviewSession).filter(
             InterviewSession.user_id == user_id
         ).order_by(InterviewSession.started_at.desc()).limit(20).all()
@@ -176,8 +172,6 @@ def get_user_activity(user_id: int = Depends(require_user_id)):
 
         events.sort(key=lambda e: e["timestamp"] or "", reverse=True)
         return {"activity": events[:20]}
-    finally:
-        db.close()
 
 
 @router.get("/user/skill-radar")
@@ -193,8 +187,7 @@ def get_skill_radar(session_id: Optional[int] = None, company: Optional[str] = N
     - company: scope to all sessions targeting one company
     - neither: all-time average across every answer the user has given
     """
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         query = db.query(Answer).join(InterviewSession, Answer.session_id == InterviewSession.id).filter(
             InterviewSession.user_id == user_id
         )
@@ -221,8 +214,6 @@ def get_skill_radar(session_id: Optional[int] = None, company: Optional[str] = N
             radar.append({"dim": labels[f], "value": avg})
 
         return {"radar": radar, "sample_size": len(answers)}
-    finally:
-        db.close()
 
 
 @router.get("/user/gap-queue")
@@ -234,8 +225,7 @@ def get_gap_queue(company: Optional[str] = None, user_id: int = Depends(require_
     to one company. Ranked by urgency then frequency. Replaces the old
     hardcoded per-company COMPANY_TELEMETRY gap lists.
     """
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         query = db.query(Answer, InterviewSession).join(
             InterviewSession, Answer.session_id == InterviewSession.id
         ).filter(InterviewSession.user_id == user_id)
@@ -275,8 +265,6 @@ def get_gap_queue(company: Optional[str] = None, user_id: int = Depends(require_
         ]
 
         return {"critical_gap": queue[0] if queue else None, "queue": queue[:6]}
-    finally:
-        db.close()
 
 
 @router.get("/user/skill-matrix")
@@ -288,8 +276,7 @@ def get_skill_matrix(user_id: int = Depends(require_user_id)):
     Requires topics_covered to be populated by identify_topics_addressed
     during scoring.
     """
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         answers = db.query(Answer).join(InterviewSession, Answer.session_id == InterviewSession.id).filter(
             InterviewSession.user_id == user_id
         ).all()
@@ -314,41 +301,37 @@ def get_skill_matrix(user_id: int = Depends(require_user_id)):
         ]
         real_touched = touched_topic_names & {t.name for t in all_topics}
         return {"categories": categories, "total_touched": len(real_touched), "total_topics": len(all_topics)}
-    finally:
-        db.close()
 
 
 @router.delete("/user/me")
 def delete_my_account(user_id: int = Depends(require_user_id)):
-    db = SessionLocal()
-    try:
-        session_ids = [
-            s.id for s in db.query(InterviewSession).filter(
-                InterviewSession.user_id == user_id
-            ).all()
-        ]
+    with db_session() as db:
+        try:
+            session_ids = [
+                s.id for s in db.query(InterviewSession).filter(
+                    InterviewSession.user_id == user_id
+                ).all()
+            ]
 
-        if session_ids:
-            db.query(Answer).filter(Answer.session_id.in_(session_ids)).delete(synchronize_session=False)
-            db.query(ReplayManifest).filter(ReplayManifest.session_id.in_(session_ids)).delete(synchronize_session=False)
-            db.query(ScoringJob).filter(ScoringJob.session_id.in_(session_ids)).delete(synchronize_session=False)
+            if session_ids:
+                db.query(Answer).filter(Answer.session_id.in_(session_ids)).delete(synchronize_session=False)
+                db.query(ReplayManifest).filter(ReplayManifest.session_id.in_(session_ids)).delete(synchronize_session=False)
+                db.query(ScoringJob).filter(ScoringJob.session_id.in_(session_ids)).delete(synchronize_session=False)
 
-        db.query(CodingSubmission).filter(CodingSubmission.user_id == user_id).delete(synchronize_session=False)
-        db.query(InterviewSession).filter(InterviewSession.user_id == user_id).delete(synchronize_session=False)
+            db.query(CodingSubmission).filter(CodingSubmission.user_id == user_id).delete(synchronize_session=False)
+            db.query(InterviewSession).filter(InterviewSession.user_id == user_id).delete(synchronize_session=False)
 
-        user = db.query(User).filter(User.id == user_id).first()
-        if user:
-            db.delete(user)
+            user = db.query(User).filter(User.id == user_id).first()
+            if user:
+                db.delete(user)
 
-        db.commit()
-        logger.info("user_account_deleted", user_id=user_id, sessions_deleted=len(session_ids))
-        return {"status": "deleted"}
-    except Exception as e:
-        db.rollback()
-        logger.error("account_deletion_failed", user_id=user_id, error=str(e))
-        raise APIError(500, "Deletion failed. Please try again or contact support.") from e
-    finally:
-        db.close()
+            db.commit()
+            logger.info("user_account_deleted", user_id=user_id, sessions_deleted=len(session_ids))
+            return {"status": "deleted"}
+        except Exception as e:
+            db.rollback()
+            logger.error("account_deletion_failed", user_id=user_id, error=str(e))
+            raise APIError(500, "Deletion failed. Please try again or contact support.") from e
 
 
 # Only these three keys can ever be written — prevents an arbitrary
@@ -369,8 +352,7 @@ def get_profile_summary(user_id: int = Depends(require_user_id)):
     session's role, and is honestly null if they have no sessions yet or
     their most recent role isn't one of the tracked bands.
     """
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
             raise APIError(404, "User not found")
@@ -420,8 +402,6 @@ def get_profile_summary(user_id: int = Depends(require_user_id)):
             "preferences": user.preferences or {},
             "bracket": bracket,
         }
-    finally:
-        db.close()
 
 
 @router.patch("/user/profile")
@@ -433,16 +413,13 @@ def update_profile(payload: UpdateProfileRequest, user_id: int = Depends(require
     if len(name) > 100:
         raise APIError(400, "Name is too long")
 
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
             raise APIError(404, "User not found")
         user.name = name
         db.commit()
         return {"status": "ok", "name": user.name}
-    finally:
-        db.close()
 
 
 @router.patch("/user/preferences")
@@ -450,8 +427,7 @@ def update_preference(payload: UpdatePreferenceRequest, user_id: int = Depends(r
     if payload.key not in VALID_PREFERENCE_KEYS:
         raise APIError(400, f"Unknown preference key: {payload.key}")
 
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
             raise APIError(404, "User not found")
@@ -460,5 +436,3 @@ def update_preference(payload: UpdatePreferenceRequest, user_id: int = Depends(r
         user.preferences = prefs
         db.commit()
         return {"status": "ok", "preferences": user.preferences}
-    finally:
-        db.close()

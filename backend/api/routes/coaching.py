@@ -13,7 +13,7 @@ from api import services
 from api.deps import limiter, require_user_id
 from api.errors import APIError
 from auth import create_ws_ticket, decode_ws_ticket
-from database import SessionLocal
+from database import db_session
 from engines.confidence_coach import CoachingFeedback, ConfidenceCoach
 from models import InterviewSession
 
@@ -26,14 +26,11 @@ MAX_TEXT_CHUNK_CHARS = 20000              # same cap as a submitted answer
 
 
 def _owns_session(session_id: int, user_id: int) -> bool:
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         return db.query(InterviewSession.id).filter(
             InterviewSession.id == session_id,
             InterviewSession.user_id == user_id
         ).first() is not None
-    finally:
-        db.close()
 
 
 def _payload(feedback: CoachingFeedback) -> dict:

@@ -15,7 +15,7 @@ from auth import (
     RESET_TOKEN_TTL_MINUTES, create_access_token, create_reset_token, hash_password, read_reset_token,
     reset_token_matches, validate_password_strength, verify_password,
 )
-from database import SessionLocal
+from database import db_session
 from models import User
 
 logger = structlog.get_logger()
@@ -54,8 +54,7 @@ def signup(payload: SignupRequest, request: Request):
     if not name:
         raise APIError(400, "Name cannot be empty")
 
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         existing = db.query(User).filter(User.email == email).first()
         if existing:
             raise APIError(409, "An account with this email already exists")
@@ -72,8 +71,6 @@ def signup(payload: SignupRequest, request: Request):
         db.refresh(user)
         logger.info("user_signed_up", user_id=user.id, email=user.email)
         return _auth_response(user)
-    finally:
-        db.close()
 
 
 @router.post("/auth/login")
@@ -81,8 +78,7 @@ def signup(payload: SignupRequest, request: Request):
 def login(payload: LoginRequest, request: Request):
     email = payload.email.strip().lower()
 
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         user = db.query(User).filter(User.email == email).first()
         password_ok = verify_password(payload.password, user.hashed_password if user else _DUMMY_HASH)
         if not user or not password_ok:
@@ -90,8 +86,6 @@ def login(payload: LoginRequest, request: Request):
 
         logger.info("user_logged_in", user_id=user.id)
         return _auth_response(user)
-    finally:
-        db.close()
 
 
 @router.post("/auth/refresh")
@@ -100,14 +94,11 @@ def refresh_token(request: Request, user_id: int = Depends(require_user_id)):
     """A fresh day-long token for a still-valid one. The app calls this
     while in use, so short-lived tokens don't log active users out.
     Revoked tokens (sign out everywhere, password change) can't renew."""
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
             raise APIError(401, "Account not found. Please log in again.")
         return _auth_response(user)
-    finally:
-        db.close()
 
 
 FORGOT_PASSWORD_REPLY = {
@@ -136,8 +127,7 @@ def forgot_password(payload: ForgotPasswordRequest, request: Request, background
     has an account, and sends after replying, so neither the answer nor
     its timing reveals who is registered."""
     email = payload.email.strip().lower()
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         user = db.query(User).filter(User.email == email).first()
         if user:
             token = create_reset_token(user.id, user.hashed_password)
@@ -145,8 +135,6 @@ def forgot_password(payload: ForgotPasswordRequest, request: Request, background
             background.add_task(_send_reset_email, user.email, f"{base}/reset-password#token={token}")
             logger.info("password_reset_requested", user_id=user.id)
         return FORGOT_PASSWORD_REPLY
-    finally:
-        db.close()
 
 
 @router.post("/auth/reset-password")
@@ -161,8 +149,7 @@ def reset_password(payload: ResetPasswordRequest, request: Request):
     if password_error:
         raise APIError(400, password_error)
 
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         user = db.query(User).filter(User.id == claims["user_id"]).with_for_update().first()
         if not user or not reset_token_matches(claims, user.hashed_password):
             raise APIError(400, "This reset link has already been used or has expired. Ask for a new one.")
@@ -172,8 +159,6 @@ def reset_password(payload: ResetPasswordRequest, request: Request):
         db.refresh(user)
         logger.info("password_reset", user_id=user.id)
         return _auth_response(user)
-    finally:
-        db.close()
 
 
 @router.post("/auth/change-password")
@@ -185,8 +170,7 @@ def change_password(payload: ChangePasswordRequest, request: Request, user_id: i
     if password_error:
         raise APIError(400, password_error)
 
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         user = db.query(User).filter(User.id == user_id).with_for_update().first()
         if not user:
             raise APIError(401, "Account not found. Please log in again.")
@@ -201,20 +185,15 @@ def change_password(payload: ChangePasswordRequest, request: Request, user_id: i
         db.refresh(user)
         logger.info("password_changed", user_id=user_id)
         return _auth_response(user)
-    finally:
-        db.close()
 
 
 @router.post("/auth/logout-all")
 def logout_everywhere(user_id: int = Depends(require_user_id)):
     """Revokes every token for this account, including the caller's."""
-    db = SessionLocal()
-    try:
+    with db_session() as db:
         user = db.query(User).filter(User.id == user_id).with_for_update().first()
         if user:
             user.token_version = (user.token_version or 0) + 1
             db.commit()
         logger.info("signed_out_everywhere", user_id=user_id)
         return {"status": "ok"}
-    finally:
-        db.close()
