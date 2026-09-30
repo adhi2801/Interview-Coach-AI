@@ -204,11 +204,14 @@ python -m scripts.seed_topics
 python -m scripts.seed_coding_problems
 python -m scripts.seed_verified_problems                               # the original 15 verified problems
 python -m scripts.seed_verified_problems verified_problems_pack2.json  # 38 more (problem pack 2)
+python -m scripts.seed_verified_problems verified_problems_pack3.json  # 30 more (problem pack 3)
+# or all packs at once (the container does this on every start; existing problems are skipped):
+python -m scripts.seed_verified_problems all
 python -m scripts.seed_db
 uvicorn main:app --reload
 ```
 
-Problem pack 2 is built by `python -m scripts.build_problem_pack` from `problem_bank/pack2.py`:
+Problem packs 2 and 3 are built by `python -m scripts.build_problem_pack pack2|pack3` from `problem_bank/`:
 every reference solution is run as a real stdin/stdout program and checked
 against an independent brute-force solution on every test case before the
 problem is written out. Seeding is idempotent (existing slugs are skipped).

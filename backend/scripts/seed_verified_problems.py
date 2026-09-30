@@ -7,7 +7,9 @@ HOW TO USE:
 1. Make sure verified_problems.json is in backend/data/
 2. Run: python -m scripts.seed_verified_problems
    or:  python -m scripts.seed_verified_problems verified_problems_pack2.json
-   (pack 2 is built and cross-checked by build_problem_pack.py)
+   or:  python -m scripts.seed_verified_problems all   (every data/verified_problems*.json;
+        the container runs this on start, so a new pack reaches the database on deploy)
+   (packs 2 and 3 are built and cross-checked by build_problem_pack.py)
 3. It will print each problem as it's inserted, and skip any that already
    exist (matched by slug) so it's safe to run more than once.
 
@@ -25,6 +27,10 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 
 def main(path="verified_problems.json"):
+    if path == "all":
+        for pack in sorted(DATA_DIR.glob("verified_problems*.json")):
+            main(str(pack))
+        return
     # A bare file name is looked up in backend/data/.
     if not Path(path).exists():
         path = DATA_DIR / Path(path).name

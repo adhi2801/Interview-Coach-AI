@@ -669,3 +669,40 @@ def test_coding_responses_match_the_contract(client, problem, monkeypatch):
         assert_contract("coding_run.result", result)
     submit = client.post("/coding/submit", headers=headers, json={"problem_id": problem, "code": "print(3)", "language": "python"}).json()
     assert_contract("coding_submit", submit)
+
+
+# ---------- coding problem packs ----------
+
+PACKS = sorted((Path(__file__).resolve().parents[1] / "data").glob("verified_problems*.json"))
+
+
+def test_every_problem_pack_is_complete_and_slugs_are_unique():
+    slugs = set()
+    for pack in PACKS:
+        for p in json_module.loads(pack.read_text(encoding="utf-8")):
+            where = f"{pack.name}:{p.get('slug')}"
+            assert p["slug"] not in slugs, f"duplicate slug {where}"
+            slugs.add(p["slug"])
+            assert p["title"] and p["description"] and 1 <= p["difficulty"] <= 10, where
+            assert len(p["test_cases"]) >= 3, f"{where} needs 2 visible + at least 1 hidden case"
+            for lang in ("python", "javascript", "cpp", "java"):
+                assert p[f"starter_code_{lang}"].strip(), f"{where} has no {lang} starter"
+    assert len(slugs) >= 80
+
+
+def test_seeding_all_packs_is_idempotent(db_factory):
+    from scripts import seed_verified_problems
+    seed_verified_problems.main("all")
+    db = db_factory()
+    try:
+        first = db.query(CodingProblem).count()
+        hidden = db.query(CodingTestCase).filter(CodingTestCase.is_hidden == 1).count()
+    finally:
+        db.close()
+    seed_verified_problems.main("all")
+    db = db_factory()
+    try:
+        assert db.query(CodingProblem).count() == first >= 80
+        assert hidden > 0
+    finally:
+        db.close()
