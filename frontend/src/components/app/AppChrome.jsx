@@ -18,7 +18,7 @@ import { useLocation } from "react-router-dom";
 import { useTransitionNavigate } from "../../lib/navigation";
 import { ease } from "../../lib/motion";
 import { cn, MOD_KEY } from "../../lib/utils";
-import { FRAME } from "../../pages/landing/blueprint";
+import { FRAME } from "./frame";
 
 
 export const AppChromeContext = createContext({ user: null, onLogout: null, openPalette: null });

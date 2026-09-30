@@ -7,10 +7,9 @@
 
 import React, { useState } from "react";
 import { ArrowLeft, Check, Copy } from "lucide-react";
-import Reveal from "../fx/Reveal";
-import { scrollToTarget } from "../fx/SmoothScroll";
 import { cn } from "../../lib/utils";
-import { FRAME } from "../../pages/landing/blueprint";
+import { prefersReducedMotion } from "../../lib/motion";
+import { FRAME } from "./frame";
 import { FOCUS, Mark, PageIntro } from "./AppChrome";
 
 export default function LegalPage({ title, intro, sections, meta, copyTitle, onGoBack }) {
@@ -54,7 +53,7 @@ export default function LegalPage({ title, intro, sections, meta, copyTitle, onG
                 <li key={s.title}>
                   <a
                     href={`#${anchor(i)}`}
-                    onClick={(e) => { e.preventDefault(); scrollToTarget(document.getElementById(anchor(i))); }}
+                    onClick={(e) => { e.preventDefault(); document.getElementById(anchor(i))?.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth" }); }}
                     className={cn("flex gap-2 text-[13px] text-white/55 transition-colors hover:text-white", FOCUS)}
                   >
                     <span className="tabular-nums text-white/40">{i + 1}.</span> {s.title}
@@ -66,9 +65,9 @@ export default function LegalPage({ title, intro, sections, meta, copyTitle, onG
         </aside>
 
         <div className="lg:col-span-9">
-          <Reveal>
+          <div>
             {sections.map((s, i) => (
-              <section key={s.title} id={anchor(i)} data-reveal className="grid scroll-mt-24 grid-cols-1 gap-3 border-b border-white/[0.08] px-6 py-10 md:grid-cols-12 md:gap-8 md:px-10">
+              <section key={s.title} id={anchor(i)} className="grid scroll-mt-24 grid-cols-1 gap-3 border-b border-white/[0.08] px-6 py-10 md:grid-cols-12 md:gap-8 md:px-10">
                 <div className="md:col-span-4">
                   <h2 className="flex items-center gap-2 text-xl font-semibold tracking-[-0.02em] text-white">
                     <span className="tabular-nums text-white/40">{i + 1}.</span> {s.title}
@@ -77,7 +76,7 @@ export default function LegalPage({ title, intro, sections, meta, copyTitle, onG
                 <p className="text-[15px] leading-relaxed text-white/60 md:col-span-8">{s.body}</p>
               </section>
             ))}
-          </Reveal>
+          </div>
           <div className="flex flex-col gap-3 px-6 py-6 text-[13px] text-white/55 sm:flex-row sm:items-center sm:justify-between md:px-10">
             <button onClick={handleCopy} className={cn("flex items-center gap-1.5 text-white/55 transition-colors hover:text-white", FOCUS)}>
               {copied ? <><Check size={12} className="text-emerald-400" /> Copied</> : <><Copy size={12} /> Copy text</>}

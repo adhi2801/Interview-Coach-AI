@@ -1,21 +1,9 @@
 // frontend/src/lib/motion.js
 //
-// One motion vocabulary for the whole app. Two engines, each doing what it
-// is best at:
-//   - Motion (motion/react): component state, gestures, springs, layout,
-//     scroll-linked values (runs on the native ScrollTimeline when it can).
-//   - GSAP + ScrollTrigger + SplitText: choreographed, scroll-scrubbed and
-//     per-line/per-word text sequences.
-// Lenis drives the scroll itself and feeds ScrollTrigger (see SmoothScroll).
-
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { SplitText } from "gsap/SplitText";
-import { useGSAP } from "@gsap/react";
-
-gsap.registerPlugin(ScrollTrigger, SplitText, useGSAP);
-
-export { gsap, ScrollTrigger, SplitText, useGSAP };
+// One motion vocabulary for the whole app: easing curves, springs and
+// durations for Motion (motion/react), plus the reduced-motion and pointer
+// checks. GSAP, only the landing page's scroll sequences use, lives in
+// lib/gsap.js so the signed-in app never downloads it.
 
 // Easing curves, as cubic-bezier arrays for Motion and names for GSAP.
 export const ease = {
@@ -26,12 +14,6 @@ export const ease = {
   // Snappy UI response.
   out: [0.22, 1, 0.36, 1],
   inOut: [0.65, 0, 0.35, 1],
-};
-
-export const gsapEase = {
-  reveal: "expo.out",
-  apple: "power3.out",
-  scrub: "none",
 };
 
 export const spring = {

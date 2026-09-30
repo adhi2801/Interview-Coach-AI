@@ -5,7 +5,6 @@ import { Search, LayoutGrid, Code2, LogOut, Settings as SettingsIcon, Play, Data
 import "./App.css";
 import { AUTH_EXPIRED_EVENT, clearAuth, getToken, isTokenExpired, loadSavedUser, renewTokenIfDue } from "./lib/api";
 import { useTransitionNavigate } from "./lib/navigation";
-import SmoothScroll, { getLenis } from "./components/fx/SmoothScroll";
 import { AppChromeContext, BlueprintBackdrop } from "./components/app/AppChrome";
 
 // Every route-level page is now code-split. Previously all 13 pages were
@@ -219,16 +218,11 @@ function AppContent({ user, handleAuth, handleLogout, handleEloUpdate, handleUse
   const openPalette = React.useCallback(() => setCmdOpen(true), []);
   const navigate = useTransitionNavigate();
   const location = useLocation();
-  // Work surfaces (interview, coding, preflight) are fixed-height apps with
-  // their own scroll panes — native scrolling only there.
-  const smoothScroll = !/^\/(interview|coding|preflight)/.test(location.pathname);
   const lastPath = useRef(location.pathname);
   useEffect(() => {
     if (lastPath.current === location.pathname) return;
     lastPath.current = location.pathname;
-    const lenis = getLenis();
-    if (lenis) lenis.scrollTo(0, { immediate: true });
-    else window.scrollTo(0, 0);
+    window.scrollTo(0, 0);
   }, [location.pathname]);
 
   // Ctrl/⌘+K opens the "go to" palette — the one global shortcut. Others
@@ -248,7 +242,6 @@ function AppContent({ user, handleAuth, handleLogout, handleEloUpdate, handleUse
 
   return (
     <>
-      <SmoothScroll enabled={smoothScroll} />
       <div className="w-full min-h-screen relative z-10">
         {user ? (
           <AuthenticatedRoutes user={user} onLogout={handleLogout} onEloUpdate={handleEloUpdate} onUserPatch={handleUserPatch} sessionData={sessionData} setSessionData={setSessionData} onOpenCommandPalette={openPalette} />

@@ -22,6 +22,9 @@ const CSP = [
   "form-action 'self'",
 ].join("; ");
 
+// Matches modules from the named packages, with / or \ path separators.
+const packages = (...names) => new RegExp(`node_modules[\\\\/](${names.join("|")})[\\\\/]`);
+
 const contentSecurityPolicy = {
   name: "content-security-policy",
   apply: "build",
@@ -47,13 +50,23 @@ export default defineConfig({
     chunkSizeWarningLimit: 900,
     rollupOptions: {
       output: {
-        // Long-lived vendor chunks: these change far less often than app code.
-        manualChunks(id) {
-          if (!id.includes("node_modules")) return;
-          if (id.includes("monaco")) return "monaco";
-          if (id.includes("recharts") || id.includes("d3-")) return "charts";
-          if (id.includes("gsap") || id.includes("lenis") || id.includes("/motion") || id.includes("framer-motion")) return "motion";
-          if (id.includes("react-dom") || id.includes("react-router") || id.includes("/react/") || id.includes("scheduler")) return "react";
+        // Long-lived vendor chunks, by explicit package list: a catch-all
+        // function put React and small shared helpers into the chart chunk,
+        // so every page (the landing page too) preloaded 365 kB of charts.
+        codeSplitting: {
+          groups: [
+            // Small helpers shared by the app and recharts; left ungrouped
+            // they land in the chart chunk and drag it into every page.
+            { name: "shared", test: packages("clsx", "tailwind-merge", "use-sync-external-store"), priority: 50 },
+            { name: "react", test: packages("react", "react-dom", "react-router", "react-router-dom", "scheduler"), priority: 40 },
+            { name: "monaco", test: packages("@monaco-editor", "monaco-editor"), priority: 30 },
+            // Recharts and its own dependencies: the overview chart only.
+            { name: "charts", test: packages("recharts", "d3-[^\\\\/]+", "victory-vendor", "es-toolkit", "decimal\\.js-light", "internmap",
+              "eventemitter3", "immer", "reselect", "redux", "@reduxjs", "react-redux", "redux-thunk"), priority: 20 },
+            // GSAP and Lenis serve only the landing page.
+            { name: "landing-fx", test: packages("gsap", "@gsap", "lenis"), priority: 20 },
+            { name: "motion", test: packages("motion", "framer-motion", "motion-dom", "motion-utils"), priority: 20 },
+          ],
         },
       },
     },

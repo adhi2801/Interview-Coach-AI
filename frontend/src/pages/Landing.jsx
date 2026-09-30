@@ -26,8 +26,9 @@ import DotField from "../components/fx/DotField";
 import SplitReveal from "../components/fx/SplitReveal";
 import Magnetic from "../components/fx/Magnetic";
 import ScrollFillText from "../components/fx/ScrollFillText";
-import { scrollToTarget } from "../components/fx/SmoothScroll";
-import { ScrollTrigger, ease, prefersReducedMotion, useGSAP } from "../lib/motion";
+import SmoothScroll, { scrollToTarget } from "../components/fx/SmoothScroll";
+import { ease, prefersReducedMotion } from "../lib/motion";
+import { ScrollTrigger, useGSAP } from "../lib/gsap";
 import { cn } from "../lib/utils";
 import { FRAME, Hatch, Iridescent, Label, Section } from "./landing/blueprint";
 import InterviewDemo, { DEMO_STEPS, PH, stepFor } from "./landing/InterviewDemo";
@@ -57,6 +58,9 @@ const STATS = [
 export default function Landing({ onGetStarted, onSignIn, onNavigatePrivacy, onNavigateTerms }) {
   return (
     <div className="relative min-h-screen w-full overflow-x-clip bg-[#050507] font-sans text-white selection:bg-indigo-500/40">
+      {/* Smooth scrolling drives the landing's scroll-scrubbed sequences; the
+          app itself scrolls natively. */}
+      <SmoothScroll />
       <TopNav onGetStarted={onGetStarted} onSignIn={onSignIn} />
       <main>
         <Hero onGetStarted={onGetStarted} />
