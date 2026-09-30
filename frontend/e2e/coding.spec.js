@@ -63,7 +63,7 @@ test.describe("coding room", () => {
   });
 
   test("a failing example shows what went wrong and links to the line", async ({ page }) => {
-    await page.route("http://localhost:8000/coding/run", (route) => route.fulfill({
+    await page.route("**/api/coding/run", (route) => route.fulfill({
       status: 200, contentType: "application/json",
       body: JSON.stringify({
         results: [{ passed: false, input: "1 2", expected: "3", actual: "", stderr: `File "main.py", line 1\nNameError: name 'x' is not defined` }],
@@ -78,7 +78,7 @@ test.describe("coding room", () => {
   });
 
   test("a failed run says nothing was scored and can be retried", async ({ page }) => {
-    await page.route("http://localhost:8000/coding/run", (route) => route.fulfill({
+    await page.route("**/api/coding/run", (route) => route.fulfill({
       status: 503, contentType: "application/json", body: JSON.stringify({ error: "The code sandbox is busy." }),
     }));
     await page.getByRole("button", { name: /^Run/ }).click();

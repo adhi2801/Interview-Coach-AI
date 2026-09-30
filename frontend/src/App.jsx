@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from "
 import { motion, AnimatePresence, MotionConfig } from "motion/react";
 import { Search, LayoutGrid, Code2, LogOut, Settings as SettingsIcon, Play, Database, AlertTriangle, History } from "lucide-react";
 import "./App.css";
-import { AUTH_EXPIRED_EVENT, clearAuth, getToken, isTokenExpired, loadSavedUser, renewTokenIfDue } from "./lib/api";
+import { AUTH_EXPIRED_EVENT, AUTH_SESSION_KEY, clearAuth, endSession, hasSession, loadSavedUser, renewTokenIfDue } from "./lib/api";
 import { useTransitionNavigate } from "./lib/navigation";
 import { AppChromeContext, RoomBackdrop } from "./components/app/AppChrome";
 import AppSmoothScroll, { resetScroll } from "./components/fx/AppSmoothScroll";
@@ -289,13 +289,12 @@ function persistActiveSession(data) {
   }
 }
 
-// Resolved synchronously on first render: a valid, unexpired token restores
-// the user immediately; anything else is cleared. This replaces a fixed
-// 400ms artificial delay that every page load used to sit through.
+// Resolved synchronously on first render: an unexpired sign-in restores the
+// user immediately; anything else is cleared. This replaces a fixed 400ms
+// artificial delay that every page load used to sit through.
 function restoreUser() {
-  const token = getToken();
   const saved = loadSavedUser();
-  if (saved && token && !isTokenExpired(token)) return saved;
+  if (saved && hasSession()) return saved;
   clearAuth();
   return null;
 }
@@ -311,7 +310,7 @@ function App() {
   }, []);
 
   const handleLogout = React.useCallback(() => {
-    clearAuth();
+    endSession();
     persistActiveSession(null);
     setSessionDataState(null);
     setUser(null);
@@ -327,7 +326,7 @@ function App() {
     return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onExpired);
   }, [handleLogout]);
 
-  // Keep the day-long login token fresh while the app is open.
+  // Keep the day-long login fresh while the app is open.
   const signedIn = Boolean(user);
   useEffect(() => {
     if (!signedIn) return;
@@ -341,7 +340,7 @@ function App() {
   // Logging in or out in another tab is reflected here too.
   useEffect(() => {
     const onStorage = (e) => {
-      if (e.key !== "access_token") return;
+      if (e.key !== AUTH_SESSION_KEY) return;
       if (!e.newValue) handleLogout();
       else setUser(restoreUser());
     };

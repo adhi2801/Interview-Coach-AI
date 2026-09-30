@@ -5,7 +5,8 @@
 
 export const USER = { id: 1, email: "ada@example.com", name: "Ada", elo_rating: 1200 };
 
-export const authResponse = (token) => ({ access_token: token, user: USER });
+// What the web app gets: the token itself arrives as an HttpOnly cookie.
+export const authResponse = (expiresAt) => ({ user: USER, expires_at: expiresAt });
 
 export const FORGOT_PASSWORD = {
   status: "ok",

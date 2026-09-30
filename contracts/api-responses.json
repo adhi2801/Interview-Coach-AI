@@ -1,6 +1,7 @@
 {
   "_about": "The fields each API response carries. backend/tests/test_contracts.py checks the real API returns exactly these; frontend/src/lib/apiContract.test.js checks the browser tests' mock API (frontend/e2e/responses.js) does too, so the mocks can't drift from the backend.",
-  "auth": ["access_token", "user"],
+  "auth": ["access_token", "user", "expires_at"],
+  "auth.cookie": ["user", "expires_at"],
   "auth.user": ["id", "email", "name", "elo_rating"],
   "forgot_password": ["status", "message"],
   "session_start": ["session_id", "question", "persona", "scenario", "constraints", "ask", "category", "sub_category", "difficulty", "company_profile"],

@@ -620,6 +620,65 @@ def test_refresh_renews_a_valid_token_but_not_a_revoked_one(client):
     assert client.post("/auth/refresh", headers=headers).status_code == 401
 
 
+# The web app, through its same-origin /api proxy.
+WEB_APP = {"X-Session-Mode": "cookie", "Origin": "http://localhost:3000"}
+ADA = {"email": "ada@example.com", "password": "correct-horse", "name": "Ada"}
+
+
+def test_the_web_app_signs_in_with_an_httponly_cookie_and_never_sees_the_token(client):
+    res = client.post("/auth/signup", headers=WEB_APP, json=ADA)
+    assert_contract("auth.cookie", res.json())
+    cookie = res.headers["set-cookie"]
+    assert "ic_session=" in cookie and "HttpOnly" in cookie and "samesite=lax" in cookie.lower()
+
+    assert client.get("/user/profile-summary").status_code == 200  # the cookie alone signs requests in
+    renewed = client.post("/auth/refresh", headers=WEB_APP)
+    assert renewed.status_code == 200 and "access_token" not in renewed.json()
+    assert "ic_session=" in renewed.headers["set-cookie"]
+
+    client.post("/auth/logout", headers=WEB_APP)
+    assert client.get("/user/profile-summary").status_code == 401
+
+
+def test_cookie_signed_writes_must_come_from_the_app(client):
+    client.post("/auth/signup", headers=WEB_APP, json=ADA)
+    assert client.post("/auth/refresh", headers={"Origin": "https://evil.example"}).status_code == 403
+    assert client.post("/auth/refresh").status_code == 403  # no Origin at all
+    assert client.get("/user/profile-summary", headers={"Origin": "https://evil.example"}).status_code == 200  # reads are fine
+
+
+def test_a_revoked_session_cookie_is_dropped(client):
+    client.post("/auth/signup", headers=WEB_APP, json=ADA)
+    other_device = TestClient(main.app)
+    token = other_device.post("/auth/login", json={"email": ADA["email"], "password": ADA["password"]}).json()["access_token"]
+    other_device.post("/auth/logout-all", headers={"Authorization": f"Bearer {token}"})
+
+    res = client.get("/user/profile-summary")
+    assert res.status_code == 401
+    assert 'ic_session=""' in res.headers["set-cookie"] or "Max-Age=0" in res.headers["set-cookie"]
+    assert client.get("/companies").status_code == 200  # and the next public request is anonymous again
+
+
+def test_a_bearer_header_wins_over_a_cookie(client):
+    client.post("/auth/signup", headers=WEB_APP, json=ADA)
+    assert client.get("/user/profile-summary", headers={"Authorization": "Bearer not-a-token"}).status_code == 401
+
+
+def test_rate_limit_key_trusts_the_app_proxy_only_with_its_secret(monkeypatch):
+    from starlette.requests import Request as StarletteRequest
+    from api import deps
+
+    def request(headers):
+        return StarletteRequest({"type": "http", "client": ("10.0.0.1", 1), "headers": [(k.encode(), v.encode()) for k, v in headers.items()]})
+
+    via_proxy = {"x-real-ip": "76.76.21.1", "x-client-ip": "198.51.100.7"}
+    monkeypatch.setattr(deps, "PROXY_SECRET", "")
+    assert deps.client_ip(request({**via_proxy, "x-proxy-secret": ""})) == "76.76.21.1"
+    monkeypatch.setattr(deps, "PROXY_SECRET", "s3cret")
+    assert deps.client_ip(request({**via_proxy, "x-proxy-secret": "s3cret"})) == "198.51.100.7"
+    assert deps.client_ip(request({**via_proxy, "x-proxy-secret": "guess"})) == "76.76.21.1"
+
+
 def test_rate_limit_key_ignores_a_forged_forwarded_for():
     from starlette.requests import Request as StarletteRequest
     from api.deps import client_ip
@@ -647,7 +706,7 @@ def assert_contract(name, body):
 
 
 def test_auth_and_session_responses_match_the_contract(client, monkeypatch):
-    res = client.post("/auth/signup", json={"email": "ada@example.com", "password": "correct-horse", "name": "Ada"})
+    res = client.post("/auth/signup", json=ADA)
     assert_contract("auth", res.json())
     assert_contract("auth.user", res.json()["user"])
     headers = {"Authorization": f"Bearer {res.json()['access_token']}"}

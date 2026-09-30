@@ -3,10 +3,10 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { fileURLToPath, URL } from "node:url";
 
-// Content Security Policy for built pages. The session token lives in
-// localStorage, so the real defence is that injected script can't run:
-// scripts only from this origin and jsDelivr (where the Monaco editor
-// loads from). Build-only, because the dev server injects inline scripts.
+// Content Security Policy for built pages: scripts only from this origin
+// and jsDelivr (where the Monaco editor loads from), so injected script
+// can't run (the login is an HttpOnly cookie script can't read anyway).
+// Build-only, because the dev server injects inline scripts.
 // frame-ancestors can't be set from a meta tag; X-Frame-Options covers it.
 const CSP = [
   "default-src 'self'",
@@ -25,6 +25,12 @@ const CSP = [
 // Matches modules from the named packages, with / or \ path separators.
 const packages = (...names) => new RegExp(`node_modules[\\\\/](${names.join("|")})[\\\\/]`);
 
+// The app calls its API at /api on its own origin (Vercel and nginx proxy it
+// in production); the dev and preview servers forward it to a local backend.
+const apiProxy = {
+  "/api": { target: "http://localhost:8000", changeOrigin: true, rewrite: (path) => path.replace(/^\/api/, "") },
+};
+
 const contentSecurityPolicy = {
   name: "content-security-policy",
   apply: "build",
@@ -40,9 +46,9 @@ export default defineConfig({
   // (REACT_APP_API_URL, REACT_APP_WS_URL, REACT_APP_SENTRY_DSN) keep working
   // after the move off Create React App.
   envPrefix: ["VITE_", "REACT_APP_"],
-  server: { port: 3000 },
-  test: { environment: "jsdom", include: ["src/**/*.test.{js,jsx}"] },
-  preview: { port: 3000 },
+  server: { port: 3000, proxy: apiProxy },
+  test: { environment: "jsdom", include: ["src/**/*.test.{js,jsx}", "api/**/*.test.js"] },
+  preview: { port: 3000, proxy: apiProxy },
   build: {
     // Same output folder CRA used, so Vercel / nginx config is unchanged.
     outDir: "build",

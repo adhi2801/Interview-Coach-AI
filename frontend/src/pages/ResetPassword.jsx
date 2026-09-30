@@ -30,7 +30,7 @@ export default function ResetPassword({ onAuth, onForgotPassword, onBackToHome }
     setError("");
     try {
       const res = await api.post("/auth/reset-password", { token, new_password: password });
-      saveAuth(res.data.access_token, res.data.user);
+      saveAuth(res.data);
       // Leave this page first: once logged in, the signed-in routes would
       // otherwise mount it again, without the (already consumed) token.
       navigate("/", { replace: true });

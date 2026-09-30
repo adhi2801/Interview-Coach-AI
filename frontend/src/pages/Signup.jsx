@@ -25,7 +25,7 @@ export default function Signup({ onAuth, onSwitchToLogin, onBackToHome }) {
     setError("");
     try {
       const res = await api.post("/auth/signup", { name, email, password });
-      saveAuth(res.data.access_token, res.data.user);
+      saveAuth(res.data);
       onAuth(res.data.user);
     } catch (err) {
       setError(err.message);

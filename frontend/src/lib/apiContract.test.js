@@ -10,8 +10,8 @@ const expected = (name) => [...contract[name]].sort();
 
 describe("mock API responses match the API contract", () => {
   it("auth", () => {
-    const body = authResponse("token");
-    expect(keys(body)).toEqual(expected("auth"));
+    const body = authResponse("2026-10-02T00:00:00Z");
+    expect(keys(body)).toEqual(expected("auth.cookie"));
     expect(keys(body.user)).toEqual(expected("auth.user"));
   });
   it("forgot password", () => expect(keys(FORGOT_PASSWORD)).toEqual(expected("forgot_password")));

@@ -37,6 +37,7 @@ from api import services  # noqa: E402  (engines log on import; configure loggin
 from api.deps import limiter  # noqa: E402
 from api.errors import register_error_handlers  # noqa: E402
 from api.middleware import RequestContextMiddleware  # noqa: E402
+from api.session_cookie import ALLOWED_ORIGIN_REGEX, ALLOWED_ORIGINS  # noqa: E402
 from api.routes import auth, coaching, coding, interview, meta, replay, user  # noqa: E402
 
 
@@ -68,21 +69,13 @@ app = FastAPI(title="InterviewCoach AI", version="1.2.0", lifespan=lifespan)
 app.state.limiter = limiter
 register_error_handlers(app)
 
-# Extra exact origins (comma-separated) can be added per environment via
-# CORS_ALLOW_ORIGINS — e.g. a custom domain or a local preview port —
-# without a code change. Local dev on :3000 is always allowed.
-CORS_ALLOW_ORIGINS = ["http://localhost:3000"] + [
-    o.strip() for o in os.getenv("CORS_ALLOW_ORIGINS", "").split(",") if o.strip()
-]
-
-# Only this project's own deployments (production and preview URLs all start
-# with the project name) — not every site hosted on vercel.app/railway.app,
-# which anyone can deploy to. Auth is a bearer header, never a cookie, so
-# credentialed CORS is not needed at all.
+# Direct cross-origin calls carry a bearer header; the session cookie is only
+# ever sent same-origin, through the web app's /api proxy, so credentialed
+# CORS is not needed at all. See api/session_cookie.py for the origin list.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=CORS_ALLOW_ORIGINS,
-    allow_origin_regex=r"https://interview-coach-ai[a-z0-9-]*\.(vercel\.app|up\.railway\.app)",
+    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=ALLOWED_ORIGIN_REGEX,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],

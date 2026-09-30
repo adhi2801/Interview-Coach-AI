@@ -2,12 +2,12 @@
 //
 // The one HTTP client every page uses. Before this, each page imported
 // axios directly, rebuilt `${API_URL}/...` URLs, and hand-copied the
-// Authorization header from localStorage — 40+ call sites, each with its
+// Authorization header — 40+ call sites, each with its
 // own slightly different error handling.
 //
 // What it centralizes:
 //   - base URL + a sane default timeout (no request can hang forever)
-//   - attaching the bearer token when one exists
+//   - signing requests in (session cookie, or a bearer token; see below)
 //   - turning every failure into an Error whose .message is the real,
 //     human-readable reason: the backend's {"error": "..."} body, or a
 //     clear network/timeout message — so pages can just show err.message
@@ -15,32 +15,76 @@
 //     logs the user out, instead of every page silently rendering empty data
 
 import axios from "axios";
-import { API_URL, WS_URL } from "../config";
+import { API_URL, COOKIE_SESSIONS, WS_URL } from "../config";
 
+// In cookie mode (the normal case: the API is same-origin at /api) the login
+// token is an HttpOnly cookie this code never sees; what's kept here is only
+// who is signed in and until when. In bearer mode (the build points straight
+// at the backend) the token itself is kept too, and sent as a header.
 const TOKEN_KEY = "access_token";
 const USER_KEY = "user";
+// Written on every sign-in and renewal, removed on sign-out; other tabs
+// watch it to follow along.
+export const AUTH_SESSION_KEY = "session_expires_at";
 export const AUTH_EXPIRED_EVENT = "ic:auth-expired";
 
-export function getToken() {
+function read(key) {
   try {
-    return localStorage.getItem(TOKEN_KEY);
+    return localStorage.getItem(key);
   } catch {
     return null;
   }
 }
 
-export function saveAuth(token, user) {
-  localStorage.setItem(TOKEN_KEY, token);
+function getToken() {
+  return COOKIE_SESSIONS ? null : read(TOKEN_KEY);
+}
+
+// Reads a JWT's own `exp` claim client-side (no signature check; the server
+// verifies everything). Only for bearer sessions saved before responses
+// carried expires_at.
+function tokenExpiry(token) {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return payload.exp ? payload.exp * 1000 : Infinity;
+  } catch {
+    return 0;
+  }
+}
+
+function sessionExpiry() {
+  const saved = Date.parse(read(AUTH_SESSION_KEY) || "");
+  if (!Number.isNaN(saved)) return saved;
+  const token = getToken();
+  return token ? tokenExpiry(token) : 0;
+}
+
+/** Whether this browser holds a sign-in that hasn't run out. */
+export function hasSession(skewSeconds = 30) {
+  if (!COOKIE_SESSIONS && !getToken()) return false;
+  return sessionExpiry() > Date.now() + skewSeconds * 1000;
+}
+
+/** Keeps a sign-in response: {user, expires_at} plus access_token in bearer mode. */
+export function saveAuth(data, user = data.user) {
+  if (!COOKIE_SESSIONS) localStorage.setItem(TOKEN_KEY, data.access_token);
+  const expiresAt = data.expires_at || (data.access_token && new Date(tokenExpiry(data.access_token)).toISOString());
   localStorage.setItem(USER_KEY, JSON.stringify(user));
+  localStorage.setItem(AUTH_SESSION_KEY, expiresAt || "");
 }
 
 export function clearAuth() {
   try {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
+    for (const key of [TOKEN_KEY, USER_KEY, AUTH_SESSION_KEY]) localStorage.removeItem(key);
   } catch {
     /* storage unavailable — nothing to clear */
   }
+}
+
+/** Signs this browser out: forgets the session, and drops the cookie. */
+export function endSession() {
+  clearAuth();
+  if (COOKIE_SESSIONS) api.post("/auth/logout").catch(() => { /* already signed out server-side */ });
 }
 
 export function loadSavedUser() {
@@ -52,38 +96,20 @@ export function loadSavedUser() {
   }
 }
 
-// Reads the JWT's own `exp` claim client-side (no signature check — the
-// server still verifies everything). Lets the app drop an expired token at
-// boot instead of showing a logged-in shell where every call 401s.
-function tokenExpiry(token) {
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
-    return payload.exp ? payload.exp * 1000 : Infinity;
-  } catch {
-    return 0;
-  }
-}
-
-export function isTokenExpired(token, skewSeconds = 30) {
-  if (!token) return true;
-  return tokenExpiry(token) <= Date.now() + skewSeconds * 1000;
-}
-
-// Login tokens last a day. While the app is open, one with less than half
-// of that left is swapped for a fresh one, so active users stay logged in
-// and an idle or stolen token dies within a day.
+// Logins last a day. While the app is open, one with less than half of that
+// left is swapped for a fresh one, so active users stay logged in and an
+// idle or stolen token dies within a day.
 const RENEW_WHEN_LEFT_MS = 12 * 60 * 60 * 1000;
 
 export async function renewTokenIfDue() {
-  const token = getToken();
-  if (!token || isTokenExpired(token) || tokenExpiry(token) - Date.now() > RENEW_WHEN_LEFT_MS) return false;
+  if (!hasSession() || sessionExpiry() - Date.now() > RENEW_WHEN_LEFT_MS) return false;
   try {
     const { data } = await api.post("/auth/refresh");
-    if (typeof data?.access_token !== "string" || !data.user) return false;
-    saveAuth(data.access_token, { ...loadSavedUser(), ...data.user });
+    if (!data?.user || (!COOKIE_SESSIONS && typeof data.access_token !== "string")) return false;
+    saveAuth(data, { ...loadSavedUser(), ...data.user });
     return true;
   } catch {
-    return false; // a revoked token already triggered the logout event
+    return false; // a revoked session already triggered the logout event
   }
 }
 
@@ -101,10 +127,14 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = getToken();
-  if (token && !config.headers.Authorization) {
-    config.headers.Authorization = `Bearer ${token}`;
+  if (COOKIE_SESSIONS) {
+    config.headers["X-Session-Mode"] = "cookie";
+  } else {
+    const token = getToken();
+    if (token && !config.headers.Authorization) config.headers.Authorization = `Bearer ${token}`;
   }
+  // Read by the 401 handler below.
+  config.sentSession = Boolean(config.headers.Authorization) || (COOKIE_SESSIONS && hasSession(0));
   return config;
 });
 
@@ -140,10 +170,9 @@ api.interceptors.response.use(
   },
   (error) => {
     const status = error.response?.status;
-    // Only treat a 401 as "your session ended" if we actually sent a token.
+    // Only treat a 401 as "your session ended" if the request was signed in.
     // A 401 from /auth/login (wrong password) must not trigger a logout.
-    const sentToken = Boolean(error.config?.headers?.Authorization);
-    if (status === 401 && sentToken) {
+    if (status === 401 && error.config?.sentSession) {
       clearAuth();
       window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));
     }

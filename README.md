@@ -114,7 +114,7 @@ flowchart TB
 ### Infrastructure
 - Railway
 - Vercel
-- JWT + bcrypt Authentication
+- JWT + bcrypt authentication; the web app's login is an HttpOnly cookie, same-origin through a Vercel Function proxy at /api
 - SlowAPI
 - Structlog
 - Sentry
@@ -199,6 +199,8 @@ pip install -r requirements-dev.txt
 #       password reset email: FRONTEND_URL (where reset links point), MAIL_FROM,
 #       SMTP_HOST, SMTP_PORT (587), SMTP_USERNAME, SMTP_PASSWORD — any SMTP
 #       provider works. Without SMTP, local runs print the reset link to the log.
+#       PROXY_SECRET: same value as on Vercel, so rate limits see each caller's
+#       own address through the /api proxy.
 alembic upgrade head
 python -m scripts.seed_topics
 python -m scripts.seed_coding_problems
@@ -220,8 +222,15 @@ problem is written out. Seeding is idempotent (existing slugs are skipped).
 ```bash
 cd frontend
 npm install
-npm run dev
+npm run dev    # http://localhost:3000; /api is forwarded to the backend on :8000
 ```
+
+The app calls its API at `/api` on its own origin, so the login can be an
+HttpOnly cookie. On Vercel, `api/backend.js` forwards `/api/*` to the backend;
+set `BACKEND_URL` (the Railway URL), `PROXY_SECRET` (same as the backend's) and
+`REACT_APP_WS_URL` (the backend's `wss://` URL, for live coaching). Leave
+`REACT_APP_API_URL` unset; pointing it at the backend directly makes the app
+fall back to a bearer token kept in localStorage.
 
 ---
 

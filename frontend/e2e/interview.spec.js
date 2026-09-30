@@ -1,4 +1,4 @@
-import { expect, test, SESSION, LOGIN_TOKEN } from "./fixtures";
+import { expect, test, SESSION } from "./fixtures";
 
 test.describe("login", () => {
   test("a wrong password shows the server's message; the right one opens the dashboard", async ({ page, backend }) => {
@@ -32,10 +32,9 @@ test.describe("interview room", () => {
     await expect(page).toHaveURL(/\/interview$/);
     await expect(page.getByRole("region", { name: "Interview question" })).toContainText(SESSION.scenario);
 
-    // The socket connects with the short-lived ticket — never the login token.
+    // The socket connects with a short-lived ticket, never the login.
     await expect.poll(() => backend.socket.urls.length).toBe(1);
     expect(backend.socket.urls[0]).toContain("ticket=short-lived-ticket");
-    expect(backend.socket.urls[0]).not.toContain(LOGIN_TOKEN);
 
     // Typing streams the answer to the coach; the filler count is a number.
     const answerBox = page.getByRole("textbox", { name: "Your answer" });
