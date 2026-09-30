@@ -37,6 +37,10 @@ export default function TopicMap({ graph, selected, onSelect, readySet, matches,
   const [hovered, setHovered] = useState(null);
   const [traces, setTraces] = useState([]);
   const [size, setSize] = useState({ w: 0, h: 0 });
+  // Subjects with no evidence yet (nothing shown or missed in your answers)
+  // fold to one line, so the map leads with what you've actually touched.
+  const [unfolded, setUnfolded] = useState(() => new Set());
+  const [showAll, setShowAll] = useState(false);
 
   const focus = hovered || selected;
   const chain = useMemo(() => (focus ? ancestors(graph, focus) : null), [graph, focus]);
@@ -98,6 +102,16 @@ export default function TopicMap({ graph, selected, onSelect, readySet, matches,
     return () => ro.disconnect();
   }, [measure]);
 
+  const touched = (lane) => lane.columns.some((col) => col.some((t) => t.status === STATUS.passed || t.status === STATUS.gap));
+  // A folded subject opens by itself when a search, a selection, its trace
+  // or a status filter needs one of its topics on screen.
+  const needed = (lane) => Boolean(statusFilter) || lane.columns.some((col) => col.some((t) =>
+    (matches && matches.has(t.name)) || t.name === focus || (chain && chain.has(t.name)) || unlocks.has(t.name)));
+  const isOpen = (lane) => showAll || touched(lane) || unfolded.has(lane.category) || needed(lane);
+  const folded = graph.lanes.filter((lane) => !isOpen(lane)).length;
+  // Subjects you've touched first, in the graph's order; the rest after.
+  const lanes = [...graph.lanes.filter(touched), ...graph.lanes.filter((lane) => !touched(lane))];
+
   const columns = graph.maxDepth + 1;
   // Names wrap rather than truncate, so all six depths fit beside the
   // inspector on a laptop without scrolling sideways.
@@ -135,7 +149,20 @@ export default function TopicMap({ graph, selected, onSelect, readySet, matches,
           ))}
         </div>
 
-        {graph.lanes.map((lane, laneIndex) => (
+        {lanes.map((lane, laneIndex) => !isOpen(lane) ? (
+          <div key={lane.category} className={`flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 ${laneIndex ? "border-t border-white/[0.06]" : ""}`}>
+            <p className="text-[13.5px] font-medium text-white/80">{humanize(lane.category)}</p>
+            <p className="text-[13px] text-white/50">
+              {lane.count} topics, none tried yet
+              {(() => { const n = lane.columns.flat().filter((t) => readySet.has(t.name)).length; return n ? `; ${n} ready to start` : ""; })()}
+            </p>
+            <button type="button" onClick={() => setUnfolded((s) => new Set(s).add(lane.category))}
+              aria-expanded="false" aria-label={`Show ${humanize(lane.category)} topics`}
+              className="ml-auto rounded-md px-2 py-1 text-[13px] text-indigo-200 hover:bg-white/[0.05] hover:text-white">
+              Show topics
+            </button>
+          </div>
+        ) : (
           <div
             key={lane.category}
             className={`relative md:grid ${laneIndex ? "border-t border-white/[0.06]" : ""}`}
@@ -184,6 +211,21 @@ export default function TopicMap({ graph, selected, onSelect, readySet, matches,
             ))}
           </div>
         ))}
+
+        {(folded > 0 || showAll) && (
+          <div className="border-t border-white/[0.08] px-4 py-3 text-[13px] text-white/55">
+            {showAll ? (
+              <button type="button" onClick={() => { setShowAll(false); setUnfolded(new Set()); }} className="text-indigo-200 hover:text-white">
+                Fold the subjects you haven't tried yet
+              </button>
+            ) : (
+              <>
+                {folded} {folded === 1 ? "subject you haven't tried is" : "subjects you haven't tried are"} folded.{" "}
+                <button type="button" onClick={() => setShowAll(true)} className="text-indigo-200 hover:text-white">Show every subject</button>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
