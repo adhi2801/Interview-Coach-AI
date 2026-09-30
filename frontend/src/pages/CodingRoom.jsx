@@ -29,6 +29,9 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
   const { high_contrast_editor: highContrast } = usePreferences();
 
   const [activeRightTab, setActiveRightTab] = useState("output");
+  // Below the md breakpoint the three panes don't fit side by side; one
+  // shows at a time, chosen from the bar under the header.
+  const [mobilePane, setMobilePane] = useState("problem");
 
   const [hintCards, setHintCards] = useState([]);
   const [hintLoading, setHintLoading] = useState(false);
@@ -233,6 +236,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
   async function runCode() {
     if (!problem || runState === "running") return;
     setActiveRightTab("output");
+    setMobilePane("output");
     setResultsSource("run");
     setRunState("running");
     setFocusMode(false);
@@ -253,6 +257,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
   async function submitCode() {
     if (!problem || runState === "running") return;
     setActiveRightTab("output");
+    setMobilePane("output");
     setResultsSource("submit");
     setRunState("running");
     setFocusMode(false);
@@ -336,7 +341,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
             <span className="text-white text-xs font-bold tracking-tight hidden sm:block">InterviewCoach</span>
           </div>
           <div className="w-px h-4 bg-white/10 hidden sm:block" />
-          <span className="text-[13px] font-medium shrink-0" style={{ color: tier.hue }}>
+          <span className="hidden sm:inline text-[13px] font-medium shrink-0" style={{ color: tier.hue }}>
             {tier.label}{problem.difficulty ? <span className="text-slate-400 font-normal"> · level {problem.difficulty}</span> : null}
           </span>
           <span className="hidden md:flex items-center gap-2 text-[13px]" title="Time since you opened this problem">
@@ -347,7 +352,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
 
         <div className="flex items-center gap-3 md:gap-4 shrink-0">
           {allProblems.length > 0 && (
-            <div className="w-48 sm:w-56">
+            <div className="w-40 sm:w-56">
               <CustomDropdown value={problem.slug} onChange={loadProblemBySlug}
                 options={allProblems.map((p) => ({ id: p.slug, title: p.title, difficulty: p.difficulty }))}
                 icon={Layers} placeholder="Choose a problem" label="Problem" />
@@ -376,10 +381,19 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
         </div>
       </header>
 
+      <nav aria-label="Panes" className="md:hidden flex border-b border-white/[0.08] bg-black shrink-0 relative z-40">
+        {[{ id: "problem", label: "Problem" }, { id: "code", label: "Code" }, { id: "output", label: "Output" }].map((p) => (
+          <button key={p.id} type="button" onClick={() => setMobilePane(p.id)} aria-pressed={mobilePane === p.id}
+            className={`flex-1 h-10 text-[13px] border-b-2 ${mobilePane === p.id ? "text-white border-blue-500" : "text-slate-400 border-transparent"}`}>
+            {p.label}
+          </button>
+        ))}
+      </nav>
+
       <main className="flex-1 w-full flex overflow-hidden relative z-10">
 
         {/* LEFT: the problem and hints */}
-        <GlassPanel className="w-full md:w-[25%] min-w-[300px] border-r border-white/[0.08] flex flex-col h-full overflow-hidden shrink-0">
+        <GlassPanel className={`${mobilePane === "problem" ? "flex" : "hidden"} md:flex w-full md:w-[25%] md:min-w-[300px] border-r border-white/[0.08] flex-col h-full overflow-hidden shrink-0`}>
           <section tabIndex={0} aria-label="Problem" className="h-full overflow-y-auto p-6 space-y-7 scrollbar-hide outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-white/20">
             <div>
               <h1 className="text-[22px] font-bold tracking-tight text-white mb-2 leading-snug">{problem.title}</h1>
@@ -459,7 +473,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
         </GlassPanel>
 
         {/* CENTER: EDITOR */}
-        <div className={`h-full flex flex-col relative bg-[#0a0a0c] transition-all duration-300 ease-in-out border-r border-white/[0.08] ${focusMode ? "w-[75%]" : "w-[50%]"}`}>
+        <div className={`${mobilePane === "code" ? "flex" : "hidden"} md:flex h-full w-full flex-col relative bg-[#0a0a0c] transition-all duration-300 ease-in-out border-r border-white/[0.08] ${focusMode ? "md:w-[75%]" : "md:w-[50%]"}`}>
           <div className="h-10 bg-black flex items-center justify-between px-4 border-b border-white/[0.08] shrink-0 relative z-30">
             <div className="h-full flex items-center gap-2 px-3 text-[13px] font-mono text-white border-t-2 border-t-blue-500 bg-white/[0.03] border-x border-white/[0.08]">
               <Code2 size={13} aria-hidden="true" className="text-blue-400" /> solution.{currentLangObj.ext}
@@ -482,7 +496,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
             <Editor key={`${problem.slug}:${language}:${editorVersion}`} height="100%" language={currentLangObj.monaco}
               beforeMount={handleEditorBeforeMount} onMount={handleEditorDidMount}
               theme={highContrast ? "hc-black" : "oled-dark"} defaultValue={code} onChange={handleCodeChange}
-              options={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false, lineHeight: 24, padding: { top: 16, bottom: 60 }, overviewRulerBorder: false, hideCursorInOverviewRuler: true, renderLineHighlight: "all", cursorBlinking: "smooth", ariaLabel: `Your ${currentLangObj.label} solution` }} />
+              options={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false, lineHeight: 24, padding: { top: 16, bottom: 60 }, overviewRulerBorder: false, hideCursorInOverviewRuler: true, renderLineHighlight: "all", cursorBlinking: "smooth", automaticLayout: true, ariaLabel: `Your ${currentLangObj.label} solution` }} />
           </div>
 
           <div className="absolute bottom-0 left-0 right-0 h-14 bg-black/80 backdrop-blur-lg border-t border-white/[0.08] flex items-center justify-between px-4 md:px-6 z-20 gap-3">
@@ -503,7 +517,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
         </div>
 
         {/* RIGHT: output and review */}
-        <GlassPanel className={`h-full flex flex-col shrink-0 transition-all duration-300 ease-in-out ${focusMode ? "w-0 opacity-0 border-none invisible" : "w-[25%] opacity-100 min-w-[300px] border-l border-white/[0.08]"}`}>
+        <GlassPanel className={`${mobilePane === "output" ? "flex" : "hidden"} md:flex h-full w-full flex-col shrink-0 transition-all duration-300 ease-in-out ${focusMode ? "md:w-0 md:opacity-0 md:border-none md:invisible" : "md:w-[25%] md:min-w-[300px] md:border-l border-white/[0.08]"}`}>
           <div role="tablist" aria-label="Results" className="h-10 border-b border-white/[0.08] flex items-center px-4 gap-1 shrink-0">
             {RIGHT_TABS.map((tab) => {
               const selected = activeRightTab === tab.id;

@@ -115,7 +115,7 @@ function Brief({ name, profile, loading, error, record, gap, preview, previewSta
               Your last {record.length === 1 ? "interview" : `${record.length} interviews`} here scored{" "}
               {record.map((s, i) => (
                 <span key={s.id}>
-                  <span className="font-mono tabular-nums text-white">{s.score ?? "–"}</span>
+                  <span className="font-mono tabular-nums text-white">{s.score != null ? s.score.toFixed(1) : "–"}</span>
                   {i < record.length - 2 ? ", " : i === record.length - 2 ? " and " : ""}
                 </span>
               ))}.

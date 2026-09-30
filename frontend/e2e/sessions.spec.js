@@ -17,7 +17,7 @@ test.describe("sessions and replay", () => {
     await page.getByLabel("Company").selectOption("google");
     await expect(rows).toHaveCount(4);
     await page.getByLabel("Sort").selectOption("highest");
-    await expect(rows.first()).toContainText("78");
+    await expect(rows.first()).toContainText("7.8");
     expect(await axe(page)).toEqual([]);
   });
 

@@ -102,7 +102,7 @@ function Profile({ profile, onRename, onLogout }) {
       <p className="mt-6 text-[14px] leading-relaxed text-white/70">
         Rating <span className="font-mono tabular-nums text-white">{Math.round(profile.elo_rating).toLocaleString("en-US")}</span>
         {" "}across {profile.total_sessions} {profile.total_sessions === 1 ? "interview" : "interviews"}
-        {profile.avg_score != null && <>, averaging <span className="font-mono tabular-nums text-white">{profile.avg_score}</span> out of 100</>}.
+        {profile.avg_score != null && <>, averaging <span className="font-mono tabular-nums text-white">{profile.avg_score.toFixed(1)}</span> out of 10</>}.
         {profile.bracket && <> Your latest role, {profile.bracket.role}, has a {profile.bracket.label.replace(" Band", "")} band of {profile.bracket.low}–{profile.bracket.high}.</>}
       </p>
       <button type="button" onClick={onLogout} className="mt-6 flex items-center gap-2 border border-white/15 px-4 py-2 text-[13.5px] text-white hover:bg-white/[0.06]">

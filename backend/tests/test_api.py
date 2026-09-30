@@ -569,3 +569,64 @@ def test_deleted_accounts_tokens_stop_working(client):
     headers, _ = signup(client)
     assert client.delete("/user/me", headers=headers).status_code == 200
     assert client.get("/user/sessions", headers=headers).status_code == 401
+
+
+def test_password_reset_works_once_and_signs_out_everywhere(client, monkeypatch):
+    import mailer
+    sent = []
+    monkeypatch.setattr(mailer, "send_email", lambda to, subject, body: sent.append((to, body)) or True)
+    old_headers, _ = signup(client)
+
+    # Unknown and known emails get the same reply; only the known one is mailed.
+    unknown = client.post("/auth/forgot-password", json={"email": "nobody@example.com"})
+    known = client.post("/auth/forgot-password", json={"email": "ADA@example.com"})
+    assert unknown.status_code == known.status_code == 200
+    assert unknown.json() == known.json()
+    assert [to for to, _ in sent] == ["ada@example.com"]
+    token = sent[0][1].split("#token=")[1].split()[0]
+
+    reset = client.post("/auth/reset-password", json={"token": token, "new_password": "a-new-password"})
+    assert reset.status_code == 200, reset.text
+    assert client.get("/user/sessions", headers=old_headers).status_code == 401      # old sessions revoked
+    new_headers = {"Authorization": f"Bearer {reset.json()['access_token']}"}
+    assert client.get("/user/sessions", headers=new_headers).status_code == 200
+
+    again = client.post("/auth/reset-password", json={"token": token, "new_password": "yet-another-one"})
+    assert again.status_code == 400                                                   # single use
+    assert client.post("/auth/login", json={"email": "ada@example.com", "password": "a-new-password"}).status_code == 200
+
+
+def test_password_reset_rejects_bad_tokens_and_weak_passwords(client, monkeypatch):
+    import mailer
+    sent = []
+    monkeypatch.setattr(mailer, "send_email", lambda to, subject, body: sent.append(body) or True)
+    signup(client)
+    assert client.post("/auth/reset-password", json={"token": "not-a-token", "new_password": "long-enough-1"}).status_code == 400
+    client.post("/auth/forgot-password", json={"email": "ada@example.com"})
+    token = sent[0].split("#token=")[1].split()[0]
+    assert client.post("/auth/reset-password", json={"token": token, "new_password": "short"}).status_code == 400
+    # A login token is not a reset token.
+    login_token = client.post("/auth/login", json={"email": "ada@example.com", "password": "correct-horse"}).json()["access_token"]
+    assert client.post("/auth/reset-password", json={"token": login_token, "new_password": "long-enough-1"}).status_code == 400
+
+
+def test_refresh_renews_a_valid_token_but_not_a_revoked_one(client):
+    headers, _ = signup(client)
+    fresh = client.post("/auth/refresh", headers=headers)
+    assert fresh.status_code == 200 and fresh.json()["access_token"]
+    client.post("/auth/logout-all", headers=headers)
+    assert client.post("/auth/refresh", headers=headers).status_code == 401
+
+
+def test_rate_limit_key_ignores_a_forged_forwarded_for():
+    from starlette.requests import Request as StarletteRequest
+    from api.deps import client_ip
+
+    def request(headers):
+        return StarletteRequest({"type": "http", "client": ("10.0.0.1", 1), "headers": [(k.encode(), v.encode()) for k, v in headers.items()]})
+
+    # The caller forges the left side; the proxy's own entry is on the right.
+    assert client_ip(request({"x-forwarded-for": "1.2.3.4, 203.0.113.9"})) == "203.0.113.9"
+    assert client_ip(request({"x-forwarded-for": "5.6.7.8, 203.0.113.9"})) == "203.0.113.9"
+    assert client_ip(request({"x-real-ip": "203.0.113.9", "x-forwarded-for": "1.2.3.4"})) == "203.0.113.9"
+    assert client_ip(request({})) == "10.0.0.1"

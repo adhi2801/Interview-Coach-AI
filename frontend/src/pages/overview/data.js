@@ -21,7 +21,9 @@ export function toRows(activity) {
       title: interview ? capitalize(e.company_target || "Interview") : e.problem_title || "Coding problem",
       detail: interview ? e.role || "" : "Coding",
       mode: interview ? capitalize(e.persona || "standard") : capitalize(e.language || ""),
-      score: interview ? e.score ?? null : e.tests_total ? Math.round((e.tests_passed / e.tests_total) * 100) : null,
+      // Interviews: the average answer score out of 10. Coding: tests passed.
+      score: interview ? e.score ?? null : null,
+      tests: !interview && e.tests_total ? `${e.tests_passed} of ${e.tests_total} tests` : null,
       delta: e.elo_delta ?? null,
       eloAfter: e.elo_after ?? null,
       company: interview ? (e.company_target || "").toLowerCase() : null,
@@ -103,8 +105,8 @@ export function mostPractisedCompany(rows) {
 }
 
 /**
- * "Hostile sessions average 12 points higher than standard" — only when two
- * personas each have scored sessions and the gap is at least 8 points.
+ * "You score 1.2 higher with the hostile interviewer" — only when two
+ * personas each have scored sessions and the gap is at least 0.8 (of 10).
  */
 export function personaInsight(rows) {
   const by = {};
@@ -116,11 +118,11 @@ export function personaInsight(rows) {
     .sort((a, b) => b.avg - a.avg);
   if (avgs.length < 2) return null;
   const best = avgs[0], worst = avgs[avgs.length - 1];
-  const diff = Math.round(best.avg - worst.avg);
-  if (diff < 8) return null;
+  const diff = best.avg - worst.avg;
+  if (diff < 0.8) return null;
   return {
-    text: `You score ${diff} points higher with the ${best.persona} interviewer than the ${worst.persona} one`,
-    detail: `${Math.round(best.avg)} vs ${Math.round(worst.avg)} average across your sessions.`,
+    text: `You score ${diff.toFixed(1)} higher with the ${best.persona} interviewer than the ${worst.persona} one`,
+    detail: `${best.avg.toFixed(1)} vs ${worst.avg.toFixed(1)} out of 10, averaged across your sessions.`,
   };
 }
 

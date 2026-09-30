@@ -85,6 +85,15 @@ export const test = base.extend({
           : json(400, { error: "Current password is incorrect" });
       }
       if (path === "/auth/logout-all") return json(200, { status: "ok" });
+      if (path === "/auth/refresh") return json(200, { access_token: ROTATED_TOKEN, user: USER });
+      if (path === "/auth/forgot-password") {
+        return json(200, { status: "ok", message: "If an account uses that email, a reset link is on its way. It works for 30 minutes." });
+      }
+      if (path === "/auth/reset-password") {
+        return req.postDataJSON().token === "good-token"
+          ? json(200, { access_token: ROTATED_TOKEN, user: USER })
+          : json(400, { error: "This reset link has already been used or has expired. Ask for a new one." });
+      }
       if (path === "/user/preferences" && method === "PATCH") {
         const { key, value } = req.postDataJSON();
         preferences[key] = value;

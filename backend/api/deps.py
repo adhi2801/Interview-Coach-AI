@@ -1,7 +1,7 @@
 # backend/api/deps.py
 # Request-scoped dependencies shared by every router: auth and rate limiting.
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -13,11 +13,28 @@ from models import User
 
 security = HTTPBearer(auto_error=False)
 
-# Rate limiter: protects the Anthropic API budget by capping how many
-# requests a single IP can make per time window. Keyed on the real client
-# IP — uvicorn runs with --proxy-headers (see Dockerfile) so this is the
-# X-Forwarded-For address, not Railway's load balancer shared by everyone.
-limiter = Limiter(key_func=get_remote_address)
+def client_ip(request: Request) -> str:
+    """The caller's address as our hosting proxy saw it.
+
+    uvicorn runs with --proxy-headers --forwarded-allow-ips='*' (see the
+    Dockerfile), which makes request.client the LEFTMOST X-Forwarded-For
+    entry — a value the caller can write themselves, so keying the rate
+    limit on it let anyone reset their limit per request. The proxy sets
+    X-Real-IP, and appends the address it saw as the RIGHTMOST
+    X-Forwarded-For entry; neither can be forged from outside.
+    """
+    real_ip = request.headers.get("x-real-ip", "").strip()
+    if real_ip:
+        return real_ip
+    forwarded = request.headers.get("x-forwarded-for", "")
+    if forwarded.strip():
+        return forwarded.split(",")[-1].strip()
+    return get_remote_address(request)
+
+
+# Rate limiter: protects the Anthropic API budget (and logins from
+# guessing) by capping how many requests one address can make per window.
+limiter = Limiter(key_func=client_ip)
 
 
 def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> int | None:

@@ -86,3 +86,21 @@ test.describe("coding room", () => {
     await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
   });
 });
+
+test.describe("coding room on a phone", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("problem, code and output are each reachable, and nothing scrolls sideways", async ({ page, backend: _, signedIn: __ }) => {
+    await page.goto("/coding");
+    await expect(page.getByRole("heading", { name: "Two Sum" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Code", exact: true }).click();
+    await expect(editorText(page)).toContainText("two_sum in Python", { timeout: 20_000 });
+    await page.getByRole("button", { name: /^Run/ }).click();
+    await expect(page.getByText("1 of 1 examples passed")).toBeVisible();   // switched to Output
+
+    await page.getByRole("button", { name: "Problem", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Two Sum" })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  });
+});

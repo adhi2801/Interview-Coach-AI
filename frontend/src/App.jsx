@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from "
 import { motion, AnimatePresence, MotionConfig } from "motion/react";
 import { Search, LayoutGrid, Code2, LogOut, Settings as SettingsIcon, Play, Database, AlertTriangle } from "lucide-react";
 import "./App.css";
-import { AUTH_EXPIRED_EVENT, clearAuth, getToken, isTokenExpired, loadSavedUser } from "./lib/api";
+import { AUTH_EXPIRED_EVENT, clearAuth, getToken, isTokenExpired, loadSavedUser, renewTokenIfDue } from "./lib/api";
 import { useTransitionNavigate } from "./lib/navigation";
 import SmoothScroll, { getLenis } from "./components/fx/SmoothScroll";
 import { LiquidGlass } from "./components/fx/LiquidGlass";
@@ -26,6 +26,8 @@ const PreflightCheck = lazy(() => import("./pages/PreflightCheck"));
 const InterviewRoom = lazy(() => import("./pages/InterviewRoom"));
 const ReplayViewer = lazy(() => import("./pages/ReplayViewer"));
 const CodingRoom = lazy(() => import("./pages/CodingRoom"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Settings = lazy(() => import("./pages/Settings"));
 const StudyPlanBrowser = lazy(() => import("./pages/StudyPlanBrowser"));
 
@@ -209,8 +211,10 @@ function AuthenticatedRoutes({ user, onLogout, onEloUpdate, onUserPatch, session
             <Route path="/replay/:id" element={<ReplayViewerWithParam onExit={() => navigate("/")} onBackToList={() => navigate("/replay")} />} />
             <Route path="/study-plan" element={<StudyPlanBrowser onGoBack={() => navigate("/")} />} />
             <Route path="/settings" element={<Settings user={user} onLogout={onLogout} onGoBack={() => navigate("/")} onProfileUpdate={onUserPatch} />} />
+            {/* A reset link opened while already logged in still works. */}
+            <Route path="/reset-password" element={<ResetPassword onAuth={() => navigate("/")} onForgotPassword={() => navigate("/settings")} onBackToHome={() => navigate("/")} />} />
             <Route path="/privacy" element={<PrivacyPolicy onGoBack={() => navigate("/")} />} />
-            <Route path="/terms" element={<TermsOfService onGoBack={() => navigate("/")} />} />  
+            <Route path="/terms" element={<TermsOfService onGoBack={() => navigate("/")} />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
@@ -235,7 +239,9 @@ function UnauthenticatedRoutes({ onAuth }) {
                 onNavigateTerms={() => navigate("/terms")}
               />
             } />
-            <Route path="/login" element={<Login onAuth={onAuth} onSwitchToSignup={() => navigate("/signup")} onBackToHome={() => navigate("/")} />} />
+            <Route path="/login" element={<Login onAuth={onAuth} onSwitchToSignup={() => navigate("/signup")} onForgotPassword={() => navigate("/forgot-password")} onBackToHome={() => navigate("/")} />} />
+            <Route path="/forgot-password" element={<ForgotPassword onBackToLogin={() => navigate("/login")} onBackToHome={() => navigate("/")} />} />
+            <Route path="/reset-password" element={<ResetPassword onAuth={onAuth} onForgotPassword={() => navigate("/forgot-password")} onBackToHome={() => navigate("/")} />} />
             <Route path="/signup" element={<Signup onAuth={onAuth} onSwitchToLogin={() => navigate("/login")} onBackToHome={() => navigate("/")} />} />
             <Route path="/privacy" element={<PrivacyPolicy onGoBack={() => navigate("/")} />} />
             <Route path="/terms" element={<TermsOfService onGoBack={() => navigate("/")} />} />
@@ -442,6 +448,17 @@ function App() {
     window.addEventListener(AUTH_EXPIRED_EVENT, onExpired);
     return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onExpired);
   }, [handleLogout]);
+
+  // Keep the day-long login token fresh while the app is open.
+  const signedIn = Boolean(user);
+  useEffect(() => {
+    if (!signedIn) return;
+    renewTokenIfDue();
+    const timer = setInterval(renewTokenIfDue, 30 * 60 * 1000);
+    const onVisible = () => { if (document.visibilityState === "visible") renewTokenIfDue(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { clearInterval(timer); document.removeEventListener("visibilitychange", onVisible); };
+  }, [signedIn]);
 
   // Logging in or out in another tab is reflected here too.
   useEffect(() => {

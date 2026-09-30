@@ -23,8 +23,8 @@ async function violations(page) {
   return violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`);
 }
 
-test("login and signup", async ({ page, backend: _ }) => {
-  for (const path of ["/login", "/signup"]) {
+test("login, signup, forgot and reset password", async ({ page, backend: _ }) => {
+  for (const path of ["/login", "/signup", "/forgot-password", "/reset-password#token=t", "/reset-password"]) {
     await page.goto(path);
     await page.waitForLoadState("networkidle");
     expect(await violations(page), path).toEqual([]);

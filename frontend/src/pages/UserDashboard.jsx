@@ -122,10 +122,10 @@ function DimensionBars({ radar, sampleSize, company }) {
           <li key={d.dim}>
             <div className="mb-1 flex justify-between text-[13px]">
               <span className="text-white/80">{d.dim}</span>
-              <span className="font-mono tabular-nums text-white/70">{Math.round(d.value)}</span>
+              <span className="font-mono tabular-nums text-white/70">{d.value.toFixed(1)}</span>
             </div>
             <div className="h-[3px] bg-white/[0.07]">
-              <div className={`h-full ${d === worst ? "bg-amber-300" : d === best ? "bg-emerald-300" : "bg-indigo-300/80"}`} style={{ width: `${Math.max(2, Math.min(100, d.value))}%` }} />
+              <div className={`h-full ${d === worst ? "bg-amber-300" : d === best ? "bg-emerald-300" : "bg-indigo-300/80"}`} style={{ width: `${Math.max(2, Math.min(100, d.value * 10))}%` }} />
             </div>
           </li>
         ))}
@@ -203,7 +203,7 @@ function ActivityTable({ rows, onOpen, onAll }) {
                     )}
                   </td>
                   <td className="py-3 pr-4 text-white/65">{r.mode}</td>
-                  <td className="py-3 pr-4 text-right font-mono tabular-nums text-white/85">{r.score ?? "–"}</td>
+                  <td className="py-3 pr-4 text-right font-mono tabular-nums text-white/85">{r.score != null ? r.score.toFixed(1) : r.tests ?? "–"}</td>
                   <td className="py-3 text-right"><Delta value={r.delta} /></td>
                 </tr>
               );
