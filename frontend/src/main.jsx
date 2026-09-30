@@ -1,6 +1,5 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import * as Sentry from '@sentry/react';
 import './index.css';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -27,16 +26,18 @@ if (import.meta.env.DEV) {
   };
 }
 
-// Initialize Sentry only if DSN is set in .env
+// Error reporting, only when a DSN is configured. The SDK is loaded after
+// the first paint instead of in the entry bundle, so it never delays the
+// page; anything thrown before it arrives is still logged to the console.
 if (import.meta.env.REACT_APP_SENTRY_DSN) {
-  Sentry.init({
+  const start = () => import('@sentry/react').then((Sentry) => Sentry.init({
     dsn: import.meta.env.REACT_APP_SENTRY_DSN,
     tracesSampleRate: 0.1,
-    // Without this, every error — dev and prod — lands in the same
-    // undifferentiated bucket in Sentry's dashboard, making it impossible
-    // to filter out noise from your own local testing.
+    // Separates local testing from production in Sentry's dashboard.
     environment: import.meta.env.MODE,
-  });
+  }));
+  if ('requestIdleCallback' in window) window.requestIdleCallback(start, { timeout: 4000 });
+  else setTimeout(start, 1500);
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
