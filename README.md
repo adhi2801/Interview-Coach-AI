@@ -14,10 +14,6 @@
 
 ## Demo
 
-*(Walkthrough — real-time WPM/filler-word telemetry, Socratic vs. Hostile interviewer mutation, and the Judge0 sandboxed code execution pipeline)*
-
-[Watch the demo](https://www.loom.com/share/c3711b231d614d26995cf5b2a0ba922f)
-
 | Overview | Interview |
 |---|---|
 | ![Overview: rating over time, what to work on next, scores by dimension](docs/screenshots/overview.jpg) | ![Interview room: the question, the answer, live coaching](docs/screenshots/interview.jpg) |
