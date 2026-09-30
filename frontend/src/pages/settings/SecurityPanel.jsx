@@ -7,7 +7,7 @@ import { Check, Key, LogOut } from "lucide-react";
 import api, { saveAuth } from "../../lib/api";
 
 const inputClass =
-  "w-full border border-white/15 bg-[#07070b] px-3 py-2.5 text-[14px] text-white outline-none focus:border-indigo-400";
+  "w-full border border-white/15 rounded-lg bg-[#07070b] px-3 py-2.5 text-[14px] text-white outline-none focus:border-indigo-400";
 const labelClass = "mb-1.5 block text-[13px] text-white/60";
 
 export default function SecurityPanel({ Card, onLogout }) {
@@ -101,7 +101,7 @@ export default function SecurityPanel({ Card, onLogout }) {
           {confirmingSignOut ? (
             <div className="flex gap-2 shrink-0">
               <button onClick={() => setConfirmingSignOut(false)}
-                className="px-4 py-2.5 border border-white/10 text-slate-300 text-sm font-bold hover:bg-white/[0.05]">
+                className="px-4 py-2.5 glass-control rounded-lg text-slate-300 text-sm font-bold hover:bg-white/[0.05]">
                 Cancel
               </button>
               <button onClick={signOutEverywhere}
@@ -111,7 +111,7 @@ export default function SecurityPanel({ Card, onLogout }) {
             </div>
           ) : (
             <button onClick={() => setConfirmingSignOut(true)}
-              className="shrink-0 flex items-center gap-2 px-5 py-2.5 bg-white/[0.04] border border-white/10 text-white text-sm font-bold hover:bg-white/10">
+              className="shrink-0 flex items-center gap-2 px-5 py-2.5 bg-white/[0.04] glass-control rounded-lg text-white text-sm font-bold hover:bg-white/10">
               <LogOut size={14} aria-hidden="true" /> Sign out everywhere
             </button>
           )}

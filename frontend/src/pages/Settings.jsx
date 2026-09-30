@@ -80,7 +80,7 @@ function Profile({ profile, onRename, onLogout }) {
               <form onSubmit={save} className="flex items-center gap-2">
                 <label className="sr-only" htmlFor="name-input">Name</label>
                 <input id="name-input" autoFocus value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={100}
-                  className="w-56 border border-white/15 bg-[#07070b] px-3 py-1.5 text-[14.5px] text-white focus:border-indigo-400 focus:outline-none" />
+                  className="w-56 border border-white/15 rounded-lg bg-[#07070b] px-3 py-1.5 text-[14.5px] text-white focus:border-indigo-400 focus:outline-none" />
                 <button type="submit" aria-label="Save name" disabled={state === "saving"} className="p-1.5 text-emerald-300 hover:text-emerald-200"><Check size={16} /></button>
                 <button type="button" aria-label="Cancel editing name" onClick={() => setEditing(false)} className="p-1.5 text-white/60 hover:text-white"><X size={16} /></button>
               </form>
@@ -106,7 +106,7 @@ function Profile({ profile, onRename, onLogout }) {
         {profile.avg_score != null && <>, averaging <span className="font-mono tabular-nums text-white">{profile.avg_score.toFixed(1)}</span> out of 10</>}.
         {profile.bracket && <> Your latest role, {profile.bracket.role}, has a {profile.bracket.label.replace(" Band", "")} band of {profile.bracket.low}–{profile.bracket.high}.</>}
       </p>
-      <button type="button" onClick={onLogout} className="mt-6 flex items-center gap-2 border border-white/15 px-4 py-2 text-[13.5px] text-white hover:bg-white/[0.06]">
+      <button type="button" onClick={onLogout} className="mt-6 flex items-center gap-2 glass-control rounded-lg px-4 py-2 text-[13.5px] text-white hover:bg-white/[0.06]">
         <LogOut size={14} aria-hidden="true" /> Log out of this device
       </button>
     </>
@@ -141,10 +141,10 @@ function DeleteAccount({ onDeleted }) {
         <div className="mt-5 max-w-md">
           <label className="block text-[13px] text-white/70" htmlFor="confirm-delete">Type <span className="font-mono text-white">delete</span> to confirm</label>
           <input id="confirm-delete" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off"
-            className="mt-1.5 w-full border border-white/15 bg-[#07070b] px-3 py-2 text-[14px] text-white focus:border-rose-400 focus:outline-none" />
+            className="mt-1.5 w-full border border-white/15 rounded-lg bg-[#07070b] px-3 py-2 text-[14px] text-white focus:border-rose-400 focus:outline-none" />
           {state.error && <p role="alert" className="mt-2 text-[13px] text-rose-300">{state.error}</p>}
           <div className="mt-3 flex gap-2">
-            <button type="button" onClick={() => { setConfirming(false); setTyped(""); }} className="border border-white/15 px-4 py-2 text-[13.5px] text-white hover:bg-white/[0.06]">Cancel</button>
+            <button type="button" onClick={() => { setConfirming(false); setTyped(""); }} className="glass-control rounded-lg px-4 py-2 text-[13.5px] text-white hover:bg-white/[0.06]">Cancel</button>
             <button type="button" onClick={remove} disabled={typed.trim().toLowerCase() !== "delete" || state.busy}
               className="bg-rose-600 px-4 py-2 text-[13.5px] font-medium text-white hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-40">
               {state.busy ? "Deleting…" : "Delete everything"}
@@ -211,7 +211,7 @@ export default function Settings({ onLogout, onGoBack, onProfileUpdate }) {
             {error ? (
               <div className="px-5 py-16 md:px-8">
                 <p className="text-[15px] text-white/80">{error}</p>
-                <button type="button" onClick={load} className="mt-4 border border-white/15 px-4 py-2 text-[13.5px] text-white hover:bg-white/[0.06]">Try again</button>
+                <button type="button" onClick={load} className="mt-4 glass-control rounded-lg px-4 py-2 text-[13.5px] text-white hover:bg-white/[0.06]">Try again</button>
               </div>
             ) : !profile ? (
               <div aria-busy="true" aria-label="Loading your settings" className="space-y-px p-8">{[0, 1, 2].map((i) => <div key={i} className="h-24 animate-pulse bg-white/[0.03]" />)}</div>

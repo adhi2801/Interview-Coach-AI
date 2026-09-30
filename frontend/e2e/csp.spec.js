@@ -12,11 +12,14 @@ async function watchViolations(page) {
   return seen;
 }
 
-test("the landing page runs under the CSP", async ({ page, backend: _ }) => {
+test("the landing and how-it's-built pages run under the CSP", async ({ page, backend: _ }) => {
   const seen = await watchViolations(page);
   await page.goto("/");
   await page.waitForLoadState("networkidle");
   expect(await page.locator('meta[http-equiv="Content-Security-Policy"]').count()).toBe(1);
+  await page.goto("/about");
+  await expect(page.getByRole("heading", { name: "How it's built" })).toBeVisible();
+  await page.waitForLoadState("networkidle");
   expect(seen).toEqual([]);
 });
 

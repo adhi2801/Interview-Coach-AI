@@ -43,7 +43,7 @@ export default function PreflightCheck({ onReady, onSkip, sessionData }) {
               <Play size={14} aria-hidden="true" /> Start the interview
             </button>
             <button type="button" onClick={onSkip}
-              className={cn("flex items-center justify-center gap-2 border border-white/15 px-5 py-3 text-[15px] text-white/80 hover:bg-white/[0.06] hover:text-white", FOCUS)}>
+              className={cn("flex items-center justify-center gap-2 glass-control rounded-lg px-5 py-3 text-[15px] text-white/80 hover:bg-white/[0.06] hover:text-white", FOCUS)}>
               <Keyboard size={15} aria-hidden="true" /> Skip, I'll type my answers
             </button>
           </div>

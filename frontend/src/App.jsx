@@ -5,7 +5,8 @@ import { Search, LayoutGrid, Code2, LogOut, Settings as SettingsIcon, Play, Data
 import "./App.css";
 import { AUTH_EXPIRED_EVENT, clearAuth, getToken, isTokenExpired, loadSavedUser, renewTokenIfDue } from "./lib/api";
 import { useTransitionNavigate } from "./lib/navigation";
-import { AppChromeContext, BlueprintBackdrop } from "./components/app/AppChrome";
+import { AppChromeContext, RoomBackdrop } from "./components/app/AppChrome";
+import AppSmoothScroll, { resetScroll } from "./components/fx/AppSmoothScroll";
 
 // Every route-level page is now code-split. Previously all 13 pages were
 // eagerly imported at the top of this file, meaning a first-time visitor
@@ -18,13 +19,14 @@ const Signup = lazy(() => import("./pages/Signup"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const Landing = lazy(() => import("./pages/Landing"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const UserDashboard = lazy(() => import("./pages/UserDashboard"));
+const InterviewSetup = lazy(() => import("./pages/InterviewSetup"));
+const Overview = lazy(() => import("./pages/Overview"));
 const PreflightCheck = lazy(() => import("./pages/PreflightCheck"));
 const InterviewRoom = lazy(() => import("./pages/InterviewRoom"));
-const ReplayViewer = lazy(() => import("./pages/ReplayViewer"));
+const Sessions = lazy(() => import("./pages/Sessions"));
 const CodingRoom = lazy(() => import("./pages/CodingRoom"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const About = lazy(() => import("./pages/About"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Settings = lazy(() => import("./pages/Settings"));
 const StudyPlanBrowser = lazy(() => import("./pages/StudyPlanBrowser"));
@@ -87,11 +89,12 @@ function CommandPalette({ isOpen, onClose, navigate, onLogout }) {
   return (
     <div className="fixed inset-0 z-9999 flex items-start justify-center pt-[14vh] px-4">
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}
-        className="absolute inset-0 bg-black/60" onClick={onClose} />
+        className="absolute inset-0 bg-[#04050a]/55 backdrop-blur-[3px]" onClick={onClose} />
       <motion.div
         role="dialog" aria-modal="true" aria-label="Go to"
-        initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}
-        className="relative w-full max-w-lg border border-white/15 bg-[#0a0a10] shadow-[0_40px_120px_-20px_rgba(0,0,0,0.9)]"
+        initial={{ opacity: 0, y: -10, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.99 }}
+        transition={{ type: "spring", stiffness: 420, damping: 34 }}
+        className="glass relative w-full max-w-lg overflow-hidden rounded-2xl"
       >
         <div className="flex items-center border-b border-white/[0.08] px-4">
           <Search size={16} aria-hidden="true" className="mr-3 text-white/50" />
@@ -114,7 +117,7 @@ function CommandPalette({ isOpen, onClose, navigate, onLogout }) {
               return (
                 <button key={action.label} type="button" role="option" aria-selected={selected}
                   onMouseEnter={() => setCursor(i)} onClick={() => run(action)}
-                  className={`flex w-full items-center gap-3 px-3 py-2.5 text-left text-[15px] outline-none ${selected ? (action.danger ? "bg-rose-500/10 text-rose-200" : "bg-white/[0.07] text-white") : action.danger ? "text-rose-200/80" : "text-white/75"}`}>
+                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[15px] outline-none transition-colors ${selected ? (action.danger ? "bg-rose-500/10 text-rose-200" : "bg-white/[0.07] text-white") : action.danger ? "text-rose-200/80" : "text-white/75"}`}>
                   <action.icon size={15} aria-hidden="true" className={action.danger ? "text-rose-300" : "text-white/50"} />
                   {action.label}
                 </button>
@@ -148,13 +151,13 @@ function AuthenticatedRoutes({ user, onLogout, onEloUpdate, onUserPatch, session
   return (
     <AppChromeContext.Provider value={chrome}>
     <div className="w-full h-full">
-      {/* One backdrop behind every signed-in page, the same blueprint field
-          as the landing page: flat black, frame rails, a soft top glow. */}
-      <BlueprintBackdrop />
+      {/* One backdrop behind every signed-in page: soft light behind a
+          frosted pane (see "Glass room" in index.css). */}
+      <RoomBackdrop />
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes location={location}>
-            <Route path="/" element={<UserDashboard user={user} onStartNew={() => navigate("/setup")} onNavigateHistory={() => navigate("/replay")} onStartCoding={() => navigate("/coding")} onNavigateSettings={() => navigate("/settings")} onNavigateStudyPlan={() => navigate("/study-plan")} onEloUpdate={onEloUpdate} />} />
-            <Route path="/setup" element={<Dashboard user={user} onLogout={onLogout} onGoBack={() => navigate("/")} onStart={(data) => { setSessionData(data); navigate("/preflight"); }} />} />
+            <Route path="/" element={<Overview user={user} onStartNew={() => navigate("/setup")} onNavigateHistory={() => navigate("/replay")} onStartCoding={() => navigate("/coding")} onNavigateSettings={() => navigate("/settings")} onNavigateStudyPlan={() => navigate("/study-plan")} onEloUpdate={onEloUpdate} />} />
+            <Route path="/setup" element={<InterviewSetup user={user} onLogout={onLogout} onGoBack={() => navigate("/")} onStart={(data) => { setSessionData(data); navigate("/preflight"); }} />} />
             <Route path="/preflight" element={<PreflightCheck sessionData={sessionData} onReady={() => navigate("/interview")} onSkip={() => navigate("/interview")} />} />
             <Route path="/interview" element={
               <RequireSession sessionData={sessionData}>
@@ -163,10 +166,11 @@ function AuthenticatedRoutes({ user, onLogout, onEloUpdate, onUserPatch, session
             } />
             <Route path="/coding" element={<CodingRoom sessionId={sessionData?.session_id} user={user} onFinish={() => navigate("/")} onEloUpdate={onEloUpdate} />} />
             {/* /replay is always the list; a finished interview goes straight to its own replay. */}
-            <Route path="/replay" element={<ReplayViewer onExit={() => navigate("/")} onSelectSession={(id) => navigate(`/replay/${id}`)} />} />
-            <Route path="/replay/:id" element={<ReplayViewerWithParam onExit={() => navigate("/")} onBackToList={() => navigate("/replay")} />} />
+            <Route path="/replay" element={<Sessions onExit={() => navigate("/")} onSelectSession={(id) => navigate(`/replay/${id}`)} />} />
+            <Route path="/replay/:id" element={<SessionReplay onExit={() => navigate("/")} onBackToList={() => navigate("/replay")} />} />
             <Route path="/study-plan" element={<StudyPlanBrowser onGoBack={() => navigate("/")} />} />
             <Route path="/settings" element={<Settings user={user} onLogout={onLogout} onGoBack={() => navigate("/")} onProfileUpdate={onUserPatch} />} />
+            <Route path="/about" element={<About onGoBack={() => navigate("/")} onNavigatePrivacy={() => navigate("/privacy")} onNavigateTerms={() => navigate("/terms")} />} />
             {/* A reset link opened while already logged in still works. */}
             <Route path="/reset-password" element={<ResetPassword onAuth={() => navigate("/")} onForgotPassword={() => navigate("/settings")} onBackToHome={() => navigate("/")} />} />
             <Route path="/privacy" element={<PrivacyPolicy onGoBack={() => navigate("/")} />} />
@@ -201,6 +205,7 @@ function UnauthenticatedRoutes({ onAuth }) {
             <Route path="/signup" element={<Signup onAuth={onAuth} onSwitchToLogin={() => navigate("/login")} onBackToHome={() => navigate("/")} />} />
             <Route path="/privacy" element={<PrivacyPolicy onGoBack={() => navigate("/")} />} />
             <Route path="/terms" element={<TermsOfService onGoBack={() => navigate("/")} />} />
+            <Route path="/about" element={<About onGoBack={() => navigate("/")} onNavigatePrivacy={() => navigate("/privacy")} onNavigateTerms={() => navigate("/terms")} />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
@@ -208,9 +213,9 @@ function UnauthenticatedRoutes({ onAuth }) {
   );
 }
 
-function ReplayViewerWithParam({ onExit, onBackToList }) {
+function SessionReplay({ onExit, onBackToList }) {
   const { id } = useParams();
-  return <ReplayViewer sessionId={parseInt(id, 10)} onExit={onExit} onBackToList={onBackToList} />;
+  return <Sessions sessionId={parseInt(id, 10)} onExit={onExit} onBackToList={onBackToList} />;
 }
 
 function AppContent({ user, handleAuth, handleLogout, handleEloUpdate, handleUserPatch, sessionData, setSessionData }) {
@@ -222,8 +227,11 @@ function AppContent({ user, handleAuth, handleLogout, handleEloUpdate, handleUse
   useEffect(() => {
     if (lastPath.current === location.pathname) return;
     lastPath.current = location.pathname;
-    window.scrollTo(0, 0);
+    resetScroll();
   }, [location.pathname]);
+  // Weighted scrolling on the signed-in pages; the landing page runs its
+  // own, and work surfaces (interview, coding, mic check) scroll natively.
+  const smoothScroll = Boolean(user) && !/^\/(interview|coding|preflight)/.test(location.pathname);
 
   // Ctrl/⌘+K opens the "go to" palette — the one global shortcut. Others
   // (⌘D, ⌘G, ⌘Enter, ⌘⇧X…) used to override the browser's own bookmark and
@@ -242,6 +250,7 @@ function AppContent({ user, handleAuth, handleLogout, handleEloUpdate, handleUse
 
   return (
     <>
+      <AppSmoothScroll enabled={smoothScroll} />
       <div className="w-full min-h-screen relative z-10">
         {user ? (
           <AuthenticatedRoutes user={user} onLogout={handleLogout} onEloUpdate={handleEloUpdate} onUserPatch={handleUserPatch} sessionData={sessionData} setSessionData={setSessionData} onOpenCommandPalette={openPalette} />

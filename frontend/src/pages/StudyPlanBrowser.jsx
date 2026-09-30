@@ -96,7 +96,7 @@ export default function StudyPlanBrowser({ onGoBack }) {
       <span className="sr-only">Find a topic</span>
       <Search size={14} aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
       <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Find a topic"
-        className="w-full border border-white/10 bg-[#07070b] py-2 pl-9 pr-3 text-[13px] text-white placeholder:text-white/45 focus:border-indigo-400 focus:outline-none" />
+        className="w-full border border-white/10 rounded-lg bg-[#07070b] py-2 pl-9 pr-3 text-[13px] text-white placeholder:text-white/45 focus:border-indigo-400 focus:outline-none" />
     </label>
   );
 
@@ -120,7 +120,7 @@ export default function StudyPlanBrowser({ onGoBack }) {
         {error ? (
           <div className="px-6 py-24 text-center">
             <p className="text-[15px] text-white/80">{error}</p>
-            <button type="button" onClick={load} className="mt-4 border border-white/15 px-4 py-2 text-[13px] text-white hover:bg-white/[0.06]">
+            <button type="button" onClick={load} className="mt-4 glass-control rounded-lg px-4 py-2 text-[13px] text-white hover:bg-white/[0.06]">
               Try again
             </button>
           </div>

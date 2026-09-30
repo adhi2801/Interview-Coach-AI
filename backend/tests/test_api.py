@@ -6,7 +6,9 @@
 # (see conftest.py), so
 # it is fast, free, and never touches the real Postgres/Redis from .env.
 
+import json as json_module
 from datetime import timedelta
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -630,3 +632,40 @@ def test_rate_limit_key_ignores_a_forged_forwarded_for():
     assert client_ip(request({"x-forwarded-for": "5.6.7.8, 203.0.113.9"})) == "203.0.113.9"
     assert client_ip(request({"x-real-ip": "203.0.113.9", "x-forwarded-for": "1.2.3.4"})) == "203.0.113.9"
     assert client_ip(request({})) == "10.0.0.1"
+
+
+# ---------- contract with the frontend's mock API ----------
+# contracts/api-responses.json lists the fields each response carries; the
+# frontend's browser-test mocks are checked against the same file
+# (frontend/src/lib/apiContract.test.js), so neither side can drift.
+
+CONTRACT = json_module.loads((Path(__file__).resolve().parents[2] / "contracts" / "api-responses.json").read_text())
+
+
+def assert_contract(name, body):
+    assert sorted(body) == sorted(CONTRACT[name]), f"{name}: {sorted(body)} != {sorted(CONTRACT[name])}"
+
+
+def test_auth_and_session_responses_match_the_contract(client, monkeypatch):
+    res = client.post("/auth/signup", json={"email": "ada@example.com", "password": "correct-horse", "name": "Ada"})
+    assert_contract("auth", res.json())
+    assert_contract("auth.user", res.json()["user"])
+    headers = {"Authorization": f"Bearer {res.json()['access_token']}"}
+    assert_contract("auth", client.post("/auth/refresh", headers=headers).json())
+    assert_contract("forgot_password", client.post("/auth/forgot-password", json={"email": "ada@example.com"}).json())
+    assert_contract("session_start", start_session(client, headers))
+
+
+def test_coding_responses_match_the_contract(client, problem, monkeypatch):
+    headers, _ = signup(client)
+    monkeypatch.setattr(services.code_executor, "run_test_cases", fake_run)
+    monkeypatch.setattr(services.coding_engine, "grade_submission", lambda *a, **kw: {
+        "tests_passed": 2, "tests_total": 2, "complexity_estimate": "O(1)",
+        "cleanliness_score": 8, "naming_score": 9, "feedback": "Clean.",
+    })
+    run = client.post("/coding/run", headers=headers, json={"problem_id": problem, "code": "print(3)", "language": "python"}).json()
+    assert_contract("coding_run", run)
+    for result in run["results"]:
+        assert_contract("coding_run.result", result)
+    submit = client.post("/coding/submit", headers=headers, json={"problem_id": problem, "code": "print(3)", "language": "python"}).json()
+    assert_contract("coding_submit", submit)

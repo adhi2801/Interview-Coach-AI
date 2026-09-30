@@ -342,7 +342,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
       </div>
 
       {/* TOP HUD HEADER */}
-      <header className="h-14 border-b border-white/[0.08] bg-[#000000] flex items-center justify-between px-4 md:px-6 z-50 shrink-0 sticky top-0">
+      <header className="nav-glass h-14 flex items-center justify-between px-4 md:px-6 z-50 shrink-0 sticky top-0">
         <div className="flex items-center gap-3 md:gap-4 min-w-0">
           <div className="flex items-center gap-2 shrink-0">
             <div className="w-6 h-6 bg-white flex items-center justify-center font-extrabold text-black text-[10px]">IC</div>
@@ -392,7 +392,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                 <span className="text-sm font-mono font-bold text-slate-100 tabular-nums">{Math.round(currentElo)}</span>
               </div>
               <div className="w-px h-4 bg-white/10" />
-              <button onClick={() => setShowAbortConfirm(true)} className="text-[13px] text-slate-300 hover:text-white border border-white/15 px-3 py-1 hover:bg-white/[0.06] transition-colors">
+              <button onClick={() => setShowAbortConfirm(true)} className="text-[13px] text-slate-300 hover:text-white glass-control rounded-lg px-3 py-1 hover:bg-white/[0.06] transition-colors">
                 End early
               </button>
             </>
@@ -422,7 +422,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
       </div>
 
       {/* MAIN WORKSPACE SHELL */}
-      <main className="flex-1 w-full flex flex-col overflow-hidden relative z-10 bg-[#000000] min-h-0">
+      <main className="flex-1 w-full flex flex-col overflow-hidden relative z-10 min-h-0">
 
         {phase === "answering" ? (
           /* ====================================================================
@@ -439,10 +439,10 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
             />
 
             {/* CENTER PANE: ZEN WRITING CANVAS */}
-            <div className="w-full lg:w-[48%] min-h-[420px] lg:h-full relative bg-[#000000] flex flex-col border-r border-white/[0.08] shrink-0">
+            <div className="w-full lg:w-[48%] min-h-[420px] lg:h-full relative bg-[#05060c]/70 flex flex-col border-r border-white/[0.08] shrink-0">
 
               {/* Evaluator identity bar — reflects real session persona */}
-              <div className="h-12 border-b border-white/[0.05] bg-black/60 flex items-center px-4 md:px-6 gap-3 shrink-0">
+              <div className="h-12 border-b border-white/[0.06] bg-white/[0.02] flex items-center px-4 md:px-6 gap-3 shrink-0">
                 <span
                   className="w-2 h-2 rounded-full"
                   style={{ background: "var(--accent)", animation: "evalPulse 2s ease-in-out infinite" }}
@@ -463,7 +463,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
               </div>
 
               {/* Text Area */}
-              <div className="flex-1 relative w-full min-h-[280px] bg-[#000000]">
+              <div className="flex-1 relative w-full min-h-[280px]">
                 {scoringError && (
                   <div role="alert" className="absolute top-2 left-8 right-8 z-20 bg-rose-500/10 border border-rose-500/20 rounded-lg p-3 text-xs text-rose-300 flex items-center justify-between gap-3">
                     <span>{scoringError}</span>
@@ -494,20 +494,20 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
               </div>
 
               {/* Action Dock */}
-              <div className="lg:absolute lg:bottom-5 lg:left-5 lg:right-5 flex items-center justify-between z-20 bg-[#0a0a10]/90 border border-white/10 p-3 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.8)] m-4 lg:m-0">
+              <div className="lg:absolute lg:bottom-5 lg:left-5 lg:right-5 flex items-center justify-between z-20 glass p-3 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.8)] m-4 lg:m-0">
                 <div className="flex items-center gap-2">
                   <button
                     onClick={isRecording ? stopRecording : startRecording}
                     aria-pressed={isRecording}
                     aria-label={isRecording ? "Stop recording" : "Answer by voice"}
                     className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all outline-none ${
-                      isRecording ? 'bg-red-500/10 text-red-400 border border-red-500/30' : 'bg-white/[0.04] border border-white/10 text-slate-200 hover:text-white'
+                      isRecording ? 'bg-red-500/10 text-red-400 border border-red-500/30' : 'bg-white/[0.04] glass-control text-slate-200 hover:text-white'
                     }`}
                   >
                     {isRecording ? <Square fill="currentColor" size={14}/> : <Mic size={14}/>}
                     <span className="hidden sm:inline">{isRecording ? "Stop" : "Speak"}</span>
                   </button>
-                  <button onClick={() => setShowHint(!showHint)} aria-expanded={showHint} className="text-xs font-bold text-slate-300 hover:text-white transition-colors bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl">
+                  <button onClick={() => setShowHint(!showHint)} aria-expanded={showHint} className="text-xs font-bold text-slate-300 hover:text-white transition-colors bg-white/5 glass-control px-3.5 py-2 rounded-xl">
                   <Lightbulb size={13} aria-hidden="true" className="inline mr-1" /> Hint
                   </button>
                 </div>
@@ -541,7 +541,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
             />
           </div>
         ) : (
-          <div className="w-full flex-1 flex flex-col relative overflow-hidden bg-[#000000]">
+          <div className="w-full flex-1 flex flex-col relative overflow-hidden">
             <Debrief
               personaMeta={personaMeta} questionNum={questionNum} isLastNode={isLastNode}
               scores={scores} gaps={gaps} gapAnalysisUnavailable={gapAnalysisUnavailable} peer={peer}
@@ -568,7 +568,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
             className="fixed inset-0 z-200 bg-black/70 backdrop-blur-md flex items-center justify-center">
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
               role="alertdialog" aria-modal="true" aria-labelledby="abort-title" aria-describedby="abort-desc"
-              className="bg-[#0a0a10]/90 border border-white/[0.12] rounded-2xl p-8 max-w-[360px] w-[calc(100%-40px)] text-center shadow-[0_24px_80px_rgba(0,0,0,0.7)]">
+              className="glass rounded-2xl p-8 max-w-[360px] w-[calc(100%-40px)] text-center shadow-[0_24px_80px_rgba(0,0,0,0.7)]">
               <div className="w-11 h-11 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mx-auto mb-4">
                 <AlertTriangle size={18} className="text-rose-400" />
               </div>
@@ -577,7 +577,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
               <button onClick={handleFinish} className="w-full py-2.5 rounded-lg bg-rose-500/15 border border-rose-500/35 text-rose-400 font-bold text-xs hover:bg-rose-500/25 transition-colors">
                 End Session
               </button>
-              <button autoFocus onClick={() => setShowAbortConfirm(false)} className="w-full py-2.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 font-semibold text-xs mt-2 hover:bg-white/10 transition-colors">
+              <button autoFocus onClick={() => setShowAbortConfirm(false)} className="w-full py-2.5 rounded-lg bg-white/5 glass-control text-slate-400 font-semibold text-xs mt-2 hover:bg-white/10 transition-colors">
                 Keep Going
               </button>
             </motion.div>

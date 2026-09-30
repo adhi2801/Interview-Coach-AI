@@ -18,6 +18,14 @@
 
 [Watch the demo](https://www.loom.com/share/c3711b231d614d26995cf5b2a0ba922f)
 
+| Overview | Interview |
+|---|---|
+| ![Overview: rating over time, what to work on next, scores by dimension](docs/screenshots/overview.jpg) | ![Interview room: the question, the answer, live coaching](docs/screenshots/interview.jpg) |
+| **Debrief** | **Coding room** |
+| ![Debrief: the score, how it scored on five dimensions, what to study](docs/screenshots/debrief.jpg) | ![Coding room: problem, editor, review of a submission](docs/screenshots/coding.jpg) |
+| **Interview setup** | **Knowledge graph** |
+| ![Interview setup: company, role and level, interviewer, and a brief of the company's loop](docs/screenshots/setup.jpg) | ![Knowledge graph: 93 topics by prerequisite depth, gaps first](docs/screenshots/knowledge-graph.jpg) |
+
 ---
 
 ## System Architecture
@@ -150,11 +158,13 @@ A candidate's answer decides their rating and feeds everyone else's percentiles,
 - **WebSocket tickets.** The live-coaching socket takes a one-minute ticket bound to one session, so the login token never appears in a URL or access log.
 - Rate limits per IP plus a per-user daily token budget in front of every paid API call; generating a profile for an unknown company needs an account.
 - Every response carries an `X-Request-ID` that is bound to every log line for that request, and a server error shows the user a short reference to it.
-- Security headers on the API and the frontend; CORS limited to this project's own deployments.
+- Security headers on the API and the frontend; CORS limited to this project's own deployments; the built frontend ships a Content Security Policy (scripts only from its own origin and jsDelivr), checked by a browser test on every page.
+- **Accounts.** bcrypt with timing-equalised logins; login tokens last a day and renew while the app is open; "sign out everywhere" and password changes revoke every token. Password reset emails a signed, single-use, 30-minute link (its token travels in the URL fragment), and neither the reply nor its timing reveals whether an email is registered.
+- Rate limits are keyed on the address the hosting proxy saw, not the caller-writable left end of `X-Forwarded-For`.
 
 ## Accessibility
 
-Every route (landing, auth, legal, dashboard, setup, study plan, settings, replays, coding, interview room) is audited with axe-core against WCAG 2 A/AA and has no violations. Animated text keeps a real, screen-reader-visible copy; icon-only controls are labelled; dialogs are `alertdialog`s that close on Escape.
+Every route (auth and password reset, overview, setup, mic check, interview room and debrief, coding room, knowledge graph, sessions, settings) is audited with axe-core against WCAG 2 A/AA in CI and has no violations; every page is also checked at phone width for sideways scrolling. Animated text keeps a real, screen-reader-visible copy; icon-only controls are labelled; dialogs are `alertdialog`s that close on Escape.
 
 ---
 
@@ -215,10 +225,12 @@ npm run dev
 ## Testing
 
 ```bash
-cd backend && ruff check . && pytest               # 105 tests, ~25s, no network or real database needed
-cd frontend && npm run lint && npm test             # ESLint + 17 Vitest unit tests
-cd frontend && npm run build && npm run test:e2e    # 43 Playwright browser tests (with axe and CSP checks), API mocked
+cd backend && ruff check . && pytest               # 107 tests, ~25s, no network or real database needed
+cd frontend && npm run lint && npm test             # ESLint + 41 Vitest unit tests
+cd frontend && npm run build && npm run test:e2e    # 48 Playwright browser tests (axe, CSP and phone-width checks), API mocked
 ```
+
+The mocked API is held to the real one: `contracts/api-responses.json` lists the fields of the core responses, and both the backend tests and a frontend unit test check against it.
 
 CI runs all of the above on every push and pull request (Dependabot keeps dependencies current), and also applies every Alembic migration to a fresh Postgres and fails if `models.py` has drifted from them.
 
@@ -229,9 +241,7 @@ Backend coverage includes the Judge0 client against a fake Judge0 (verdicts, pol
 ## Future Improvements
 - Streaming voice transcription.
 - PostgreSQL Row-Level Security.
-- End-to-end browser tests.
 - WebRTC-based audio support.
-- Improved mobile experience.
 - LLM observability tooling.
 
 ---

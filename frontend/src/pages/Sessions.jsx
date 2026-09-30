@@ -62,19 +62,19 @@ function SessionsList({ onSelectSession, onExit }) {
             <span className="sr-only">Search sessions</span>
             <Search size={14} aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
             <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search company, role or interviewer"
-              className="w-full border border-white/10 bg-[#07070b] py-2 pl-9 pr-3 text-[13.5px] text-white placeholder:text-white/45 focus:border-indigo-400 focus:outline-none" />
+              className="w-full border border-white/10 rounded-lg bg-[#07070b] py-2 pl-9 pr-3 text-[13.5px] text-white placeholder:text-white/45 focus:border-indigo-400 focus:outline-none" />
           </label>
           <div className="flex flex-wrap items-center gap-4 text-[13px] text-white/60">
             <label className="flex items-center gap-2">Company
               <select value={company} onChange={(e) => setCompany(e.target.value)}
-                className="border border-white/15 bg-[#07070b] px-2 py-1.5 text-white focus:border-indigo-400 focus:outline-none">
+                className="border border-white/15 rounded-lg bg-[#07070b] px-2 py-1.5 text-white focus:border-indigo-400 focus:outline-none">
                 <option value="all">All</option>
                 {companies.map((c) => <option key={c} value={c}>{capitalize(c)}</option>)}
               </select>
             </label>
             <label className="flex items-center gap-2">Sort
               <select value={sort} onChange={(e) => setSort(e.target.value)}
-                className="border border-white/15 bg-[#07070b] px-2 py-1.5 text-white focus:border-indigo-400 focus:outline-none">
+                className="border border-white/15 rounded-lg bg-[#07070b] px-2 py-1.5 text-white focus:border-indigo-400 focus:outline-none">
                 <option value="recent">Most recent</option>
                 <option value="highest">Highest score</option>
                 <option value="lowest">Lowest score</option>
@@ -89,13 +89,13 @@ function SessionsList({ onSelectSession, onExit }) {
           <p className="px-5 py-16 text-center text-[15px] text-white/65 md:px-8">No sessions yet. Finished interviews appear here to replay.</p>
         ) : (
           <div className="overflow-x-auto px-5 md:px-8">
-            <table className="w-full min-w-[44rem] text-left text-[14px]">
+            <table className="w-full text-left text-[14px] md:min-w-[44rem]">
               <thead>
                 <tr className="border-b border-white/[0.08] text-[12.5px] text-white/50">
-                  <th scope="col" className="py-3 pr-4 font-normal">Date</th>
+                  <th scope="col" className="hidden py-3 pr-4 font-normal md:table-cell">Date</th>
                   <th scope="col" className="py-3 pr-4 font-normal">Interview</th>
-                  <th scope="col" className="py-3 pr-4 font-normal">Interviewer</th>
-                  <th scope="col" className="py-3 pr-4 text-right font-normal">Questions</th>
+                  <th scope="col" className="hidden py-3 pr-4 font-normal md:table-cell">Interviewer</th>
+                  <th scope="col" className="hidden py-3 pr-4 text-right font-normal md:table-cell">Questions</th>
                   <th scope="col" className="py-3 pr-4 text-right font-normal">Score</th>
                   <th scope="col" className="py-3 text-right font-normal">Rating</th>
                 </tr>
@@ -103,15 +103,18 @@ function SessionsList({ onSelectSession, onExit }) {
               <tbody>
                 {rows.map((s) => (
                   <tr key={s.id} className="border-b border-white/[0.05]">
-                    <td className="py-3.5 pr-4 font-mono text-[12.5px] text-white/55">{fmtDate(s.started_at)}</td>
+                    <td className="hidden py-3.5 pr-4 font-mono text-[12.5px] text-white/55 md:table-cell">{fmtDate(s.started_at)}</td>
                     <td className="py-3.5 pr-4">
                       <button type="button" onClick={() => onSelectSession(s.id)}
                         className="text-left text-white hover:underline hover:decoration-white/40 hover:underline-offset-4">
                         {capitalize(s.company_target || "Interview")}<span className="text-white/50"> · {s.role}</span>
                       </button>
+                      <span className="mt-0.5 block text-[12.5px] text-white/50 md:hidden">
+                        {fmtDate(s.started_at)}, {(s.persona || "standard").toLowerCase()} interviewer
+                      </span>
                     </td>
-                    <td className="py-3.5 pr-4 text-white/70">{capitalize(s.persona || "standard")}</td>
-                    <td className="py-3.5 pr-4 text-right font-mono tabular-nums text-white/70">{s.question_count}</td>
+                    <td className="hidden py-3.5 pr-4 text-white/70 md:table-cell">{capitalize(s.persona || "standard")}</td>
+                    <td className="hidden py-3.5 pr-4 text-right font-mono tabular-nums text-white/70 md:table-cell">{s.question_count}</td>
                     <td className="py-3.5 pr-4 text-right font-mono tabular-nums text-white/90">{s.score != null ? s.score.toFixed(1) : "–"}</td>
                     <td className="py-3.5 text-right"><Delta value={deltas[s.id]} /></td>
                   </tr>
@@ -243,7 +246,7 @@ function Replay({ sessionId, onBack }) {
                             )}
                           </div>
                           <button type="button" onClick={() => setStudyTopic(g.gap)}
-                            className="shrink-0 border border-white/15 px-3 py-1.5 text-[13px] text-white hover:bg-white/[0.06]">Study plan</button>
+                            className="shrink-0 glass-control rounded-lg px-3 py-1.5 text-[13px] text-white hover:bg-white/[0.06]">Study plan</button>
                         </li>
                       ))}
                     </ul>
@@ -273,9 +276,9 @@ function Replay({ sessionId, onBack }) {
 
               <div className="mt-10 flex items-center justify-between border-t border-white/[0.08] pt-5">
                 <button type="button" disabled={index === 0} onClick={() => setIndex(index - 1)}
-                  className="border border-white/15 px-4 py-2 text-[13.5px] text-white hover:bg-white/[0.06] disabled:opacity-40">Previous question</button>
+                  className="glass-control rounded-lg px-4 py-2 text-[13.5px] text-white hover:bg-white/[0.06] disabled:opacity-40">Previous question</button>
                 <button type="button" disabled={index === questions.length - 1} onClick={() => setIndex(index + 1)}
-                  className="border border-white/15 px-4 py-2 text-[13.5px] text-white hover:bg-white/[0.06] disabled:opacity-40">Next question</button>
+                  className="glass-control rounded-lg px-4 py-2 text-[13.5px] text-white hover:bg-white/[0.06] disabled:opacity-40">Next question</button>
               </div>
             </article>
           </div>
@@ -289,7 +292,7 @@ function Replay({ sessionId, onBack }) {
   );
 }
 
-export default function ReplayViewer({ sessionId, onExit, onSelectSession, onBackToList }) {
+export default function Sessions({ sessionId, onExit, onSelectSession, onBackToList }) {
   if (sessionId) return <Replay sessionId={sessionId} onBack={onBackToList || onExit} />;
   return <SessionsList onSelectSession={onSelectSession} onExit={onExit} />;
 }

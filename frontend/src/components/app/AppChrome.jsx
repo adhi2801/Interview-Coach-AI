@@ -5,8 +5,8 @@
 //                      with the current one marked, rating, account menu
 //   PageIntro        — the page's heading band: title, one sentence and an
 //                      optional aside (usually the page's main action)
-//   BlueprintBackdrop — the flat #050507 field with the frame rails running
-//                      the full height of the page, plus a soft top glow
+//   RoomBackdrop     — the glass room: slow soft light behind one frosted
+//                      pane that runs the full height of the page column
 //
 // Pages get the user, logout and the command palette from AppChromeContext
 // (provided once in App), so no page has to thread new props.
@@ -38,11 +38,14 @@ export function Mark({ className }) {
   return <span className={cn("grid h-7 w-7 shrink-0 place-items-center bg-white text-[10px] font-extrabold text-black", className)}>IC</span>;
 }
 
-export function BlueprintBackdrop() {
+export function RoomBackdrop() {
   return (
-    <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 bg-[#050507]">
-      <div className="absolute inset-x-0 top-0 h-[70vh] bg-[radial-gradient(ellipse_at_50%_-10%,rgba(79,70,229,0.16),transparent_65%)]" />
-      <div className={cn(FRAME, "relative h-full border-x border-white/[0.06]")} />
+    <div aria-hidden="true" className="room pointer-events-none fixed inset-0 z-0 overflow-hidden">
+      <span className="room-light room-light--indigo" />
+      <span className="room-light room-light--violet" />
+      <span className="room-light room-light--teal" />
+      <div className={cn(FRAME, "room-pane relative h-full")} />
+      <div className="room-grain" />
     </div>
   );
 }
@@ -59,10 +62,10 @@ export function AppHeader({ children, back }) {
 
   return (
     <header className="nav-glass sticky top-0 z-50 border-b border-white/[0.08]">
-      <nav aria-label="App" className={cn(FRAME, "flex h-16 items-center justify-between gap-4 border-x border-white/[0.08] px-4 md:px-5")}>
+      <nav aria-label="App" className={cn(FRAME, "flex h-16 items-center justify-between gap-4 px-4 md:px-5")}>
         <div className="flex min-w-0 items-center gap-3">
           {back && (
-            <button onClick={back.onClick} className={cn("mr-1 flex items-center xl:hidden gap-1.5 border border-white/10 px-2.5 py-1.5 text-[13px] text-white/70 transition-colors hover:border-white/30 hover:text-white", FOCUS)}>
+            <button onClick={back.onClick} className={cn("mr-1 flex items-center xl:hidden gap-1.5 glass-control rounded-lg px-2.5 py-1.5 text-[13px] text-white/70 transition-colors hover:border-white/30 hover:text-white", FOCUS)}>
               <ArrowLeft size={12} /> {back.label || "Back"}
             </button>
           )}
@@ -93,7 +96,7 @@ export function AppHeader({ children, back }) {
         <div className="flex shrink-0 items-center gap-2 md:gap-3">
           {children}
           {openPalette && (
-            <button onClick={openPalette} className={cn("hidden items-center gap-2 border border-white/10 px-2.5 py-1.5 text-[13px] text-white/60 transition-colors hover:border-white/30 hover:text-white lg:flex", FOCUS)}>
+            <button onClick={openPalette} className={cn("hidden items-center gap-2 glass-control rounded-lg px-2.5 py-1.5 text-[13px] text-white/60 transition-colors hover:border-white/30 hover:text-white lg:flex", FOCUS)}>
               <Search size={13} aria-hidden="true" /> Search <kbd className="font-mono text-[11.5px] text-white/50">{MOD_KEY}+K</kbd>
             </button>
           )}
@@ -103,7 +106,7 @@ export function AppHeader({ children, back }) {
             </span>
           )}
           <div className="relative">
-            <button onClick={() => setMenu((m) => !m)} aria-label="Account menu" className={cn("grid h-8 w-8 place-items-center border border-white/15 bg-white/[0.06] text-[13px] font-semibold text-white hover:bg-white/[0.1]", FOCUS)}>
+            <button onClick={() => setMenu((m) => !m)} aria-label="Account menu" className={cn("grid h-8 w-8 place-items-center glass-control rounded-lg bg-white/[0.06] text-[13px] font-semibold text-white hover:bg-white/[0.1]", FOCUS)}>
               {user?.name?.charAt(0)?.toUpperCase() || "U"}
             </button>
             <AnimatePresence>
@@ -113,7 +116,7 @@ export function AppHeader({ children, back }) {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 6 }}
                   transition={{ duration: 0.2, ease: ease.out }}
-                  className="absolute right-0 top-full z-50 mt-3 w-60 border border-white/10 bg-[#07070b] p-1 shadow-[0_24px_60px_-12px_rgba(0,0,0,0.9)]"
+                  className="glass absolute right-0 top-full z-50 mt-3 w-60 rounded-xl p-1"
                 >
                   <div className="border-b border-white/[0.06] px-3 py-3">
                     <p className="truncate text-sm font-semibold text-white">{user?.name || "Candidate"}</p>
@@ -129,7 +132,7 @@ export function AppHeader({ children, back }) {
               )}
             </AnimatePresence>
           </div>
-          <button onClick={() => setOpen((o) => !o)} aria-label="Menu" aria-expanded={open} className={cn("grid h-8 w-8 place-items-center border border-white/10 text-white/70 xl:hidden", FOCUS)}>
+          <button onClick={() => setOpen((o) => !o)} aria-label="Menu" aria-expanded={open} className={cn("grid h-8 w-8 place-items-center glass-control rounded-lg text-white/70 xl:hidden", FOCUS)}>
             {open ? <X size={15} /> : <Menu size={15} />}
           </button>
         </div>
@@ -145,7 +148,7 @@ export function AppHeader({ children, back }) {
             transition={{ duration: 0.35, ease: ease.expo }}
             className="overflow-hidden border-t border-white/[0.08] xl:hidden"
           >
-            <ul className={cn(FRAME, "grid grid-cols-2 border-x border-white/[0.08] sm:grid-cols-3")}>
+            <ul className={cn(FRAME, "grid grid-cols-2 sm:grid-cols-3")}>
               {APP_NAV.map((n, i) => {
                 const on = n.match(pathname);
                 return (
@@ -169,9 +172,11 @@ export function AppHeader({ children, back }) {
 export function PageIntro({ title, subtitle, aside, children, className }) {
   return (
     <section className={cn("relative", className)}>
-      <div className={cn(FRAME, "relative border-x border-b border-white/[0.08]")}>
+      <div className={cn(FRAME, "relative border-b border-white/[0.07]")}>
         <div className="relative flex flex-col gap-6 px-5 pb-9 pt-10 md:px-10 md:pt-12 lg:flex-row lg:items-end lg:justify-between">
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: ease.expo }} className="min-w-0 max-w-3xl">
+          {/* The page's one entrance: the title surfaces from behind the glass. */}
+          <motion.div initial={{ opacity: 0, y: 12, filter: "blur(10px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            transition={{ duration: 0.8, ease: ease.expo }} className="min-w-0 max-w-3xl">
             <h1 className="text-[32px] font-semibold leading-[1.1] tracking-[-0.035em] text-white md:text-[44px]">{title}</h1>
             {subtitle && <p className="mt-3 max-w-xl text-[15.5px] leading-relaxed text-white/60">{subtitle}</p>}
           </motion.div>
@@ -187,7 +192,7 @@ export function PageIntro({ title, subtitle, aside, children, className }) {
 export function Frame({ children, className, innerClassName }) {
   return (
     <div className={cn("relative", className)}>
-      <div className={cn(FRAME, "relative border-x border-white/[0.08]", innerClassName)}>{children}</div>
+      <div className={cn(FRAME, "relative", innerClassName)}>{children}</div>
     </div>
   );
 }

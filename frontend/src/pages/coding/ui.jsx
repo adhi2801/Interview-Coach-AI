@@ -77,7 +77,7 @@ export function CustomDropdown({ value, options, onChange, icon: Icon, placehold
         aria-label={label ? `${label}: ${selectedOption ? selectedOption.label || selectedOption.title : placeholder}` : undefined}
         whileTap={{ scale: 0.98 }}
         onClick={openDropdown}
-        className="w-full flex items-center justify-between bg-[#0a0a10]/90 border border-white/10 hover:border-white/20 rounded-xl px-3.5 py-1.5 text-xs font-bold text-slate-200 transition-all outline-none shadow-inner"
+        className="w-full flex items-center justify-between bg-[#0a0a10]/90 glass-control hover:border-white/20 rounded-xl px-3.5 py-1.5 text-xs font-bold text-slate-200 transition-all outline-none shadow-inner"
       >
         <div className="flex items-center gap-2 truncate">
           {Icon && <Icon size={14} className="text-blue-400 shrink-0" />}
@@ -90,7 +90,7 @@ export function CustomDropdown({ value, options, onChange, icon: Icon, placehold
           {isOpen && (
             <motion.div ref={menuRef} initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }}
               transition={{ duration: 0.15 }} style={{ position: "fixed", top: coords.top, left: coords.left, width: coords.width, zIndex: 99999 }}
-              className="bg-[#0a0a10]/90 border border-white/10 rounded-xl shadow-[0_25px_50px_rgba(0,0,0,0.9),inset_0_1px_0_0_rgba(255,255,255,0.1)] backdrop-blur-2xl overflow-hidden p-1.5">
+              className="glass rounded-xl overflow-hidden p-1.5">
               <div role="listbox" aria-label={label || placeholder} className="max-h-60 overflow-y-auto space-y-1 scrollbar-hide">
                 {options.map((opt) => {
                   const isSelected = opt.id === value || opt.slug === value;
@@ -117,7 +117,7 @@ export function CustomDropdown({ value, options, onChange, icon: Icon, placehold
 
 export function GlassPanel({ children, className = "" }) {
   return (
-    <div className={`bg-[#08080d]/80 backdrop-blur-2xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),0_4px_32px_rgba(0,0,0,0.5)] transition-colors duration-300 hover:border-white/[0.14] ${className}`}>
+    <div className={`bg-[#07080f]/55 backdrop-blur-2xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),0_4px_32px_rgba(0,0,0,0.5)] transition-colors duration-300 hover:border-white/[0.14] ${className}`}>
       {children}
     </div>
   );

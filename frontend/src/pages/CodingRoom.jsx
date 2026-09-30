@@ -309,7 +309,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
             <button type="button" onClick={fetchProblem} className="px-5 py-2 btn-liquid rounded-lg text-[13px] font-semibold flex items-center gap-2">
               <RotateCcw size={13} aria-hidden="true" /> Try again
             </button>
-            {onFinish && <button type="button" onClick={onFinish} className="px-5 py-2 bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 rounded-lg text-[13px] font-semibold text-white">Back</button>}
+            {onFinish && <button type="button" onClick={onFinish} className="px-5 py-2 bg-white/[0.05] hover:bg-white/[0.1] glass-control rounded-lg text-[13px] font-semibold text-white">Back</button>}
           </div>
         </div>
       </div>
@@ -334,7 +334,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
           className="absolute bottom-[-15%] right-[-8%] w-[35vw] h-[35vw] rounded-full blur-[130px]" />
       </div>
 
-      <header className="h-12 bg-black border-b border-white/[0.08] flex items-center justify-between px-4 md:px-6 z-50 shrink-0 relative gap-4">
+      <header className="nav-glass h-12 flex items-center justify-between px-4 md:px-6 z-50 shrink-0 relative gap-4">
         <div className="flex items-center gap-4 min-w-0">
           <div className="flex items-center gap-2 shrink-0">
             <div aria-hidden="true" className="w-6 h-6 bg-white flex items-center justify-center text-[10px] font-extrabold text-black">IC</div>
@@ -374,14 +374,14 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
 
           {onFinish && (
             <button type="button" onClick={onFinish}
-              className="flex items-center gap-1.5 text-[13px] text-slate-300 hover:text-white border border-white/15 px-3 py-1 hover:bg-white/[0.06] transition-colors">
+              className="flex items-center gap-1.5 text-[13px] text-slate-300 hover:text-white glass-control rounded-lg px-3 py-1 hover:bg-white/[0.06] transition-colors">
               <ArrowLeft size={12} aria-hidden="true" /> Exit
             </button>
           )}
         </div>
       </header>
 
-      <nav aria-label="Panes" className="md:hidden flex border-b border-white/[0.08] bg-black shrink-0 relative z-40">
+      <nav aria-label="Panes" className="nav-glass md:hidden flex shrink-0 relative z-40">
         {[{ id: "problem", label: "Problem" }, { id: "code", label: "Code" }, { id: "output", label: "Output" }].map((p) => (
           <button key={p.id} type="button" onClick={() => setMobilePane(p.id)} aria-pressed={mobilePane === p.id}
             className={`flex-1 h-10 text-[13px] border-b-2 ${mobilePane === p.id ? "text-white border-blue-500" : "text-slate-400 border-transparent"}`}>
@@ -432,7 +432,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
                 <h2 className="text-[12.5px] text-white/55 mb-2">Examples</h2>
                 <ol className="space-y-2.5">
                   {examples.map((tc, idx) => (
-                    <li key={idx} className="bg-[#0a0a10]/90 border border-white/[0.08] rounded-lg p-3">
+                    <li key={idx} className="glass-control rounded-xl p-3">
                       <p className="text-[12.5px] text-slate-400 mb-1.5">Example {idx + 1}</p>
                       <dl className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-2 gap-y-1 text-[13px]">
                         <dt className="text-white/55">Input</dt><dd className="font-mono text-white whitespace-pre-wrap break-all">{tc.input}</dd>
@@ -465,7 +465,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
                 <p role="alert" className="text-[13px] text-amber-200">Couldn't get a hint just now. Try again in a moment.</p>
               )}
               <button type="button" onClick={generateHint} disabled={hintLoading}
-                className="flex items-center gap-2 px-3 py-1.5 border border-white/15 text-[13px] text-slate-200 hover:text-white hover:bg-white/[0.06] disabled:opacity-60 transition-colors">
+                className="flex items-center gap-2 px-3 py-1.5 glass-control rounded-lg text-[13px] text-slate-200 hover:text-white hover:bg-white/[0.06] disabled:opacity-60 transition-colors">
                 {hintLoading ? <><Activity size={12} aria-hidden="true" className="animate-spin" /> Thinking of a hint…</> : hintCards.length ? "Another hint" : "Get a hint"}
               </button>
             </section>
@@ -474,14 +474,14 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
 
         {/* CENTER: EDITOR */}
         <div className={`${mobilePane === "code" ? "flex" : "hidden"} md:flex h-full w-full flex-col relative bg-[#0a0a0c] transition-all duration-300 ease-in-out border-r border-white/[0.08] ${focusMode ? "md:w-[75%]" : "md:w-[50%]"}`}>
-          <div className="h-10 bg-black flex items-center justify-between px-4 border-b border-white/[0.08] shrink-0 relative z-30">
+          <div className="h-10 bg-white/[0.02] flex items-center justify-between px-4 border-b border-white/[0.08] shrink-0 relative z-30">
             <div className="h-full flex items-center gap-2 px-3 text-[13px] font-mono text-white border-t-2 border-t-blue-500 bg-white/[0.03] border-x border-white/[0.08]">
               <Code2 size={13} aria-hidden="true" className="text-blue-400" /> solution.{currentLangObj.ext}
             </div>
             <div className="flex items-center gap-2">
               {code !== (problem?.starter_code?.[language] || "") && (
                 <button type="button" onClick={resetToStarter} title="Discard your changes in this language"
-                  className="flex items-center gap-1.5 text-[13px] text-slate-300 hover:text-white px-2 py-1 border border-white/10 bg-white/[0.03]">
+                  className="flex items-center gap-1.5 text-[13px] text-slate-300 hover:text-white px-2 py-1 glass-control rounded-lg bg-white/[0.03]">
                   <RotateCcw size={11} aria-hidden="true" /> Reset
                 </button>
               )}
@@ -499,10 +499,10 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
               options={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false, lineHeight: 24, padding: { top: 16, bottom: 60 }, overviewRulerBorder: false, hideCursorInOverviewRuler: true, renderLineHighlight: "all", cursorBlinking: "smooth", automaticLayout: true, ariaLabel: `Your ${currentLangObj.label} solution` }} />
           </div>
 
-          <div className="absolute bottom-0 left-0 right-0 h-14 bg-black/80 backdrop-blur-lg border-t border-white/[0.08] flex items-center justify-between px-4 md:px-6 z-20 gap-3">
+          <div className="nav-glass absolute bottom-0 left-0 right-0 h-14 flex items-center justify-between px-4 md:px-6 z-20 gap-3">
             <div className="flex items-center gap-3 ml-auto">
               <button type="button" onClick={runCode} disabled={running}
-                className="px-4 py-1.5 rounded-md text-[13px] font-semibold bg-white/[0.05] hover:bg-white/10 border border-white/15 text-white flex items-center gap-2 transition-colors disabled:opacity-50">
+                className="px-4 py-1.5 rounded-md text-[13px] font-semibold bg-white/[0.05] hover:bg-white/10 glass-control text-white flex items-center gap-2 transition-colors disabled:opacity-50">
                 {running && resultsSource === "run" ? <Activity size={12} aria-hidden="true" className="animate-spin" /> : <Play size={12} aria-hidden="true" fill="currentColor" />}
                 Run
                 <kbd className="hidden lg:inline-block font-mono text-[11.5px] bg-black/40 border border-white/10 px-1.5 py-0.5 rounded text-slate-300">{MOD_KEY}+Enter</kbd>

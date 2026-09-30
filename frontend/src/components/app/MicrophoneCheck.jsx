@@ -81,7 +81,7 @@ export default function MicrophoneCheck({ autoStart = false, onHeard }) {
       <label className="block">
         <span className="text-[13px] text-white/60">Microphone for voice answers (saved on this device)</span>
         <select value={deviceId} onChange={(e) => choose(e.target.value)}
-          className="mt-1.5 block w-full max-w-md border border-white/15 bg-[#07070b] px-3 py-2.5 text-[14px] text-white focus:border-indigo-400 focus:outline-none">
+          className="mt-1.5 block w-full max-w-md border border-white/15 rounded-lg bg-[#07070b] px-3 py-2.5 text-[14px] text-white focus:border-indigo-400 focus:outline-none">
           <option value="">Browser default</option>
           {(devices || []).filter((d) => d.deviceId).map((d, i) => (
             <option key={d.deviceId} value={d.deviceId}>{d.label || `Microphone ${i + 1}`}</option>
@@ -91,7 +91,7 @@ export default function MicrophoneCheck({ autoStart = false, onHeard }) {
       {devices?.some((d) => !d.label) && <p className="mt-1.5 text-[12.5px] text-white/50">Names appear after you allow microphone access, for example by testing it.</p>}
       <div className="mt-5 flex items-center gap-4">
         <button type="button" onClick={testing ? stop : start}
-          className="flex items-center gap-2 border border-white/15 px-4 py-2 text-[13.5px] text-white hover:bg-white/[0.06]">
+          className="flex items-center gap-2 glass-control rounded-lg px-4 py-2 text-[13.5px] text-white hover:bg-white/[0.06]">
           {testing ? <><Square size={12} aria-hidden="true" /> Stop test</> : <><Mic size={13} aria-hidden="true" /> Test microphone</>}
         </button>
         <div className="h-[6px] w-56 bg-white/[0.07]" role="meter" aria-label="Input level" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(level * 100)}>

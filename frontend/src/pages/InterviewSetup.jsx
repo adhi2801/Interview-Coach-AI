@@ -46,15 +46,17 @@ function Fieldset({ legend, hint, children }) {
 // screen-reader semantics come for free.
 function Choice({ name, value, checked, onChange, children, className = "" }) {
   return (
-    <label className={`group relative flex cursor-pointer items-start gap-3 border px-3.5 py-3 transition-colors ${
-      checked ? "border-indigo-300/70 bg-indigo-400/[0.07]" : "border-white/[0.09] hover:border-white/25"} ${className}`}>
+    <label className={`group relative flex cursor-pointer items-start gap-3 rounded-xl px-3.5 py-3 transition-[background-color,box-shadow] duration-300 ${
+      checked
+        ? "bg-indigo-400/[0.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.14),inset_0_0_0_1px_rgba(165,180,252,0.55),0_8px_30px_-12px_rgba(129,140,248,0.6)]"
+        : "glass-control"} ${className}`}>
       <input type="radio" name={name} value={value} checked={checked} onChange={() => onChange(value)}
         className="peer sr-only" />
       <span aria-hidden="true" className={`mt-[3px] grid h-[15px] w-[15px] shrink-0 place-items-center rounded-full border ${checked ? "border-indigo-300" : "border-white/35"}`}>
         {checked && <span className="h-[7px] w-[7px] rounded-full bg-indigo-300" />}
       </span>
       <span className="min-w-0 flex-1">{children}</span>
-      <span aria-hidden="true" className="pointer-events-none absolute inset-0 hidden outline outline-1 outline-offset-2 outline-indigo-300 peer-focus-visible:block" />
+      <span aria-hidden="true" className="pointer-events-none absolute inset-0 hidden rounded-xl outline outline-1 outline-offset-2 outline-indigo-300 peer-focus-visible:block" />
     </label>
   );
 }
@@ -142,7 +144,7 @@ function Brief({ name, profile, loading, error, record, gap, preview, previewSta
         ) : (
           <>
             <button type="button" onClick={onPreview} disabled={previewState === "loading"}
-              className="border border-white/15 px-4 py-2 text-[13.5px] font-medium text-white hover:bg-white/[0.06] disabled:opacity-50">
+              className="glass-control rounded-lg px-4 py-2 text-[13.5px] font-medium text-white hover:bg-white/[0.06] disabled:opacity-50">
               {previewState === "loading" ? "Writing the question…" : "Preview the first question"}
             </button>
             <p className="mt-2 text-[12.5px] text-white/50">
@@ -155,7 +157,7 @@ function Brief({ name, profile, loading, error, record, gap, preview, previewSta
   );
 }
 
-export default function Dashboard({ onStart, user, onGoBack }) {
+export default function InterviewSetup({ onStart, user, onGoBack }) {
   const [companyChoice, setCompanyChoice] = useState(() => {
     const saved = readSetting("ic_last_company", "google");
     return KNOWN.has(saved) ? saved : OTHER;
@@ -284,7 +286,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
                   <span className="text-[12.5px] text-white/55">Company name</span>
                   <input ref={customRef} value={customCompany} onChange={(e) => setCustomCompany(e.target.value)} maxLength={50}
                     placeholder="e.g. Stripe" autoComplete="off"
-                    className="mt-1 w-full border border-white/15 bg-[#07070b] px-3 py-2.5 text-[14px] text-white placeholder:text-white/40 focus:border-indigo-400 focus:outline-none sm:w-80" />
+                    className="mt-1 w-full border border-white/15 rounded-lg bg-[#07070b] px-3 py-2.5 text-[14px] text-white placeholder:text-white/40 focus:border-indigo-400 focus:outline-none sm:w-80" />
                 </label>
               )}
             </Fieldset>
@@ -329,7 +331,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
         </div>
       </Frame>
 
-      <div className="sticky bottom-0 z-30 border-t border-white/[0.1] bg-[#050507]/95 backdrop-blur">
+      <div className="nav-glass sticky bottom-0 z-30">
         <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between md:px-8">
           <div className="min-w-0 text-[14px]" aria-live="polite">
             {launch.error ? (

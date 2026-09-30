@@ -3,11 +3,11 @@ import { SiMeta, SiApple, SiNetflix } from 'react-icons/si';
 import { Rocket } from 'lucide-react';
 
 // Previously this file used simple-icons (a separate, large icon
-// library) for Meta/Apple/Netflix while UserDashboard.jsx used
+// library) for Meta/Apple/Netflix while Overview.jsx used
 // react-icons for the same five companies — two icon libraries drawing
 // the same logos in different places, and paying the bundle cost for
 // both. react-icons/si already ships Meta, Apple, and Netflix, so this
-// now matches UserDashboard.jsx exactly and simple-icons can be removed
+// now matches Overview.jsx exactly and simple-icons can be removed
 // from package.json entirely.
 
 export const COMPANIES = [

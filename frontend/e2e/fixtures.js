@@ -13,7 +13,9 @@ export const KNOWLEDGE = JSON.parse(readFileSync(new URL("./topics.json", import
 const API = "http://localhost:8000";
 const WS = "ws://localhost:8000";
 
-export const USER = { id: 1, email: "ada@example.com", name: "Ada", elo_rating: 1200 };
+import { CODING_RUN, CODING_SUBMIT, FORGOT_PASSWORD, SESSION, USER, authResponse } from "./responses.js";
+
+export { SESSION, USER };
 
 // Unsigned, but shaped like our JWTs: the client only reads `exp`.
 function fakeJwt(payload) {
@@ -23,12 +25,6 @@ function fakeJwt(payload) {
 export const LOGIN_TOKEN = fakeJwt({ user_id: 1, exp: Math.floor(Date.now() / 1000) + 3600 });
 export const ROTATED_TOKEN = fakeJwt({ user_id: 1, tv: 1, exp: Math.floor(Date.now() / 1000) + 3600 });
 
-export const SESSION = {
-  session_id: 42, question: "Design a rate limiter for a public API.", persona: "standard",
-  scenario: "Your public API serves 10k requests per second.", constraints: ["Must fail open"],
-  ask: "How would you design it?", category: "system_design", sub_category: "", difficulty: 4,
-  company_profile: { name: "Google" },
-};
 
 const SCORES = {
   score_technical: 7, score_communication: 8, score_problem_solving: 7, score_cultural_fit: 7,
@@ -75,23 +71,23 @@ export const test = base.extend({
       if (path === "/auth/login") {
         const { password } = req.postDataJSON();
         return password === "correct-horse"
-          ? json(200, { access_token: LOGIN_TOKEN, user: USER })
+          ? json(200, authResponse(LOGIN_TOKEN))
           : json(401, { error: "Invalid email or password" });
       }
       if (path === "/auth/change-password") {
         const { current_password } = req.postDataJSON();
         return current_password === "correct-horse"
-          ? json(200, { access_token: ROTATED_TOKEN, user: USER })
+          ? json(200, authResponse(ROTATED_TOKEN))
           : json(400, { error: "Current password is incorrect" });
       }
       if (path === "/auth/logout-all") return json(200, { status: "ok" });
-      if (path === "/auth/refresh") return json(200, { access_token: ROTATED_TOKEN, user: USER });
+      if (path === "/auth/refresh") return json(200, authResponse(ROTATED_TOKEN));
       if (path === "/auth/forgot-password") {
-        return json(200, { status: "ok", message: "If an account uses that email, a reset link is on its way. It works for 30 minutes." });
+        return json(200, FORGOT_PASSWORD);
       }
       if (path === "/auth/reset-password") {
         return req.postDataJSON().token === "good-token"
-          ? json(200, { access_token: ROTATED_TOKEN, user: USER })
+          ? json(200, authResponse(ROTATED_TOKEN))
           : json(400, { error: "This reset link has already been used or has expired. Ask for a new one." });
       }
       if (path === "/user/preferences" && method === "PATCH") {
@@ -117,13 +113,10 @@ export const test = base.extend({
       }
       if (path.startsWith("/coding/problems/")) return json(200, PROBLEMS[path.split("/").pop()]);
       if (path === "/coding/run") {
-        return json(200, { results: [{ passed: true, input: "1 2", expected: "3", actual: "3", stderr: "" }], passed_count: 1, total: 1 });
+        return json(200, CODING_RUN);
       }
       if (path === "/coding/submit") {
-        return json(200, {
-          submission_id: 5, tests_passed: 2, tests_total: 2, complexity_estimate: "O(1)", cleanliness_score: 8,
-          naming_score: 9, feedback: "Clean and direct.", quality_review_unavailable: false, previous_elo: 1200, new_elo: 1216,
-        });
+        return json(200, CODING_SUBMIT);
       }
       if (path === "/ws/coaching/42/ticket") return json(200, { ticket: "short-lived-ticket" });
       if (path === "/answer/submit") return json(200, { job_id: 7, status: "processing" });
