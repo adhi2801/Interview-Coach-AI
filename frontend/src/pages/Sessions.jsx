@@ -89,13 +89,13 @@ function SessionsList({ onSelectSession, onExit }) {
           <p className="px-5 py-16 text-center text-[15px] text-white/65 md:px-8">No sessions yet. Finished interviews appear here to replay.</p>
         ) : (
           <div className="overflow-x-auto px-5 md:px-8">
-            <table className="w-full min-w-[44rem] text-left text-[14px]">
+            <table className="w-full text-left text-[14px] md:min-w-[44rem]">
               <thead>
                 <tr className="border-b border-white/[0.08] text-[12.5px] text-white/50">
-                  <th scope="col" className="py-3 pr-4 font-normal">Date</th>
+                  <th scope="col" className="hidden py-3 pr-4 font-normal md:table-cell">Date</th>
                   <th scope="col" className="py-3 pr-4 font-normal">Interview</th>
-                  <th scope="col" className="py-3 pr-4 font-normal">Interviewer</th>
-                  <th scope="col" className="py-3 pr-4 text-right font-normal">Questions</th>
+                  <th scope="col" className="hidden py-3 pr-4 font-normal md:table-cell">Interviewer</th>
+                  <th scope="col" className="hidden py-3 pr-4 text-right font-normal md:table-cell">Questions</th>
                   <th scope="col" className="py-3 pr-4 text-right font-normal">Score</th>
                   <th scope="col" className="py-3 text-right font-normal">Rating</th>
                 </tr>
@@ -103,15 +103,18 @@ function SessionsList({ onSelectSession, onExit }) {
               <tbody>
                 {rows.map((s) => (
                   <tr key={s.id} className="border-b border-white/[0.05]">
-                    <td className="py-3.5 pr-4 font-mono text-[12.5px] text-white/55">{fmtDate(s.started_at)}</td>
+                    <td className="hidden py-3.5 pr-4 font-mono text-[12.5px] text-white/55 md:table-cell">{fmtDate(s.started_at)}</td>
                     <td className="py-3.5 pr-4">
                       <button type="button" onClick={() => onSelectSession(s.id)}
                         className="text-left text-white hover:underline hover:decoration-white/40 hover:underline-offset-4">
                         {capitalize(s.company_target || "Interview")}<span className="text-white/50"> · {s.role}</span>
                       </button>
+                      <span className="mt-0.5 block text-[12.5px] text-white/50 md:hidden">
+                        {fmtDate(s.started_at)}, {(s.persona || "standard").toLowerCase()} interviewer
+                      </span>
                     </td>
-                    <td className="py-3.5 pr-4 text-white/70">{capitalize(s.persona || "standard")}</td>
-                    <td className="py-3.5 pr-4 text-right font-mono tabular-nums text-white/70">{s.question_count}</td>
+                    <td className="hidden py-3.5 pr-4 text-white/70 md:table-cell">{capitalize(s.persona || "standard")}</td>
+                    <td className="hidden py-3.5 pr-4 text-right font-mono tabular-nums text-white/70 md:table-cell">{s.question_count}</td>
                     <td className="py-3.5 pr-4 text-right font-mono tabular-nums text-white/90">{s.score != null ? s.score.toFixed(1) : "–"}</td>
                     <td className="py-3.5 text-right"><Delta value={deltas[s.id]} /></td>
                   </tr>

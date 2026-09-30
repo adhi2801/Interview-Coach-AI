@@ -177,12 +177,12 @@ function ActivityTable({ rows, onOpen, onAll }) {
         </button>
       </SectionHead>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[40rem] text-left text-[13.5px]">
+        <table className="w-full text-left text-[13.5px] md:min-w-[40rem]">
           <thead>
             <tr className="border-b border-white/[0.08] text-[12px] text-white/50">
-              <th scope="col" className="py-2 pr-4 font-normal">Date</th>
+              <th scope="col" className="hidden py-2 pr-4 font-normal md:table-cell">Date</th>
               <th scope="col" className="py-2 pr-4 font-normal">Practice</th>
-              <th scope="col" className="py-2 pr-4 font-normal">Mode</th>
+              <th scope="col" className="hidden py-2 pr-4 font-normal md:table-cell">Mode</th>
               <th scope="col" className="py-2 pr-4 text-right font-normal">Score</th>
               <th scope="col" className="py-2 text-right font-normal">Rating</th>
             </tr>
@@ -192,7 +192,7 @@ function ActivityTable({ rows, onOpen, onAll }) {
               const open = r.track === "interview" ? () => onOpen(r.id) : null;
               return (
                 <tr key={r.key} className="border-b border-white/[0.05]">
-                  <td className="py-3 pr-4 font-mono text-[12.5px] text-white/55">{r.when ? fmtDate(r.when) : "–"}</td>
+                  <td className="hidden py-3 pr-4 font-mono text-[12.5px] text-white/55 md:table-cell">{r.when ? fmtDate(r.when) : "–"}</td>
                   <td className="py-3 pr-4">
                     {open ? (
                       <button type="button" onClick={open} className="text-left text-white hover:underline hover:decoration-white/40 hover:underline-offset-4">
@@ -201,8 +201,9 @@ function ActivityTable({ rows, onOpen, onAll }) {
                     ) : (
                       <span className="text-white">{r.title}<span className="text-white/50"> · {r.detail}</span></span>
                     )}
+                    <span className="mt-0.5 block text-[12.5px] text-white/50 md:hidden">{r.when ? fmtDate(r.when) : ""}{r.mode ? `, ${r.mode}` : ""}</span>
                   </td>
-                  <td className="py-3 pr-4 text-white/65">{r.mode}</td>
+                  <td className="hidden py-3 pr-4 text-white/65 md:table-cell">{r.mode}</td>
                   <td className="py-3 pr-4 text-right font-mono tabular-nums text-white/85">{r.score != null ? r.score.toFixed(1) : r.tests ?? "–"}</td>
                   <td className="py-3 text-right"><Delta value={r.delta} /></td>
                 </tr>
