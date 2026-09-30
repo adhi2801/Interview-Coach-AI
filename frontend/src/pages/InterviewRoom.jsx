@@ -2,7 +2,8 @@ import api from "../lib/api";
 import React, { useState, useEffect, useRef } from "react";
 import StudyPlan from "./StudyPlan";
 import { motion, AnimatePresence } from "motion/react";
-import { Mic, Square, AlertTriangle, Lightbulb, ChevronRight, CheckCircle2, Send } from "lucide-react";
+import { Mic, Square, AlertTriangle, Lightbulb, CheckCircle2, Send } from "lucide-react";
+import { MOD_KEY } from "../lib/utils";
 import { COMPANIES } from "../constants/companies";
 import { TOTAL_NODES, computeTimeLimit, formatTime, getPersonaMeta } from "./interview/constants";
 import { useCoachingSocket } from "./interview/useCoachingSocket";
@@ -32,7 +33,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
   const [questionNum, setQuestionNum] = useState(1);
   // Bumped by "Retry this node": restarts the countdown for the same question.
   const [attempt, setAttempt] = useState(0);
-  const TIME_LIMIT = computeTimeLimit(sessionData?.scenario, sessionData?.constraints);
+  const TIME_LIMIT = computeTimeLimit(sessionData?.scenario, sessionData?.constraints, sessionData?.category);
   const [timeLeft, setTimeLeft] = useState(TIME_LIMIT);
   const [nextQuestion, setNextQuestion] = useState("");
   const [nextCategory, setNextCategory] = useState("");
@@ -108,13 +109,13 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
 
   useEffect(() => {
     clearInterval(timerRef.current);
-    const limit = computeTimeLimit(scenario, constraints);
+    const limit = computeTimeLimit(scenario, constraints, category);
     setTimeLeft(limit);
     timerRef.current = setInterval(() => {
       setTimeLeft((t) => (t <= 1 ? 0 : t - 1));
     }, 1000);
     return () => clearInterval(timerRef.current);
-  }, [question, scenario, constraints, attempt]);
+  }, [question, scenario, constraints, category, attempt]);
 
   useEffect(() => {
     autoSubmittedRef.current = false;
@@ -401,9 +402,6 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                 <CheckCircle2 size={16} />
                 <span className="text-[13px] hidden sm:inline">Answer scored</span>
               </div>
-              <button onClick={handleFinish} className="text-slate-200 bg-white/[0.04] border border-white/10 px-4 py-1.5 rounded-lg hover:bg-white/[0.08] hover:text-white text-xs font-bold uppercase tracking-widest transition-colors flex items-center gap-1.5">
-                End Session <ChevronRight size={16} />
-              </button>
             </>
           )}
         </div>
@@ -450,7 +448,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                   style={{ background: "var(--accent)", animation: "evalPulse 2s ease-in-out infinite" }}
                 />
                 <span className="text-sm font-bold text-white tracking-wide truncate">{personaMeta.name}</span>
-                <span className="text-xs font-mono text-slate-400 italic ml-2 hidden sm:inline truncate">"{personaMeta.quote}"</span>
+                <span className="text-[13px] text-slate-400 ml-1 hidden sm:inline truncate">“{personaMeta.quote}”</span>
                 {isRecording && (
                   <div className="ml-auto flex items-end gap-[2px] h-4 shrink-0">
                     {waveLevels.map((h, i) => (
@@ -482,28 +480,15 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                 <strong>Tip:</strong> Make sure your answer directly addresses: "{constraints[0]}"
                 </div>
                  )}
-                <div
-                  className="absolute top-8 left-8 pointer-events-none select-none transition-opacity duration-300"
-                  style={{ opacity: answer ? 0 : 1 }}
-                >
-                  <span className="block text-[9px] font-mono font-bold uppercase tracking-widest text-slate-700 mb-2">
-                    Response Template — Generic, Not Personalized
-                  </span>
-                  <pre className="text-slate-500 text-sm md:text-base font-mono font-medium leading-[1.8] m-0">
-                    {isBehavioral ? (
-                      <>// 1. Situation & Ownership...<br/><br/>// 2. Key Actions & Stakeholder Alignment...<br/><br/>// 3. Root Cause Analysis...</>
-                    ) : (
-                      <>// 1. Clarification & Edge Cases...<br/><br/>// 2. Core Architectural Approach...<br/><br/>// 3. Trade-offs & Limits...</>
-                    )}
-                  </pre>
-                </div>
                 <textarea
                   value={answer}
                   onChange={(e) => handleAnswerChange(e.target.value)}
                   disabled={timeLeft === 0}
-                  spellCheck="false"
                   aria-label="Your answer"
-                  className="w-full h-full bg-transparent text-slate-100 text-base font-mono leading-[1.8] p-8 pb-32 resize-none outline-none z-10 relative scrollbar-hide"
+                  placeholder={isBehavioral
+                    ? "Set the scene, say what you did and why, then the result and what you'd do differently."
+                    : "Start with what you'd clarify, then your approach, then the trade-offs and limits."}
+                  className="w-full h-full bg-transparent text-slate-100 placeholder:text-white/40 text-[16px] leading-[1.75] p-8 pb-32 resize-none outline-none z-10 relative scrollbar-hide"
                   style={{ caretColor: "var(--accent)" }}
                 />
               </div>
@@ -520,16 +505,16 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                     }`}
                   >
                     {isRecording ? <Square fill="currentColor" size={14}/> : <Mic size={14}/>}
-                    <span className="hidden sm:inline">{isRecording ? 'Stop Voice' : 'Speak'}</span>
+                    <span className="hidden sm:inline">{isRecording ? "Stop" : "Speak"}</span>
                   </button>
-                  <button onClick={() => setShowHint(!showHint)} className="text-xs font-mono font-bold text-slate-300 hover:text-white transition-colors bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl">
-                  <Lightbulb size={13} className="inline mr-1" /> Hint
+                  <button onClick={() => setShowHint(!showHint)} aria-expanded={showHint} className="text-xs font-bold text-slate-300 hover:text-white transition-colors bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl">
+                  <Lightbulb size={13} aria-hidden="true" className="inline mr-1" /> Hint
                   </button>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <span className="text-xs font-mono text-slate-400 hidden xl:block">
-                    {answer.trim() ? answer.trim().split(/\s+/).length : 0} words · {answer.length} chars
+                  <span className="text-[13px] text-slate-400 tabular-nums hidden xl:block">
+                    {answer.trim() ? answer.trim().split(/\s+/).length : 0} words
                   </span>
                   <button
                     onClick={() => submitAnswer()}
@@ -539,9 +524,9 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
                     }`}
                   >
                     {loading ? (
-                      <><span className="w-3.5 h-3.5 border-2 border-slate-600 border-t-slate-400 rounded-full animate-spin inline-block" /> Evaluating...</>
+                      <><span aria-hidden="true" className="w-3.5 h-3.5 border-2 border-slate-600 border-t-slate-400 rounded-full animate-spin inline-block" /> Scoring…</>
                     ) : (
-                      <><Send size={13} /> Submit Answer <kbd className="font-mono text-[10px] bg-black/10 px-1.5 py-0.5 rounded ml-1 opacity-60">↵</kbd></>
+                      <><Send size={13} aria-hidden="true" /> Submit answer <kbd className="hidden sm:inline font-mono text-[11px] bg-black/10 px-1.5 py-0.5 rounded ml-1 text-black/60">{MOD_KEY}+Enter</kbd></>
                     )}
                   </button>
                 </div>
@@ -550,6 +535,7 @@ export default function InterviewRoom({ sessionData, onFinish, onEloUpdate }) {
 
             <TelemetryPane
               personaMeta={personaMeta} liveCoaching={liveCoaching} wsConnected={wsConnected}
+              wordCount={answer.trim() ? answer.trim().split(/\s+/).length : 0}
               intervention={intervention} eloBand={eloBand} currentElo={currentElo}
               showCoaching={prefs.live_coaching_telemetry !== false}
             />

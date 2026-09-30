@@ -10,7 +10,8 @@
 import { useEffect } from "react";
 import Lenis from "lenis";
 import "lenis/dist/lenis.css";
-import { gsap, ScrollTrigger, prefersReducedMotion } from "../../lib/motion";
+import { prefersReducedMotion } from "../../lib/motion";
+import { gsap, ScrollTrigger } from "../../lib/gsap";
 
 let activeLenis = null;
 

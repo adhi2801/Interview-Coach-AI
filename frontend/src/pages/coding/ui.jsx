@@ -100,7 +100,7 @@ export function CustomDropdown({ value, options, onChange, icon: Icon, placehold
                       className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-left transition-all ${
                         isSelected ? "bg-blue-500/15 text-blue-400 font-bold border border-blue-500/20" : "text-slate-300 hover:bg-white/[0.05] hover:text-white"
                       }`}>
-                      <span className="truncate">{opt.label || opt.title} {opt.difficulty ? `(L${opt.difficulty})` : ""}</span>
+                      <span className="truncate">{opt.label || opt.title}{opt.difficulty ? ` · level ${opt.difficulty}` : ""}</span>
                       {isSelected && <Check size={14} className="text-blue-400 shrink-0 ml-2" />}
                     </button>
                   );

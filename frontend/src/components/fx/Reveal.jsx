@@ -9,7 +9,8 @@
 // ScrollTrigger.batch groups items that enter together into one cascade.
 
 import React, { useRef } from "react";
-import { gsap, ScrollTrigger, useGSAP, prefersReducedMotion } from "../../lib/motion";
+import { prefersReducedMotion } from "../../lib/motion";
+import { gsap, ScrollTrigger, useGSAP } from "../../lib/gsap";
 
 export default function Reveal({ as: Tag = "div", children, className, stagger = 0.08, y = 36, ...rest }) {
   const ref = useRef(null);

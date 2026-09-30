@@ -85,6 +85,15 @@ export const test = base.extend({
           : json(400, { error: "Current password is incorrect" });
       }
       if (path === "/auth/logout-all") return json(200, { status: "ok" });
+      if (path === "/auth/refresh") return json(200, { access_token: ROTATED_TOKEN, user: USER });
+      if (path === "/auth/forgot-password") {
+        return json(200, { status: "ok", message: "If an account uses that email, a reset link is on its way. It works for 30 minutes." });
+      }
+      if (path === "/auth/reset-password") {
+        return req.postDataJSON().token === "good-token"
+          ? json(200, { access_token: ROTATED_TOKEN, user: USER })
+          : json(400, { error: "This reset link has already been used or has expired. Ask for a new one." });
+      }
       if (path === "/user/preferences" && method === "PATCH") {
         const { key, value } = req.postDataJSON();
         preferences[key] = value;
@@ -113,7 +122,7 @@ export const test = base.extend({
       if (path === "/coding/submit") {
         return json(200, {
           submission_id: 5, tests_passed: 2, tests_total: 2, complexity_estimate: "O(1)", cleanliness_score: 8,
-          naming_score: 9, feedback: "Clean and direct.", quality_review_unavailable: false, new_elo: 1216,
+          naming_score: 9, feedback: "Clean and direct.", quality_review_unavailable: false, previous_elo: 1200, new_elo: 1216,
         });
       }
       if (path === "/ws/coaching/42/ticket") return json(200, { ticket: "short-lived-ticket" });
@@ -143,7 +152,10 @@ export const test = base.extend({
           "Software Engineer — L3": { label: "L3 Band", low: 900, high: 1049 },
           "Senior Engineer — L4": { label: "L4 Band", low: 1050, high: 1199 },
           "Backend Engineer — L4": { label: "L4 Band", low: 1050, high: 1199 },
+          "Frontend Engineer — L4": { label: "L4 Band", low: 1050, high: 1199 },
+          "ML Engineer": { label: "ML Band", low: 1100, high: 1249 },
           "Staff Engineer — L5": { label: "L5 Band", low: 1200, high: 1399 },
+          "Systems Architect": { label: "Staff Band", low: 1400, high: 1599 },
         },
         "/topics": { topics: [] },
         "/topics/status": { topics: [] },

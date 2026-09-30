@@ -53,21 +53,42 @@ export function loadSavedUser() {
 }
 
 // Reads the JWT's own `exp` claim client-side (no signature check — the
-// server still verifies everything). Lets the app drop a stale 7-day-old
-// token at boot instead of showing a logged-in shell where every call 401s.
-export function isTokenExpired(token, skewSeconds = 30) {
-  if (!token) return true;
+// server still verifies everything). Lets the app drop an expired token at
+// boot instead of showing a logged-in shell where every call 401s.
+function tokenExpiry(token) {
   try {
     const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
-    if (!payload.exp) return false;
-    return payload.exp * 1000 <= Date.now() + skewSeconds * 1000;
+    return payload.exp ? payload.exp * 1000 : Infinity;
   } catch {
+    return 0;
+  }
+}
+
+export function isTokenExpired(token, skewSeconds = 30) {
+  if (!token) return true;
+  return tokenExpiry(token) <= Date.now() + skewSeconds * 1000;
+}
+
+// Login tokens last a day. While the app is open, one with less than half
+// of that left is swapped for a fresh one, so active users stay logged in
+// and an idle or stolen token dies within a day.
+const RENEW_WHEN_LEFT_MS = 12 * 60 * 60 * 1000;
+
+export async function renewTokenIfDue() {
+  const token = getToken();
+  if (!token || isTokenExpired(token) || tokenExpiry(token) - Date.now() > RENEW_WHEN_LEFT_MS) return false;
+  try {
+    const { data } = await api.post("/auth/refresh");
+    if (typeof data?.access_token !== "string" || !data.user) return false;
+    saveAuth(data.access_token, { ...loadSavedUser(), ...data.user });
     return true;
+  } catch {
+    return false; // a revoked token already triggered the logout event
   }
 }
 
 // The coaching socket takes a one-minute ticket bound to one session, not
-// the 7-day login token: browsers can't put headers on a WebSocket, and
+// the login token: browsers can't put headers on a WebSocket, and
 // anything in a URL ends up in proxy and access logs.
 export async function coachingSocketUrl(sessionId) {
   const { data } = await api.post(`/ws/coaching/${sessionId}/ticket`);

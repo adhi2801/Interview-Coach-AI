@@ -16,7 +16,8 @@
 // Only transform + opacity are animated (compositor-only).
 
 import React, { useRef } from "react";
-import { gsap, ScrollTrigger, SplitText, useGSAP, prefersReducedMotion } from "../../lib/motion";
+import { prefersReducedMotion } from "../../lib/motion";
+import { gsap, ScrollTrigger, SplitText, useGSAP } from "../../lib/gsap";
 
 export default function SplitReveal({
   as: Tag = "h2",

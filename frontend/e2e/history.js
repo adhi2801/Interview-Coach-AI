@@ -10,15 +10,15 @@ const at = (daysAgo, hour = 19) => {
 };
 
 const SESSIONS_RAW = [
-  { id: 9, company: "google", role: "Senior Engineer — L4", persona: "hostile", days: 0, score: 78, elo: 1262, q: 4 },
-  { id: 8, company: "meta", role: "Senior Engineer — L4", persona: "standard", days: 1, score: 71, elo: 1241, q: 5 },
-  { id: 7, company: "amazon", role: "Backend Engineer — L4", persona: "socratic", days: 3, score: 64, elo: 1226, q: 5 },
-  { id: 6, company: "google", role: "Senior Engineer — L4", persona: "standard", days: 4, score: 58, elo: 1219, q: 3 },
-  { id: 5, company: "stripe", role: "Backend Engineer — L4", persona: "exhausted", days: 7, score: 69, elo: 1231, q: 5 },
-  { id: 4, company: "netflix", role: "Senior Engineer — L4", persona: "hostile", days: 9, score: 52, elo: 1214, q: 4 },
-  { id: 3, company: "google", role: "Software Engineer — L3", persona: "standard", days: 12, score: 61, elo: 1222, q: 5 },
-  { id: 2, company: "apple", role: "Software Engineer — L3", persona: "socratic", days: 15, score: 55, elo: 1208, q: 3 },
-  { id: 1, company: "google", role: "Software Engineer — L3", persona: "standard", days: 19, score: 47, elo: 1193, q: 2 },
+  { id: 9, company: "google", role: "Senior Engineer — L4", persona: "hostile", days: 0, score: 7.8, elo: 1262, q: 4 },
+  { id: 8, company: "meta", role: "Senior Engineer — L4", persona: "standard", days: 1, score: 7.1, elo: 1241, q: 5 },
+  { id: 7, company: "amazon", role: "Backend Engineer — L4", persona: "socratic", days: 3, score: 6.4, elo: 1226, q: 5 },
+  { id: 6, company: "google", role: "Senior Engineer — L4", persona: "standard", days: 4, score: 5.8, elo: 1219, q: 3 },
+  { id: 5, company: "stripe", role: "Backend Engineer — L4", persona: "exhausted", days: 7, score: 6.9, elo: 1231, q: 5 },
+  { id: 4, company: "netflix", role: "Senior Engineer — L4", persona: "hostile", days: 9, score: 5.2, elo: 1214, q: 4 },
+  { id: 3, company: "google", role: "Software Engineer — L3", persona: "standard", days: 12, score: 6.1, elo: 1222, q: 5 },
+  { id: 2, company: "apple", role: "Software Engineer — L3", persona: "socratic", days: 15, score: 5.5, elo: 1208, q: 3 },
+  { id: 1, company: "google", role: "Software Engineer — L3", persona: "standard", days: 19, score: 4.7, elo: 1193, q: 2 },
 ];
 
 export const SESSIONS = SESSIONS_RAW.map((s) => ({
@@ -60,15 +60,15 @@ export const ACTIVITY = (() => {
 })();
 
 export const PROFILE = {
-  name: "Ada", email: "ada@example.com", elo_rating: 1268, total_sessions: SESSIONS.length, avg_score: 61.7,
+  name: "Ada", email: "ada@example.com", elo_rating: 1268, total_sessions: SESSIONS.length, avg_score: 6.2,
   preferences: { sound_effects: false, live_coaching_telemetry: true },
   bracket: { role: "Senior Engineer — L4", label: "L4 Band", low: 1050, high: 1199 },
 };
 
 export const RADAR = {
   radar: [
-    { dim: "Technical", value: 66 }, { dim: "Communication", value: 74 }, { dim: "Problem Solving", value: 61 },
-    { dim: "Culture Fit", value: 70 }, { dim: "Confidence", value: 57 },
+    { dim: "Technical", value: 6.6 }, { dim: "Communication", value: 7.4 }, { dim: "Problem solving", value: 6.1 },
+    { dim: "Culture fit", value: 7.0 }, { dim: "Confidence", value: 5.7 },
   ],
   sample_size: 36,
 };

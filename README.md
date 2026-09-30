@@ -24,7 +24,7 @@
 
 ```mermaid
 flowchart TB
-    User[Browser — React + Framer Motion]
+    User[Browser — React + Motion]
     API[FastAPI REST API]
     WS[WebSocket Coaching Engine]
     DB[(PostgreSQL<br/>data + RAG question store)]
@@ -88,7 +88,7 @@ flowchart TB
 ### Frontend
 - React
 - Tailwind CSS
-- Framer Motion
+- Motion (formerly Framer Motion)
 - Monaco Editor
 - Recharts
 - WebSockets
@@ -186,6 +186,9 @@ python -m venv venv
 pip install -r requirements-dev.txt
 # .env: DATABASE_URL, JWT_SECRET_KEY, ANTHROPIC_API_KEY
 #       optional: REDIS_URL, JUDGE0_API_KEY, SENTRY_DSN, CLAUDE_MODEL, WHISPER_MODEL
+#       password reset email: FRONTEND_URL (where reset links point), MAIL_FROM,
+#       SMTP_HOST, SMTP_PORT (587), SMTP_USERNAME, SMTP_PASSWORD — any SMTP
+#       provider works. Without SMTP, local runs print the reset link to the log.
 alembic upgrade head
 python -m scripts.seed_topics
 python -m scripts.seed_coding_problems
@@ -212,9 +215,9 @@ npm run dev
 ## Testing
 
 ```bash
-cd backend && ruff check . && pytest               # 97 tests, ~25s, no network or real database needed
+cd backend && ruff check . && pytest               # 105 tests, ~25s, no network or real database needed
 cd frontend && npm run lint && npm test             # ESLint + 17 Vitest unit tests
-cd frontend && npm run build && npm run test:e2e    # 4 Playwright browser tests, API mocked
+cd frontend && npm run build && npm run test:e2e    # 43 Playwright browser tests (with axe and CSP checks), API mocked
 ```
 
 CI runs all of the above on every push and pull request (Dependabot keeps dependencies current), and also applies every Alembic migration to a fresh Postgres and fails if `models.py` has drifted from them.

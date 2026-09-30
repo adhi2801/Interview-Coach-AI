@@ -5,7 +5,8 @@
 // hand into spans; only their opacity animates, scrubbed by ScrollTrigger.
 
 import React, { useMemo, useRef } from "react";
-import { gsap, useGSAP, prefersReducedMotion } from "../../lib/motion";
+import { prefersReducedMotion } from "../../lib/motion";
+import { gsap, useGSAP } from "../../lib/gsap";
 
 export default function ScrollFillText({ text, className, as: Tag = "p", dim = 0.16, accentWords = [] }) {
   const ref = useRef(null);

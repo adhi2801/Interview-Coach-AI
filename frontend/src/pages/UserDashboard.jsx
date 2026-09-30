@@ -122,10 +122,10 @@ function DimensionBars({ radar, sampleSize, company }) {
           <li key={d.dim}>
             <div className="mb-1 flex justify-between text-[13px]">
               <span className="text-white/80">{d.dim}</span>
-              <span className="font-mono tabular-nums text-white/70">{Math.round(d.value)}</span>
+              <span className="font-mono tabular-nums text-white/70">{d.value.toFixed(1)}</span>
             </div>
             <div className="h-[3px] bg-white/[0.07]">
-              <div className={`h-full ${d === worst ? "bg-amber-300" : d === best ? "bg-emerald-300" : "bg-indigo-300/80"}`} style={{ width: `${Math.max(2, Math.min(100, d.value))}%` }} />
+              <div className={`h-full ${d === worst ? "bg-amber-300" : d === best ? "bg-emerald-300" : "bg-indigo-300/80"}`} style={{ width: `${Math.max(2, Math.min(100, d.value * 10))}%` }} />
             </div>
           </li>
         ))}
@@ -143,16 +143,16 @@ function Rhythm({ dates }) {
   const active = weeks.flat().filter((d) => d.count > 0).length;
   const { recent, before } = lastTwoWeeks(dates);
   const tone = (n) => (n === 0 ? "bg-white/[0.05]" : n === 1 ? "bg-indigo-400/45" : n === 2 ? "bg-indigo-400/70" : "bg-indigo-300");
-  const cell = "h-[15px] w-[15px]";
+  const cell = "aspect-square w-full";
   return (
     <div>
       <SectionHead title="Practice rhythm" meta={days > 1 ? `${days}-day streak` : `${active} active ${active === 1 ? "day" : "days"} in ${weeks.length} weeks`} />
-      <div className="flex gap-[3px]" role="img" aria-label={`Practice on ${active} of the last ${weeks.length * 7} days`}>
-        <div className="mr-1.5 grid grid-rows-7 gap-[3px] font-mono text-[10px] leading-[15px] text-white/50">
-          {["M", "", "W", "", "F", "", ""].map((l, i) => <span key={i}>{l}</span>)}
+      <div className="flex items-stretch gap-[3px]" role="img" aria-label={`Practice on ${active} of the last ${weeks.length * 7} days`}>
+        <div className="mr-1.5 grid grid-rows-7 gap-[3px] text-[11px] text-white/50">
+          {["Mon", "", "Wed", "", "Fri", "", ""].map((l, i) => <span key={i} className="flex items-center">{l}</span>)}
         </div>
         {weeks.map((week, w) => (
-          <div key={w} className="grid grid-rows-7 gap-[3px]">
+          <div key={w} className="grid min-w-0 max-w-[22px] flex-1 grid-rows-7 gap-[3px]">
             {week.map((d) => (
               <span key={d.date.toISOString()} title={`${fmtDate(d.date)}: ${d.count} ${d.count === 1 ? "session" : "sessions"}`}
                 className={`${cell} ${d.future ? "bg-transparent" : tone(d.count)}`} />
@@ -203,7 +203,7 @@ function ActivityTable({ rows, onOpen, onAll }) {
                     )}
                   </td>
                   <td className="py-3 pr-4 text-white/65">{r.mode}</td>
-                  <td className="py-3 pr-4 text-right font-mono tabular-nums text-white/85">{r.score ?? "–"}</td>
+                  <td className="py-3 pr-4 text-right font-mono tabular-nums text-white/85">{r.score != null ? r.score.toFixed(1) : r.tests ?? "–"}</td>
                   <td className="py-3 text-right"><Delta value={r.delta} /></td>
                 </tr>
               );
@@ -273,8 +273,6 @@ export default function UserDashboard({ user, onStartNew, onStartCoding, onNavig
       <AppHeader />
 
       <PageIntro
-        index="01"
-        label="Overview"
         title={`${greeting()}, ${user?.name?.split(" ")[0] || "there"}.`}
         subtitle={rows ? summarySentence({ elo, change, topGap: gaps.queue[0] ? humanize(gaps.queue[0].gap) : null, weakest: weakest && capitalize(weakest), hasHistory }) : " "}
         aside={<Actions onStartNew={onStartNew} onStartCoding={onStartCoding} />}

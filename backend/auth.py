@@ -3,6 +3,7 @@
 # Uses bcrypt directly instead of passlib, since passlib's bcrypt
 # backend has a known compatibility bug with newer bcrypt versions.
 
+import hashlib
 import os
 import bcrypt
 from datetime import datetime, timedelta, timezone
@@ -23,7 +24,9 @@ if not SECRET_KEY:
     )
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
+# A day, renewed by /auth/refresh while the app is in use: a stolen token
+# is useful for hours, not a week, and active users never see a login.
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
 MIN_PASSWORD_LENGTH = 8
 
@@ -74,7 +77,7 @@ def decode_access_token(token: str) -> dict | None:
 
 # Browsers can't send an Authorization header on a WebSocket, so the token
 # has to travel in the URL — where proxies and access logs record it. The
-# socket therefore takes a ticket, not the 7-day login token: valid for one
+# socket therefore takes a ticket, not the login token: valid for one
 # minute, for one session, and useless anywhere else.
 WS_TICKET_TTL_SECONDS = 60
 
@@ -86,6 +89,39 @@ def create_ws_ticket(user_id: int, session_id: int) -> str:
         "scope": "ws",
         "exp": datetime.now(timezone.utc) + timedelta(seconds=WS_TICKET_TTL_SECONDS),
     }, SECRET_KEY, algorithm=ALGORITHM)
+
+
+# Password reset links carry a signed token instead of a stored one. It
+# names the account and a fingerprint of its current password hash, so it
+# stops working as soon as the password changes: single use, no table.
+RESET_TOKEN_TTL_MINUTES = 30
+
+
+def _password_fingerprint(hashed_password: str) -> str:
+    return hashlib.sha256(hashed_password.encode()).hexdigest()[:16]
+
+
+def create_reset_token(user_id: int, hashed_password: str) -> str:
+    return jwt.encode({
+        "user_id": user_id,
+        "pw": _password_fingerprint(hashed_password),
+        "scope": "reset",
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=RESET_TOKEN_TTL_MINUTES),
+    }, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def read_reset_token(token: str) -> dict | None:
+    """The token's claims if it is a valid, unexpired reset token; the
+    caller still checks the fingerprint against the account."""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError:
+        return None
+    return payload if payload.get("scope") == "reset" and payload.get("user_id") else None
+
+
+def reset_token_matches(payload: dict, hashed_password: str) -> bool:
+    return payload.get("pw") == _password_fingerprint(hashed_password)
 
 
 def decode_ws_ticket(ticket: str, session_id: int) -> int | None:

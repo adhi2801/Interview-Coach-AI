@@ -11,10 +11,15 @@ import { AppHeader, Frame, PageIntro } from "../components/app/AppChrome";
 import { COMPANIES } from "../constants/companies";
 import { humanize } from "./knowledge/graph";
 
+// Ordered by seniority (the rating band each is scored against). The ids
+// are the role names the backend stores and bands are keyed by; the two
+// without a level in their name say where they sit.
 const ROLES = [
-  "Software Engineer — L3", "Senior Engineer — L4", "Staff Engineer — L5",
-  "Backend Engineer — L4", "Frontend Engineer — L4", "ML Engineer", "Systems Architect",
+  "Software Engineer — L3",
+  "Senior Engineer — L4", "Backend Engineer — L4", "Frontend Engineer — L4",
+  "ML Engineer", "Staff Engineer — L5", "Systems Architect",
 ];
+const LEVEL_NOTE = { "ML Engineer": "between L4 and L5", "Systems Architect": "staff level and above" };
 
 const PERSONAS = [
   { id: "standard", label: "Standard", blurb: "Neutral and evaluative, closest to a real interview loop." },
@@ -45,8 +50,8 @@ function Choice({ name, value, checked, onChange, children, className = "" }) {
       checked ? "border-indigo-300/70 bg-indigo-400/[0.07]" : "border-white/[0.09] hover:border-white/25"} ${className}`}>
       <input type="radio" name={name} value={value} checked={checked} onChange={() => onChange(value)}
         className="peer sr-only" />
-      <span aria-hidden="true" className={`mt-[3px] grid h-[14px] w-[14px] shrink-0 place-items-center border ${checked ? "border-indigo-300" : "border-white/35"}`}>
-        {checked && <span className="h-[6px] w-[6px] bg-indigo-300" />}
+      <span aria-hidden="true" className={`mt-[3px] grid h-[15px] w-[15px] shrink-0 place-items-center rounded-full border ${checked ? "border-indigo-300" : "border-white/35"}`}>
+        {checked && <span className="h-[7px] w-[7px] rounded-full bg-indigo-300" />}
       </span>
       <span className="min-w-0 flex-1">{children}</span>
       <span aria-hidden="true" className="pointer-events-none absolute inset-0 hidden outline outline-1 outline-offset-2 outline-indigo-300 peer-focus-visible:block" />
@@ -115,7 +120,7 @@ function Brief({ name, profile, loading, error, record, gap, preview, previewSta
               Your last {record.length === 1 ? "interview" : `${record.length} interviews`} here scored{" "}
               {record.map((s, i) => (
                 <span key={s.id}>
-                  <span className="font-mono tabular-nums text-white">{s.score ?? "–"}</span>
+                  <span className="font-mono tabular-nums text-white">{s.score != null ? s.score.toFixed(1) : "–"}</span>
                   {i < record.length - 2 ? ", " : i === record.length - 2 ? " and " : ""}
                 </span>
               ))}.
@@ -253,9 +258,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
       <AppHeader back={{ label: "Overview", onClick: onGoBack }} />
 
       <PageIntro
-        index="02"
-        label="Interview"
-        title="Set up your interview."
+        title="Set up an interview"
         subtitle="Pick the company, the level and who's across the table. Your rating sets the difficulty; each answer is scored as you go."
       />
 
@@ -286,7 +289,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
               )}
             </Fieldset>
 
-            <Fieldset legend="Level" hint={`Your rating is ${elo.toLocaleString("en-US")}. Bands show where each level usually sits.`}>
+            <Fieldset legend="Role and level" hint={`Your rating is ${elo.toLocaleString("en-US")}. Each role is scored against its level's band; pick the one you're interviewing for.`}>
               <div className="grid gap-2 sm:grid-cols-2">
                 {ROLES.map((r) => {
                   const band = bands[r];
@@ -295,7 +298,8 @@ export default function Dashboard({ onStart, user, onGoBack }) {
                       <span className="block text-[14px] text-white">{r}</span>
                       {band && (
                         <span className="mt-0.5 block text-[12.5px] text-white/55">
-                          <span className="font-mono tabular-nums">{band.low}–{band.high}</span>. {bandNote(band, elo)}
+                          <span className="tabular-nums">{band.low.toLocaleString("en-US")}–{band.high.toLocaleString("en-US")}</span>
+                          {LEVEL_NOTE[r] && <>, {LEVEL_NOTE[r]}</>}. {bandNote(band, elo)}
                         </span>
                       )}
                     </Choice>

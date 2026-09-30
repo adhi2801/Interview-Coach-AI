@@ -9,7 +9,9 @@ import React from "react";
 import { ScrambleText } from "../../components/fx/Effects";
 import { cn } from "../../lib/utils";
 
-export const FRAME = "mx-auto w-full max-w-[1280px]";
+import { FRAME } from "../../components/app/frame";
+
+export { FRAME };
 
 // Small square drawn where a horizontal rule meets a rail.
 function Marker({ className }) {

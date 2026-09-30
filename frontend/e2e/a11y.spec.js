@@ -23,8 +23,9 @@ async function violations(page) {
   return violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`);
 }
 
-test("login and signup", async ({ page, backend: _ }) => {
-  for (const path of ["/login", "/signup"]) {
+test("login, signup, forgot and reset password", async ({ page, backend: _ }) => {
+  test.slow(); // five pages, each settled before auditing
+  for (const path of ["/login", "/signup", "/forgot-password", "/reset-password#token=t", "/reset-password"]) {
     await page.goto(path);
     await page.waitForLoadState("networkidle");
     expect(await violations(page), path).toEqual([]);
@@ -41,6 +42,8 @@ test("settings, including the security tab", async ({ page, backend: _, signedIn
 test("interview room", async ({ page, backend: _, signedIn: __ }) => {
   await page.goto("/setup");
   await page.getByRole("button", { name: "Start interview" }).click();
+  await expect(page.getByRole("heading", { name: "Check your microphone" })).toBeVisible();
+  expect(await violations(page), "mic check").toEqual([]);
   await page.getByRole("button", { name: /Skip/ }).click();
   await expect(page.getByRole("textbox", { name: "Your answer" })).toBeVisible();
   expect(await violations(page)).toEqual([]);
@@ -57,5 +60,20 @@ test("knowledge graph, idle and with a topic selected", async ({ page, backend: 
   await expect(page.getByRole("button", { name: /^Arrays,/ })).toBeVisible();
   expect(await violations(page)).toEqual([]);
   await page.getByRole("button", { name: /^Dijkstra,/ }).click();
+  expect(await violations(page)).toEqual([]);
+});
+
+test("coding room, with results and the review", async ({ page, backend: _, signedIn: __ }) => {
+  await page.goto("/coding");
+  await expect(page.getByRole("heading", { name: "Two Sum" })).toBeVisible();
+  await expect(page.locator(".monaco-editor").first()).toBeVisible({ timeout: 20_000 });
+  expect(await violations(page)).toEqual([]);
+
+  await page.getByRole("button", { name: /^Run/ }).click();
+  await expect(page.getByText("1 of 1 examples passed")).toBeVisible();
+  expect(await violations(page)).toEqual([]);
+
+  await page.getByRole("button", { name: /^Submit/ }).click();
+  await expect(page.getByText("Clean and direct.")).toBeVisible();
   expect(await violations(page)).toEqual([]);
 });

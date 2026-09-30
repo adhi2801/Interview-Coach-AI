@@ -43,7 +43,7 @@ def get_user_sessions(user_id: int = Depends(require_user_id)):
             answers = answers_by_session.get(session.id, [])
             answer_count = len(answers)
 
-            # Average overall score across all answers in this session, out of 100
+            # Average overall score across all answers in this session, out of 10
             avg_score = None
             if answers:
                 overalls = []
@@ -57,7 +57,7 @@ def get_user_sessions(user_id: int = Depends(require_user_id)):
                     if scores:
                         overalls.append(sum(scores) / len(scores))
                 if overalls:
-                    avg_score = round((sum(overalls) / len(overalls)) * 10)  # scale 0-10 to 0-100
+                    avg_score = round(sum(overalls) / len(overalls), 1)
 
             result.append({
                 "id": session.id,
@@ -133,7 +133,7 @@ def get_user_activity(user_id: int = Depends(require_user_id)):
                     if scores:
                         overalls.append(sum(scores) / len(scores))
                 if overalls:
-                    avg_score = round((sum(overalls) / len(overalls)) * 10)
+                    avg_score = round(sum(overalls) / len(overalls), 1)
 
             events.append({
                 "track": "interview",
@@ -210,14 +210,14 @@ def get_skill_radar(session_id: Optional[int] = None, company: Optional[str] = N
         fields = ["score_technical", "score_communication", "score_problem_solving", "score_cultural_fit", "score_confidence"]
         labels = {
             "score_technical": "Technical", "score_communication": "Communication",
-            "score_problem_solving": "Problem Solving", "score_cultural_fit": "Culture Fit",
+            "score_problem_solving": "Problem solving", "score_cultural_fit": "Culture fit",
             "score_confidence": "Confidence",
         }
 
         radar = []
         for f in fields:
             values = [getattr(a, f) for a in answers if getattr(a, f) is not None]
-            avg = round((sum(values) / len(values)) * 10, 1) if values else 0  # scale 0-10 -> 0-100
+            avg = round(sum(values) / len(values), 1) if values else 0
             radar.append({"dim": labels[f], "value": avg})
 
         return {"radar": radar, "sample_size": len(answers)}
@@ -397,7 +397,7 @@ def get_profile_summary(user_id: int = Depends(require_user_id)):
                 if scores:
                     overalls.append(sum(scores) / len(scores))
             if overalls:
-                avg_score = round((sum(overalls) / len(overalls)) * 10, 1)
+                avg_score = round(sum(overalls) / len(overalls), 1)
 
         bracket = None
         if sessions:

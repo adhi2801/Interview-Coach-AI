@@ -35,6 +35,15 @@ class SubmitAnswerRequest(BaseModel):
     persona: str = Field(default="standard", max_length=30)
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(min_length=1, max_length=1000)
+    new_password: str = Field(max_length=128)
+
+
 class SignupRequest(BaseModel):
     email: EmailStr
     password: str = Field(max_length=128)

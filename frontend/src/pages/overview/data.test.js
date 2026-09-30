@@ -9,17 +9,17 @@ const daysAgo = (n) => new Date(NOW.getTime() - n * 86_400_000).toISOString();
 
 const ACTIVITY = [
   { track: "coding", id: 3, timestamp: daysAgo(0), elo_after: 1268, elo_delta: 6, problem_title: "Two Sum", tests_passed: 12, tests_total: 12, language: "python" },
-  { track: "interview", id: 9, timestamp: daysAgo(1), elo_after: 1262, elo_delta: 21, company_target: "google", role: "Senior Engineer — L4", persona: "hostile", score: 78 },
-  { track: "interview", id: 8, timestamp: daysAgo(2), elo_after: 1241, elo_delta: -3, company_target: "meta", role: "Senior Engineer — L4", persona: "standard", score: 60 },
-  { track: "interview", id: 7, timestamp: daysAgo(40), elo_after: 1200, elo_delta: null, company_target: "google", role: "SWE", persona: "standard", score: 58 },
+  { track: "interview", id: 9, timestamp: daysAgo(1), elo_after: 1262, elo_delta: 21, company_target: "google", role: "Senior Engineer — L4", persona: "hostile", score: 7.8 },
+  { track: "interview", id: 8, timestamp: daysAgo(2), elo_after: 1241, elo_delta: -3, company_target: "meta", role: "Senior Engineer — L4", persona: "standard", score: 6.0 },
+  { track: "interview", id: 7, timestamp: daysAgo(40), elo_after: 1200, elo_delta: null, company_target: "google", role: "SWE", persona: "standard", score: 5.8 },
 ];
 
 describe("overview data", () => {
   const rows = toRows(ACTIVITY);
 
   it("turns activity into readable rows", () => {
-    expect(rows[0]).toMatchObject({ title: "Two Sum", detail: "Coding", mode: "Python", score: 100, delta: 6 });
-    expect(rows[1]).toMatchObject({ title: "Google", detail: "Senior Engineer — L4", mode: "Hostile", score: 78 });
+    expect(rows[0]).toMatchObject({ title: "Two Sum", detail: "Coding", mode: "Python", score: null, tests: "12 of 12 tests", delta: 6 });
+    expect(rows[1]).toMatchObject({ title: "Google", detail: "Senior Engineer — L4", mode: "Hostile", score: 7.8 });
   });
 
   it("builds an oldest-first rating series and a 30-day change from real points only", () => {
@@ -51,7 +51,7 @@ describe("overview data", () => {
   });
 
   it("only states a persona insight the data supports", () => {
-    expect(personaInsight(rows).text).toBe("You score 19 points higher with the hostile interviewer than the standard one");
+    expect(personaInsight(rows).text).toBe("You score 1.9 higher with the hostile interviewer than the standard one");
     expect(personaInsight(rows.filter((r) => r.persona !== "hostile"))).toBeNull();
   });
 
