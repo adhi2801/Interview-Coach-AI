@@ -23,10 +23,21 @@ function Tip({ active, payload }) {
   );
 }
 
-export default function RatingChart({ series }) {
-  const values = series.map((p) => p.elo);
+// Round, evenly spaced rating ticks (1,175 / 1,200 / 1,225 …) around the
+// data, instead of whatever the padded min and max happened to be.
+export function ratingTicks(values) {
   const lo = Math.min(...values), hi = Math.max(...values);
-  const pad = Math.max(10, Math.round((hi - lo) * 0.25));
+  const rough = Math.max(1, (hi - lo) / 3);
+  const step = [5, 10, 20, 25, 50, 100, 200, 250, 500].find((s) => s >= rough) || 1000;
+  const start = Math.floor(lo / step) * step - (lo % step === 0 ? step : 0);
+  const end = Math.ceil(hi / step) * step + (hi % step === 0 ? step : 0);
+  const ticks = [];
+  for (let t = start; t <= end; t += step) ticks.push(t);
+  return ticks;
+}
+
+export default function RatingChart({ series }) {
+  const ticks = ratingTicks(series.map((p) => p.elo));
   return (
     <div className="h-[240px] w-full" role="img"
       aria-label={`Rating from ${series[0].elo} to ${series[series.length - 1].elo} over ${series.length} scored sessions`}>
@@ -42,7 +53,7 @@ export default function RatingChart({ series }) {
           <XAxis dataKey="t" type="number" scale="time" domain={["dataMin", "dataMax"]} tickFormatter={fmtDay}
             tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 11, fontFamily: "JetBrains Mono" }} tickLine={false}
             axisLine={{ stroke: "rgba(255,255,255,0.1)" }} minTickGap={36} />
-          <YAxis domain={[lo - pad, hi + pad]} tickCount={4} allowDecimals={false} width={48}
+          <YAxis domain={[ticks[0], ticks[ticks.length - 1]]} ticks={ticks} tickFormatter={(v) => v.toLocaleString("en-US")} width={52}
             tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 11, fontFamily: "JetBrains Mono" }} tickLine={false} axisLine={false} />
           <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
           <Area type="monotone" dataKey="elo" stroke="#a5b4fc" strokeWidth={1.75} fill="url(#rating-fill)"

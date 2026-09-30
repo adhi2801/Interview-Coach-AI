@@ -67,8 +67,8 @@ export const PROFILE = {
 
 export const RADAR = {
   radar: [
-    { dim: "Technical", value: 6.6 }, { dim: "Communication", value: 7.4 }, { dim: "Problem Solving", value: 6.1 },
-    { dim: "Culture Fit", value: 7.0 }, { dim: "Confidence", value: 5.7 },
+    { dim: "Technical", value: 6.6 }, { dim: "Communication", value: 7.4 }, { dim: "Problem solving", value: 6.1 },
+    { dim: "Culture fit", value: 7.0 }, { dim: "Confidence", value: 5.7 },
   ],
   sample_size: 36,
 };

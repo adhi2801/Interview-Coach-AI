@@ -24,6 +24,7 @@ async function violations(page) {
 }
 
 test("login, signup, forgot and reset password", async ({ page, backend: _ }) => {
+  test.slow(); // five pages, each settled before auditing
   for (const path of ["/login", "/signup", "/forgot-password", "/reset-password#token=t", "/reset-password"]) {
     await page.goto(path);
     await page.waitForLoadState("networkidle");

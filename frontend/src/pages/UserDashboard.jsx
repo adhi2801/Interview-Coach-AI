@@ -143,16 +143,16 @@ function Rhythm({ dates }) {
   const active = weeks.flat().filter((d) => d.count > 0).length;
   const { recent, before } = lastTwoWeeks(dates);
   const tone = (n) => (n === 0 ? "bg-white/[0.05]" : n === 1 ? "bg-indigo-400/45" : n === 2 ? "bg-indigo-400/70" : "bg-indigo-300");
-  const cell = "h-[15px] w-[15px]";
+  const cell = "aspect-square w-full";
   return (
     <div>
       <SectionHead title="Practice rhythm" meta={days > 1 ? `${days}-day streak` : `${active} active ${active === 1 ? "day" : "days"} in ${weeks.length} weeks`} />
-      <div className="flex gap-[3px]" role="img" aria-label={`Practice on ${active} of the last ${weeks.length * 7} days`}>
-        <div className="mr-1.5 grid grid-rows-7 gap-[3px] font-mono text-[10px] leading-[15px] text-white/50">
-          {["M", "", "W", "", "F", "", ""].map((l, i) => <span key={i}>{l}</span>)}
+      <div className="flex items-stretch gap-[3px]" role="img" aria-label={`Practice on ${active} of the last ${weeks.length * 7} days`}>
+        <div className="mr-1.5 grid grid-rows-7 gap-[3px] text-[11px] text-white/50">
+          {["Mon", "", "Wed", "", "Fri", "", ""].map((l, i) => <span key={i} className="flex items-center">{l}</span>)}
         </div>
         {weeks.map((week, w) => (
-          <div key={w} className="grid grid-rows-7 gap-[3px]">
+          <div key={w} className="grid min-w-0 max-w-[22px] flex-1 grid-rows-7 gap-[3px]">
             {week.map((d) => (
               <span key={d.date.toISOString()} title={`${fmtDate(d.date)}: ${d.count} ${d.count === 1 ? "session" : "sessions"}`}
                 className={`${cell} ${d.future ? "bg-transparent" : tone(d.count)}`} />

@@ -8,17 +8,20 @@ import { ancestors, humanize, STATUS } from "./graph";
 const COLUMN_LABELS = ["No prerequisites", "1 step in", "2 steps in", "3 steps in", "4 steps in", "5 steps in"];
 const columnLabel = (d) => COLUMN_LABELS[d] ?? `${d} steps in`;
 
-// The node's square encodes its real status; see Legend in the page.
+// A status dot per topic (see the legend on the page): filled when your
+// answers settled it — green shown, amber gap — a ring when it's open to
+// you, and a faint dot when its prerequisites aren't shown yet. Round, so
+// it reads as a status and not as a checkbox to tick.
 export function StatusMark({ status, ready, urgent, className = "" }) {
-  const base = "inline-block h-[9px] w-[9px] shrink-0";
+  const base = "inline-block h-[9px] w-[9px] shrink-0 rounded-full";
   if (status === STATUS.passed) return <span aria-hidden="true" className={`${base} bg-emerald-400 ${className}`} />;
   if (status === STATUS.gap) {
     return (
       <span aria-hidden="true" className={`${base} bg-amber-400 ${urgent ? "outline outline-1 outline-offset-2 outline-amber-400/70" : ""} ${className}`} />
     );
   }
-  if (status === STATUS.locked) return <span aria-hidden="true" className={`${base} km-hatch border border-white/45 ${className}`} />;
-  return <span aria-hidden="true" className={`${base} border ${ready ? "border-indigo-300" : "border-white/45"} ${className}`} />;
+  if (status === STATUS.locked) return <span aria-hidden="true" className={`${base} scale-[0.6] bg-white/35 ${className}`} />;
+  return <span aria-hidden="true" className={`${base} border-[1.5px] ${ready ? "border-indigo-300" : "border-white/45"} ${className}`} />;
 }
 
 const STATUS_WORDS = {

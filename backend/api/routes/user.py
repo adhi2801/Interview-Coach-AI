@@ -210,7 +210,7 @@ def get_skill_radar(session_id: Optional[int] = None, company: Optional[str] = N
         fields = ["score_technical", "score_communication", "score_problem_solving", "score_cultural_fit", "score_confidence"]
         labels = {
             "score_technical": "Technical", "score_communication": "Communication",
-            "score_problem_solving": "Problem Solving", "score_cultural_fit": "Culture Fit",
+            "score_problem_solving": "Problem solving", "score_cultural_fit": "Culture fit",
             "score_confidence": "Confidence",
         }
 
