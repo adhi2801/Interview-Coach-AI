@@ -125,6 +125,9 @@ class CodingProblem(Base):
     constraints = Column(JSON, nullable=True)
     time_complexity_target = Column(String, nullable=True)
     space_complexity_target = Column(String, nullable=True)
+    # The verified Python solution the pack was checked against; shown only
+    # to users who have submitted their own (GET /coding/problems/{slug}/solution).
+    reference_solution = Column(Text, nullable=True)
 
     test_cases = relationship("CodingTestCase", back_populates="problem")
 

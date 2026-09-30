@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { expect, test, REFERENCE_SOLUTION } from "./fixtures";
 
 const editor = (page) => page.locator(".monaco-editor").first();
 const editorText = (page) => page.locator(".monaco-editor .view-lines").first();
@@ -53,6 +53,21 @@ test.describe("coding room", () => {
     await page.getByRole("tab", { name: "Output" }).click();
     await expect(page.getByText("2 of 2 tests passed")).toBeVisible();
     await expect(page.getByRole("region", { name: "Attempts on this problem" }).getByRole("listitem")).toHaveCount(2);
+  });
+
+  test("a reference solution opens only after submitting, and stays open after a reload", async ({ page }) => {
+    await page.getByRole("tab", { name: "Review" }).click();
+    await expect(page.getByText("Once you've submitted, a reference solution opens up here")).toBeVisible();
+    await expect(page.getByRole("button", { name: "See a reference solution" })).toHaveCount(0);
+
+    await page.getByRole("button", { name: /^Submit/ }).click();
+    await expect(page.getByText("Clean and direct.")).toBeVisible();
+    await page.getByRole("button", { name: "See a reference solution" }).click();
+    await expect(page.getByLabel("Reference solution code")).toHaveText(REFERENCE_SOLUTION);
+
+    await page.reload();
+    await page.getByRole("tab", { name: "Review" }).click();
+    await expect(page.getByRole("button", { name: "See a reference solution" })).toBeVisible();
   });
 
   test("Ctrl+Enter runs the examples while typing in the editor, once", async ({ page, backend }) => {

@@ -445,7 +445,7 @@ export default function CodingRoom({ problemSlug = null, sessionId, user, onFini
                 runHistory={runHistory} onRetry={resultsSource === "submit" ? submitCode : runCode}
                 onGoToLine={focusLineInEditor} onOpenReview={() => setActiveRightTab("review")} />
             ) : (
-              <Review review={review} />
+              <Review review={review} problem={problem} />
             )}
           </div>
         </GlassPanel>

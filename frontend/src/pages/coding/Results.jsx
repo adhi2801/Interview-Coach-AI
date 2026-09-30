@@ -1,6 +1,10 @@
 // The coding room's right panel: what the last run or submit returned, the
-// attempts on this problem, and the review of the last submission.
-import { Activity, CheckCircle2, RotateCcw, XCircle } from "lucide-react";
+// attempts on this problem, the review of the last submission, and (once
+// you've submitted) a reference solution.
+import { useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { Activity, BookOpenCheck, CheckCircle2, RotateCcw, XCircle } from "lucide-react";
+import api from "../../lib/api";
 import { formatClock, parseErrorLine } from "./constants";
 
 export function OutputTab({ runState, resultsSource, runError, runResults, runHistory, onRetry, onGoToLine, onOpenReview }) {
@@ -103,12 +107,77 @@ function ResultSummary({ source, results }) {
   );
 }
 
-export function Review({ review }) {
+// Opens only after a submission of your own (the server checks too), so
+// it's a comparison, not a shortcut.
+function ReferenceSolution({ problem, unlocked }) {
+  const [state, setState] = useState({ status: "idle", code: "", error: "" });
+  if (!problem?.has_reference_solution) return null;
+  if (!unlocked) {
+    return (
+      <p className="text-[13px] text-slate-500 leading-relaxed">
+        Once you've submitted, a reference solution opens up here to compare with yours.
+      </p>
+    );
+  }
+
+  async function load() {
+    setState({ status: "loading", code: "", error: "" });
+    try {
+      const res = await api.get(`/coding/problems/${problem.slug}/solution`);
+      setState({ status: "shown", code: res.data.code, error: "" });
+    } catch (err) {
+      setState({ status: "error", code: "", error: err.message });
+    }
+  }
+
+  return (
+    <section aria-labelledby="reference-solution" className="border-t border-white/[0.08] pt-5">
+      {state.status === "shown" ? (
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <h2 id="reference-solution" className="text-[12.5px] text-white/55">Reference solution · Python</h2>
+          <button type="button" onClick={() => setState({ status: "idle", code: "", error: "" })}
+            className="text-[12.5px] text-slate-400 hover:text-white transition-colors">Hide</button>
+        </div>
+      ) : (
+        <h2 id="reference-solution" className="sr-only">Reference solution</h2>
+      )}
+      <AnimatePresence initial={false} mode="wait">
+        {state.status === "shown" ? (
+          <motion.div key="code" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}>
+            <pre tabIndex={0} aria-label="Reference solution code"
+              className="rounded-xl border border-white/[0.08] bg-black/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] p-4 overflow-x-auto font-mono text-[12.5px] leading-relaxed text-slate-200 outline-none focus-visible:ring-1 focus-visible:ring-white/25">
+              <code>{state.code}</code>
+            </pre>
+            <p className="mt-2 text-[12.5px] text-slate-500 leading-relaxed">
+              One verified approach: it passes every test, hidden ones included. Yours can differ and still be right.
+            </p>
+          </motion.div>
+        ) : (
+          <motion.div key="button" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+            <button type="button" onClick={load} disabled={state.status === "loading"}
+              className="glass-control inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[13px] text-slate-200 hover:text-white disabled:opacity-60 transition-colors">
+              <BookOpenCheck className="w-4 h-4" aria-hidden="true" />
+              {state.status === "loading" ? "Opening…" : "See a reference solution"}
+            </button>
+            {state.status === "error" && <p role="alert" className="mt-2 text-[13px] text-rose-300">{state.error}</p>}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
+  );
+}
+
+export function Review({ review, problem }) {
+  const unlocked = Boolean(review) || Boolean(problem?.reference_solution_unlocked);
   if (!review) {
     return (
-      <p className="text-slate-400 leading-relaxed">
-        Submit to get a review: how many tests pass, the complexity of your approach, and notes on clarity and naming. Submitting also updates your rating.
-      </p>
+      <div className="space-y-5">
+        <p className="text-slate-400 leading-relaxed">
+          Submit to get a review: how many tests pass, the complexity of your approach, and notes on clarity and naming. Submitting also updates your rating.
+        </p>
+        <ReferenceSolution key={problem?.slug} problem={problem} unlocked={unlocked} />
+      </div>
     );
   }
   const change = typeof review.new_elo === "number" && typeof review.previous_elo === "number"
@@ -154,6 +223,7 @@ export function Review({ review }) {
           The code-quality review wasn't available this time, so this submission was scored on its test results alone.
         </p>
       )}
+      <ReferenceSolution key={problem?.slug} problem={problem} unlocked={unlocked} />
     </div>
   );
 }

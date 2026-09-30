@@ -37,14 +37,18 @@ const STARTER = (name) => ({
   python: `# ${name} in Python\n`, javascript: `// ${name} in JS\n`,
   cpp: `// ${name} in C++\n`, java: `// ${name} in Java\n`,
 });
+export const REFERENCE_SOLUTION = "a, b = map(int, input().split())\nprint(a + b)";
+
 export const PROBLEMS = {
   two_sum: {
     id: 1, slug: "two_sum", title: "Two Sum", difficulty: 4, description: "Add two numbers.",
     starter_code: STARTER("two_sum"), sample_test_cases: [{ input: "1 2", expected_output: "3" }], topics: [],
+    has_reference_solution: true,
   },
   reverse_words: {
     id: 2, slug: "reverse_words", title: "Reverse Words", difficulty: 4, description: "Reverse them.",
     starter_code: STARTER("reverse_words"), sample_test_cases: [{ input: "a b", expected_output: "b a" }], topics: [],
+    has_reference_solution: false,
   },
 };
 
@@ -58,6 +62,7 @@ export const test = base.extend({
     const socket = { urls: [], received: [] };
     let nextPicks = 0; // like the real endpoint, /coding/next varies between calls
     const preferences = {}; // PATCH /user/preferences persists for the test
+    const submitted = new Set(); // problem ids this account has submitted, as the real API tracks
 
     await page.route(`${API}/**`, async (route) => {
       const req = route.request();
@@ -110,11 +115,21 @@ export const test = base.extend({
       if (path === "/coding/problems") {
         return json(200, { problems: Object.values(PROBLEMS).map(({ id, slug, title, difficulty }) => ({ id, slug, title, difficulty })) });
       }
-      if (path.startsWith("/coding/problems/")) return json(200, PROBLEMS[path.split("/").pop()]);
+      if (/^\/coding\/problems\/[^/]+\/solution$/.test(path)) {
+        const problem = PROBLEMS[path.split("/")[3]];
+        return submitted.has(problem.id)
+          ? json(200, { language: "python", code: REFERENCE_SOLUTION })
+          : json(403, { error: "Submit your own solution first, then the reference solution opens up." });
+      }
+      if (path.startsWith("/coding/problems/")) {
+        const problem = PROBLEMS[path.split("/").pop()];
+        return json(200, { ...problem, reference_solution_unlocked: problem.has_reference_solution && submitted.has(problem.id) });
+      }
       if (path === "/coding/run") {
         return json(200, CODING_RUN);
       }
       if (path === "/coding/submit") {
+        submitted.add(req.postDataJSON().problem_id);
         return json(200, CODING_SUBMIT);
       }
       if (path === "/ws/coaching/42/ticket") return json(200, { ticket: "short-lived-ticket" });

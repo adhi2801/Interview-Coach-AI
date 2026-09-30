@@ -43,13 +43,20 @@ def list_coding_problems():
         }
 
 
+def _has_submitted(db, user_id: int | None, problem_id: int) -> bool:
+    return bool(user_id) and db.query(CodingSubmission.id).filter(
+        CodingSubmission.user_id == user_id, CodingSubmission.problem_id == problem_id,
+    ).first() is not None
+
+
 @router.get("/coding/problems/{slug}")
-def get_coding_problem(slug: str):
+def get_coding_problem(slug: str, user_id: int | None = Depends(get_current_user_id)):
     """Full problem detail — starter code + VISIBLE test cases only. Hidden cases never leave the server."""
     with db_session() as db:
         problem = db.query(CodingProblem).filter(CodingProblem.slug == slug).first()
         if not problem:
             raise APIError(404, "Problem not found")
+        has_solution = bool(problem.reference_solution)
 
         visible_cases = db.query(CodingTestCase).filter(
             CodingTestCase.problem_id == problem.id,
@@ -72,7 +79,24 @@ def get_coding_problem(slug: str):
             "sample_test_cases": [
                 {"input": tc.input_data, "expected_output": tc.expected_output} for tc in visible_cases
             ],
+            "has_reference_solution": has_solution,
+            "reference_solution_unlocked": has_solution and _has_submitted(db, user_id, problem.id),
         }
+
+
+@router.get("/coding/problems/{slug}/solution")
+def get_reference_solution(slug: str, user_id: int = Depends(require_user_id)):
+    """The verified solution, once the user has submitted an attempt of
+    their own: seeing it first would turn practice into copying."""
+    with db_session() as db:
+        problem = db.query(CodingProblem).filter(CodingProblem.slug == slug).first()
+        if not problem:
+            raise APIError(404, "Problem not found")
+        if not problem.reference_solution:
+            raise APIError(404, "This problem doesn't have a reference solution yet.")
+        if not _has_submitted(db, user_id, problem.id):
+            raise APIError(403, "Submit your own solution first, then the reference solution opens up.")
+        return {"language": "python", "code": problem.reference_solution}
 
 
 @router.post("/coding/run")

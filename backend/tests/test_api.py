@@ -302,6 +302,38 @@ def fake_run(code, language, test_cases):
             for c in test_cases]
 
 
+def test_the_reference_solution_opens_only_after_your_own_submission(client, db_factory, problem, monkeypatch):
+    db = db_factory()
+    db.query(CodingProblem).filter(CodingProblem.id == problem).update({"reference_solution": "print(sum(map(int, input().split())))"})
+    db.commit()
+    db.close()
+    headers, _ = signup(client)
+    monkeypatch.setattr(services.code_executor, "run_test_cases", fake_run)
+    monkeypatch.setattr(services.coding_engine, "grade_submission", lambda *a, **kw: {"tests_passed": 2, "tests_total": 2})
+
+    detail = client.get("/coding/problems/two_sum", headers=headers).json()
+    assert detail["has_reference_solution"] is True and detail["reference_solution_unlocked"] is False
+    assert client.get("/coding/problems/two_sum/solution", headers=headers).status_code == 403
+    assert client.get("/coding/problems/two_sum/solution").status_code == 401
+
+    client.post("/coding/submit", headers=headers, json={"problem_id": problem, "code": "print(3)", "language": "python"})
+    assert client.get("/coding/problems/two_sum", headers=headers).json()["reference_solution_unlocked"] is True
+    solution = client.get("/coding/problems/two_sum/solution", headers=headers)
+    assert solution.status_code == 200
+    assert solution.json() == {"language": "python", "code": "print(sum(map(int, input().split())))"}
+
+    # Someone else's submission unlocks nothing for you.
+    other, _ = signup(client, email="grace@example.com", name="Grace")
+    assert client.get("/coding/problems/two_sum/solution", headers=other).status_code == 403
+
+
+def test_a_problem_without_a_reference_solution_says_so(client, problem):
+    headers, _ = signup(client)
+    assert client.get("/coding/problems/two_sum", headers=headers).json()["has_reference_solution"] is False
+    res = client.get("/coding/problems/two_sum/solution", headers=headers)
+    assert res.status_code == 404 and "reference solution" in res.json()["error"]
+
+
 def test_coding_submit_survives_quality_grader_outage(client, db_factory, problem, monkeypatch):
     headers, user_id = signup(client)
     monkeypatch.setattr(services.code_executor, "run_test_cases", fake_run)
@@ -758,10 +790,17 @@ def test_seeding_all_packs_is_idempotent(db_factory):
         hidden = db.query(CodingTestCase).filter(CodingTestCase.is_hidden == 1).count()
     finally:
         db.close()
+    # A problem seeded before solutions were stored gets its solution on the next run.
+    db = db_factory()
+    cleared = db.query(CodingProblem).filter(CodingProblem.slug == "binary-tree-level-order-traversal").update({"reference_solution": None})
+    assert cleared == 1
+    db.commit()
+    db.close()
     seed_verified_problems.main("all")
     db = db_factory()
     try:
         assert db.query(CodingProblem).count() == first >= 80
         assert hidden > 0
+        assert db.query(CodingProblem).filter(CodingProblem.reference_solution.is_(None)).count() == 0
     finally:
         db.close()
