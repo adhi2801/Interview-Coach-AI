@@ -273,8 +273,6 @@ export default function UserDashboard({ user, onStartNew, onStartCoding, onNavig
       <AppHeader />
 
       <PageIntro
-        index="01"
-        label="Overview"
         title={`${greeting()}, ${user?.name?.split(" ")[0] || "there"}.`}
         subtitle={rows ? summarySentence({ elo, change, topGap: gaps.queue[0] ? humanize(gaps.queue[0].gap) : null, weakest: weakest && capitalize(weakest), hasHistory }) : " "}
         aside={<Actions onStartNew={onStartNew} onStartCoding={onStartCoding} />}

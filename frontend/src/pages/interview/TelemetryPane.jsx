@@ -24,31 +24,31 @@ function Meter({ label, value, suffix, fraction, note, warn }) {
   );
 }
 
-export default function TelemetryPane({ personaMeta, liveCoaching, wsConnected, intervention, eloBand, currentElo, showCoaching = true }) {
-  const PersonaIcon = personaMeta.icon;
+// Confidence from a sentence or two is noise; it's shown once there's
+// enough of an answer to judge.
+const CONFIDENCE_MIN_WORDS = 40;
+
+export default function TelemetryPane({ personaMeta, liveCoaching, wsConnected, intervention, eloBand, currentElo, wordCount = 0, showCoaching = true }) {
   const fillers = liveCoaching?.filler_count ?? 0;
   const wpm = liveCoaching?.words_per_minute;
   const status = !wsConnected
     ? "Live coach offline, reconnecting…"
     : liveCoaching ? "Updates as you type or speak" : "Starts when you type or record";
+  const enough = wordCount >= CONFIDENCE_MIN_WORDS || liveCoaching?.pace_source === "speech";
+  const confidence = enough ? liveCoaching?.confidence_score : null;
 
   return (
     <aside aria-label="Live coaching" className="flex w-full shrink-0 flex-col gap-7 bg-[#08080c] p-6 lg:w-[22%] lg:min-w-[250px]">
-      <div className="flex items-center gap-3 border-b border-white/[0.08] pb-5">
-        <PersonaIcon size={16} aria-hidden="true" style={{ color: "var(--accent)" }} />
-        <div className="min-w-0">
-          <p className="text-[14px] font-medium text-white">{personaMeta.name}</p>
-          <p className="text-[12px] text-white/55">{personaMeta.moodDesc}</p>
-        </div>
-      </div>
+      <p className="border-b border-white/[0.08] pb-5 text-[13px] leading-relaxed text-white/60">{personaMeta.moodDesc}</p>
 
       {!showCoaching ? (
         <p className="text-[13px] leading-relaxed text-white/55">Live coaching is off. Turn it on in Settings to see confidence, pace and filler words while you answer.</p>
       ) : (
       <div className="space-y-6">
         <h3 className="text-[14px] font-semibold text-white">Live coaching</h3>
-        <Meter label="Confidence" value={liveCoaching?.confidence_score} suffix="/10"
-          fraction={liveCoaching ? liveCoaching.confidence_score / 10 : 0} note={status} />
+        <Meter label="Confidence" value={confidence} suffix="/10"
+          fraction={confidence != null ? confidence / 10 : 0}
+          note={!wsConnected || enough ? status : `Shown after about ${CONFIDENCE_MIN_WORDS} words (${wordCount} so far)`} />
         <Meter label="Pace" value={wpm ? Math.round(wpm) : null} suffix=" wpm"
           note={liveCoaching?.pace_source === "speech" ? "Speaking pace from your recording" : wpm ? "Typing speed; only speech is judged on pace" : "Measured as you type or speak"} />
         <Meter label="Filler words" value={fillers} warn={fillers > 3} note={'"um", "uh", "like", "basically", "actually"'} />

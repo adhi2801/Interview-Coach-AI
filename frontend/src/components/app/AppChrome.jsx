@@ -1,10 +1,10 @@
 // frontend/src/components/app/AppChrome.jsx
 //
-// The landing page's blueprint language, applied to every signed-in page:
-//   AppHeader        — the same glass bar, framed rails, IC mark and mono
-//                      links as the landing nav, with the active page marked
-//   PageIntro        — a framed hero band: dot field, mono section label,
-//                      big display title revealed on mount, optional aside
+// The frame every signed-in page shares:
+//   AppHeader        — the bar: IC mark, the six sections in plain words
+//                      with the current one marked, rating, account menu
+//   PageIntro        — the page's heading band: title, one sentence and an
+//                      optional aside (usually the page's main action)
 //   BlueprintBackdrop — the flat #050507 field with the frame rails running
 //                      the full height of the page, plus a soft top glow
 //
@@ -15,12 +15,11 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowLeft, LogOut, Menu, Search, X } from "lucide-react";
 import { useLocation } from "react-router-dom";
-import DotField from "../fx/DotField";
-import SplitReveal from "../fx/SplitReveal";
 import { useTransitionNavigate } from "../../lib/navigation";
 import { ease } from "../../lib/motion";
-import { cn } from "../../lib/utils";
-import { FRAME, Label } from "../../pages/landing/blueprint";
+import { cn, MOD_KEY } from "../../lib/utils";
+import { FRAME } from "../../pages/landing/blueprint";
+
 
 export const AppChromeContext = createContext({ user: null, onLogout: null, openPalette: null });
 
@@ -63,7 +62,7 @@ export function AppHeader({ children, back }) {
       <nav aria-label="App" className={cn(FRAME, "flex h-16 items-center justify-between gap-4 border-x border-white/[0.08] px-4 md:px-5")}>
         <div className="flex min-w-0 items-center gap-3">
           {back && (
-            <button onClick={back.onClick} className={cn("mr-1 flex items-center xl:hidden gap-1.5 border border-white/10 px-2.5 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-white/60 transition-colors hover:border-white/30 hover:text-white", FOCUS)}>
+            <button onClick={back.onClick} className={cn("mr-1 flex items-center xl:hidden gap-1.5 border border-white/10 px-2.5 py-1.5 text-[13px] text-white/70 transition-colors hover:border-white/30 hover:text-white", FOCUS)}>
               <ArrowLeft size={12} /> {back.label || "Back"}
             </button>
           )}
@@ -73,7 +72,7 @@ export function AppHeader({ children, back }) {
           </button>
         </div>
 
-        <ul className="hidden items-center gap-5 xl:flex">
+        <ul className="hidden items-center gap-6 xl:flex">
           {APP_NAV.map((n) => {
             const on = n.match(pathname);
             return (
@@ -81,7 +80,7 @@ export function AppHeader({ children, back }) {
                 <button
                   onClick={() => navigate(n.to)}
                   aria-current={on ? "page" : undefined}
-                  className={cn("whitespace-nowrap font-mono text-[11px] uppercase tracking-[0.14em] transition-colors", on ? "text-white" : "text-white/50 hover:text-white", FOCUS)}
+                  className={cn("whitespace-nowrap text-[14px] transition-colors", on ? "text-white" : "text-white/60 hover:text-white", FOCUS)}
                 >
                   {n.label}
                 </button>
@@ -94,17 +93,17 @@ export function AppHeader({ children, back }) {
         <div className="flex shrink-0 items-center gap-2 md:gap-3">
           {children}
           {openPalette && (
-            <button onClick={openPalette} className={cn("hidden items-center gap-2 border border-white/10 px-2.5 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-white/50 transition-colors hover:border-white/30 hover:text-white lg:flex", FOCUS)}>
-              <Search size={12} /> Search <kbd className="text-white/50">⌘K</kbd>
+            <button onClick={openPalette} className={cn("hidden items-center gap-2 border border-white/10 px-2.5 py-1.5 text-[13px] text-white/60 transition-colors hover:border-white/30 hover:text-white lg:flex", FOCUS)}>
+              <Search size={13} aria-hidden="true" /> Search <kbd className="font-mono text-[11.5px] text-white/50">{MOD_KEY}+K</kbd>
             </button>
           )}
           {elo != null && (
-            <span className="hidden items-center gap-1.5 border border-indigo-400/25 bg-indigo-500/10 px-2.5 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-indigo-200 sm:flex">
-              ELO <span className="tabular-nums text-white">{elo}</span>
+            <span className="hidden items-center gap-1.5 px-1 text-[13px] text-white/60 sm:flex">
+              Rating <span className="text-[14px] font-semibold tabular-nums text-white">{elo.toLocaleString("en-US")}</span>
             </span>
           )}
           <div className="relative">
-            <button onClick={() => setMenu((m) => !m)} aria-label="Account menu" className={cn("grid h-8 w-8 place-items-center bg-linear-to-br from-indigo-400 to-violet-500 text-xs font-bold text-white", FOCUS)}>
+            <button onClick={() => setMenu((m) => !m)} aria-label="Account menu" className={cn("grid h-8 w-8 place-items-center border border-white/15 bg-white/[0.06] text-[13px] font-semibold text-white hover:bg-white/[0.1]", FOCUS)}>
               {user?.name?.charAt(0)?.toUpperCase() || "U"}
             </button>
             <AnimatePresence>
@@ -118,12 +117,12 @@ export function AppHeader({ children, back }) {
                 >
                   <div className="border-b border-white/[0.06] px-3 py-3">
                     <p className="truncate text-sm font-semibold text-white">{user?.name || "Candidate"}</p>
-                    <p className="truncate font-mono text-[10.5px] text-white/55">{user?.email || ""}</p>
+                    <p className="truncate text-[13px] text-white/55">{user?.email || ""}</p>
                   </div>
-                  <button onClick={() => navigate("/settings")} className="w-full px-3 py-2.5 text-left font-mono text-[11px] uppercase tracking-[0.14em] text-white/65 hover:bg-white/[0.04] hover:text-white">Settings</button>
+                  <button onClick={() => navigate("/settings")} className="w-full px-3 py-2.5 text-left text-[14px] text-white/75 hover:bg-white/[0.04] hover:text-white">Settings</button>
                   {onLogout && (
-                    <button onClick={onLogout} className="flex w-full items-center gap-2 px-3 py-2.5 text-left font-mono text-[11px] uppercase tracking-[0.14em] text-rose-300 hover:bg-rose-500/10">
-                      <LogOut size={12} /> Log out
+                    <button onClick={onLogout} className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-[14px] text-rose-200 hover:bg-rose-500/10">
+                      <LogOut size={13} aria-hidden="true" /> Log out
                     </button>
                   )}
                 </motion.div>
@@ -151,7 +150,7 @@ export function AppHeader({ children, back }) {
                 const on = n.match(pathname);
                 return (
                   <li key={n.to} className={cn("border-b border-white/[0.06]", i % 2 === 0 && "border-r sm:border-r-0", "sm:[&:not(:nth-child(3n))]:border-r")}>
-                    <button onClick={() => navigate(n.to)} className={cn("flex w-full items-center gap-2 px-5 py-4 text-left font-mono text-[11px] uppercase tracking-[0.14em]", on ? "text-white" : "text-white/55")}>
+                    <button onClick={() => navigate(n.to)} aria-current={on ? "page" : undefined} className={cn("flex w-full items-center gap-2 px-5 py-4 text-left text-[15px]", on ? "text-white" : "text-white/65")}>
                       <span className={cn("h-1.5 w-1.5", on ? "bg-indigo-400" : "bg-white/20")} /> {n.label}
                     </button>
                   </li>
@@ -165,41 +164,18 @@ export function AppHeader({ children, back }) {
   );
 }
 
-// Framed hero band at the top of a page.
-export function PageIntro({ index, label, title, accent, subtitle, aside, children, className, dots = true }) {
+// The heading band at the top of a page: title, one sentence, and an
+// optional aside (usually the page's main action).
+export function PageIntro({ title, subtitle, aside, children, className }) {
   return (
     <section className={cn("relative", className)}>
-      <div className={cn(FRAME, "relative overflow-hidden border-x border-b border-white/[0.08]")}>
-        {dots && (
-          <div aria-hidden="true" className="absolute inset-0">
-            <DotField cell={11} intensity={0.75} className="opacity-70" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_0%,rgba(5,5,7,0.25),#050507_78%)]" />
-          </div>
-        )}
-        <div className="relative flex flex-col gap-8 px-5 pb-10 pt-12 md:px-10 md:pt-16 lg:flex-row lg:items-end lg:justify-between">
-          <div className="min-w-0 max-w-3xl">
-            <Label index={index}>{label}</Label>
-            {/* Keyed by the text: SplitReveal splits once per mount, so a title that
-                arrives with data (e.g. the knowledge graph headline) needs a remount. */}
-            <SplitReveal key={typeof title === "string" ? title : undefined} as="h1" by="lines" trigger="mount" delay={0.05} className="mt-6 text-[40px] font-semibold leading-[1] tracking-[-0.045em] text-white md:text-6xl">
-              {title}
-            </SplitReveal>
-            {accent && (
-              <motion.p initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, duration: 0.8, ease: ease.expo }} className="text-iridescent mt-1 text-[40px] font-semibold leading-[1.05] tracking-[-0.045em] md:text-6xl">
-                {accent}
-              </motion.p>
-            )}
-            {subtitle && (
-              <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.8, ease: ease.expo }} className="mt-5 max-w-xl text-[15.5px] leading-relaxed text-white/55">
-                {subtitle}
-              </motion.p>
-            )}
-          </div>
-          {aside && (
-            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45, duration: 0.8, ease: ease.expo }} className="shrink-0">
-              {aside}
-            </motion.div>
-          )}
+      <div className={cn(FRAME, "relative border-x border-b border-white/[0.08]")}>
+        <div className="relative flex flex-col gap-6 px-5 pb-9 pt-10 md:px-10 md:pt-12 lg:flex-row lg:items-end lg:justify-between">
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: ease.expo }} className="min-w-0 max-w-3xl">
+            <h1 className="text-[32px] font-semibold leading-[1.1] tracking-[-0.035em] text-white md:text-[44px]">{title}</h1>
+            {subtitle && <p className="mt-3 max-w-xl text-[15.5px] leading-relaxed text-white/60">{subtitle}</p>}
+          </motion.div>
+          {aside && <div className="shrink-0">{aside}</div>}
         </div>
         {children}
       </div>
@@ -221,7 +197,7 @@ export function Stat({ value, label, className }) {
   return (
     <div className={cn("px-5 py-5 md:px-7", className)}>
       <p className="text-3xl font-semibold tabular-nums tracking-[-0.04em] text-white md:text-4xl">{value}</p>
-      <p className="mt-1 font-mono text-[10.5px] uppercase tracking-[0.14em] text-white/55">{label}</p>
+      <p className="mt-1 text-[13px] text-white/55">{label}</p>
     </div>
   );
 }

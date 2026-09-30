@@ -13,7 +13,7 @@ import { cn } from "../../lib/utils";
 import { FRAME } from "../../pages/landing/blueprint";
 import { FOCUS, Mark, PageIntro } from "./AppChrome";
 
-export default function LegalPage({ index, label, title, intro, sections, meta, copyTitle, onGoBack }) {
+export default function LegalPage({ title, intro, sections, meta, copyTitle, onGoBack }) {
   const [copied, setCopied] = useState(false);
 
   function handleCopy() {
@@ -37,18 +37,18 @@ export default function LegalPage({ index, label, title, intro, sections, meta, 
             <Mark />
             <span className="text-[15px] font-semibold tracking-tight">InterviewCoach</span>
           </button>
-          <button onClick={onGoBack} className={cn("flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-white/55 transition-colors hover:text-white", FOCUS)}>
-            <ArrowLeft size={13} /> Back
+          <button onClick={onGoBack} className={cn("flex items-center gap-1.5 text-[14px] text-white/60 transition-colors hover:text-white", FOCUS)}>
+            <ArrowLeft size={14} aria-hidden="true" /> Back
           </button>
         </div>
       </header>
 
-      <PageIntro index={index} label={label} title={title} subtitle={intro} />
+      <PageIntro title={title} subtitle={intro} />
 
       <div className={cn(FRAME, "grid grid-cols-1 border-x border-white/[0.08] lg:grid-cols-12")}>
         <aside className="hidden border-r border-white/[0.08] lg:col-span-3 lg:block">
           <nav aria-label="Contents" className="sticky top-16 px-8 py-10">
-            <p className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-white/50">Contents</p>
+            <p className="text-[13px] text-white/55">Contents</p>
             <ol className="mt-4 space-y-2.5">
               {sections.map((s, i) => (
                 <li key={s.title}>
@@ -57,7 +57,7 @@ export default function LegalPage({ index, label, title, intro, sections, meta, 
                     onClick={(e) => { e.preventDefault(); scrollToTarget(document.getElementById(anchor(i))); }}
                     className={cn("flex gap-2 text-[13px] text-white/55 transition-colors hover:text-white", FOCUS)}
                   >
-                    <span className="font-mono text-[11px] text-indigo-300">0{i + 1}</span> {s.title}
+                    <span className="tabular-nums text-white/40">{i + 1}.</span> {s.title}
                   </a>
                 </li>
               ))}
@@ -70,16 +70,15 @@ export default function LegalPage({ index, label, title, intro, sections, meta, 
             {sections.map((s, i) => (
               <section key={s.title} id={anchor(i)} data-reveal className="grid scroll-mt-24 grid-cols-1 gap-3 border-b border-white/[0.08] px-6 py-10 md:grid-cols-12 md:gap-8 md:px-10">
                 <div className="md:col-span-4">
-                  <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-indigo-300">Clause 0{i + 1}</p>
-                  <h2 className="mt-2 flex items-center gap-2 text-xl font-semibold tracking-[-0.02em] text-white">
-                    {s.icon && <s.icon size={17} className="shrink-0 text-white/55" />} {s.title}
+                  <h2 className="flex items-center gap-2 text-xl font-semibold tracking-[-0.02em] text-white">
+                    <span className="tabular-nums text-white/40">{i + 1}.</span> {s.title}
                   </h2>
                 </div>
                 <p className="text-[15px] leading-relaxed text-white/60 md:col-span-8">{s.body}</p>
               </section>
             ))}
           </Reveal>
-          <div className="flex flex-col gap-3 px-6 py-6 font-mono text-[11px] uppercase tracking-[0.14em] text-white/50 sm:flex-row sm:items-center sm:justify-between md:px-10">
+          <div className="flex flex-col gap-3 px-6 py-6 text-[13px] text-white/55 sm:flex-row sm:items-center sm:justify-between md:px-10">
             <button onClick={handleCopy} className={cn("flex items-center gap-1.5 text-white/55 transition-colors hover:text-white", FOCUS)}>
               {copied ? <><Check size={12} className="text-emerald-400" /> Copied</> : <><Copy size={12} /> Copy text</>}
             </button>

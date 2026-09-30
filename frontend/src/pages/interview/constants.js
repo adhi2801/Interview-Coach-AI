@@ -80,11 +80,18 @@ export function getPersonaMeta(persona) {
 // Base 90s + ~9s per 100 characters of context, plus 15s per constraint —
 // a longer/denser question genuinely needs more reading+thinking time.
 // Floor 90s, cap 240s so it never runs away on an unusually long scenario.
-export function computeTimeLimit(scenarioText, constraintList) {
-  const base = 90;
-  const readingTime = Math.round((scenarioText?.length || 0) / 100) * 9;
-  const constraintTime = (constraintList?.length || 0) * 15;
-  return Math.min(240, Math.max(90, base + readingTime + constraintTime));
+// Seconds to answer one question, by its kind, as a real loop paces them:
+// a system design answer gets the time to clarify, sketch and weigh
+// trade-offs; a behavioural story, a few minutes. Longer scenarios and more
+// constraints add reading time. (It was 90-240 s for every question, which
+// cut system design answers off mid-thought when the timer auto-submits.)
+const BASE_SECONDS = { system_design: 12 * 60, behavioral: 5 * 60, default: 8 * 60 };
+
+export function computeTimeLimit(scenarioText, constraintList, category = "") {
+  const kind = /system|design|architect/i.test(category) ? "system_design"
+    : /behav|leadership|culture/i.test(category) ? "behavioral" : "default";
+  const reading = Math.round((scenarioText?.length || 0) / 100) * 10 + (constraintList?.length || 0) * 20;
+  return BASE_SECONDS[kind] + Math.min(reading, 3 * 60);
 }
 
 export function formatTime(s) {

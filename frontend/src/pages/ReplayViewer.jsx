@@ -53,7 +53,7 @@ function SessionsList({ onSelectSession, onExit }) {
   return (
     <div className="relative flex min-h-screen flex-col overflow-x-clip bg-transparent font-sans text-slate-200">
       <AppHeader back={{ label: "Overview", onClick: onExit }} />
-      <PageIntro index="05" label="Sessions" title="Every interview, replayable."
+      <PageIntro title="Sessions"
         subtitle="Open any session to go back through it: each question, your answer, how it scored and why, and the gaps it found." />
 
       <Frame className="flex-1" innerClassName="border-b border-white/[0.08]">

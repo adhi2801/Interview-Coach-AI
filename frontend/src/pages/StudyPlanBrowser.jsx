@@ -105,8 +105,6 @@ export default function StudyPlanBrowser({ onGoBack }) {
       <AppHeader back={{ label: "Overview", onClick: onGoBack }} />
 
       <PageIntro
-        index="04"
-        label="Knowledge graph"
         title={headline(stats)}
         subtitle="Each row is a subject; each column is how many prerequisites deep a topic sits. Colours come from your scored answers."
       />

@@ -253,9 +253,7 @@ export default function Dashboard({ onStart, user, onGoBack }) {
       <AppHeader back={{ label: "Overview", onClick: onGoBack }} />
 
       <PageIntro
-        index="02"
-        label="Interview"
-        title="Set up your interview."
+        title="Set up an interview"
         subtitle="Pick the company, the level and who's across the table. Your rating sets the difficulty; each answer is scored as you go."
       />
 

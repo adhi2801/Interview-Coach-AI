@@ -32,8 +32,7 @@ export function formatClock(ts) {
   return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-// The modifier key as this platform labels it, for shortcut hints.
-export const MOD_KEY = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl";
+export { MOD_KEY } from "../../lib/utils";
 
 // Extracts a line number from a stderr/traceback string.
 // Covers Python ("line 12"), and generic compiler-style "file:12:" formats
