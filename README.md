@@ -4,11 +4,10 @@
 
 > An AI-powered mock interview platform that adapts to a user's skill level, simulates company-specific interview styles, and provides real-time coaching during technical and coding interviews.
 
-### Live Demo
-- Frontend: https://interview-coach-ai-three.vercel.app
-- Backend API: https://interview-coach-ai-production.up.railway.app
-- API Docs (Swagger): https://interview-coach-ai-production.up.railway.app/docs
-- Repository: https://github.com/adhi2801/Interview-Coach-AI
+### Hosted demo
+The app was deployed with the frontend on Vercel and the API on Railway. The Railway API is offline at the moment,
+so the hosted frontend cannot sign in or start an interview. The screenshots below show the app, and
+[Running Locally](#running-locally) starts the whole stack with one `docker compose up`.
 
 ---
 
@@ -121,8 +120,8 @@ flowchart TB
 
 Every endpoint is documented via FastAPI's auto-generated OpenAPI schema — no separate docs to maintain, always in sync with the actual code:
 
-- **Interactive Swagger UI:** https://interview-coach-ai-production.up.railway.app/docs
-- **Raw OpenAPI JSON:** https://interview-coach-ai-production.up.railway.app/openapi.json
+- **Interactive Swagger UI:** http://localhost:8000/docs once the backend is running (see [Running Locally](#running-locally))
+- **Raw OpenAPI JSON:** http://localhost:8000/openapi.json
 
 ---
 
