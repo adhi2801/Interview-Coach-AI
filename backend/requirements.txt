@@ -3,7 +3,7 @@
 alembic==1.18.4
 annotated-doc==0.0.4
 annotated-types==0.7.0
-anthropic==0.109.1
+anthropic==1.8.0
 anyio==4.13.0
 av==18.1.0
 bcrypt==5.0.0
